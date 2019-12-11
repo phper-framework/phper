@@ -1,0 +1,13 @@
+[package]
+name = "phper"
+version = "0.0.0"
+authors = ["__JM_Joy__ <918734043@qq.com>"]
+edition = "2018"
+description = "PHP binding."
+license-file = "../LICENSE"
+readme = "README.md"
+keywords = ["php", "binding"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
