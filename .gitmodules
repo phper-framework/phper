@@ -1,3 +1,0 @@
-[submodule "phper-sys/php-src"]
-	path = phper-sys/php-src
-	url = https://github.com/php/php-src.git

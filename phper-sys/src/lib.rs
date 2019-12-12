@@ -2,6 +2,6 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));
+//include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));
 
 mod r#macro;
