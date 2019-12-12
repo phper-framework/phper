@@ -5,3 +5,4 @@ Cargo.lock
 .vscode
 /.cargo
 /vendor
+/trail-extension
