@@ -4,4 +4,3 @@
 
 include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));
 
-mod r#macro;

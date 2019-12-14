@@ -2,4 +2,5 @@
 members = [
     "phper",
     "phper-sys",
+    "phper-macros",
 ]

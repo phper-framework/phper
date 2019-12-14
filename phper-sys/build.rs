@@ -5,14 +5,20 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn main() -> Result<(), Box<dyn Error + 'static>> {
+    println!("cargo:rerun-if-changed=php_wrapper.h");
+
     let out_path = PathBuf::from(env::var("OUT_DIR")?);
 
-    let php_config = env::var("PHPER_PHP_CONFIG").unwrap_or("php-config".to_string());
+    let php_config = env::var("PHP_CONFIG_PATH").unwrap_or("php-config".to_string());
     let output = Command::new(php_config).arg("--includes").output()?.stdout;
     let includes = String::from_utf8(output)?;
+    let includes = includes.trim();
     let includes = includes.split(' ').collect::<Vec<_>>();
 
-    println!("cargo:rerun-if-changed=php_wrapper.h");
+    includes.iter().for_each(|include| {
+        let include = &include[2..];
+        println!("cargo:include={}", include);
+    });
 
     let bindings = Builder::default()
         .header("php_wrapper.h")
