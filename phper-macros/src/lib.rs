@@ -12,6 +12,7 @@ use syn::token::Comma;
 pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
+    let vis = &input.vis;
     let ret = &input.sig.output;
     let inputs = &input.sig.inputs;
     let name = &input.sig.ident;
@@ -26,7 +27,7 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let result = quote! {
         #[no_mangle]
         #(#attrs)*
-        fn #name(#inputs) #ret {
+        #vis extern "C" fn #name(#inputs) #ret {
             #body
         }
     };
@@ -38,6 +39,7 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
 pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
+    let vis = &input.vis;
     let inputs = &input.sig.inputs;
     let name = &input.sig.ident;
     let body = &input.block;
@@ -51,7 +53,7 @@ pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
     let result = quote! {
         #[no_mangle]
         #(#attrs)*
-        fn #name(#inputs) -> ::std::os::raw::c_int {
+        #vis extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
             #body
         }
     };
@@ -63,6 +65,7 @@ pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
 pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
+    let vis = &input.vis;
     let inputs = &input.sig.inputs;
     let name = &input.sig.ident;
     let body = &input.block;
@@ -76,7 +79,7 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
     let result = quote! {
         #[no_mangle]
         #(#attrs)*
-        fn #name(#inputs) -> ::std::os::raw::c_int {
+        #vis extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
             #body
         }
     };
@@ -88,6 +91,7 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
 pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
+    let vis = &input.vis;
     let inputs = &input.sig.inputs;
     let name = &input.sig.ident;
     let body = &input.block;
@@ -101,7 +105,7 @@ pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
     let result = quote! {
         #[no_mangle]
         #(#attrs)*
-        fn #name(#inputs) -> ::std::os::raw::c_int {
+        #vis extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
             #body
         }
     };
@@ -113,6 +117,7 @@ pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
 pub fn php_rshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
+    let vis = &input.vis;
     let inputs = &input.sig.inputs;
     let name = &input.sig.ident;
     let body = &input.block;
@@ -126,7 +131,7 @@ pub fn php_rshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
     let result = quote! {
         #[no_mangle]
         #(#attrs)*
-        fn #name(#inputs) -> ::std::os::raw::c_int {
+        #vis extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
             #body
         }
     };
