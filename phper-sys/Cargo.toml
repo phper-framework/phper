@@ -1,6 +1,6 @@
 [package]
 name = "phper-sys"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["__JM_Joy__ <918734043@qq.com>"]
 edition = "2018"
 description = "PHP binding."

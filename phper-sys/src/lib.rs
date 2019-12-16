@@ -2,21 +2,13 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::os::raw::c_char;
+#[macro_use]
+mod macros;
+mod zend;
 
 include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));
 
-impl Default for _zend_function_entry {
-    fn default() -> Self {
-        Self {
-            fname: 0 as *const c_char,
-            handler: None,
-            arg_info: 0 as *const _zend_internal_arg_info,
-            num_args: 0,
-            flags: 0,
-        }
-    }
-}
+pub use crate::zend::*;
 
 #[repr(C)]
 pub struct zend_function_entry_wrapper(pub *const zend_function_entry);
