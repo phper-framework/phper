@@ -1,8 +1,8 @@
 use core::alloc::{GlobalAlloc, Layout};
 use core::ffi::c_void;
 
-use crate::emalloc;
-use crate::efree;
+use phper_sys::efree;
+use phper_sys::emalloc;
 
 pub struct EAllocator;
 

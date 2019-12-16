@@ -14,7 +14,7 @@ First you have to install `cargo-generate`:
 cargo install cargo-generate
 ```
 
-Then create a PHP extension project from template:
+Then create a PHP extension project from the [template](https://github.com/jmjoy/phper-ext-skel.git):
 
 ```bash
 cargo generate --git https://github.com/jmjoy/phper-ext-skel.git

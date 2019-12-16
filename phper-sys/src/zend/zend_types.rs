@@ -71,26 +71,26 @@ macro_rules! zval_true {
 #[macro_export]
 macro_rules! zval_bool {
     ($z: expr, $b: expr) => {
-        let $b: bool = $b;
-        $crate::z_type_info!($z) = if $b { $crate::IS_TRUE } else { $crate::IS_FALSE };
+        let __b: bool = $b;
+        $crate::z_type_info!($z) = if __b { $crate::IS_TRUE } else { $crate::IS_FALSE };
     };
 }
 
 #[macro_export]
 macro_rules! zval_long {
     ($z: expr, $l: expr) => {
-    	let $z: *mut $crate::zval = $z;
-        $crate::z_lval_p($z) = $l;
-        $crate::z_type_info!($z) = $crate::IS_LONG;
+    	let __z: *mut $crate::zval = $z;
+        $crate::z_lval_p(__z) = $l;
+        $crate::z_type_info!(__z) = $crate::IS_LONG;
     };
 }
 
 #[macro_export]
 macro_rules! zval_double {
     ($z: expr, $d: expr) => {
-    	let $z: *mut $crate::zval = $z;
-        $crate::z_lval_p($z) = $l;
-        $crate::z_type_info!($z) = $crate::IS_DOUBLE;
+    	let __z: *mut $crate::zval = $z;
+        $crate::z_lval_p(__z) = $l;
+        $crate::z_type_info!(__z) = $crate::IS_DOUBLE;
     };
 }
 
@@ -111,10 +111,10 @@ macro_rules! z_str_p {
 #[macro_export]
 macro_rules! zval_str {
     ($z: expr, $s: expr) => {
-        let $z: *mut $crate::zval = $z;
-        let $s: *mut $crate::zend_string = $s;
-        $crate::z_str_p!($z) = $s;
-        $crate::z_type_info_p!($z) = if $crate::zstr_is_interned!(__s) {
+        let __z: *mut $crate::zval = $z;
+        let __s: *mut $crate::zend_string = $s;
+        $crate::z_str_p!(__z) = __s;
+        $crate::z_type_info_p!(__z) = if $crate::zstr_is_interned!(__s) {
             ::phper_sys::IS_INTERNED_STRING_EX
          } else {
 			::phper_sys::IS_STRING_EX
