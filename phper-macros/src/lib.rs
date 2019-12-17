@@ -39,23 +39,26 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
 pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    use syn::export::quote::ToTokens;
-
-    let fn_arg = get_context_fn_arg(&input.sig.inputs);
-
-    let vis = &input.vis;
+    let name = &zend_module_startup_n(input.sig.ident.clone());
     let inputs = &init_func_args(Punctuated::new());
-    let name = &input.sig.ident;
+    let inner_inputs = &input.sig.inputs;
+    let ret = &input.sig.output;
     let body = &input.block;
     let attrs = &input.attrs;
-
-    let name = Ident::new(&format!("zm_startup_{}", name), Span::call_site());
 
     let result = quote! {
         #[no_mangle]
         #(#attrs)*
-        #vis extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
-            #body
+        pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
+            let f = |#inner_inputs| #ret {
+                #body
+            };
+            let b: bool = f();
+            if b {
+                ::phper_sys::ZEND_RESULT_CODE_SUCCESS
+            } else {
+                ::phper_sys::ZEND_RESULT_CODE_FAILURE
+            }
         }
     };
 
@@ -67,19 +70,20 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
     let input = parse_macro_input!(input as ItemFn);
 
     let name = &zend_module_shutdown_n(input.sig.ident.clone());
+    let inputs = &shutdown_func_args(Punctuated::new());
+    let inner_inputs = &input.sig.inputs;
     let ret = &input.sig.output;
-    let inputs = shutdown_func_args(Punctuated::new());
     let body = &input.block;
     let attrs = &input.attrs;
 
     let result = quote! {
         #[no_mangle]
+        #(#attrs)*
         pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
-            #(#attrs)*
-            fn #name() #ret {
+            let f = |#inner_inputs| #ret {
                 #body
-            }
-            let b: bool = #name();
+            };
+            let b: bool = f();
             if b {
                 ::phper_sys::ZEND_RESULT_CODE_SUCCESS
             } else {
@@ -95,19 +99,26 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
 pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let vis = &input.vis;
-    let inputs = &init_func_args(input.sig.inputs.clone());
-    let name = &input.sig.ident;
+    let name = &zend_module_activate_n(input.sig.ident.clone());
+    let inputs = &init_func_args(Punctuated::new());
+    let inner_inputs = &input.sig.inputs;
+    let ret = &input.sig.output;
     let body = &input.block;
     let attrs = &input.attrs;
 
-    let name = Ident::new(&format!("zm_activate_{}", name), Span::call_site());
-
     let result = quote! {
         #[no_mangle]
-        #(#attrs)*
-        #vis extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
-            #body
+        pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
+            #(#attrs)*
+            fn #name(#inner_inputs) #ret {
+                #body
+            }
+            let b: bool = #name();
+            if b {
+                ::phper_sys::ZEND_RESULT_CODE_SUCCESS
+            } else {
+                ::phper_sys::ZEND_RESULT_CODE_FAILURE
+            }
         }
     };
 
@@ -118,19 +129,51 @@ pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
 pub fn php_rshutdown_function(_attr: TokenStream, mut input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let vis = &input.vis;
-    let inputs = &shutdown_func_args(input.sig.inputs.clone());
-    let name = &input.sig.ident;
+    let name = &zend_module_deactivate_n(input.sig.ident.clone());
+    let inputs = &init_func_args(Punctuated::new());
+    let inner_inputs = &input.sig.inputs;
+    let ret = &input.sig.output;
     let body = &input.block;
     let attrs = &input.attrs;
 
-    let name = Ident::new(&format!("zm_deactivate_{}", name), Span::call_site());
+    let result = quote! {
+        #[no_mangle]
+        pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
+            #(#attrs)*
+            fn #name(#inner_inputs) #ret {
+                #body
+            }
+            let b: bool = #name();
+            if b {
+                ::phper_sys::ZEND_RESULT_CODE_SUCCESS
+            } else {
+                ::phper_sys::ZEND_RESULT_CODE_FAILURE
+            }
+        }
+    };
+
+    result.into()
+}
+
+#[proc_macro_attribute]
+pub fn php_minfo_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemFn);
+
+    let name = &zend_module_info_n(input.sig.ident.clone());
+    let inputs = &zend_module_info_func_args(Punctuated::new());
+    let inner_inputs = &input.sig.inputs;
+    let ret = &input.sig.output;
+    let body = &input.block;
+    let attrs = &input.attrs;
 
     let result = quote! {
         #[no_mangle]
         #(#attrs)*
-        #vis extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
-            #body
+        pub extern "C" fn #name(#inputs) {
+            let f = |#inner_inputs| #ret {
+                #body
+            };
+            let _: () = f();
         }
     };
 
@@ -154,22 +197,27 @@ fn shutdown_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuated<FnArg,
     inputs
 }
 
-fn zend_module_info_func_args(inputs: &mut Punctuated<FnArg, Comma>) {
-    inputs.push(parse_str("zend_module_entry: *mut ::phper_sys::zend_module").unwrap());
+fn zend_module_info_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuated<FnArg, Comma> {
+    inputs.push(parse_str("zend_module: *mut ::phper_sys::zend_module_entry").unwrap());
+    inputs
+}
+
+fn zend_module_startup_n(ident: Ident) -> Ident {
+    Ident::new(&format!("zm_startup_{}", ident), ident.span())
 }
 
 fn zend_module_shutdown_n(ident: Ident) -> Ident {
     Ident::new(&format!("zm_shutdown_{}", ident), ident.span())
 }
 
-fn get_context_fn_arg(inputs: &Punctuated<FnArg, Comma>) -> Option<&FnArg> {
-    inputs.iter().find(|fn_arg| match fn_arg {
-        FnArg::Typed(pat_type) => pat_type.attrs.iter().any(|attr| {
-            attr.path
-                .segments
-                .iter()
-                .any(|seg| seg.ident.to_string() == "context".to_string())
-        }),
-        _ => false,
-    })
+fn zend_module_activate_n(ident: Ident) -> Ident {
+    Ident::new(&format!("zm_activate_{}", ident), ident.span())
+}
+
+fn zend_module_deactivate_n(ident: Ident) -> Ident {
+    Ident::new(&format!("zm_deactivate_{}", ident), ident.span())
+}
+
+fn zend_module_info_n(ident: Ident) -> Ident {
+    Ident::new(&format!("zm_info_{}", ident), ident.span())
 }

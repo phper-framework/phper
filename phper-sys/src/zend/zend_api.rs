@@ -2,9 +2,9 @@
 macro_rules! zend_fe_end {
     () => {
         $crate::zend_function_entry {
-            fname: 0 as *const c_char,
+            fname: std::ptr::null(),
             handler: None,
-            arg_info: 0 as *const $crate::zend_internal_arg_info,
+            arg_info: std::ptr::null(),
             num_args: 0,
             flags: 0,
         }
