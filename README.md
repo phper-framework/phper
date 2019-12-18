@@ -20,3 +20,7 @@ Then create a PHP extension project from the [template](https://github.com/jmjoy
 cargo generate --git https://github.com/jmjoy/phper-ext-skel.git
 ```
 
+## Notice
+
+Now the library don't support `ZTS`, the template in use `thread_local` instead.
+

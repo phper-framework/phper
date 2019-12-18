@@ -6,7 +6,7 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{parse_macro_input, parse_str, FnArg, ItemFn};
+use syn::{parse_macro_input, parse_str, FnArg, ItemFn, NestedMeta, AttributeArgs, Meta};
 
 #[proc_macro_attribute]
 pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -50,6 +50,13 @@ pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
         #[no_mangle]
         #(#attrs)*
         pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
+            unsafe {
+                ::phper_sys::zend_register_ini_entries(
+                    INI_ENTRIES.with(|i| i.as_ptr() as *const ::phper_sys::zend_ini_entry_def),
+                    module_number
+                );
+            }
+
             let f = |#inner_inputs| #ret {
                 #body
             };
@@ -80,6 +87,10 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
         #[no_mangle]
         #(#attrs)*
         pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
+            unsafe {
+                ::phper_sys::zend_unregister_ini_entries(module_number);
+            }
+
             let f = |#inner_inputs| #ret {
                 #body
             };
@@ -179,6 +190,11 @@ pub fn php_minfo_function(_attr: TokenStream, input: TokenStream) -> TokenStream
 
     result.into()
 }
+
+//#[proc_macro_attribute]
+//pub fn php_ini(_attr: TokenStream, input: TokenStream) -> TokenStream {
+//    input
+//}
 
 fn internal_function_parameters(inputs: &mut Punctuated<FnArg, Comma>) {
     inputs.push(parse_str("execute_data: *mut ::phper_sys::zend_execute_data").unwrap());
