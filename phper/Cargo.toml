@@ -3,10 +3,11 @@ name = "phper"
 version = "0.1.0"
 authors = ["__JM_Joy__ <918734043@qq.com>"]
 edition = "2018"
-description = "PHP binding."
+description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
+repository = "https://github.com/jmjoy/phper.git"
 license-file = "../LICENSE"
-readme = "README.md"
-keywords = ["php", "binding"]
+readme = "../README.md"
+keywords = ["php", "binding", "extension"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

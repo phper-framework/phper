@@ -22,5 +22,5 @@ cargo generate --git https://github.com/jmjoy/phper-ext-skel.git
 
 ## Notice
 
-Now the library don't support `ZTS`, the template in use `thread_local` instead.
+Now the library don't support `ZTS`, the template is using `thread_local!` instead.
 

@@ -1,3 +1,3 @@
-# PHPer
+# phper-sys
 
-PHP binding for Rust.
+Low level PHP binding for Rust.
