@@ -2,11 +2,10 @@ extern crate proc_macro;
 extern crate syn;
 
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{parse_macro_input, parse_str, FnArg, ItemFn, NestedMeta, AttributeArgs, Meta};
+use syn::{parse_macro_input, parse_str, FnArg, Ident, ItemFn};
 
 #[proc_macro_attribute]
 pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -21,8 +20,6 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut inputs = &mut inputs.clone();
     internal_function_parameters(&mut inputs);
-
-    let name = Ident::new(&format!("zif_{}", name), Span::call_site());
 
     let result = quote! {
         #[no_mangle]
@@ -39,7 +36,7 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
 pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let name = &zend_module_startup_n(input.sig.ident.clone());
+    let name = &input.sig.ident;
     let inputs = &init_func_args(Punctuated::new());
     let inner_inputs = &input.sig.inputs;
     let ret = &input.sig.output;
@@ -51,8 +48,8 @@ pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
         #(#attrs)*
         pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
             unsafe {
-                ::phper_sys::zend_register_ini_entries(
-                    INI_ENTRIES.with(|i| i.as_ptr() as *const ::phper_sys::zend_ini_entry_def),
+                ::phper::sys::zend_register_ini_entries(
+                    INI_ENTRIES.with(|i| i.as_ptr() as *const ::phper::sys::zend_ini_entry_def),
                     module_number
                 );
             }
@@ -62,9 +59,9 @@ pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
             };
             let b: bool = f();
             if b {
-                ::phper_sys::ZEND_RESULT_CODE_SUCCESS
+                ::phper::sys::ZEND_RESULT_CODE_SUCCESS
             } else {
-                ::phper_sys::ZEND_RESULT_CODE_FAILURE
+                ::phper::sys::ZEND_RESULT_CODE_FAILURE
             }
         }
     };
@@ -76,7 +73,7 @@ pub fn php_minit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
 pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let name = &zend_module_shutdown_n(input.sig.ident.clone());
+    let name = &input.sig.ident;
     let inputs = &shutdown_func_args(Punctuated::new());
     let inner_inputs = &input.sig.inputs;
     let ret = &input.sig.output;
@@ -88,7 +85,7 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
         #(#attrs)*
         pub extern "C" fn #name(#inputs) -> ::std::os::raw::c_int {
             unsafe {
-                ::phper_sys::zend_unregister_ini_entries(module_number);
+                ::phper::sys::zend_unregister_ini_entries(module_number);
             }
 
             let f = |#inner_inputs| #ret {
@@ -96,9 +93,9 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
             };
             let b: bool = f();
             if b {
-                ::phper_sys::ZEND_RESULT_CODE_SUCCESS
+                ::phper::sys::ZEND_RESULT_CODE_SUCCESS
             } else {
-                ::phper_sys::ZEND_RESULT_CODE_FAILURE
+                ::phper::sys::ZEND_RESULT_CODE_FAILURE
             }
         }
     };
@@ -110,7 +107,7 @@ pub fn php_mshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
 pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let name = &zend_module_activate_n(input.sig.ident.clone());
+    let name = &input.sig.ident;
     let inputs = &init_func_args(Punctuated::new());
     let inner_inputs = &input.sig.inputs;
     let ret = &input.sig.output;
@@ -126,9 +123,9 @@ pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
             }
             let b: bool = #name();
             if b {
-                ::phper_sys::ZEND_RESULT_CODE_SUCCESS
+                ::phper::sys::ZEND_RESULT_CODE_SUCCESS
             } else {
-                ::phper_sys::ZEND_RESULT_CODE_FAILURE
+                ::phper::sys::ZEND_RESULT_CODE_FAILURE
             }
         }
     };
@@ -137,10 +134,10 @@ pub fn php_rinit_function(_attr: TokenStream, input: TokenStream) -> TokenStream
 }
 
 #[proc_macro_attribute]
-pub fn php_rshutdown_function(_attr: TokenStream, mut input: TokenStream) -> TokenStream {
+pub fn php_rshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let name = &zend_module_deactivate_n(input.sig.ident.clone());
+    let name = &input.sig.ident;
     let inputs = &init_func_args(Punctuated::new());
     let inner_inputs = &input.sig.inputs;
     let ret = &input.sig.output;
@@ -156,9 +153,9 @@ pub fn php_rshutdown_function(_attr: TokenStream, mut input: TokenStream) -> Tok
             }
             let b: bool = #name();
             if b {
-                ::phper_sys::ZEND_RESULT_CODE_SUCCESS
+                ::phper::sys::ZEND_RESULT_CODE_SUCCESS
             } else {
-                ::phper_sys::ZEND_RESULT_CODE_FAILURE
+                ::phper::sys::ZEND_RESULT_CODE_FAILURE
             }
         }
     };
@@ -170,7 +167,7 @@ pub fn php_rshutdown_function(_attr: TokenStream, mut input: TokenStream) -> Tok
 pub fn php_minfo_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let name = &zend_module_info_n(input.sig.ident.clone());
+    let name = &input.sig.ident;
     let inputs = &zend_module_info_func_args(Punctuated::new());
     let inner_inputs = &input.sig.inputs;
     let ret = &input.sig.output;
@@ -191,14 +188,23 @@ pub fn php_minfo_function(_attr: TokenStream, input: TokenStream) -> TokenStream
     result.into()
 }
 
-//#[proc_macro_attribute]
-//pub fn php_ini(_attr: TokenStream, input: TokenStream) -> TokenStream {
-//    input
-//}
+#[proc_macro]
+pub fn zend_get_module(input: TokenStream) -> TokenStream {
+    let name = parse_macro_input!(input as Ident);
+
+    let result = quote! {
+        #[no_mangle]
+        pub extern "C" fn get_module() -> *const ::phper::sys::zend_module_entry {
+            #name.0
+        }
+    };
+
+    result.into()
+}
 
 fn internal_function_parameters(inputs: &mut Punctuated<FnArg, Comma>) {
-    inputs.push(parse_str("execute_data: *mut ::phper_sys::zend_execute_data").unwrap());
-    inputs.push(parse_str("return_value: *mut ::phper_sys::zval").unwrap());
+    inputs.push(parse_str("execute_data: *mut ::phper::sys::zend_execute_data").unwrap());
+    inputs.push(parse_str("return_value: *mut ::phper::sys::zval").unwrap());
 }
 
 fn init_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuated<FnArg, Comma> {
@@ -214,26 +220,26 @@ fn shutdown_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuated<FnArg,
 }
 
 fn zend_module_info_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuated<FnArg, Comma> {
-    inputs.push(parse_str("zend_module: *mut ::phper_sys::zend_module_entry").unwrap());
+    inputs.push(parse_str("zend_module: *mut ::phper::sys::zend_module_entry").unwrap());
     inputs
 }
 
-fn zend_module_startup_n(ident: Ident) -> Ident {
-    Ident::new(&format!("zm_startup_{}", ident), ident.span())
-}
-
-fn zend_module_shutdown_n(ident: Ident) -> Ident {
-    Ident::new(&format!("zm_shutdown_{}", ident), ident.span())
-}
-
-fn zend_module_activate_n(ident: Ident) -> Ident {
-    Ident::new(&format!("zm_activate_{}", ident), ident.span())
-}
-
-fn zend_module_deactivate_n(ident: Ident) -> Ident {
-    Ident::new(&format!("zm_deactivate_{}", ident), ident.span())
-}
-
-fn zend_module_info_n(ident: Ident) -> Ident {
-    Ident::new(&format!("zm_info_{}", ident), ident.span())
-}
+//fn zend_module_startup_n(ident: Ident) -> Ident {
+//    Ident::new(&format!("zm_startup_{}", ident), ident.span())
+//}
+//
+//fn zend_module_shutdown_n(ident: Ident) -> Ident {
+//    Ident::new(&format!("zm_shutdown_{}", ident), ident.span())
+//}
+//
+//fn zend_module_activate_n(ident: Ident) -> Ident {
+//    Ident::new(&format!("zm_activate_{}", ident), ident.span())
+//}
+//
+//fn zend_module_deactivate_n(ident: Ident) -> Ident {
+//    Ident::new(&format!("zm_deactivate_{}", ident), ident.span())
+//}
+//
+//fn zend_module_info_n(ident: Ident) -> Ident {
+//    Ident::new(&format!("zm_info_{}", ident), ident.span())
+//}
