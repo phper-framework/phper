@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "phper",
-    "phper-sys",
+    "phper-alloc",
     "phper-macros",
+    "phper-sys",
 ]

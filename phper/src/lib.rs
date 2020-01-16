@@ -1,11 +1,13 @@
 extern crate phper_macros;
+pub extern crate phper_sys as sys;
 
 mod macros;
 
 pub use phper_macros::*;
-pub use phper_sys as sys;
 pub use phper_sys::c_str_ptr;
 use sys::{zend_function_entry, zend_ini_entry_def, zend_module_entry};
+
+pub mod zend;
 
 pub type IniEntries = Vec<zend_ini_entry_def>;
 
