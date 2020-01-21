@@ -4,13 +4,13 @@ use phper::sys::c_str;
 use phper::function::Function;
 
 #[no_mangle]
-pub extern "C" fn zif_simple(execute_data: *mut zend_execute_data, return_value: *mut zval) {
-
+pub extern "C" fn zif_test_simple(execute_data: *mut zend_execute_data, return_value: *mut zval) {
+    dbg!("zif_test_simple success");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn get_module() -> *const zend_module_entry {
-    let module = Module::new(c_str!("simple"));
-//        .functions(vec![Function::new(c_str!("simple"), zif_simple)]);
+    let module = Module::new(c_str!("simple"))
+        .functions(vec![Function::new(c_str!("test_simple"), zif_test_simple)]);
     module.into()
 }

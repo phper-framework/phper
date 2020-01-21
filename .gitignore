@@ -6,3 +6,4 @@ Cargo.lock
 /.cargo
 /vendor
 /trail-extension
+*.test.sh
