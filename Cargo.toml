@@ -4,4 +4,7 @@ members = [
     "phper-alloc",
     "phper-macros",
     "phper-sys",
+
+    # internal
+    "examples/simple",
 ]

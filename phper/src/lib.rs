@@ -9,6 +9,10 @@ use sys::{zend_function_entry, zend_ini_entry_def, zend_module_entry};
 
 pub mod zend;
 
+pub mod function;
+
+pub mod module;
+
 pub type IniEntries = Vec<zend_ini_entry_def>;
 
 pub type StaticZendModuleEntry = NotThreadSafe<*const zend_module_entry>;

@@ -1,16 +1,16 @@
 [package]
 name = "phper"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["__JM_Joy__ <918734043@qq.com>"]
 edition = "2018"
 description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
 repository = "https://github.com/jmjoy/phper.git"
-license-file = "../LICENSE"
+license = "Unlicense"
 readme = "../README.md"
 keywords = ["php", "binding", "extension"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-phper-sys = { version = "0.1", path = "../phper-sys" }
-phper-macros = { version = "0.1", path = "../phper-macros" }
+phper-sys = { version = "0.2", path = "../phper-sys" }
+phper-macros = { version = "0.2", path = "../phper-macros" }

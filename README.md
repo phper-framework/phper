@@ -2,8 +2,6 @@
 
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
 
-(一个让我们可以使用纯Rust并且尽可能使用safe Rust写PHP扩展的库。)
-
 ***Now the peojct is still under development.***
 
 ## Usage

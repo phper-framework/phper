@@ -1,11 +1,11 @@
 [package]
 name = "phper-sys"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["__JM_Joy__ <918734043@qq.com>"]
 edition = "2018"
 description = "Low level PHP binding for Rust."
 repository = "https://github.com/jmjoy/phper.git"
-license-file = "../LICENSE"
+license = "Unlicense"
 keywords = ["php", "binding"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
