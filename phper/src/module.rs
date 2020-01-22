@@ -1,9 +1,12 @@
-use std::os::raw::{c_char, c_ushort, c_uint, c_uchar};
-use std::ffi::CStr;
-use crate::sys::{zend_module_entry, c_str, ZEND_MODULE_API_NO, PHP_BUILD_ID, zend_function_entry};
-use std::mem::size_of;
-use std::ptr::{null, null_mut};
 use crate::function::Function;
+use crate::sys::{
+    c_str, zend_function_entry, zend_module_entry, PHP_EXTENSION_BUILD, USING_ZTS, ZEND_DEBUG,
+    ZEND_MODULE_API_NO,
+};
+use std::ffi::CStr;
+use std::mem::size_of;
+use std::os::raw::{c_uchar, c_uint, c_ushort};
+use std::ptr::{null, null_mut};
 
 #[derive(Debug)]
 pub struct Module<'a> {
@@ -36,25 +39,21 @@ impl<'a> Module<'a> {
             Some(functions) => {
                 let mut entries = Vec::with_capacity(functions.len() + 1);
                 for function in functions {
-                    entries.push(
-                        zend_function_entry {
-                            fname: function.name.as_ptr(),
-                            handler: Some(function.func),
-                            arg_info: null(),
-                            num_args: 0,
-                            flags: 0,
-                        }
-                    );
-                }
-                entries.push(
-                    zend_function_entry {
-                        fname: null(),
-                        handler: None,
+                    entries.push(zend_function_entry {
+                        fname: function.name.as_ptr(),
+                        handler: Some(function.func),
                         arg_info: null(),
                         num_args: 0,
                         flags: 0,
-                    }
-                );
+                    });
+                }
+                entries.push(zend_function_entry {
+                    fname: null(),
+                    handler: None,
+                    arg_info: null(),
+                    num_args: 0,
+                    flags: 0,
+                });
 
                 Box::into_raw(entries.into_boxed_slice()) as *const zend_function_entry
             }
@@ -64,10 +63,8 @@ impl<'a> Module<'a> {
         Box::new(zend_module_entry {
             size: size_of::<zend_module_entry>() as c_ushort,
             zend_api: ZEND_MODULE_API_NO as c_uint,
-            // TODO Don't support `DEBUG` now.
-            zend_debug: 0,
-            // TODO Don't support `ZTS` now.
-            zts: 0 as c_uchar,
+            zend_debug: ZEND_DEBUG as c_uchar,
+            zts: USING_ZTS as c_uchar,
             ini_entry: null(),
             deps: null(),
             name: self.name.as_ptr(),
@@ -87,7 +84,7 @@ impl<'a> Module<'a> {
             type_: 0,
             handle: null_mut(),
             module_number: 0,
-            build_id: PHP_BUILD_ID,
+            build_id: PHP_EXTENSION_BUILD,
         })
     }
 }

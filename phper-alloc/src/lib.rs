@@ -1,4 +1,4 @@
-use std::alloc::{GlobalAlloc, System, Layout};
+use std::alloc::{GlobalAlloc, Layout, System};
 
 struct MyAllocator;
 
@@ -14,5 +14,5 @@ unsafe impl GlobalAlloc for MyAllocator {
     }
 }
 
-#[global_allocator]
-static GLOBAL: MyAllocator = MyAllocator;
+//#[global_allocator]
+//static GLOBAL: MyAllocator = MyAllocator;

@@ -3,10 +3,10 @@ name = "phper-alloc"
 version = "0.2.0"
 authors = ["__JM_Joy__ <918734043@qq.com>"]
 edition = "2018"
-description = "Low level PHP binding for Rust."
+description = "Alloc related items for phper crate."
 repository = "https://github.com/jmjoy/phper.git"
 license = "Unlicense"
-keywords = ["php", "binding"]
+keywords = ["php", "alloc"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -1,20 +1,48 @@
 use bindgen::Builder;
 use std::env;
-use std::error::Error;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::ffi::OsStr;
+use std::fmt::Debug;
 use std::path::PathBuf;
 use std::process::Command;
 
-fn main() -> Result<(), Box<dyn Error + 'static>> {
+fn main() {
     println!("cargo:rerun-if-changed=php_wrapper.h");
+    println!("cargo:rerun-if-env-changed=PHP_CONFIG");
 
-    let out_path = PathBuf::from(env::var("OUT_DIR")?);
+    let php_config = env::var("PHP_CONFIG").unwrap_or("php-config".to_string());
 
-    let php_config = env::var("PHP_CONFIG_PATH").unwrap_or("php-config".to_string());
-    let output = Command::new(php_config).arg("--includes").output()?.stdout;
-    let includes = String::from_utf8(output)?;
-    let includes = includes.trim();
+    // Generate php const.
+
+    let php_bin = execute_command(&[php_config.as_str(), "--php-binary"]);
+    let php_info = execute_command(&[php_bin.as_str(), "-i"]);
+
+    let php_extension_build = php_info
+        .lines()
+        .find_map(|line| {
+            if line.starts_with("PHP Extension Build") {
+                Some(
+                    line.chars()
+                        .skip_while(|c| *c != 'A')
+                        .collect::<String>()
+                        .trim()
+                        .to_owned(),
+                )
+            } else {
+                None
+            }
+        })
+        .expect("Can't found the field `PHP Extension Build`");
+
+    println!(
+        "cargo:rustc-env=PHP_EXTENSION_BUILD={}",
+        php_extension_build
+    );
+
+    // Generate bindgen file.
+
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+    let includes = execute_command(&[php_config.as_str(), "--includes"]);
     let includes = includes.split(' ').collect::<Vec<_>>();
 
     includes.iter().for_each(|include| {
@@ -725,45 +753,17 @@ fn main() -> Result<(), Box<dyn Error + 'static>> {
         .expect("Unable to generate bindings");
 
     let generated_path = out_path.join("php_bindings.rs");
-    bindings.write_to_file(&generated_path)?;
+    bindings
+        .write_to_file(&generated_path)
+        .expect("Unable to write output file");
+}
 
-    let mut build_id = "API".to_string();
-
-    let file = File::open(&generated_path)?;
-    let reader = BufReader::new(file);
-
-    let mut zend_module_api_no = "".to_string();
-    let mut zend_build_ts = "".to_string();
-
-    for line in reader.lines() {
-        let line = line?;
-
-        if line.starts_with("pub const ZEND_MODULE_API_NO:") {
-            let line = line
-                .chars()
-                .skip_while(|x| *x != '=')
-                .skip_while(|x| *x == '=' || *x == ' ')
-                .take_while(|x| *x != ';')
-                .collect::<String>();
-            zend_module_api_no = line;
-        }
-
-        if line.starts_with("pub const ZEND_BUILD_TS:") {
-            let line = line
-                .chars()
-                .skip_while(|x| *x != '=')
-                .skip_while(|x| *x != '"')
-                .skip_while(|x| *x == '"')
-                .take_while(|x| *x != '\\')
-                .collect::<String>();
-            zend_build_ts = line;
-        }
-    }
-
-    build_id.push_str(&zend_module_api_no);
-    build_id.push_str(&zend_build_ts);
-
-    println!("cargo:rustc-env=PHP_BUILD_ID={}", build_id);
-
-    Ok(())
+fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
+    let mut command = Command::new(&argv[0]);
+    command.args(&argv[1..]);
+    let output = command
+        .output()
+        .expect(&format!("Execute command {:?} failed", &argv))
+        .stdout;
+    String::from_utf8(output).unwrap().trim().to_owned()
 }

@@ -1,6 +1,6 @@
+use crate::sys::{zend_execute_data, zval};
 use std::ffi::CStr;
 use std::os::raw::c_uchar;
-use crate::sys::{zend_execute_data, zval};
 
 #[derive(Debug)]
 pub struct Function<'a> {
@@ -16,7 +16,7 @@ impl<'a> Function<'a> {
             name,
             func,
             arg_info: None,
-            flags: 0
+            flags: 0,
         }
     }
 }
@@ -37,14 +37,13 @@ impl<'a> BeginArgInfo<'a> {
             pass_by_ref: 0,
             type_hint: None,
             classname: None,
-            allow_null: false
+            allow_null: false,
         }
     }
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum ArgType {
-}
+pub enum ArgType {}
 
 #[derive(Debug)]
 pub struct ArgInfo<'a> {
@@ -68,4 +67,3 @@ impl<'a> ArgInfo<'a> {
         }
     }
 }
-

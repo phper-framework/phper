@@ -6,7 +6,7 @@ edition = "2018"
 description = "The proc-macros for phper crate."
 repository = "https://github.com/jmjoy/phper.git"
 license = "Unlicense"
-keywords = ["php"]
+keywords = ["php", "proc-macro"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

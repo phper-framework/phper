@@ -1,10 +1,8 @@
-use phper::sys::{zend_module_entry, zend_execute_data, zval};
-use phper::module::Module;
-use phper::sys::c_str;
-use phper::function::Function;
+use phper::sys::{c_str, zend_execute_data, zend_module_entry, zval};
+use phper::{Function, Module};
 
 #[no_mangle]
-pub extern "C" fn zif_test_simple(execute_data: *mut zend_execute_data, return_value: *mut zval) {
+pub extern "C" fn zif_test_simple(_execute_data: *mut zend_execute_data, _return_value: *mut zval) {
     dbg!("zif_test_simple success");
 }
 

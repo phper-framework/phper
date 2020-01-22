@@ -1,3 +1,4 @@
+pub extern crate phper_alloc as alloc;
 extern crate phper_macros;
 pub extern crate phper_sys as sys;
 
@@ -9,9 +10,11 @@ use sys::{zend_function_entry, zend_ini_entry_def, zend_module_entry};
 
 pub mod zend;
 
-pub mod function;
+mod function;
+mod module;
 
-pub mod module;
+pub use crate::function::*;
+pub use crate::module::*;
 
 pub type IniEntries = Vec<zend_ini_entry_def>;
 
