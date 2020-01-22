@@ -9,6 +9,8 @@ fn main() {
     println!("cargo:rerun-if-changed=php_wrapper.h");
     println!("cargo:rerun-if-env-changed=PHP_CONFIG");
 
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
     let php_config = env::var("PHP_CONFIG").unwrap_or("php-config".to_string());
 
     // Generate php const.
@@ -39,9 +41,6 @@ fn main() {
     );
 
     // Generate bindgen file.
-
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-
     let includes = execute_command(&[php_config.as_str(), "--includes"]);
     let includes = includes.split(' ').collect::<Vec<_>>();
 

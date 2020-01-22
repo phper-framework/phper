@@ -1,6 +1,61 @@
-use crate::sys::{zend_execute_data, zval};
+use crate::sys::{zend_execute_data, zend_function_entry, zval};
 use std::ffi::CStr;
+use std::ops::{Deref, DerefMut};
 use std::os::raw::c_uchar;
+use std::ptr::null;
+
+#[derive(Debug)]
+pub struct Functions<'a> {
+    pub(crate) inner: Vec<Function<'a>>,
+}
+
+impl<'a> Functions<'a> {
+    #[inline]
+    pub fn empty() -> Self {
+        Self::new(Vec::new())
+    }
+
+    #[inline]
+    pub fn new(inner: Vec<Function<'a>>) -> Self {
+        Self { inner }
+    }
+
+    pub fn into_boxed_entries(self) -> Box<[zend_function_entry]> {
+        let functions = self.inner;
+
+        let mut entries = Vec::with_capacity(functions.len() + 1);
+
+        for function in functions {
+            entries.push(zend_function_entry {
+                fname: function.name.as_ptr(),
+                handler: Some(function.func),
+                arg_info: null(),
+                num_args: 0,
+                flags: 0,
+            });
+        }
+
+        entries.push(zend_function_entry::default());
+
+        entries.into_boxed_slice()
+    }
+}
+
+impl<'a> Deref for Functions<'a> {
+    type Target = Vec<Function<'a>>;
+
+    #[inline]
+    fn deref(&self) -> &Vec<Function<'a>> {
+        &self.inner
+    }
+}
+
+impl<'a> DerefMut for Functions<'a> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Vec<Function<'a>> {
+        &mut self.inner
+    }
+}
 
 #[derive(Debug)]
 pub struct Function<'a> {
@@ -11,6 +66,7 @@ pub struct Function<'a> {
 }
 
 impl<'a> Function<'a> {
+    #[inline]
     pub fn new(name: &'a CStr, func: extern "C" fn(*mut zend_execute_data, *mut zval)) -> Self {
         Self {
             name,
@@ -19,11 +75,15 @@ impl<'a> Function<'a> {
             flags: 0,
         }
     }
+
+    pub fn arg_info(mut self, arg_info: ArgInfo<'a>) -> Self {
+        self.arg_info = Some(arg_info);
+        self
+    }
 }
 
 #[derive(Debug)]
 pub struct BeginArgInfo<'a> {
-    name: &'a CStr,
     pass_by_ref: c_uchar,
     type_hint: Option<ArgType>,
     classname: Option<&'a CStr>,
@@ -33,7 +93,6 @@ pub struct BeginArgInfo<'a> {
 impl<'a> BeginArgInfo<'a> {
     pub fn new(name: &'a CStr) -> Self {
         Self {
-            name,
             pass_by_ref: 0,
             type_hint: None,
             classname: None,

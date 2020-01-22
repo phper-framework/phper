@@ -1,8 +1,8 @@
-use crate::function::Function;
 use crate::sys::{
     c_str, zend_function_entry, zend_module_entry, PHP_EXTENSION_BUILD, USING_ZTS, ZEND_DEBUG,
     ZEND_MODULE_API_NO,
 };
+use crate::Functions;
 use std::ffi::CStr;
 use std::mem::size_of;
 use std::os::raw::{c_uchar, c_uint, c_ushort};
@@ -12,16 +12,22 @@ use std::ptr::{null, null_mut};
 pub struct Module<'a> {
     name: &'a CStr,
     version: &'a CStr,
-    functions: Option<Vec<Function<'a>>>,
+    functions: Option<Functions<'a>>,
 }
 
 impl<'a> Module<'a> {
-    pub fn new(name: &'a CStr) -> Self {
+    #[inline]
+    pub fn new(name: &'a CStr, version: &'a CStr) -> Self {
         Self {
             name,
-            version: c_str!(env!("CARGO_PKG_VERSION")),
+            version,
             functions: None,
         }
+    }
+
+    pub fn name(mut self, name: &'a CStr) -> Self {
+        self.name = name;
+        self
     }
 
     pub fn version(mut self, version: &'a CStr) -> Self {
@@ -29,36 +35,17 @@ impl<'a> Module<'a> {
         self
     }
 
-    pub fn functions(mut self, functions: Vec<Function<'a>>) -> Self {
+    pub fn functions(mut self, functions: Functions<'a>) -> Self {
         self.functions = Some(functions);
         self
     }
 
-    pub fn into_box_entry(self) -> Box<zend_module_entry> {
-        let functions = match self.functions {
-            Some(functions) => {
-                let mut entries = Vec::with_capacity(functions.len() + 1);
-                for function in functions {
-                    entries.push(zend_function_entry {
-                        fname: function.name.as_ptr(),
-                        handler: Some(function.func),
-                        arg_info: null(),
-                        num_args: 0,
-                        flags: 0,
-                    });
-                }
-                entries.push(zend_function_entry {
-                    fname: null(),
-                    handler: None,
-                    arg_info: null(),
-                    num_args: 0,
-                    flags: 0,
-                });
+    pub fn into_boxed_entry(self) -> Box<zend_module_entry> {
+        let functions = self.functions.unwrap_or_else(|| Functions::new(Vec::new()));
+        let functions = Box::into_raw(functions.into_boxed_entries()) as *const zend_function_entry;
 
-                Box::into_raw(entries.into_boxed_slice()) as *const zend_function_entry
-            }
-            None => null(),
-        };
+        dbg!(&self.name);
+        dbg!(&self.version);
 
         Box::new(zend_module_entry {
             size: size_of::<zend_module_entry>() as c_ushort,
@@ -91,6 +78,6 @@ impl<'a> Module<'a> {
 
 impl From<Module<'_>> for *const zend_module_entry {
     fn from(module: Module<'_>) -> Self {
-        Box::into_raw(module.into_box_entry())
+        Box::into_raw(module.into_boxed_entry())
     }
 }
