@@ -8,7 +8,6 @@ use std::mem::size_of;
 use std::os::raw::{c_uchar, c_uint, c_ushort};
 use std::ptr::{null, null_mut};
 
-#[derive(Debug)]
 pub struct Module<'a> {
     name: &'a CStr,
     version: &'a CStr,
@@ -41,11 +40,8 @@ impl<'a> Module<'a> {
     }
 
     pub fn into_boxed_entry(self) -> Box<zend_module_entry> {
-        let functions = self.functions.unwrap_or_else(|| Functions::new(Vec::new()));
+        let functions = self.functions.unwrap_or_else(|| Functions::new());
         let functions = Box::into_raw(functions.into_boxed_entries()) as *const zend_function_entry;
-
-        dbg!(&self.name);
-        dbg!(&self.version);
 
         Box::new(zend_module_entry {
             size: size_of::<zend_module_entry>() as c_ushort,

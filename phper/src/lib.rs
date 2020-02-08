@@ -42,12 +42,12 @@ pub use crate::function::*;
 pub use crate::module::*;
 pub use crate::types::*;
 
-pub type IniEntries = Vec<zend_ini_entry_def>;
-
-pub type StaticZendModuleEntry = NotThreadSafe<*const zend_module_entry>;
-
-pub type StaticZendFunctionEntry = NotThreadSafe<*const zend_function_entry>;
-
-pub struct NotThreadSafe<T>(pub T);
-
-unsafe impl<T> Sync for NotThreadSafe<T> {}
+//pub type IniEntries = Vec<zend_ini_entry_def>;
+//
+//pub type StaticZendModuleEntry = NotThreadSafe<*const zend_module_entry>;
+//
+//pub type StaticZendFunctionEntry = NotThreadSafe<*const zend_function_entry>;
+//
+//pub struct NotThreadSafe<T>(pub T);
+//
+//unsafe impl<T> Sync for NotThreadSafe<T> {}

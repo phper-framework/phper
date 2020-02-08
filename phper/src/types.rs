@@ -1,5 +1,7 @@
 use crate::sys::{zend_execute_data, zval};
 
+pub type FunctionType<'a> = &'a dyn FnMut(Parameters) -> Value;
+
 pub struct Parameters {
     pub(crate) ptr: *mut zend_execute_data,
 }

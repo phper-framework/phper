@@ -1,22 +1,23 @@
 use crate::sys::{zend_execute_data, zend_function_entry, zval};
+use crate::{FunctionType, Parameters, Value};
+use derive_builder::Builder;
 use std::ffi::CStr;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_uchar;
 use std::ptr::null;
 
-#[derive(Debug)]
 pub struct Functions<'a> {
     pub(crate) inner: Vec<Function<'a>>,
 }
 
 impl<'a> Functions<'a> {
     #[inline]
-    pub fn empty() -> Self {
-        Self::new(Vec::new())
+    pub fn new() -> Self {
+        Self::from_vec_function(Vec::new())
     }
 
     #[inline]
-    pub fn new(inner: Vec<Function<'a>>) -> Self {
+    pub fn from_vec_function(inner: Vec<Function<'a>>) -> Self {
         Self { inner }
     }
 
@@ -25,15 +26,15 @@ impl<'a> Functions<'a> {
 
         let mut entries = Vec::with_capacity(functions.len() + 1);
 
-        for function in functions {
-            entries.push(zend_function_entry {
-                fname: function.name.as_ptr(),
-                handler: Some(function.func),
-                arg_info: null(),
-                num_args: 0,
-                flags: 0,
-            });
-        }
+        //        for function in functions {
+        //            entries.push(zend_function_entry {
+        //                fname: function.name.as_ptr(),
+        //                handler: Some(function.func),
+        //                arg_info: null(),
+        //                num_args: 0,
+        //                flags: 0,
+        //            });
+        //        }
 
         entries.push(zend_function_entry::default());
 
@@ -57,17 +58,16 @@ impl<'a> DerefMut for Functions<'a> {
     }
 }
 
-#[derive(Debug)]
 pub struct Function<'a> {
     pub(crate) name: &'a CStr,
-    pub(crate) func: extern "C" fn(*mut zend_execute_data, *mut zval),
+    pub(crate) func: FunctionType<'a>,
     pub(crate) arg_info: Option<ArgInfo<'a>>,
     pub(crate) flags: u32,
 }
 
 impl<'a> Function<'a> {
     #[inline]
-    pub fn new(name: &'a CStr, func: extern "C" fn(*mut zend_execute_data, *mut zval)) -> Self {
+    pub fn new(name: &'a CStr, func: FunctionType<'a>) -> Self {
         Self {
             name,
             func,
@@ -102,27 +102,42 @@ impl<'a> BeginArgInfo<'a> {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum ArgType {}
+pub enum ArgType {
+    Undef = 0,
+    Null = 1,
+    False = 2,
+    True = 3,
+    Long = 4,
+    Double = 5,
+    String = 6,
+    Array = 7,
+    Object = 8,
+    Resource = 9,
+    Reference = 10,
+}
 
-#[derive(Debug)]
+#[derive(Builder, Debug)]
+#[builder(pattern = "owned", setter(strip_option), build_fn(skip))]
 pub struct ArgInfo<'a> {
     name: &'a CStr,
+
+    #[builder(default)]
     return_reference: bool,
+
+    #[builder(default)]
     required_num_args: usize,
+
     r#type: Option<ArgType>,
+
+    #[builder(default)]
     class_name: Option<&'a CStr>,
+
+    #[builder(default)]
     allow_null: bool,
 }
 
 impl<'a> ArgInfo<'a> {
-    pub fn new(name: &'a CStr) -> Self {
-        Self {
-            name,
-            return_reference: false,
-            required_num_args: 0,
-            r#type: None,
-            class_name: None,
-            allow_null: false,
-        }
+    pub fn builder() -> ArgInfoBuilder<'a> {
+        Default::default()
     }
 }
