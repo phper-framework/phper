@@ -1,6 +1,9 @@
 use crate::sys::{zend_execute_data, zval};
+use crate::Result as PHPerResult;
 
-pub type FunctionType<'a> = &'a dyn FnMut(Parameters) -> Value;
+pub type ValueResult = PHPerResult<Option<Value>>;
+
+pub type FunctionType<'a> = fn(Parameters) -> ValueResult;
 
 pub struct Parameters {
     pub(crate) ptr: *mut zend_execute_data,

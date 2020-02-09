@@ -1,23 +1,24 @@
+use crate::sys::FunctionHandler;
 use crate::sys::{zend_execute_data, zend_function_entry, zval};
-use crate::{FunctionType, Parameters, Value};
+
 use derive_builder::Builder;
 use std::ffi::CStr;
-use std::ops::{Deref, DerefMut};
+
 use std::os::raw::c_uchar;
 use std::ptr::null;
 
-fn into_boxed_entries(functions: &[Function]) -> Box<[zend_function_entry]> {
+pub(crate) fn functions_into_boxed_entries(functions: Functions) -> Box<[zend_function_entry]> {
     let mut entries = Vec::with_capacity(functions.len() + 1);
 
-    //        for function in functions {
-    //            entries.push(zend_function_entry {
-    //                fname: function.name.as_ptr(),
-    //                handler: Some(function.func),
-    //                arg_info: null(),
-    //                num_args: 0,
-    //                flags: 0,
-    //            });
-    //        }
+    for function in functions {
+        entries.push(zend_function_entry {
+            fname: function.name.as_ptr(),
+            handler: Some(function.handler),
+            arg_info: null(),
+            num_args: 0,
+            flags: 0,
+        });
+    }
 
     entries.push(zend_function_entry::default());
 
@@ -27,32 +28,22 @@ fn into_boxed_entries(functions: &[Function]) -> Box<[zend_function_entry]> {
 pub(crate) type Functions<'a> = &'a [Function<'a>];
 
 #[derive(Builder)]
-#[builder(pattern = "owned", setter(strip_option), build_fn(skip))]
+#[builder(pattern = "owned", setter(strip_option))]
 pub struct Function<'a> {
-
     pub(crate) name: &'a CStr,
 
-    pub(crate) func: FunctionType<'a>,
+    pub(crate) handler: FunctionHandler,
 
+    #[builder(default)]
     pub(crate) arg_info: Option<ArgInfo<'a>>,
 
+    #[builder(default)]
     pub(crate) flags: u32,
 }
 
 impl<'a> Function<'a> {
-    #[inline]
-    pub fn new(name: &'a CStr, func: FunctionType<'a>) -> Self {
-        Self {
-            name,
-            func,
-            arg_info: None,
-            flags: 0,
-        }
-    }
-
-    pub fn arg_info(mut self, arg_info: ArgInfo<'a>) -> Self {
-        self.arg_info = Some(arg_info);
-        self
+    pub fn builder() -> FunctionBuilder<'a> {
+        Default::default()
     }
 }
 
@@ -63,17 +54,6 @@ pub struct BeginArgInfo<'a> {
     type_hint: Option<ArgType>,
     classname: Option<&'a CStr>,
     allow_null: bool,
-}
-
-impl<'a> BeginArgInfo<'a> {
-    pub fn new(name: &'a CStr) -> Self {
-        Self {
-            pass_by_ref: 0,
-            type_hint: None,
-            classname: None,
-            allow_null: false,
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone)]

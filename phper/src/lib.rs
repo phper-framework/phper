@@ -32,7 +32,7 @@ mod macros;
 
 pub use phper_macros::*;
 pub use phper_sys::c_str_ptr;
-use sys::{zend_function_entry, zend_ini_entry_def, zend_module_entry};
+
 use thiserror::Error;
 
 mod function;
@@ -53,7 +53,7 @@ pub use crate::types::*;
 //
 //unsafe impl<T> Sync for NotThreadSafe<T> {}
 
-type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -61,3 +61,10 @@ pub enum Error {
     ModuleBuild(ModuleBuildError),
 }
 
+#[doc(hidden)]
+pub fn wrap_php_function(
+    _execute_data: *mut crate::sys::zend_execute_data,
+    _return_value: *mut crate::sys::zval,
+    _function: FunctionType,
+) {
+}

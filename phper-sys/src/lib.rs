@@ -28,3 +28,6 @@ impl Default for _zend_function_entry {
         }
     }
 }
+
+pub type FunctionHandler =
+    unsafe extern "C" fn(execute_data: *mut zend_execute_data, return_value: *mut zval);
