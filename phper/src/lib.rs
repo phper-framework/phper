@@ -33,6 +33,7 @@ mod macros;
 pub use phper_macros::*;
 pub use phper_sys::c_str_ptr;
 use sys::{zend_function_entry, zend_ini_entry_def, zend_module_entry};
+use thiserror::Error;
 
 mod function;
 mod module;
@@ -51,3 +52,12 @@ pub use crate::types::*;
 //pub struct NotThreadSafe<T>(pub T);
 //
 //unsafe impl<T> Sync for NotThreadSafe<T> {}
+
+type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("{0}")]
+    ModuleBuild(ModuleBuildError),
+}
+

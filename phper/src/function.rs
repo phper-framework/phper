@@ -6,62 +6,36 @@ use std::ops::{Deref, DerefMut};
 use std::os::raw::c_uchar;
 use std::ptr::null;
 
-pub struct Functions<'a> {
-    pub(crate) inner: Vec<Function<'a>>,
+fn into_boxed_entries(functions: &[Function]) -> Box<[zend_function_entry]> {
+    let mut entries = Vec::with_capacity(functions.len() + 1);
+
+    //        for function in functions {
+    //            entries.push(zend_function_entry {
+    //                fname: function.name.as_ptr(),
+    //                handler: Some(function.func),
+    //                arg_info: null(),
+    //                num_args: 0,
+    //                flags: 0,
+    //            });
+    //        }
+
+    entries.push(zend_function_entry::default());
+
+    entries.into_boxed_slice()
 }
 
-impl<'a> Functions<'a> {
-    #[inline]
-    pub fn new() -> Self {
-        Self::from_vec_function(Vec::new())
-    }
+pub(crate) type Functions<'a> = &'a [Function<'a>];
 
-    #[inline]
-    pub fn from_vec_function(inner: Vec<Function<'a>>) -> Self {
-        Self { inner }
-    }
-
-    pub fn into_boxed_entries(self) -> Box<[zend_function_entry]> {
-        let functions = self.inner;
-
-        let mut entries = Vec::with_capacity(functions.len() + 1);
-
-        //        for function in functions {
-        //            entries.push(zend_function_entry {
-        //                fname: function.name.as_ptr(),
-        //                handler: Some(function.func),
-        //                arg_info: null(),
-        //                num_args: 0,
-        //                flags: 0,
-        //            });
-        //        }
-
-        entries.push(zend_function_entry::default());
-
-        entries.into_boxed_slice()
-    }
-}
-
-impl<'a> Deref for Functions<'a> {
-    type Target = Vec<Function<'a>>;
-
-    #[inline]
-    fn deref(&self) -> &Vec<Function<'a>> {
-        &self.inner
-    }
-}
-
-impl<'a> DerefMut for Functions<'a> {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Vec<Function<'a>> {
-        &mut self.inner
-    }
-}
-
+#[derive(Builder)]
+#[builder(pattern = "owned", setter(strip_option), build_fn(skip))]
 pub struct Function<'a> {
+
     pub(crate) name: &'a CStr,
+
     pub(crate) func: FunctionType<'a>,
+
     pub(crate) arg_info: Option<ArgInfo<'a>>,
+
     pub(crate) flags: u32,
 }
 
@@ -82,7 +56,8 @@ impl<'a> Function<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Builder, Debug)]
+#[builder(pattern = "owned", setter(strip_option), build_fn(skip))]
 pub struct BeginArgInfo<'a> {
     pass_by_ref: c_uchar,
     type_hint: Option<ArgType>,
@@ -121,18 +96,14 @@ pub enum ArgType {
 pub struct ArgInfo<'a> {
     name: &'a CStr,
 
-    #[builder(default)]
     return_reference: bool,
 
-    #[builder(default)]
     required_num_args: usize,
 
     r#type: Option<ArgType>,
 
-    #[builder(default)]
     class_name: Option<&'a CStr>,
 
-    #[builder(default)]
     allow_null: bool,
 }
 
