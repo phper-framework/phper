@@ -2,8 +2,7 @@ use crate::sys::{
     c_str, zend_function_entry, zend_module_entry, PHP_EXTENSION_BUILD, USING_ZTS, ZEND_DEBUG,
     ZEND_MODULE_API_NO,
 };
-use crate::{functions_into_boxed_entries, Function, Functions};
-use derive_builder::Builder;
+use crate::{functions_into_boxed_entries, Function, FunctionArray};
 use std::ffi::CStr;
 
 use std::mem::size_of;
@@ -11,19 +10,14 @@ use std::os::raw::{c_uchar, c_uint, c_ushort};
 use std::ptr::{null, null_mut};
 use thiserror::Error;
 
-#[derive(Builder)]
-#[builder(pattern = "owned", setter(strip_option))]
+#[derive(Default)]
 pub struct Module<'a> {
-    name: &'a CStr,
-    version: &'a CStr,
-    functions: Option<Vec<Function<'a>>>,
+    pub name: &'a CStr,
+    pub version: &'a CStr,
+    pub functions: Option<Vec<Function<'a>>>,
 }
 
 impl<'a> Module<'a> {
-    pub fn builder() -> ModuleBuilder<'a> {
-        Default::default()
-    }
-
     fn into_boxed_entry(self) -> Box<zend_module_entry> {
         let functions = self.functions.unwrap_or_else(|| Vec::new());
         let functions =

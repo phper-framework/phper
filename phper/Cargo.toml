@@ -12,7 +12,7 @@ keywords = ["php", "binding", "extension"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-derive_builder = "0.9.0"
+#derive_builder = "0.9.0"
 phper-alloc = { version = "0.2", path = "../phper-alloc" }
 phper-macros = { version = "0.2", path = "../phper-macros" }
 phper-sys = { version = "0.2", path = "../phper-sys" }
