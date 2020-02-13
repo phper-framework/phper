@@ -33,15 +33,17 @@ mod macros;
 pub use phper_macros::*;
 pub use phper_sys::c_str_ptr;
 
-use thiserror::Error;
-
+mod arg;
 mod function;
 mod module;
 mod types;
 
-pub use crate::function::*;
-pub use crate::module::*;
-pub use crate::types::*;
+pub use arg::*;
+pub use function::*;
+pub use module::*;
+pub use types::*;
+
+use thiserror::Error;
 
 //pub type IniEntries = Vec<zend_ini_entry_def>;
 //
@@ -56,15 +58,17 @@ pub use crate::types::*;
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug)]
-pub enum Error {
-    #[error("{0}")]
-    ModuleBuild(ModuleBuildError),
-}
+pub enum Error {}
 
 #[doc(hidden)]
 pub fn wrap_php_function(
-    _execute_data: *mut crate::sys::zend_execute_data,
-    _return_value: *mut crate::sys::zval,
-    _function: FunctionType,
+    execute_data: *mut sys::zend_execute_data,
+    return_value: *mut sys::zval,
+    func: FunctionType,
 ) {
+    let parameters = Parameters { execute_data };
+    match func(parameters) {
+        Ok(_) => {}
+        Err(e) => panic!(e),
+    }
 }

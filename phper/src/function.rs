@@ -1,8 +1,11 @@
-use crate::sys::{zend_execute_data, zend_function_entry, zval, InternalRawFunction, zend_internal_arg_info};
+use crate::sys::{
+    c_str, zend_execute_data, zend_function_entry, zend_internal_arg_info, zval,
+    InternalRawFunction,
+};
 
-use std::ffi::CStr;
+use std::ffi::{c_void, CStr};
 
-use std::os::raw::{c_uchar, c_char};
+use std::os::raw::{c_char, c_uchar};
 use std::ptr::{null, null_mut};
 
 pub(crate) fn functions_into_boxed_entries(functions: FunctionArray) -> Box<[zend_function_entry]> {
@@ -12,8 +15,16 @@ pub(crate) fn functions_into_boxed_entries(functions: FunctionArray) -> Box<[zen
         entries.push(zend_function_entry {
             fname: function.name.as_ptr(),
             handler: Some(function.handler.clone().into()),
-            arg_info: function.arg_info.as_ref().map(|arg_info| arg_info.into()).unwrap_or(null()),
-            num_args: function.arg_info.as_ref().map(|arg_info| arg_info.parameters.len() as u32).unwrap_or(0),
+            arg_info: function
+                .arg_info
+                .as_ref()
+                .map(|arg_info| arg_info.into())
+                .unwrap_or(null()),
+            num_args: function
+                .arg_info
+                .as_ref()
+                .map(|arg_info| arg_info.parameters.len() as u32)
+                .unwrap_or(0),
             flags: 0,
         });
     }
@@ -39,15 +50,22 @@ pub struct InternalArgInfoArray<'a> {
     pub parameters: Vec<InternalArgInfo<'a>>,
 }
 
+impl<'a> InternalArgInfoArray<'a> {
+    fn to_ptr() -> *const zend_internal_arg_info {
+        todo!()
+    }
+}
+
 impl Into<*const zend_internal_arg_info> for &InternalArgInfoArray<'_> {
     fn into(self) -> *const zend_internal_arg_info {
-        let mut infos: Vec<*const zend_internal_arg_info> = Vec::with_capacity(self.parameters.len() + 1);
-        let begin: *const zend_internal_arg_info = Box::into_raw(Box::new((&self.begin).into()));
+        let mut infos = Vec::with_capacity(self.parameters.len() + 1);
+        let begin: zend_internal_arg_info = (&self.begin).into();
         infos.push(begin);
         for parameter in &self.parameters {
-            let parameter: *const zend_internal_arg_info = Box::into_raw(Box::new(parameter.into()));
+            let parameter: zend_internal_arg_info = parameter.into();
             infos.push(parameter);
         }
+
         Box::into_raw(infos.into_boxed_slice()) as *const zend_internal_arg_info
     }
 }
@@ -61,11 +79,16 @@ pub struct InternalArgInfo<'a> {
     pub allow_null: bool,
 }
 
+impl<'a> InternalArgInfo<'a> {}
+
 impl Into<zend_internal_arg_info> for &InternalArgInfo<'_> {
     fn into(self) -> zend_internal_arg_info {
         zend_internal_arg_info {
             name: self.name.as_ptr(),
-            class_name: self.class_name.map(|class_name| class_name.as_ptr()).unwrap_or(null()),
+            class_name: self
+                .class_name
+                .map(|class_name| class_name.as_ptr())
+                .unwrap_or(null()),
             type_hint: self.type_hint as c_uchar,
             pass_by_reference: self.pass_by_ref as c_uchar,
             allow_null: self.allow_null as c_uchar,
@@ -109,7 +132,10 @@ impl Into<zend_internal_arg_info> for &InternalBeginArgInfo<'_> {
     fn into(self) -> zend_internal_arg_info {
         zend_internal_arg_info {
             name: self.required_num_args as *const c_char,
-            class_name: self.class_name.map(|class_name| class_name.as_ptr()).unwrap_or(null()),
+            class_name: self
+                .class_name
+                .map(|class_name| class_name.as_ptr())
+                .unwrap_or(null()),
             type_hint: self.type_hint as c_uchar,
             pass_by_reference: self.return_reference as c_uchar,
             allow_null: self.allow_null as c_uchar,
@@ -124,7 +150,9 @@ pub enum FunctionHandler {
     Internal(InternalRawFunction),
 }
 
-extern "C" fn null_func(execute_data: *mut zend_execute_data, return_value: *mut zval) {}
+extern "C" fn null_func(execute_data: *mut zend_execute_data, return_value: *mut zval) {
+    panic!("This is a null function")
+}
 
 impl Default for FunctionHandler {
     fn default() -> Self {
@@ -138,5 +166,43 @@ impl From<FunctionHandler> for InternalRawFunction {
             FunctionHandler::Internal(irf) => irf,
             _ => todo!(),
         }
+    }
+}
+
+impl Into<FunctionHandler> for InternalRawFunction {
+    fn into(self) -> FunctionHandler {
+        FunctionHandler::Internal(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_internal_arg_info_to_ptr() {
+        let array = InternalArgInfoArray {
+            begin: InternalBeginArgInfo {
+                required_num_args: 3,
+                ..Default::default()
+            },
+            parameters: vec![
+                InternalArgInfo {
+                    name: c_str!("a"),
+                    ..Default::default()
+                },
+                InternalArgInfo {
+                    name: c_str!("b"),
+                    ..Default::default()
+                },
+                InternalArgInfo {
+                    name: c_str!("c"),
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let info: *const zend_internal_arg_info = (&array).into();
+        assert_eq!(unsafe { (*info).name as i32 }, 3);
     }
 }

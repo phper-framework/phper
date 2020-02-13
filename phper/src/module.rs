@@ -57,9 +57,3 @@ impl From<Module<'_>> for *const zend_module_entry {
         Box::into_raw(module.into_boxed_entry())
     }
 }
-
-#[derive(Error, Debug)]
-#[error("module build error: {msg}")]
-pub struct ModuleBuildError {
-    msg: String,
-}
