@@ -2,6 +2,7 @@
 members = [
     "phper",
     "phper-alloc",
+    "phper-build",
     "phper-macros",
     "phper-sys",
 
