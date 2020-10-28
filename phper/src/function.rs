@@ -85,14 +85,15 @@ impl Into<zend_internal_arg_info> for &InternalArgInfo<'_> {
     fn into(self) -> zend_internal_arg_info {
         zend_internal_arg_info {
             name: self.name.as_ptr(),
-            class_name: self
-                .class_name
-                .map(|class_name| class_name.as_ptr())
-                .unwrap_or(null()),
-            type_hint: self.type_hint as c_uchar,
+            // class_name: self
+            //     .class_name
+            //     .map(|class_name| class_name.as_ptr())
+            //     .unwrap_or(null()),
+            // type_hint: self.type_hint as c_uchar,
             pass_by_reference: self.pass_by_ref as c_uchar,
-            allow_null: self.allow_null as c_uchar,
+            // allow_null: self.allow_null as c_uchar,
             is_variadic: 0 as c_uchar,
+            type_: 0,
         }
     }
 }
@@ -132,14 +133,15 @@ impl Into<zend_internal_arg_info> for &InternalBeginArgInfo<'_> {
     fn into(self) -> zend_internal_arg_info {
         zend_internal_arg_info {
             name: self.required_num_args as *const c_char,
-            class_name: self
-                .class_name
-                .map(|class_name| class_name.as_ptr())
-                .unwrap_or(null()),
-            type_hint: self.type_hint as c_uchar,
+            // class_name: self
+            //     .class_name
+            //     .map(|class_name| class_name.as_ptr())
+            //     .unwrap_or(null()),
+            // type_hint: self.type_hint as c_uchar,
             pass_by_reference: self.return_reference as c_uchar,
-            allow_null: self.allow_null as c_uchar,
+            // allow_null: self.allow_null as c_uchar,
             is_variadic: 0 as c_uchar,
+            type_: 0,
         }
     }
 }

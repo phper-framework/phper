@@ -4,6 +4,10 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 ***Now the peojct is still under development.***
 
+## Requirement
+
+- libclang >= 9
+
 ## Usage
 
 First you have to install `cargo-generate`:
@@ -23,4 +27,3 @@ cargo generate --git https://github.com/jmjoy/phper-ext-skel.git
 Now the library don't support `ZTS`, the template is using `thread_local!` instead.
 
 Version `0.1.x` will be a preview version.
-

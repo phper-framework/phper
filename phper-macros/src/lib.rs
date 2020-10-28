@@ -5,7 +5,25 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{parse_macro_input, parse_str, FnArg, Ident, ItemFn};
+use syn::{parse_macro_input, parse_str, FnArg, Ident, ItemFn, LitStr, Visibility};
+
+#[proc_macro]
+pub fn c_str(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as LitStr);
+    let result = quote! {
+        unsafe { std::ffi::CStr::from_ptr(std::concat!(#input, "\0").as_ptr().cast()) }
+    };
+    result.into()
+}
+
+#[proc_macro]
+pub fn c_str_ptr(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as LitStr);
+    let result = quote! {
+        unsafe { std::concat!(#input, "\0").as_ptr() as *const ::std::os::raw::c_char }
+    };
+    result.into()
+}
 
 #[proc_macro_attribute]
 pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -50,7 +68,11 @@ pub fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let attrs = &input.attrs;
 
     if name != "get_module" {
-        panic!("function name of `php_get_module` must be `get_module`");
+        return quote! { compile_error!("function name with attribute `php_get_module` must be `get_module`") }.into();
+    }
+
+    if matches!(vis, Visibility::Public(..)) {
+        return quote! { compile_error!("function `get_module` must be public"); }.into();
     }
 
     let result = quote! {
@@ -260,23 +282,3 @@ fn zend_module_info_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuate
     inputs.push(parse_str("zend_module: *mut ::phper::sys::zend_module_entry").unwrap());
     inputs
 }
-
-//fn zend_module_startup_n(ident: Ident) -> Ident {
-//    Ident::new(&format!("zm_startup_{}", ident), ident.span())
-//}
-//
-//fn zend_module_shutdown_n(ident: Ident) -> Ident {
-//    Ident::new(&format!("zm_shutdown_{}", ident), ident.span())
-//}
-//
-//fn zend_module_activate_n(ident: Ident) -> Ident {
-//    Ident::new(&format!("zm_activate_{}", ident), ident.span())
-//}
-//
-//fn zend_module_deactivate_n(ident: Ident) -> Ident {
-//    Ident::new(&format!("zm_deactivate_{}", ident), ident.span())
-//}
-//
-//fn zend_module_info_n(ident: Ident) -> Ident {
-//    Ident::new(&format!("zm_info_{}", ident), ident.span())
-//}
