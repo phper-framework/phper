@@ -1,5 +1,5 @@
 use crate::sys::{
-    c_str, zend_function_entry, zend_module_entry, PHP_EXTENSION_BUILD, USING_ZTS, ZEND_DEBUG,
+    zend_function_entry, zend_module_entry, USING_ZTS, ZEND_DEBUG,
     ZEND_MODULE_API_NO,
 };
 use crate::{functions_into_boxed_entries, Function, FunctionArray};

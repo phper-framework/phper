@@ -1,6 +1,5 @@
 use crate::sys::{
-    c_str, zend_execute_data, zend_function_entry, zend_internal_arg_info, zval,
-    InternalRawFunction,
+    zend_execute_data, zend_function_entry, zend_internal_arg_info, zval,
 };
 
 use std::ffi::{c_void, CStr};

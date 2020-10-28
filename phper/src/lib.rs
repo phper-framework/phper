@@ -31,7 +31,6 @@ pub extern crate phper_sys as sys;
 mod macros;
 
 pub use phper_macros::*;
-pub use phper_sys::c_str_ptr;
 
 mod arg;
 mod function;

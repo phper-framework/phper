@@ -13,33 +13,6 @@ fn main() {
 
     let php_config = env::var("PHP_CONFIG").unwrap_or("php-config".to_string());
 
-    // Generate php const.
-
-    let php_bin = execute_command(&[php_config.as_str(), "--php-binary"]);
-    let php_info = execute_command(&[php_bin.as_str(), "-i"]);
-
-    let php_extension_build = php_info
-        .lines()
-        .find_map(|line| {
-            if line.starts_with("PHP Extension Build") {
-                Some(
-                    line.chars()
-                        .skip_while(|c| *c != 'A')
-                        .collect::<String>()
-                        .trim()
-                        .to_owned(),
-                )
-            } else {
-                None
-            }
-        })
-        .expect("Can't found the field `PHP Extension Build`");
-
-    println!(
-        "cargo:rustc-env=PHP_EXTENSION_BUILD={}",
-        php_extension_build
-    );
-
     // Generate bindgen file.
     let includes = execute_command(&[php_config.as_str(), "--includes"]);
     let includes = includes.split(' ').collect::<Vec<_>>();
