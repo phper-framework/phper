@@ -1,6 +1,3 @@
-extern crate proc_macro;
-extern crate syn;
-
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
@@ -11,7 +8,7 @@ use syn::{parse_macro_input, parse_str, FnArg, Ident, ItemFn, LitStr, Visibility
 pub fn c_str(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as LitStr);
     let result = quote! {
-        unsafe { std::ffi::CStr::from_ptr(std::concat!(#input, "\0").as_ptr().cast()) }
+        unsafe { ::std::ffi::CStr::from_ptr(::core::concat!(#input, "\0").as_ptr().cast()) }
     };
     result.into()
 }
@@ -20,7 +17,7 @@ pub fn c_str(input: TokenStream) -> TokenStream {
 pub fn c_str_ptr(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as LitStr);
     let result = quote! {
-        unsafe { std::concat!(#input, "\0").as_ptr() as *const ::std::os::raw::c_char }
+        ::core::concat!(#input, "\0").as_ptr() as *const ::std::os::raw::c_char
     };
     result.into()
 }
@@ -32,7 +29,7 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let vis = &input.vis;
     let ret = &input.sig.output;
     let inputs = &input.sig.inputs;
-    let name = &input.sig.ident;
+    let name = Ident::new(&format!("zif_{}", &input.sig.ident.to_string()), input.sig.ident.span().clone());
     let body = &input.block;
     let attrs = &input.attrs;
 
@@ -40,6 +37,8 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     //    internal_function_parameters(&mut inputs);
 
     let result = quote! {
+        #input
+
         #(#attrs)*
         #vis extern "C" fn #name(
             execute_data: *mut ::phper::sys::zend_execute_data,
@@ -281,4 +280,20 @@ fn shutdown_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuated<FnArg,
 fn zend_module_info_func_args(mut inputs: Punctuated<FnArg, Comma>) -> Punctuated<FnArg, Comma> {
     inputs.push(parse_str("zend_module: *mut ::phper::sys::zend_module_entry").unwrap());
     inputs
+}
+
+#[proc_macro]
+pub fn php_fn(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as Ident);
+    let name = Ident::new(&format!("zif_{}", input.to_string()), input.span().clone());
+    let result = quote! { #name };
+    result.into()
+}
+
+#[proc_macro]
+pub fn php_mn(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as Ident);
+    let name = Ident::new(&format!("zim_{}", input.to_string()), input.span().clone());
+    let result = quote! { #name };
+    result.into()
 }
