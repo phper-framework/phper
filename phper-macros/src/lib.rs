@@ -81,8 +81,8 @@ pub fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn internal(#inputs) #ret {
                 #body
             }
-            let internal: fn() -> ::phper::Result<::phper::Module<'static>> = internal;
-            let module: ::phper::Module = internal().expect("Get module failed");
+            let internal: fn() -> ::phper::PHPerResult<::phper::zend::modules::ModuleEntry<'static>> = internal;
+            let module = internal().expect("Get module failed");
             module.into()
         }
     };

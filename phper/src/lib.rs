@@ -1,3 +1,5 @@
+#![feature(min_const_generics)]
+
 /*!
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
 
@@ -25,10 +27,12 @@ Version `0.1.x` will be a preview version.
 */
 
 pub mod zend;
+mod error;
 
 pub use phper_alloc as alloc;
 pub use phper_sys as sys;
 pub use phper_macros::*;
+pub use crate::error::*;
 
 // pub extern crate phper_alloc as alloc;
 // extern crate phper_macros;
@@ -60,11 +64,6 @@ pub use phper_macros::*;
 // //
 // //unsafe impl<T> Sync for NotThreadSafe<T> {}
 //
-// pub type Result<T> = std::result::Result<T, Error>;
-//
-// #[derive(Error, Debug)]
-// pub enum Error {}
-//
 // #[doc(hidden)]
 // pub fn wrap_php_function(
 //     execute_data: *mut sys::zend_execute_data,
@@ -77,3 +76,19 @@ pub use phper_macros::*;
 //         Err(e) => panic!(e),
 //     }
 // }
+
+use crate::sys::zend_function_entry;
+use crate::zend::api::FunctionEntries;
+use std::ptr::null;
+
+static ENTRIES: FunctionEntries<'static> = FunctionEntries::from_entries(
+    &[
+        zend_function_entry {
+            fname: c_str_ptr!(""),
+            handler: None,
+            arg_info: null(),
+            num_args: 0,
+            flags: 0,
+        }
+    ]
+);
