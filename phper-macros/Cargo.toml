@@ -1,12 +1,12 @@
 [package]
 name = "phper-macros"
-version = "0.1.0"
-authors = ["__JM_Joy__ <918734043@qq.com>"]
+version = "0.2.0"
+authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"
 description = "The proc-macros for phper crate."
 repository = "https://github.com/jmjoy/phper.git"
-license-file = "../LICENSE"
-keywords = ["php"]
+license = "Unlicense"
+keywords = ["php", "proc-macro"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,3 +17,6 @@ proc-macro = true
 quote = "1.0.2"
 syn = { version = "1.0.11", features = ["full"] }
 proc-macro2 = "1.0.6"
+
+[dev-dependencies]
+syn = { version = "1.0.11", features = ["full", "extra-traits"] }

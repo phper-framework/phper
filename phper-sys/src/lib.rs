@@ -4,9 +4,7 @@
 
 use std::os::raw::c_char;
 
-#[macro_use]
-mod macros;
-
 include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));
 
-pub const PHP_BUILD_ID: *const c_char = c_str_ptr!(env!("PHP_BUILD_ID"));
+pub const PHP_MODULE_BUILD_ID: *const c_char = concat!(env!("PHP_MODULE_BUILD_ID"), "\0").as_ptr().cast();
+pub const ZEND_MODULE_BUILD_ID: *const c_char = concat!(env!("ZEND_MODULE_BUILD_ID"), "\0").as_ptr().cast();

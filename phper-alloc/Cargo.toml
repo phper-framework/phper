@@ -1,22 +1,17 @@
 [package]
-name = "phper"
+name = "phper-alloc"
 version = "0.2.0"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"
-description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
+description = "Alloc related items for phper crate."
 repository = "https://github.com/jmjoy/phper.git"
 license = "Unlicense"
-readme = "../README.md"
-keywords = ["php", "binding", "extension"]
+keywords = ["php", "alloc"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-phper-alloc = { version = "0.2", path = "../phper-alloc" }
-phper-macros = { version = "0.2", path = "../phper-macros" }
 phper-sys = { version = "0.2", path = "../phper-sys" }
-thiserror = "1.0.10"
 
 [build-dependencies]
 phper-build = { version = "0.2", path = "../phper-build" }
-phper-sys = { version = "0.2", path = "../phper-sys" }

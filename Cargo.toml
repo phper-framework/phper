@@ -1,6 +1,11 @@
 [workspace]
 members = [
     "phper",
-    "phper-sys",
+    "phper-alloc",
+    "phper-build",
     "phper-macros",
+    "phper-sys",
+
+    # internal
+    "examples/simple",
 ]
