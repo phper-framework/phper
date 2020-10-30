@@ -1,5 +1,5 @@
-use phper::{php_function, PHPerResult};
-use phper::php_get_module;
+use phper::{php_function, php_minit_function, php_minit, php_mshutdown_function, php_mshutdown, php_rinit_function, php_rshutdown_function};
+use phper::{zend_get_module, php_rinit, php_rshutdown, php_minfo, php_minfo_function};
 use phper::zend::modules::ModuleEntry;
 use phper::sys::zend_module_entry;
 use std::mem::size_of;
@@ -15,6 +15,35 @@ use phper::sys::zend_internal_arg_info;
 use phper::sys::zend_parse_parameters;
 use phper::sys::ZEND_RESULT_CODE_SUCCESS;
 use std::ffi::CStr;
+
+#[php_minit_function]
+fn m_init_simple(type_: c_int, module_number: c_int) -> bool {
+    println!("module init");
+    true
+}
+
+#[php_mshutdown_function]
+fn m_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
+    println!("module shutdown");
+    true
+}
+
+#[php_rinit_function]
+fn r_init_simple(type_: c_int, module_number: c_int) -> bool {
+    println!("request init");
+    true
+}
+
+#[php_rshutdown_function]
+fn r_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
+    println!("request shutdown");
+    true
+}
+
+#[php_minfo_function]
+fn m_info_simple(zend_module: *mut ::phper::sys::zend_module_entry) {
+    println!("info init");
+}
 
 #[php_function]
 pub fn test_simple(execute_data: ExecuteData, return_value: Val) {
@@ -34,7 +63,7 @@ pub fn test_simple(execute_data: ExecuteData, return_value: Val) {
     }
 }
 
-#[php_get_module]
+#[zend_get_module]
 pub fn get_module() -> &'static ModuleEntry {
     static ARG_INFO_TEST_SIMPLE: InternalArgInfos<3> = InternalArgInfos::new([
         zend_internal_arg_info {
@@ -83,11 +112,11 @@ pub fn get_module() -> &'static ModuleEntry {
         deps: std::ptr::null(),
         name: c_str_ptr!(env!("CARGO_PKG_NAME")),
         functions: FUNCTION_ENTRIES.get(),
-        module_startup_func: None,
-        module_shutdown_func: None,
-        request_startup_func: None,
-        request_shutdown_func: None,
-        info_func: None,
+        module_startup_func: Some(php_minit!(m_init_simple)),
+        module_shutdown_func: Some(php_mshutdown!(m_shutdown_simple)),
+        request_startup_func: Some(php_rinit!(r_init_simple)),
+        request_shutdown_func: Some(php_rshutdown!(r_shutdown_simple)),
+        info_func: Some(php_minfo!(m_info_simple)),
         version: c_str_ptr!(env!("CARGO_PKG_VERSION")),
         globals_size: 0usize,
         #[cfg(phper_zts)]
