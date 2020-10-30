@@ -6,7 +6,7 @@ pub struct ModuleEntry {
 }
 
 impl ModuleEntry {
-    pub const fn from_raw(raw: zend_module_entry) -> Self {
+    pub const fn new(raw: zend_module_entry) -> Self {
         Self { raw: UnsafeCell::new(raw) }
     }
 

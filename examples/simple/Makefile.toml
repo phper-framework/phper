@@ -1,0 +1,29 @@
+[env]
+PHP_CONFIG = "php-config"
+TARGET_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/../../target"
+
+[env.development]
+TARGET_BUILD_DIR = "${TARGET_DIR}/debug"
+
+[env.production]
+TARGET_BUILD_DIR = "${TARGET_DIR}/release"
+
+[tasks.install]
+dependencies = ["build"]
+script = [
+    """
+    cp ${TARGET_BUILD_DIR}/lib${CARGO_MAKE_CRATE_NAME}.so `${PHP_CONFIG} --extension-dir` && \
+    echo Installing shared extensions:     `${PHP_CONFIG} --extension-dir`
+    """
+]
+
+[tasks.test-php]
+script = [
+    "`${PHP_CONFIG} --php-binary` tests/confirm_compiled.php"
+]
+
+[tasks.test-all]
+dependencies = [
+    "test",
+    "test-php",
+]
