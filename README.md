@@ -6,6 +6,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 ## Requirement
 
+- rust nightly channel (now)
 - libclang >= 9
 
 ## Usage
