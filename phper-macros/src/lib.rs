@@ -2,11 +2,11 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{parse_macro_input, parse_str, FnArg, Ident, ItemFn, LitStr, Visibility};
+use syn::{parse_macro_input, parse_str, FnArg, Ident, ItemFn, LitStr, Visibility, Expr};
 
 #[proc_macro]
 pub fn c_str(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as LitStr);
+    let input = parse_macro_input!(input as Expr);
     let result = quote! {
         unsafe { ::std::ffi::CStr::from_ptr(::core::concat!(#input, "\0").as_ptr().cast()) }
     };
@@ -15,7 +15,7 @@ pub fn c_str(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn c_str_ptr(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as LitStr);
+    let input = parse_macro_input!(input as Expr);
     let result = quote! {
         ::core::concat!(#input, "\0").as_ptr() as *const ::std::os::raw::c_char
     };
@@ -33,9 +33,6 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let body = &input.block;
     let attrs = &input.attrs;
 
-    //    let mut inputs = &mut inputs.clone();
-    //    internal_function_parameters(&mut inputs);
-
     let result = quote! {
         #input
 
@@ -47,8 +44,11 @@ pub fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn internal(#inputs) #ret {
                 #body
             }
-            let internal: ::phper::FunctionType = internal;
-            ::phper::wrap_php_function(execute_data, return_value, internal);
+            let internal: fn(::phper::zend::types::ExecuteData, ::phper::zend::types::Val) = internal;
+            internal(
+                ::phper::zend::types::ExecuteData::from_raw(execute_data),
+                ::phper::zend::types::Val::from_raw(return_value),
+            );
         }
     };
 
@@ -70,7 +70,7 @@ pub fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStream {
         return quote! { compile_error!("function name with attribute `php_get_module` must be `get_module`") }.into();
     }
 
-    if matches!(vis, Visibility::Public(..)) {
+    if !matches!(vis, Visibility::Public(..)) {
         return quote! { compile_error!("function `get_module` must be public"); }.into();
     }
 
@@ -81,9 +81,8 @@ pub fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStream {
             fn internal(#inputs) #ret {
                 #body
             }
-            let internal: fn() -> ::phper::PHPerResult<::phper::zend::modules::ModuleEntry<'static>> = internal;
-            let module = internal().expect("Get module failed");
-            module.into()
+            let internal: fn() -> &'static ::phper::zend::modules::ModuleEntry = internal;
+            internal().get()
         }
     };
 
@@ -248,7 +247,7 @@ pub fn php_minfo_function(_attr: TokenStream, input: TokenStream) -> TokenStream
 
 #[proc_macro]
 pub fn zend_get_module(input: TokenStream) -> TokenStream {
-    let name = parse_macro_input!(input as Ident);
+    let name = parse_macro_input!(input as Expr);
 
     let result = quote! {
         #[no_mangle]

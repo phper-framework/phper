@@ -76,19 +76,3 @@ pub use crate::error::*;
 //         Err(e) => panic!(e),
 //     }
 // }
-
-use crate::sys::zend_function_entry;
-use crate::zend::api::FunctionEntries;
-use std::ptr::null;
-
-static ENTRIES: FunctionEntries<'static> = FunctionEntries::from_entries(
-    &[
-        zend_function_entry {
-            fname: c_str_ptr!(""),
-            handler: None,
-            arg_info: null(),
-            num_args: 0,
-            flags: 0,
-        }
-    ]
-);

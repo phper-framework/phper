@@ -12,3 +12,6 @@ keywords = ["php", "alloc"]
 
 [dependencies]
 phper-sys = { version = "0.2", path = "../phper-sys" }
+
+[build-dependencies]
+phper-build = { version = "0.2", path = "../phper-build" }

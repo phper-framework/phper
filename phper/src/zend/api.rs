@@ -1,24 +1,18 @@
 use crate::sys::zend_function_entry;
+use std::cell::UnsafeCell;
 
-pub struct FunctionEntries<'a> {
-    entries: &'a [zend_function_entry],
+pub struct FunctionEntries<const N: usize> {
+    inner: UnsafeCell<[zend_function_entry; N]>,
 }
 
-impl<'a> FunctionEntries<'a> {
-    pub const fn from_entries(entries: &'a [zend_function_entry]) -> Self {
-        Self { entries }
+impl<const N: usize> FunctionEntries<N> {
+    pub const fn new(inner: [zend_function_entry; N]) -> Self {
+        Self { inner: UnsafeCell::new(inner) }
     }
 
-    #[inline]
-    pub fn entries(&self) -> &[zend_function_entry] {
-        &self.entries
-    }
-}
-
-impl<'a> From<&'a FunctionEntries<'a>> for &'a [zend_function_entry] {
-    fn from(zfe: &'a FunctionEntries<'a>) -> Self {
-        zfe.entries()
+    pub const fn get(&self) -> *const zend_function_entry {
+        self.inner.get().cast()
     }
 }
 
-unsafe impl<'a> Sync for FunctionEntries<'a> {}
+unsafe impl<const N: usize> Sync for FunctionEntries<N> {}
