@@ -1,10 +1,7 @@
 use phper::c_str_ptr;
 use phper::php_fn;
-use phper::sys::zend_function_entry;
-use phper::sys::zend_internal_arg_info;
-use phper::sys::zend_parse_parameters;
-use phper::sys::ZEND_RESULT_CODE_SUCCESS;
-use phper::sys::{zend_ini_entry_def, zend_module_entry};
+use phper::sys::{ZEND_RESULT_CODE_SUCCESS, zend_parse_parameters, zend_internal_arg_info, zend_function_entry, PHP_INI_SYSTEM};
+use phper::sys::{zend_ini_entry_def, zend_module_entry, zend_register_ini_entries, zend_unregister_ini_entries};
 use phper::zend::api::FunctionEntries;
 use phper::zend::compile::InternalArgInfos;
 use phper::zend::ini::IniEntryDefs;
@@ -21,31 +18,37 @@ use std::mem::{size_of, transmute};
 use std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort};
 use std::ptr::{null, null_mut};
 
-static INI_ENTRIES: IniEntryDefs<1> = IniEntryDefs::new([
-    // zend_ini_entry_def {
-    //     name: null(),
-    //     on_modify: None,
-    //     mh_arg1: null_mut(),
-    //     mh_arg2: null_mut(),
-    //     mh_arg3: null(),
-    //     value: null(),
-    //     displayer: None,
-    //     modifiable: 0,
-    //     name_length: 0,
-    //     value_length: 0,
-    // },
+static INI_ENTRIES: IniEntryDefs<2> = IniEntryDefs::new([
+    zend_ini_entry_def {
+        name: c_str_ptr!("simple.enable"),
+        on_modify: None,
+        mh_arg1: null_mut(),
+        mh_arg2: null_mut(),
+        mh_arg3: null_mut(),
+        value: c_str_ptr!("1"),
+        displayer: None,
+        modifiable: PHP_INI_SYSTEM as c_int,
+        name_length: 0,
+        value_length: 0,
+    },
     unsafe { transmute([0u8; size_of::<zend_ini_entry_def>()]) },
 ]);
 
 #[php_minit_function]
 fn m_init_simple(type_: c_int, module_number: c_int) -> bool {
     println!("module init");
+    unsafe {
+        zend_register_ini_entries(INI_ENTRIES.get(), module_number);
+    }
     true
 }
 
 #[php_mshutdown_function]
 fn m_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
     println!("module shutdown");
+    unsafe {
+        zend_unregister_ini_entries(module_number);
+    }
     true
 }
 

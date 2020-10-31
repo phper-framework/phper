@@ -12,7 +12,7 @@ TARGET_BUILD_DIR = "${TARGET_DIR}/release"
 dependencies = ["build"]
 script = [
     """
-    cp ${TARGET_BUILD_DIR}/lib${CARGO_MAKE_CRATE_NAME}.so `${PHP_CONFIG} --extension-dir` && \
+    cp ${TARGET_BUILD_DIR}/lib${CARGO_MAKE_CRATE_NAME}.so `${PHP_CONFIG} --extension-dir`/${CARGO_MAKE_CRATE_NAME}.so && \
     echo Installing shared extensions:     `${PHP_CONFIG} --extension-dir`
     """
 ]
