@@ -2,7 +2,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_int};
 
 include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));
 

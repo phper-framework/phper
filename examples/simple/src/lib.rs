@@ -1,5 +1,6 @@
-use phper::c_str_ptr;
-use phper::php_fn;
+#![feature(allocator_api)]
+
+use phper::{c_str_ptr, php_fn, ebox};
 use phper::sys::{ZEND_RESULT_CODE_SUCCESS, zend_parse_parameters, zend_internal_arg_info, zend_function_entry, PHP_INI_SYSTEM};
 use phper::sys::{zend_ini_entry_def, zend_module_entry, zend_register_ini_entries, zend_unregister_ini_entries};
 use phper::zend::api::FunctionEntries;
@@ -36,7 +37,6 @@ static INI_ENTRIES: IniEntryDefs<2> = IniEntryDefs::new([
 
 #[php_minit_function]
 fn m_init_simple(type_: c_int, module_number: c_int) -> bool {
-    println!("module init");
     unsafe {
         zend_register_ini_entries(INI_ENTRIES.get(), module_number);
     }
@@ -45,7 +45,6 @@ fn m_init_simple(type_: c_int, module_number: c_int) -> bool {
 
 #[php_mshutdown_function]
 fn m_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
-    println!("module shutdown");
     unsafe {
         zend_unregister_ini_entries(module_number);
     }
@@ -54,19 +53,16 @@ fn m_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
 
 #[php_rinit_function]
 fn r_init_simple(type_: c_int, module_number: c_int) -> bool {
-    println!("request init");
     true
 }
 
 #[php_rshutdown_function]
 fn r_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
-    println!("request shutdown");
     true
 }
 
 #[php_minfo_function]
 fn m_info_simple(zend_module: *mut ::phper::sys::zend_module_entry) {
-    println!("info init");
 }
 
 #[php_function]
@@ -130,7 +126,7 @@ pub fn get_module() -> &'static ModuleEntry {
             fname: c_str_ptr!("test_simple"),
             handler: Some(php_fn!(test_simple)),
             arg_info: ARG_INFO_TEST_SIMPLE.get(),
-            num_args: 0,
+            num_args: 2,
             flags: 0,
         },
         unsafe { transmute([0u8; size_of::<zend_function_entry>()]) },

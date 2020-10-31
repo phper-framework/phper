@@ -1,3 +1,4 @@
+mod alloc;
 mod inner;
 mod utils;
 
@@ -12,6 +13,11 @@ pub fn c_str(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn c_str_ptr(input: TokenStream) -> TokenStream {
     utils::c_str_ptr(input)
+}
+
+#[proc_macro]
+pub fn ebox(input: TokenStream) -> TokenStream {
+    alloc::ebox(input)
 }
 
 #[proc_macro]

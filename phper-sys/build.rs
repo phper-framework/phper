@@ -7,11 +7,14 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=php_wrapper.h");
+    println!("cargo:rerun-if-changed=php_wrapper.c");
     println!("cargo:rerun-if-env-changed=PHP_CONFIG");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-
     let php_config = env::var("PHP_CONFIG").unwrap_or("php-config".to_string());
+
+    let includes = execute_command(&[php_config.as_str(), "--includes"]);
+    let includes = includes.split(' ').collect::<Vec<_>>();
 
     // Generate php const.
 
@@ -52,9 +55,15 @@ fn main() {
         })
         .expect("Can't found the field `PHP Extension Build`"));
 
+    // Generate libphpwrapper.a.
+
+    let mut builder =  cc::Build::new();
+    for include in &includes {
+        builder.flag(include);
+    }
+    builder.file("php_wrapper.c").compile("phpwrapper");
+
     // Generate bindgen file.
-    let includes = execute_command(&[php_config.as_str(), "--includes"]);
-    let includes = includes.split(' ').collect::<Vec<_>>();
 
     includes.iter().for_each(|include| {
         let include = &include[2..];

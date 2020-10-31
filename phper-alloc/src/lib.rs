@@ -19,7 +19,7 @@ pub struct Allocator {
 }
 
 impl Allocator {
-    pub fn new(
+    pub const fn new(
         #[cfg(phper_debug)]
         zend_filename: *const c_char,
         #[cfg(phper_debug)]
