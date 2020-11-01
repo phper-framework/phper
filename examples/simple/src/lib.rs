@@ -7,7 +7,7 @@ use phper::zend::api::FunctionEntries;
 use phper::zend::compile::InternalArgInfos;
 use phper::zend::ini::IniEntryDefs;
 use phper::zend::modules::ModuleEntry;
-use phper::zend::types::{ExecuteData, Val};
+use phper::zend::types::{ExecuteData, Val, SetVal, Value};
 use phper::{
     php_function, php_minit, php_minit_function, php_mshutdown, php_mshutdown_function,
     php_rinit_function, php_rshutdown_function,
@@ -66,12 +66,7 @@ fn m_info_simple(zend_module: *mut ::phper::sys::zend_module_entry) {
 }
 
 #[php_function]
-pub fn test_simple(execute_data: ExecuteData, return_value: Val) {
-    println!(
-        "zif_test_simple success, num args: {}",
-        execute_data.num_args()
-    );
-
+pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
     let mut a: *const c_char = null_mut();
     let mut a_len = 0;
     let mut b: *const c_char = null_mut();
@@ -87,14 +82,14 @@ pub fn test_simple(execute_data: ExecuteData, return_value: Val) {
             &mut b_len,
         ) != ZEND_RESULT_CODE_SUCCESS
         {
-            return;
+            return Value::Null;
         }
 
-        println!(
-            "echo param, a: {:?}, b: {:?}",
-            CStr::from_ptr(a).to_str(),
-            CStr::from_ptr(b).to_str()
-        );
+        Value::String(format!(
+            "(a . b) = {}{}",
+            CStr::from_ptr(a).to_str().unwrap(),
+            CStr::from_ptr(b).to_str().unwrap(),
+        ))
     }
 }
 

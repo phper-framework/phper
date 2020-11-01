@@ -21,3 +21,7 @@ void phper_zval_string(zval *return_value, const char *s) {
 zend_uchar phper_zval_get_type(const zval* pz) {
     return zval_get_type(pz);
 }
+
+void phper_zval_stringl(zval *return_value, const char *s, size_t len) {
+    ZVAL_STRINGL(return_value, s, len);
+}
