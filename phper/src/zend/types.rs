@@ -1,6 +1,11 @@
-use crate::sys::{zend_execute_data, zval, zend_type, phper_zval_get_type, IS_STRING, IS_NULL, IS_TRUE, IS_FALSE, phper_zval_stringl};
+use crate::sys::{zend_execute_data, zval, zend_type, phper_zval_get_type, IS_STRING, IS_NULL,
+                 IS_TRUE, IS_FALSE, phper_zval_stringl, zend_throw_exception
+};
+use crate::c_str_ptr;
 use std::ffi::CStr;
 use std::borrow::Cow;
+use crate::zend::exceptions::Throwable;
+use std::ptr::{null, null_mut};
 
 pub struct ExecuteData {
     raw: *mut zend_execute_data,
@@ -30,6 +35,10 @@ impl ExecuteData {
         unsafe {
             phper_zval_get_type(self.get_this()).into()
         }
+    }
+
+    pub fn parse_parameters(&self) {
+
     }
 }
 
@@ -115,6 +124,30 @@ impl SetVal for String {
     fn set_val(self, val: &mut Val) {
         unsafe {
             phper_zval_stringl(val.raw, self.as_ptr().cast(), self.len());
+        }
+    }
+}
+
+impl<T: SetVal> SetVal for Option<T> {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            match self {
+                Some(t) => t.set_val(val),
+                None => ().set_val(val),
+            }
+        }
+    }
+}
+
+impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
+    fn set_val(self, val: &mut Val) {
+        match self {
+            Ok(t) => t.set_val(val),
+            Err(e) => {
+                unsafe {
+                    zend_throw_exception(null_mut(), c_str_ptr!("Fuck"), 0);
+                }
+            }
         }
     }
 }

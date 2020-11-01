@@ -99,4 +99,3 @@ pub fn php_rshutdown_function(_attr: TokenStream, input: TokenStream) -> TokenSt
 pub fn php_minfo_function(_attr: TokenStream, input: TokenStream) -> TokenStream {
     info_fn(input, "zm_info_")
 }
-

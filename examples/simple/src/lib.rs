@@ -1,11 +1,13 @@
 #![feature(allocator_api)]
+#![feature(const_raw_ptr_deref)]
 
 use phper::{c_str_ptr, php_fn, ebox};
 use phper::sys::{ZEND_RESULT_CODE_SUCCESS, zend_parse_parameters, zend_internal_arg_info, zend_function_entry, PHP_INI_SYSTEM};
-use phper::sys::{zend_ini_entry_def, zend_module_entry, zend_register_ini_entries, zend_unregister_ini_entries};
-use phper::zend::api::FunctionEntries;
+use phper::sys::{zend_ini_entry_def, zend_module_entry, zend_register_ini_entries, zend_unregister_ini_entries, OnUpdateBool};
+use phper::sys::{OnUpdateString};
+use phper::zend::api::{FunctionEntries, ModuleGlobals};
 use phper::zend::compile::InternalArgInfos;
-use phper::zend::ini::IniEntryDefs;
+use phper::zend::ini::{IniEntryDefs, ini_entry_def_end};
 use phper::zend::modules::ModuleEntry;
 use phper::zend::types::{ExecuteData, Val, SetVal, Value};
 use phper::{
@@ -18,21 +20,15 @@ use std::mem;
 use std::mem::{size_of, transmute};
 use std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort};
 use std::ptr::{null, null_mut};
+use phper::zend::exceptions::MyException;
 
-static INI_ENTRIES: IniEntryDefs<2> = IniEntryDefs::new([
-    zend_ini_entry_def {
-        name: c_str_ptr!("simple.enable"),
-        on_modify: None,
-        mh_arg1: null_mut(),
-        mh_arg2: null_mut(),
-        mh_arg3: null_mut(),
-        value: c_str_ptr!("1"),
-        displayer: None,
-        modifiable: PHP_INI_SYSTEM as c_int,
-        name_length: 0,
-        value_length: 0,
-    },
-    unsafe { transmute([0u8; size_of::<zend_ini_entry_def>()]) },
+static SIMPLE_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
+static SIMPLE_TEXT: ModuleGlobals<*const c_char> = ModuleGlobals::new(null());
+
+static INI_ENTRIES: IniEntryDefs<3> = IniEntryDefs::new([
+    SIMPLE_ENABLE.create_ini_entry_def("simple.enable", "1", Some(OnUpdateBool), PHP_INI_SYSTEM),
+    SIMPLE_TEXT.create_ini_entry_def("simple.text", "", Some(OnUpdateString), PHP_INI_SYSTEM),
+    ini_entry_def_end(),
 ]);
 
 #[php_minit_function]
@@ -82,10 +78,13 @@ pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
             &mut b_len,
         ) != ZEND_RESULT_CODE_SUCCESS
         {
-            return Value::Null;
+            return None;
         }
 
-        Value::String(format!(
+        let s = CStr::from_ptr((*SIMPLE_TEXT.get())).to_str().unwrap();
+        println!("simple.text: '{}'", s);
+
+        Some(format!(
             "(a . b) = {}{}",
             CStr::from_ptr(a).to_str().unwrap(),
             CStr::from_ptr(b).to_str().unwrap(),

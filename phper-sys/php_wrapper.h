@@ -4,6 +4,7 @@
 #include <php.h>
 #include <php_ini.h>
 #include <ext/standard/info.h>
+#include <zend_exceptions.h>
 
 zend_string *zend_string_init_(const char *str, size_t len, int persistent);
 zend_string *zend_new_interned_string_(zend_string *str);

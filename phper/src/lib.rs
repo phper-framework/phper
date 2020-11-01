@@ -1,4 +1,6 @@
 #![feature(min_const_generics)]
+#![feature(const_fn_fn_ptr_basics)]
+#![feature(const_fn_transmute)]
 
 /*!
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
