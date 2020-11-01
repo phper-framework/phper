@@ -2,10 +2,10 @@ use phper::{c_str_ptr, php_fn, ebox};
 use phper::sys::{ZEND_RESULT_CODE_SUCCESS, zend_parse_parameters, zend_internal_arg_info, zend_function_entry, PHP_INI_SYSTEM};
 use phper::sys::{zend_ini_entry_def, zend_module_entry, zend_register_ini_entries, zend_unregister_ini_entries, OnUpdateBool};
 use phper::sys::{OnUpdateString};
-use phper::zend::api::{FunctionEntries, ModuleGlobals};
-use phper::zend::compile::InternalArgInfos;
+use phper::zend::api::{FunctionEntries, ModuleGlobals, function_entry_end};
+use phper::zend::compile::{InternalArgInfos, internal_arg_info_begin};
 use phper::zend::ini::{IniEntryDefs, ini_entry_def_end};
-use phper::zend::modules::ModuleEntry;
+use phper::zend::modules::{ModuleEntry, create_zend_module_entry};
 use phper::zend::types::{ExecuteData, Val, SetVal, Value};
 use phper::{
     php_function, php_minit, php_minit_function, php_mshutdown, php_mshutdown_function,
@@ -18,6 +18,7 @@ use std::mem::{size_of, transmute};
 use std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort};
 use std::ptr::{null, null_mut};
 use phper::zend::exceptions::MyException;
+use phper::sys::{php_info_print_table_start, php_info_print_table_row, php_info_print_table_end};
 
 static SIMPLE_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
 static SIMPLE_TEXT: ModuleGlobals<*const c_char> = ModuleGlobals::new(null());
@@ -56,6 +57,12 @@ fn r_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
 
 #[php_minfo_function]
 fn m_info_simple(zend_module: *mut ::phper::sys::zend_module_entry) {
+    unsafe {
+        php_info_print_table_start();
+        php_info_print_table_row(2, c_str_ptr!("simple.enable"), format!("{}\0", *SIMPLE_ENABLE.get()).as_ptr());
+        php_info_print_table_row(2, c_str_ptr!("simple.text"), format!("{}\0", CStr::from_ptr((*SIMPLE_TEXT.get())).to_str().unwrap()).as_ptr());
+        php_info_print_table_end();
+    }
 }
 
 #[php_function]
@@ -90,12 +97,7 @@ pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
 }
 
 static ARG_INFO_TEST_SIMPLE: InternalArgInfos<3> = InternalArgInfos::new([
-    zend_internal_arg_info {
-        name: 2 as *const _,
-        type_: 0,
-        pass_by_reference: 0,
-        is_variadic: 0,
-    },
+    internal_arg_info_begin(2, false),
     zend_internal_arg_info {
         name: c_str_ptr!("a"),
         type_: 0,
@@ -118,38 +120,21 @@ static FUNCTION_ENTRIES: FunctionEntries<2> = FunctionEntries::new([
         num_args: 2,
         flags: 0,
     },
-    unsafe { transmute([0u8; size_of::<zend_function_entry>()]) },
+    function_entry_end(),
 ]);
 
-static MODULE_ENTRY: ModuleEntry = ModuleEntry::new(zend_module_entry {
-    size: size_of::<zend_module_entry>() as c_ushort,
-    zend_api: phper::sys::ZEND_MODULE_API_NO as c_uint,
-    zend_debug: phper::sys::ZEND_DEBUG as c_uchar,
-    zts: phper::sys::USING_ZTS as c_uchar,
-    ini_entry: std::ptr::null(),
-    deps: std::ptr::null(),
-    name: c_str_ptr!(env!("CARGO_PKG_NAME")),
-    functions: FUNCTION_ENTRIES.get(),
-    module_startup_func: Some(php_minit!(m_init_simple)),
-    module_shutdown_func: Some(php_mshutdown!(m_shutdown_simple)),
-    request_startup_func: Some(php_rinit!(r_init_simple)),
-    request_shutdown_func: Some(php_rshutdown!(r_shutdown_simple)),
-    info_func: Some(php_minfo!(m_info_simple)),
-    version: c_str_ptr!(env!("CARGO_PKG_VERSION")),
-    globals_size: 0usize,
-    #[cfg(phper_zts)]
-    globals_id_ptr: std::ptr::null_mut(),
-    #[cfg(not(phper_zts))]
-    globals_ptr: std::ptr::null_mut(),
-    globals_ctor: None,
-    globals_dtor: None,
-    post_deactivate_func: None,
-    module_started: 0,
-    type_: 0,
-    handle: null_mut(),
-    module_number: 0,
-    build_id: phper::sys::PHP_MODULE_BUILD_ID,
-});
+static MODULE_ENTRY: ModuleEntry = ModuleEntry::new(create_zend_module_entry(
+    c_str_ptr!(env!("CARGO_PKG_NAME")),
+    c_str_ptr!(env!("CARGO_PKG_VERSION")),
+    FUNCTION_ENTRIES.get(),
+    Some(php_minit!(m_init_simple)),
+    Some(php_mshutdown!(m_shutdown_simple)),
+    Some(php_rinit!(r_init_simple)),
+    Some(php_rshutdown!(r_shutdown_simple)),
+    Some(php_minfo!(m_info_simple)),
+    None,
+    None,
+));
 
 #[zend_get_module]
 pub fn get_module() -> &'static ModuleEntry {

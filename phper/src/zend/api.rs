@@ -3,6 +3,11 @@ use std::cell::UnsafeCell;
 use std::os::raw::{c_char, c_int, c_void};
 use crate::zend::ini::Mh;
 use std::ptr::null_mut;
+use std::mem::{transmute, size_of};
+
+pub const fn function_entry_end() -> zend_function_entry {
+    unsafe { transmute([0u8; size_of::<zend_function_entry>()]) }
+}
 
 pub struct ModuleGlobals<T: 'static> {
     inner: UnsafeCell<T>,
