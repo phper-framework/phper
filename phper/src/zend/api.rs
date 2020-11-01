@@ -4,7 +4,6 @@ use std::os::raw::{c_char, c_int, c_void};
 use crate::zend::ini::Mh;
 use std::ptr::null_mut;
 
-#[repr(C)]
 pub struct ModuleGlobals<T: 'static> {
     inner: UnsafeCell<T>,
 }
