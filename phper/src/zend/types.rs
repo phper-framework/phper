@@ -1,11 +1,57 @@
 use crate::sys::{zend_execute_data, zval, zend_type, phper_zval_get_type, IS_STRING, IS_NULL,
-                 IS_TRUE, IS_FALSE, phper_zval_stringl, zend_throw_exception
+                 IS_TRUE, IS_FALSE, phper_zval_stringl, zend_throw_exception,
+                 zend_class_entry, phper_init_class_entry, zend_register_internal_class,
+                 zend_declare_property_stringl, zend_declare_property, IS_LONG,
 };
 use crate::c_str_ptr;
 use std::ffi::CStr;
 use std::borrow::Cow;
 use crate::zend::exceptions::Throwable;
 use std::ptr::{null, null_mut};
+use std::cell::Cell;
+use std::marker::PhantomData;
+use std::os::raw::{c_char, c_int};
+use crate::zend::api::FunctionEntries;
+use std::mem::MaybeUninit;
+
+pub struct ClassEntry {
+    inner: Cell<*mut zend_class_entry>,
+}
+
+impl ClassEntry {
+    pub const fn new() -> Self {
+        Self {
+            inner: Cell::new(null_mut()),
+        }
+    }
+
+    pub const fn as_ptr(&self) -> *mut *mut zend_class_entry {
+        self.inner.as_ptr()
+    }
+
+    pub fn get(&self) -> *mut zend_class_entry {
+        self.inner.get()
+    }
+
+    pub fn init<const N: usize>(&self, class_name: *const c_char, functions: &FunctionEntries<N>) {
+        unsafe {
+            let mut class_ce = phper_init_class_entry(class_name, functions.as_ptr());
+            *self.as_ptr() = zend_register_internal_class(&mut class_ce);
+        }
+    }
+
+    pub fn declare_property(&self, name: impl AsRef<str>, value: impl SetVal, access_type: u32) {
+        unsafe {
+            let name = name.as_ref();
+            let mut property: MaybeUninit<zval> = MaybeUninit::uninit();
+            let mut property = Val::from_raw(property.as_mut_ptr());
+            value.set_val(&mut property);
+            zend_declare_property(self.get(), name.as_ptr().cast(), name.len(), property.as_ptr(), access_type as c_int);
+        }
+    }
+}
+
+unsafe impl Sync for ClassEntry {}
 
 pub struct ExecuteData {
     raw: *mut zend_execute_data,
@@ -62,14 +108,13 @@ pub struct Val {
 }
 
 impl Val {
-    #[inline]
-    pub fn from_raw(val: *mut zval) -> Self {
+    pub const fn from_raw(val: *mut zval) -> Self {
         Self {
             raw: val,
         }
     }
 
-    pub fn get(&self) -> *mut zval {
+    pub const fn as_ptr(&self) -> *mut zval {
         self.raw
     }
 
@@ -108,6 +153,27 @@ impl SetVal for bool {
             } else {
                 IS_FALSE
             };
+        }
+    }
+}
+
+impl SetVal for i32 {
+    fn set_val(self, val: &mut Val) {
+        (self as i64).set_val(val)
+    }
+}
+
+impl SetVal for u32 {
+    fn set_val(self, val: &mut Val) {
+        (self as i64).set_val(val)
+    }
+}
+
+impl SetVal for i64 {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            (*val.as_ptr()).value.lval = self;
+            (*val.as_ptr()).u1.type_info = IS_LONG;
         }
     }
 }

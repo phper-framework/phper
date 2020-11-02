@@ -6,7 +6,7 @@ use phper::zend::api::{FunctionEntries, ModuleGlobals, function_entry_end};
 use phper::zend::compile::{InternalArgInfos, internal_arg_info_begin};
 use phper::zend::ini::{IniEntryDefs, ini_entry_def_end};
 use phper::zend::modules::{ModuleEntry, create_zend_module_entry};
-use phper::zend::types::{ExecuteData, Val, SetVal, Value};
+use phper::zend::types::{ExecuteData, Val, SetVal, Value, ClassEntry};
 use phper::{
     php_function, php_minit, php_minit_function, php_mshutdown, php_mshutdown_function,
     php_rinit_function, php_rshutdown_function,
@@ -20,7 +20,7 @@ use std::ptr::{null, null_mut};
 use phper::zend::exceptions::MyException;
 use phper::sys::{php_info_print_table_start, php_info_print_table_row, php_info_print_table_end, phper_init_class_entry};
 
-static mut MY_CLASS_CE: *mut zend_class_entry = null_mut();
+static MY_CLASS_CE: ClassEntry = ClassEntry::new();
 
 static SIMPLE_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
 static SIMPLE_TEXT: ModuleGlobals<*const c_char> = ModuleGlobals::new(null());
@@ -35,11 +35,9 @@ static INI_ENTRIES: IniEntryDefs<3> = IniEntryDefs::new([
 fn m_init_simple(type_: c_int, module_number: c_int) -> bool {
     unsafe {
         zend_register_ini_entries(INI_ENTRIES.as_ptr(), module_number);
-    }
-    unsafe {
-        let mut my_class_ce = phper_init_class_entry(c_str_ptr!("MyClass"), MY_CLASS_METHODS.as_ptr());
-        MY_CLASS_CE = zend_register_internal_class(&mut my_class_ce);
-        zend_declare_property_string(MY_CLASS_CE, c_str_ptr!("foo"), 3, c_str_ptr!("bar"), ZEND_ACC_PUBLIC as c_int);
+
+        MY_CLASS_CE.init(c_str_ptr!("MyClass"), &MY_CLASS_METHODS);
+        MY_CLASS_CE.declare_property("foo", 3, ZEND_ACC_PUBLIC);
     }
     true
 }
@@ -66,8 +64,8 @@ fn r_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
 fn m_info_simple(zend_module: *mut ::phper::sys::zend_module_entry) {
     unsafe {
         php_info_print_table_start();
-        php_info_print_table_row(2, c_str_ptr!("simple.enable"), format!("{}\0", *SIMPLE_ENABLE.as_ptr()).as_ptr());
-        php_info_print_table_row(2, c_str_ptr!("simple.text"), format!("{}\0", CStr::from_ptr((*SIMPLE_TEXT.as_ptr())).to_str().unwrap()).as_ptr());
+        php_info_print_table_row(2, if SIMPLE_ENABLE.get() { c_str_ptr!("1") } else { c_str_ptr!("0") });
+        php_info_print_table_row(2, c_str_ptr!("simple.text"), SIMPLE_TEXT.as_ptr());
         php_info_print_table_end();
     }
 }
@@ -182,13 +180,12 @@ pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
             null_mut()
         };
 
-        let foo = zend_read_property(MY_CLASS_CE, this, c_str_ptr!("foo"), 3, 1, null_mut());
+        let foo = zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut());
         let foo = Val::from_raw(foo);
         let foo = foo.as_c_str().unwrap().to_str().unwrap();
         Some(format!("{}{}", prefix, foo))
     }
 }
-
 
 static MODULE_ENTRY: ModuleEntry = ModuleEntry::new(create_zend_module_entry(
     c_str_ptr!(env!("CARGO_PKG_NAME")),

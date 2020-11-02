@@ -38,6 +38,12 @@ impl<T: 'static> ModuleGlobals<T> {
     }
 }
 
+impl<T: Copy + 'static> ModuleGlobals<T> {
+    pub fn get(&self) -> T {
+        self.inner.get()
+    }
+}
+
 unsafe impl<T: 'static> Sync for ModuleGlobals<T> {}
 
 pub struct FunctionEntries<const N: usize> {
