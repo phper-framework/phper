@@ -127,7 +127,7 @@ pub(crate) fn zend_get_module(_attr: TokenStream, input: TokenStream) -> TokenSt
                 #body
             }
             let internal: fn() -> &'static ::phper::zend::modules::ModuleEntry = internal;
-            internal().get()
+            internal().as_ptr()
         }
     };
 

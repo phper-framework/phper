@@ -1,5 +1,5 @@
 use crate::sys::zend_ini_entry_def;
-use std::cell::UnsafeCell;
+use std::cell::Cell;
 use std::os::raw::{c_int, c_void};
 use crate::sys::{zend_ini_entry, zend_string};
 use std::mem::{transmute, size_of};
@@ -11,17 +11,17 @@ pub const fn ini_entry_def_end() -> zend_ini_entry_def {
 }
 
 pub struct IniEntryDefs<const N: usize> {
-    inner: UnsafeCell<[zend_ini_entry_def; N]>,
+    inner: Cell<[zend_ini_entry_def; N]>,
 }
 
 impl<const N: usize> IniEntryDefs<N> {
     pub const fn new(inner: [zend_ini_entry_def; N]) -> Self {
-        Self { inner: UnsafeCell::new(inner) }
+        Self { inner: Cell::new(inner) }
     }
 
     #[inline]
-    pub const fn get(&self) -> *const zend_ini_entry_def {
-        self.inner.get().cast()
+    pub const fn as_ptr(&self) -> *const zend_ini_entry_def {
+        self.inner.as_ptr().cast()
     }
 }
 

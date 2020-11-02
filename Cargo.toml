@@ -8,5 +8,4 @@ members = [
 
     # internal
     "examples/simple",
-#    "examples/class",
 ]

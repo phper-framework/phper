@@ -1,5 +1,5 @@
 use crate::sys::zend_module_entry;
-use std::cell::UnsafeCell;
+use std::cell::Cell;
 use std::mem::size_of;
 use std::os::raw::{c_ushort, c_uint, c_uchar, c_char, c_int, c_void};
 use crate::sys::ZEND_MODULE_API_NO;
@@ -53,17 +53,16 @@ pub const fn create_zend_module_entry(
 }
 
 pub struct ModuleEntry {
-    raw: UnsafeCell<zend_module_entry>,
+    raw: Cell<zend_module_entry>,
 }
 
 impl ModuleEntry {
     pub const fn new(raw: zend_module_entry) -> Self {
-        Self { raw: UnsafeCell::new(raw) }
+        Self { raw: Cell::new(raw) }
     }
 
-    #[inline]
-    pub fn get(&self) -> *mut zend_module_entry {
-        self.raw.get()
+    pub const fn as_ptr(&self) -> *mut zend_module_entry {
+        self.raw.as_ptr()
     }
 }
 
