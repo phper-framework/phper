@@ -5,7 +5,7 @@ use phper::sys::{OnUpdateString, zend_class_entry, zend_register_internal_class,
 use phper::zend::api::{FunctionEntries, ModuleGlobals, function_entry_end};
 use phper::zend::compile::{InternalArgInfos, internal_arg_info_begin};
 use phper::zend::ini::{IniEntryDefs, ini_entry_def_end};
-use phper::zend::modules::{ModuleEntry, create_zend_module_entry};
+use phper::zend::modules::{ModuleEntry, create_zend_module_entry, ModuleArgs};
 use phper::zend::types::{ExecuteData, Val, SetVal, Value, ClassEntry};
 use phper::{
     php_function, php_minit, php_minit_function, php_mshutdown, php_mshutdown_function,
@@ -32,31 +32,26 @@ static INI_ENTRIES: IniEntryDefs<3> = IniEntryDefs::new([
 ]);
 
 #[php_minit_function]
-fn m_init_simple(type_: c_int, module_number: c_int) -> bool {
-    unsafe {
-        zend_register_ini_entries(INI_ENTRIES.as_ptr(), module_number);
-
-        MY_CLASS_CE.init(c_str_ptr!("MyClass"), &MY_CLASS_METHODS);
-        MY_CLASS_CE.declare_property("foo", 3, ZEND_ACC_PUBLIC);
-    }
+fn m_init_simple(args: ModuleArgs) -> bool {
+    args.register_ini_entries(&INI_ENTRIES);
+    MY_CLASS_CE.init(c_str_ptr!("MyClass"), &MY_CLASS_METHODS);
+    MY_CLASS_CE.declare_property("foo", 3, ZEND_ACC_PUBLIC);
     true
 }
 
 #[php_mshutdown_function]
-fn m_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
-    unsafe {
-        zend_unregister_ini_entries(module_number);
-    }
+fn m_shutdown_simple(args: ModuleArgs) -> bool {
+    args.unregister_ini_entries();
     true
 }
 
 #[php_rinit_function]
-fn r_init_simple(type_: c_int, module_number: c_int) -> bool {
+fn r_init_simple(args: ModuleArgs) -> bool {
     true
 }
 
 #[php_rshutdown_function]
-fn r_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
+fn r_shutdown_simple(args: ModuleArgs) -> bool {
     true
 }
 
@@ -64,8 +59,8 @@ fn r_shutdown_simple(type_: c_int, module_number: c_int) -> bool {
 fn m_info_simple(zend_module: *mut ::phper::sys::zend_module_entry) {
     unsafe {
         php_info_print_table_start();
-        php_info_print_table_row(2, if SIMPLE_ENABLE.get() { c_str_ptr!("1") } else { c_str_ptr!("0") });
-        php_info_print_table_row(2, c_str_ptr!("simple.text"), SIMPLE_TEXT.as_ptr());
+        php_info_print_table_row(2, c_str_ptr!("simple.enable"), if SIMPLE_ENABLE.get() { c_str_ptr!("1") } else { c_str_ptr!("0") });
+        php_info_print_table_row(2, c_str_ptr!("simple.text"), SIMPLE_TEXT.get());
         php_info_print_table_end();
     }
 }

@@ -30,9 +30,9 @@ pub(crate) fn hook_fn(input: TokenStream, prefix: impl ToString) -> TokenStream 
                 #body
             }
 
-            let internal: fn(::std::os::raw::c_int, ::std::os::raw::c_int) -> bool = internal;
+            let internal: fn(::phper::zend::modules::ModuleArgs) -> bool = internal;
 
-            if internal(type_, module_number) {
+            if internal(::phper::zend::modules::ModuleArgs::new(type_, module_number)) {
                 ::phper::sys::ZEND_RESULT_CODE_SUCCESS
             } else {
                 ::phper::sys::ZEND_RESULT_CODE_FAILURE

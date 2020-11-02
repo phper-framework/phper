@@ -8,6 +8,9 @@ use crate::sys::USING_ZTS;
 use crate::sys::PHP_MODULE_BUILD_ID;
 use crate::sys::zend_function_entry;
 use std::ptr::{null, null_mut};
+use crate::zend::ini::IniEntryDefs;
+use crate::sys::zend_register_ini_entries;
+use crate::sys::zend_unregister_ini_entries;
 
 pub const fn create_zend_module_entry(
     name: *const c_char,
@@ -67,3 +70,30 @@ impl ModuleEntry {
 }
 
 unsafe impl Sync for ModuleEntry {}
+
+pub struct ModuleArgs {
+    type_: c_int,
+    module_number: c_int,
+}
+
+impl ModuleArgs {
+    pub const fn new(type_: c_int, module_number: c_int) -> Self {
+        Self {
+            type_,
+            module_number
+        }
+    }
+
+    pub fn register_ini_entries<const N: usize>(&self, ini_entries: &IniEntryDefs<N>) {
+        unsafe {
+            zend_register_ini_entries(ini_entries.as_ptr(), self.module_number);
+        }
+    }
+
+    pub fn unregister_ini_entries(&self) {
+        unsafe {
+            zend_unregister_ini_entries(self.module_number);
+        }
+    }
+}
+
