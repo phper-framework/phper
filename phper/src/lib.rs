@@ -30,6 +30,7 @@ Version `0.1.x` will be a preview version.
 
 pub mod zend;
 mod error;
+mod utils;
 
 pub use phper_alloc as alloc;
 pub use phper_sys as sys;

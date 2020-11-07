@@ -42,6 +42,7 @@ pub(crate) fn hook_fn(input: TokenStream, prefix: impl ToString) -> TokenStream 
 
     result.into()
 }
+
 pub(crate) fn info_fn(input: TokenStream, prefix: impl ToString) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
@@ -62,8 +63,8 @@ pub(crate) fn info_fn(input: TokenStream, prefix: impl ToString) -> TokenStream 
                 #body
             }
 
-            let internal: fn(*mut ::phper::sys::zend_module_entry) = internal;
-            internal(zend_module)
+            let internal: fn(&::phper::zend::modules::ModuleEntry) = internal;
+            internal(::phper::zend::modules::ModuleEntry::from_ptr(zend_module))
         }
     };
 

@@ -2,10 +2,11 @@ use crate::sys::{zend_execute_data, zval, zend_type, phper_zval_get_type, IS_STR
                  IS_TRUE, IS_FALSE, phper_zval_stringl, zend_throw_exception,
                  zend_class_entry, phper_init_class_entry, zend_register_internal_class,
                  zend_declare_property_stringl, zend_declare_property, IS_LONG,
+                 zend_parse_parameters, ZEND_RESULT_CODE_SUCCESS,
 };
 use crate::c_str_ptr;
-use std::ffi::CStr;
-use std::borrow::Cow;
+use std::ffi::{CStr, c_void};
+use std::borrow::{Cow, Borrow};
 use crate::zend::exceptions::Throwable;
 use std::ptr::{null, null_mut};
 use std::cell::Cell;
@@ -83,10 +84,116 @@ impl ExecuteData {
         }
     }
 
-    pub fn parse_parameters(&self) {
-
+    pub fn parse_parameters<T: ParseParameter>(&self) -> Option<T> {
+        <T>::parse(self.num_args())
     }
 }
+
+pub trait ParseParameter: Sized {
+    fn parse(arg_num: usize) -> Option<Self>;
+}
+
+impl ParseParameter for bool {
+    fn parse(num_args: usize) -> Option<Self> {
+        let mut b = false;
+        if unsafe { zend_parse_parameters(num_args as c_int, c_str_ptr!("b"), &mut b) == ZEND_RESULT_CODE_SUCCESS } {
+            Some(b)
+        } else {
+            None
+        }
+        // if (c_str_ptr!("b"), &mut b as *const _).call_zend_parse_parameters(arg_num) {
+        // if zend_parse_fixed_parameters(num_args, "b\0", parameters) {
+        // } else {
+        //     None
+        // }
+    }
+}
+
+// impl<A: ParseParameter, B: ParseParameter> ParseParameter for (A, B) {
+//     fn spec() -> Cow<'static, str> {
+//         let mut s= String::new();
+//         s.push_str(&<A>::spec());
+//         s.push_str(&<B>::spec());
+//         Cow::Owned(s)
+//     }
+//
+//     fn push_parameters(parameters: &mut Vec<*const c_void>) {
+//         unimplemented!()
+//     }
+//
+//     fn parse(arg_num: i32) -> Option<Self> {
+//         let a = null_mut();
+//         let b = null_mut();
+//
+//         #[repr(C)]
+//         struct Parameters(*mut c_void, *mut c_void);
+//
+//         let parameters = Parameters(a, b);
+//
+//         let result = unsafe {
+//             zend_parse_parameters(arg_num, (&*Self::spec()).as_ptr().cast(), parameters) == ZEND_RESULT_CODE_SUCCESS
+//         };
+//     }
+// }
+
+fn zend_parse_fixed_parameters(num_args: usize, type_spec: &str, parameters: [*mut c_void; 10]) -> bool {
+    assert!(num_args <= 10);
+    assert!(type_spec.ends_with('\0'));
+
+    let mut fixed_parameters = [null_mut(); 20];
+
+    let mut i = 0;
+    for c in type_spec.chars() {
+        match c {
+            's' => {
+                fixed_parameters[i] = parameters[i];
+                i += 1;
+            }
+            '*' | '+' | '|' | '/' | '!' | '\0' => {}
+            _ => {
+                fixed_parameters[i] = parameters[i];
+            }
+        }
+        i += 1;
+    }
+
+    unsafe {
+        zend_parse_parameters(num_args as c_int, type_spec.as_ptr().cast(), fixed_parameters) == ZEND_RESULT_CODE_SUCCESS
+    }
+}
+
+trait CallZendParseParameters {
+    fn call_zend_parse_parameters(self, num_args: c_int) -> bool;
+}
+
+macro_rules! generate_impl_call_zend_parse_parameters {
+    { $(($n:tt, $T:ident)),*} => {
+        impl<$($T,)*> CallZendParseParameters for (*const c_char, $(*const $T,)*) {
+            #[inline]
+            fn call_zend_parse_parameters(self, num_args: i32) -> bool {
+                unsafe {
+                    zend_parse_parameters(num_args, self.0, $(self.$n,)*) == ZEND_RESULT_CODE_SUCCESS
+                }
+            }
+        }
+    };
+}
+
+generate_impl_call_zend_parse_parameters!();
+generate_impl_call_zend_parse_parameters!((1, A));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K), (12, L));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K), (12, L), (13, M));
+generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K), (12, L), (13, M), (14, N));
 
 #[repr(u32)]
 pub enum ValType {

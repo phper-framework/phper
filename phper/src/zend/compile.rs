@@ -10,11 +10,11 @@ pub const fn internal_arg_info_begin(required_num_args: usize, return_reference:
     }
 }
 
-pub struct InternalArgInfos<const N: usize> {
+pub struct MultiInternalArgInfo<const N: usize> {
     inner: UnsafeCell<[zend_internal_arg_info; N]>,
 }
 
-impl<const N: usize> InternalArgInfos<N> {
+impl<const N: usize> MultiInternalArgInfo<N> {
     pub const fn new(inner: [zend_internal_arg_info; N]) -> Self {
         Self { inner: UnsafeCell::new(inner) }
     }
@@ -24,4 +24,4 @@ impl<const N: usize> InternalArgInfos<N> {
     }
 }
 
-unsafe impl<const N: usize> Sync for InternalArgInfos<N> {}
+unsafe impl<const N: usize> Sync for MultiInternalArgInfo<N> {}

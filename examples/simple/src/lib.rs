@@ -3,7 +3,7 @@ use phper::sys::{ZEND_RESULT_CODE_SUCCESS, zend_parse_parameters, zend_internal_
 use phper::sys::{zend_ini_entry_def, zend_module_entry, zend_register_ini_entries, zend_unregister_ini_entries, OnUpdateBool, phper_zval_string};
 use phper::sys::{OnUpdateString, zend_class_entry, zend_register_internal_class, zend_declare_property_string, ZEND_ACC_PUBLIC, zend_type, zend_read_property};
 use phper::zend::api::{FunctionEntries, ModuleGlobals, function_entry_end};
-use phper::zend::compile::{InternalArgInfos, internal_arg_info_begin};
+use phper::zend::compile::{MultiInternalArgInfo, internal_arg_info_begin};
 use phper::zend::ini::{IniEntryDefs, ini_entry_def_end};
 use phper::zend::modules::{ModuleEntry, create_zend_module_entry, ModuleArgs};
 use phper::zend::types::{ExecuteData, Val, SetVal, Value, ClassEntry};
@@ -56,9 +56,11 @@ fn r_shutdown_simple(args: ModuleArgs) -> bool {
 }
 
 #[php_minfo_function]
-fn m_info_simple(zend_module: *mut ::phper::sys::zend_module_entry) {
+fn m_info_simple(module: &ModuleEntry) {
     unsafe {
         php_info_print_table_start();
+        php_info_print_table_row(2, c_str_ptr!("simple.version"), (*module.as_ptr()).version);
+        php_info_print_table_row(2, c_str_ptr!("simple.build_id"), (*module.as_ptr()).build_id);
         php_info_print_table_row(2, c_str_ptr!("simple.enable"), if SIMPLE_ENABLE.get() { c_str_ptr!("1") } else { c_str_ptr!("0") });
         php_info_print_table_row(2, c_str_ptr!("simple.text"), SIMPLE_TEXT.get());
         php_info_print_table_end();
@@ -85,18 +87,22 @@ pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
             return None;
         }
 
-        let s = CStr::from_ptr((*SIMPLE_TEXT.as_ptr())).to_str().unwrap();
-        println!("simple.text: '{}'", s);
-
         Some(format!(
-            "(a . b) = {}{}",
+            "a = {}, a_len = {}, b = {}, b_len = {}",
             CStr::from_ptr(a).to_str().unwrap(),
+            a_len,
             CStr::from_ptr(b).to_str().unwrap(),
+            b_len,
         ))
     }
 }
 
-static ARG_INFO_TEST_SIMPLE: InternalArgInfos<3> = InternalArgInfos::new([
+#[php_function]
+pub fn test_parse(execute_data: ExecuteData) -> impl SetVal {
+    execute_data.parse_parameters::<bool>()
+}
+
+static ARG_INFO_TEST_SIMPLE: MultiInternalArgInfo<3> = MultiInternalArgInfo::new([
     internal_arg_info_begin(2, false),
     zend_internal_arg_info {
         name: c_str_ptr!("a"),
@@ -112,7 +118,7 @@ static ARG_INFO_TEST_SIMPLE: InternalArgInfos<3> = InternalArgInfos::new([
     },
 ]);
 
-static FUNCTION_ENTRIES: FunctionEntries<2> = FunctionEntries::new([
+static FUNCTION_ENTRIES: FunctionEntries<3> = FunctionEntries::new([
     zend_function_entry {
         fname: c_str_ptr!("test_simple"),
         handler: Some(php_fn!(test_simple)),
@@ -120,13 +126,20 @@ static FUNCTION_ENTRIES: FunctionEntries<2> = FunctionEntries::new([
         num_args: 2,
         flags: 0,
     },
+    zend_function_entry {
+        fname: c_str_ptr!("test_parse"),
+        handler: Some(php_fn!(test_parse)),
+        arg_info: null(),
+        num_args: 0,
+        flags: 0,
+    },
     function_entry_end(),
 ]);
 
 
-static ARG_INFO_MY_CLASS_FOO: InternalArgInfos<2> = InternalArgInfos::new([
+static ARG_INFO_MY_CLASS_FOO: MultiInternalArgInfo<2> = MultiInternalArgInfo::new([
     zend_internal_arg_info {
-        name: 2 as *const _,
+        name: 1 as *const _,
         type_: 0,
         pass_by_reference: 0,
         is_variadic: 0,

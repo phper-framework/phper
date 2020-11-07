@@ -55,6 +55,7 @@ pub const fn create_zend_module_entry(
     }
 }
 
+#[repr(transparent)]
 pub struct ModuleEntry {
     raw: Cell<zend_module_entry>,
 }
@@ -66,6 +67,10 @@ impl ModuleEntry {
 
     pub const fn as_ptr(&self) -> *mut zend_module_entry {
         self.raw.as_ptr()
+    }
+
+    pub fn from_ptr<'a>(ptr: *const zend_module_entry) -> &'a Self {
+        unsafe { &*(ptr as *const Self) }
     }
 }
 
