@@ -21,7 +21,7 @@ jobs:
         os:
           - ubuntu-latest
         php-version:
-          - xx
+          - php-7.3.24
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -29,6 +29,7 @@ jobs:
         run: |
           git clone https://github.com/php/php-src.git /tmp/php-${{ matrix.php-version }}
           cd /tmp/php-${{ matrix.php-version }}
+          git checkout ${{ matrix.php-version }}
           mkdir target
           ./buildconf --force
           ./configure --prefix=`pwd`/target --enable-debug
