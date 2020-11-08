@@ -200,7 +200,7 @@ impl ParseParameter for &str {
 }
 
 macro_rules! impl_parse_parameter_for_tuple {
-    { $(($t:ident,$T:ident)),* } => {
+    ( $(($t:ident,$T:ident)),* ) => {
         impl<$($T: ParseParameter,)*> ParseParameter for ($($T,)*) {
             fn spec() -> Cow<'static, str> {
                 let mut s= String::new();
@@ -248,57 +248,91 @@ impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), 
 impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I));
 impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I), (j, J));
 
+macro_rules! call_zend_parse_parameters {
+    ( $num_args:expr, $type_spec:expr, $parameters:expr $(,$i:expr)* ) => {
+        unsafe { zend_parse_parameters($num_args, $type_spec, $($parameters.get_unchecked($i).clone(),)*) }
+    }
+}
+
 fn zend_parse_fixed_parameters(num_args: usize, type_spec: &str, parameters: &[*mut c_void]) -> bool {
     assert!(parameters.len() <= 20);
     let type_spec = format!("{}\0", type_spec);
 
-    let p0 = parameters.get(0).map(Clone::clone).unwrap_or(null_mut());
-    let p1 = parameters.get(1).map(Clone::clone).unwrap_or(null_mut());
-    let p2 = parameters.get(2).map(Clone::clone).unwrap_or(null_mut());
-    let p3 = parameters.get(3).map(Clone::clone).unwrap_or(null_mut());
-    let p4 = parameters.get(4).map(Clone::clone).unwrap_or(null_mut());
-    let p5 = parameters.get(5).map(Clone::clone).unwrap_or(null_mut());
-    let p6 = parameters.get(6).map(Clone::clone).unwrap_or(null_mut());
-    let p7 = parameters.get(7).map(Clone::clone).unwrap_or(null_mut());
-    let p8 = parameters.get(8).map(Clone::clone).unwrap_or(null_mut());
-    let p9 = parameters.get(9).map(Clone::clone).unwrap_or(null_mut());
-    let p10 = parameters.get(10).map(Clone::clone).unwrap_or(null_mut());
-    let p11 = parameters.get(11).map(Clone::clone).unwrap_or(null_mut());
-    let p12 = parameters.get(12).map(Clone::clone).unwrap_or(null_mut());
-    let p13 = parameters.get(13).map(Clone::clone).unwrap_or(null_mut());
-    let p14 = parameters.get(14).map(Clone::clone).unwrap_or(null_mut());
-    let p15 = parameters.get(15).map(Clone::clone).unwrap_or(null_mut());
-    let p16 = parameters.get(16).map(Clone::clone).unwrap_or(null_mut());
-    let p17 = parameters.get(17).map(Clone::clone).unwrap_or(null_mut());
-    let p18 = parameters.get(18).map(Clone::clone).unwrap_or(null_mut());
-    let p19 = parameters.get(19).map(Clone::clone).unwrap_or(null_mut());
+    let b = match parameters.len() {
+        0 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters),
+        1 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0),
+        2 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1),
+        3 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2),
+        4 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3),
+        5 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4),
+        6 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5),
+        7 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6),
+        8 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7),
+        9 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8),
+        10 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
+        11 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+        12 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+        13 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+        14 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
+        15 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+        16 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+        17 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+        18 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17),
+        19 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18),
+        20 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
+        _ => unreachable!(),
+    };
 
-    unsafe {
-        zend_parse_parameters(
-            num_args as c_int,
-            type_spec.as_ptr().cast(),
-            p0 ,
-            p1 ,
-            p2 ,
-            p3 ,
-            p4 ,
-            p5 ,
-            p6 ,
-            p7 ,
-            p8 ,
-            p9 ,
-            p10,
-            p11,
-            p12,
-            p13,
-            p14,
-            p15,
-            p16,
-            p17,
-            p18,
-            p19,
-        ) == ZEND_RESULT_CODE_SUCCESS
-    }
+    b == ZEND_RESULT_CODE_SUCCESS
+
+
+    // let p0 = parameters.get(0).map(Clone::clone).unwrap_or(null_mut());
+    // let p1 = parameters.get(1).map(Clone::clone).unwrap_or(null_mut());
+    // let p2 = parameters.get(2).map(Clone::clone).unwrap_or(null_mut());
+    // let p3 = parameters.get(3).map(Clone::clone).unwrap_or(null_mut());
+    // let p4 = parameters.get(4).map(Clone::clone).unwrap_or(null_mut());
+    // let p5 = parameters.get(5).map(Clone::clone).unwrap_or(null_mut());
+    // let p6 = parameters.get(6).map(Clone::clone).unwrap_or(null_mut());
+    // let p7 = parameters.get(7).map(Clone::clone).unwrap_or(null_mut());
+    // let p8 = parameters.get(8).map(Clone::clone).unwrap_or(null_mut());
+    // let p9 = parameters.get(9).map(Clone::clone).unwrap_or(null_mut());
+    // let p10 = parameters.get(10).map(Clone::clone).unwrap_or(null_mut());
+    // let p11 = parameters.get(11).map(Clone::clone).unwrap_or(null_mut());
+    // let p12 = parameters.get(12).map(Clone::clone).unwrap_or(null_mut());
+    // let p13 = parameters.get(13).map(Clone::clone).unwrap_or(null_mut());
+    // let p14 = parameters.get(14).map(Clone::clone).unwrap_or(null_mut());
+    // let p15 = parameters.get(15).map(Clone::clone).unwrap_or(null_mut());
+    // let p16 = parameters.get(16).map(Clone::clone).unwrap_or(null_mut());
+    // let p17 = parameters.get(17).map(Clone::clone).unwrap_or(null_mut());
+    // let p18 = parameters.get(18).map(Clone::clone).unwrap_or(null_mut());
+    // let p19 = parameters.get(19).map(Clone::clone).unwrap_or(null_mut());
+    //
+    // unsafe {
+    //     zend_parse_parameters(
+    //         num_args as c_int,
+    //         type_spec.as_ptr().cast(),
+    //         p0 ,
+    //         p1 ,
+    //         p2 ,
+    //         p3 ,
+    //         p4 ,
+    //         p5 ,
+    //         p6 ,
+    //         p7 ,
+    //         p8 ,
+    //         p9 ,
+    //         p10,
+    //         p11,
+    //         p12,
+    //         p13,
+    //         p14,
+    //         p15,
+    //         p16,
+    //         p17,
+    //         p18,
+    //         p19,
+    //     ) == ZEND_RESULT_CODE_SUCCESS
+    // }
 }
 
 #[repr(u32)]

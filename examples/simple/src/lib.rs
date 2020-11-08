@@ -96,19 +96,12 @@ static ARG_INFO_TEST_SIMPLE: MultiInternalArgInfo<3> = MultiInternalArgInfo::new
     },
 ]);
 
-static FUNCTION_ENTRIES: FunctionEntries<3> = FunctionEntries::new([
+static FUNCTION_ENTRIES: FunctionEntries<2> = FunctionEntries::new([
     zend_function_entry {
         fname: c_str_ptr!("test_simple"),
         handler: Some(php_fn!(test_simple)),
         arg_info: ARG_INFO_TEST_SIMPLE.get(),
         num_args: 2,
-        flags: 0,
-    },
-    zend_function_entry {
-        fname: c_str_ptr!("test_parse"),
-        handler: Some(php_fn!(test_parse)),
-        arg_info: null(),
-        num_args: 0,
         flags: 0,
     },
     function_entry_end(),
@@ -144,33 +137,20 @@ static MY_CLASS_METHODS: FunctionEntries<2> = FunctionEntries::new([
 
 #[php_function]
 pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
-    let mut prefix: *const c_char = null_mut();
-    let mut prefix_len = 0;
-
-    unsafe {
-        if zend_parse_parameters(
-            execute_data.num_args() as c_int,
-            c_str_ptr!("s"),
-            &mut prefix,
-            &mut prefix_len,
-        ) != ZEND_RESULT_CODE_SUCCESS
-        {
-            return None;
-        }
-
-        let prefix = CStr::from_ptr(prefix).to_str().unwrap();
-
+    execute_data.parse_parameters::<&str>().map(|prefix| {
         let this = if execute_data.get_type() == phper::sys::IS_OBJECT as zend_type {
             execute_data.get_this()
         } else {
             null_mut()
         };
 
-        let foo = zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut());
+        let foo = unsafe {
+             zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())
+        };
         let foo = Val::from_raw(foo);
         let foo = foo.as_c_str().unwrap().to_str().unwrap();
-        Some(format!("{}{}", prefix, foo))
-    }
+        format!("{}{}", prefix, foo)
+    })
 }
 
 static MODULE_ENTRY: ModuleEntry = ModuleEntry::new(create_zend_module_entry(
