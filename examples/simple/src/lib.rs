@@ -69,37 +69,15 @@ fn m_info_simple(module: &ModuleEntry) {
 
 #[php_function]
 pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
-    let mut a: *const c_char = null_mut();
-    let mut a_len = 0;
-    let mut b: *const c_char = null_mut();
-    let mut b_len = 0;
-
-    unsafe {
-        if zend_parse_parameters(
-            execute_data.num_args() as c_int,
-            c_str_ptr!("ss"),
-            &mut a,
-            &mut a_len,
-            &mut b,
-            &mut b_len,
-        ) != ZEND_RESULT_CODE_SUCCESS
-        {
-            return None;
-        }
-
-        Some(format!(
+    execute_data.parse_parameters::<(&str, &str)>().map(|(a, b)| {
+        format!(
             "a = {}, a_len = {}, b = {}, b_len = {}",
-            CStr::from_ptr(a).to_str().unwrap(),
-            a_len,
-            CStr::from_ptr(b).to_str().unwrap(),
-            b_len,
-        ))
-    }
-}
-
-#[php_function]
-pub fn test_parse(execute_data: ExecuteData) -> impl SetVal {
-    execute_data.parse_parameters::<bool>()
+            a,
+            a.len(),
+            b,
+            b.len(),
+        )
+    })
 }
 
 static ARG_INFO_TEST_SIMPLE: MultiInternalArgInfo<3> = MultiInternalArgInfo::new([

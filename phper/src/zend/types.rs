@@ -90,110 +90,216 @@ impl ExecuteData {
 }
 
 pub trait ParseParameter: Sized {
-    fn parse(arg_num: usize) -> Option<Self>;
-}
+    fn spec() -> Cow<'static, str>;
 
-impl ParseParameter for bool {
+    fn num_parameters() -> usize;
+
+    fn parameters() -> Vec<*mut c_void>;
+
+    fn from_parameters(parameters: &[*mut c_void]) -> Option<Self>;
+
     fn parse(num_args: usize) -> Option<Self> {
-        let mut b = false;
-        if unsafe { zend_parse_parameters(num_args as c_int, c_str_ptr!("b"), &mut b) == ZEND_RESULT_CODE_SUCCESS } {
-            Some(b)
+        let mut parameters = Self::parameters();
+        if zend_parse_fixed_parameters(num_args, &Self::spec(), &parameters) {
+            Self::from_parameters(&parameters)
         } else {
             None
         }
-        // if (c_str_ptr!("b"), &mut b as *const _).call_zend_parse_parameters(arg_num) {
-        // if zend_parse_fixed_parameters(num_args, "b\0", parameters) {
-        // } else {
-        //     None
-        // }
     }
 }
 
-// impl<A: ParseParameter, B: ParseParameter> ParseParameter for (A, B) {
-//     fn spec() -> Cow<'static, str> {
-//         let mut s= String::new();
-//         s.push_str(&<A>::spec());
-//         s.push_str(&<B>::spec());
-//         Cow::Owned(s)
-//     }
-//
-//     fn push_parameters(parameters: &mut Vec<*const c_void>) {
-//         unimplemented!()
-//     }
-//
-//     fn parse(arg_num: i32) -> Option<Self> {
-//         let a = null_mut();
-//         let b = null_mut();
-//
-//         #[repr(C)]
-//         struct Parameters(*mut c_void, *mut c_void);
-//
-//         let parameters = Parameters(a, b);
-//
-//         let result = unsafe {
-//             zend_parse_parameters(arg_num, (&*Self::spec()).as_ptr().cast(), parameters) == ZEND_RESULT_CODE_SUCCESS
-//         };
-//     }
-// }
+impl ParseParameter for bool {
+    #[inline]
+    fn spec() -> Cow<'static, str> {
+        Cow::Borrowed("b")
+    }
 
-fn zend_parse_fixed_parameters(num_args: usize, type_spec: &str, parameters: [*mut c_void; 10]) -> bool {
-    assert!(num_args <= 10);
-    assert!(type_spec.ends_with('\0'));
+    #[inline]
+    fn num_parameters() -> usize {
+        1
+    }
 
-    let mut fixed_parameters = [null_mut(); 20];
+    #[inline]
+    fn parameters() -> Vec<*mut c_void> {
+        vec![Box::into_raw(Box::new(false)).cast()]
+    }
 
-    let mut i = 0;
-    for c in type_spec.chars() {
-        match c {
-            's' => {
-                fixed_parameters[i] = parameters[i];
-                i += 1;
-            }
-            '*' | '+' | '|' | '/' | '!' | '\0' => {}
-            _ => {
-                fixed_parameters[i] = parameters[i];
-            }
+    fn from_parameters(parameters: &[*mut c_void]) -> Option<Self> {
+        let b = unsafe { Box::from_raw(parameters[0] as *mut bool) };
+        Some(*b)
+    }
+}
+
+impl ParseParameter for i64 {
+    #[inline]
+    fn spec() -> Cow<'static, str> {
+        Cow::Borrowed("l")
+    }
+
+    #[inline]
+    fn num_parameters() -> usize {
+        1
+    }
+
+    #[inline]
+    fn parameters() -> Vec<*mut c_void> {
+        vec![Box::into_raw(Box::new(0i64)).cast()]
+    }
+
+    fn from_parameters(parameters: &[*mut c_void]) -> Option<Self> {
+        let i = unsafe { Box::from_raw(parameters[0] as *mut i64) };
+        Some(*i)
+    }
+}
+
+impl ParseParameter for f64 {
+    #[inline]
+    fn spec() -> Cow<'static, str> {
+        Cow::Borrowed("d")
+    }
+
+    #[inline]
+    fn num_parameters() -> usize {
+        1
+    }
+
+    #[inline]
+    fn parameters() -> Vec<*mut c_void> {
+        vec![Box::into_raw(Box::new(0f64)).cast()]
+    }
+
+    fn from_parameters(parameters: &[*mut c_void]) -> Option<Self> {
+        let i = unsafe { Box::from_raw(parameters[0] as *mut f64) };
+        Some(*i)
+    }
+}
+
+impl ParseParameter for &str {
+    #[inline]
+    fn spec() -> Cow<'static, str> {
+        Cow::Borrowed("s")
+    }
+
+    #[inline]
+    fn num_parameters() -> usize {
+        2
+    }
+
+    #[inline]
+    fn parameters() -> Vec<*mut c_void> {
+        vec![Box::into_raw(Box::new(null_mut::<c_char>())).cast(), Box::into_raw(Box::new(0u32)).cast()]
+    }
+
+    fn from_parameters(parameters: &[*mut c_void]) -> Option<Self> {
+        unsafe {
+            let ptr = Box::from_raw(parameters[0] as *mut *mut c_char);
+            let _len = Box::from_raw(parameters[1] as *mut c_int);
+            CStr::from_ptr(*ptr).to_str().ok()
         }
-        i += 1;
-    }
-
-    unsafe {
-        zend_parse_parameters(num_args as c_int, type_spec.as_ptr().cast(), fixed_parameters) == ZEND_RESULT_CODE_SUCCESS
     }
 }
 
-trait CallZendParseParameters {
-    fn call_zend_parse_parameters(self, num_args: c_int) -> bool;
-}
+macro_rules! impl_parse_parameter_for_tuple {
+    { $(($t:ident,$T:ident)),* } => {
+        impl<$($T: ParseParameter,)*> ParseParameter for ($($T,)*) {
+            fn spec() -> Cow<'static, str> {
+                let mut s= String::new();
+                $(s.push_str(&<$T>::spec());)*
+                Cow::Owned(s)
+            }
 
-macro_rules! generate_impl_call_zend_parse_parameters {
-    { $(($n:tt, $T:ident)),*} => {
-        impl<$($T,)*> CallZendParseParameters for (*const c_char, $(*const $T,)*) {
             #[inline]
-            fn call_zend_parse_parameters(self, num_args: i32) -> bool {
-                unsafe {
-                    zend_parse_parameters(num_args, self.0, $(self.$n,)*) == ZEND_RESULT_CODE_SUCCESS
-                }
+            fn num_parameters() -> usize {
+                0 $( + <$T>::num_parameters())*
+            }
+
+            fn parameters() -> Vec<*mut c_void> {
+                let mut parameters = Vec::new();
+                $(parameters.extend_from_slice(&<$T>::parameters());)*
+                parameters
+            }
+
+            fn from_parameters(parameters: &[*mut c_void]) -> Option<Self> {
+                let mut i = 0;
+
+                $(let $t = {
+                    let j = i;
+                    i += <$T>::num_parameters();
+                    match <$T>::from_parameters(&parameters[j..i]) {
+                        Some(item) => item,
+                        None => return None,
+                    }
+                };)*
+
+                Some(($($t,)*))
             }
         }
     };
 }
 
-generate_impl_call_zend_parse_parameters!();
-generate_impl_call_zend_parse_parameters!((1, A));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K), (12, L));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K), (12, L), (13, M));
-generate_impl_call_zend_parse_parameters!((1, A), (2, B), (3, C), (4, D), (5, E), (6, F), (7, G), (8, H), (9, I), (10, J), (11, K), (12, L), (13, M), (14, N));
+impl_parse_parameter_for_tuple!((a, A));
+impl_parse_parameter_for_tuple!((a, A), (b, B));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I));
+impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I), (j, J));
+
+fn zend_parse_fixed_parameters(num_args: usize, type_spec: &str, parameters: &[*mut c_void]) -> bool {
+    assert!(parameters.len() <= 20);
+    let type_spec = format!("{}\0", type_spec);
+
+    let p0 = parameters.get(0).map(Clone::clone).unwrap_or(null_mut());
+    let p1 = parameters.get(1).map(Clone::clone).unwrap_or(null_mut());
+    let p2 = parameters.get(2).map(Clone::clone).unwrap_or(null_mut());
+    let p3 = parameters.get(3).map(Clone::clone).unwrap_or(null_mut());
+    let p4 = parameters.get(4).map(Clone::clone).unwrap_or(null_mut());
+    let p5 = parameters.get(5).map(Clone::clone).unwrap_or(null_mut());
+    let p6 = parameters.get(6).map(Clone::clone).unwrap_or(null_mut());
+    let p7 = parameters.get(7).map(Clone::clone).unwrap_or(null_mut());
+    let p8 = parameters.get(8).map(Clone::clone).unwrap_or(null_mut());
+    let p9 = parameters.get(9).map(Clone::clone).unwrap_or(null_mut());
+    let p10 = parameters.get(10).map(Clone::clone).unwrap_or(null_mut());
+    let p11 = parameters.get(11).map(Clone::clone).unwrap_or(null_mut());
+    let p12 = parameters.get(12).map(Clone::clone).unwrap_or(null_mut());
+    let p13 = parameters.get(13).map(Clone::clone).unwrap_or(null_mut());
+    let p14 = parameters.get(14).map(Clone::clone).unwrap_or(null_mut());
+    let p15 = parameters.get(15).map(Clone::clone).unwrap_or(null_mut());
+    let p16 = parameters.get(16).map(Clone::clone).unwrap_or(null_mut());
+    let p17 = parameters.get(17).map(Clone::clone).unwrap_or(null_mut());
+    let p18 = parameters.get(18).map(Clone::clone).unwrap_or(null_mut());
+    let p19 = parameters.get(19).map(Clone::clone).unwrap_or(null_mut());
+
+    unsafe {
+        zend_parse_parameters(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            p0 ,
+            p1 ,
+            p2 ,
+            p3 ,
+            p4 ,
+            p5 ,
+            p6 ,
+            p7 ,
+            p8 ,
+            p9 ,
+            p10,
+            p11,
+            p12,
+            p13,
+            p14,
+            p15,
+            p16,
+            p17,
+            p18,
+            p19,
+        ) == ZEND_RESULT_CODE_SUCCESS
+    }
+}
 
 #[repr(u32)]
 pub enum ValType {
