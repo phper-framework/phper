@@ -1,4 +1,4 @@
-name: Rust
+name: CI
 
 on:
   push:
@@ -13,28 +13,23 @@ env:
   RUSTFLAGS: "-D warnings"
 
 jobs:
-  all:
-    name: All
+  ci:
+    name: CI
     strategy:
       fail-fast: false
       matrix:
         os:
           - ubuntu-latest
         php-version:
-          - php-7.3.24
+          - 7.3
+          - 7.4
 
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install PHP
-        run: |
-          git clone https://github.com/php/php-src.git /tmp/php-${{ matrix.php-version }}
-          cd /tmp/php-${{ matrix.php-version }}
-          git checkout ${{ matrix.php-version }}
-          mkdir target
-          ./buildconf --force
-          ./configure --prefix=`pwd`/target --enable-debug
-          make -j
-          make install
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+
       - name: Checkout
         uses: actions/checkout@v2
-
