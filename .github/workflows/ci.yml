@@ -1,0 +1,39 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ "**" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUST_LOG: debug
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  all:
+    name: All
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        php-version:
+          - xx
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install PHP
+        run: |
+          git clone https://github.com/php/php-src.git /tmp/php-${{ matrix.php-version }}
+          cd /tmp/php-${{ matrix.php-version }}
+          mkdir target
+          ./buildconf --force
+          ./configure --prefix=`pwd`/target --enable-debug
+          make -j
+          make install
+      - name: Checkout
+        uses: actions/checkout@v2
+
