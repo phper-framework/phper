@@ -284,55 +284,6 @@ fn zend_parse_fixed_parameters(num_args: usize, type_spec: &str, parameters: &[*
     };
 
     b == ZEND_RESULT_CODE_SUCCESS
-
-
-    // let p0 = parameters.get(0).map(Clone::clone).unwrap_or(null_mut());
-    // let p1 = parameters.get(1).map(Clone::clone).unwrap_or(null_mut());
-    // let p2 = parameters.get(2).map(Clone::clone).unwrap_or(null_mut());
-    // let p3 = parameters.get(3).map(Clone::clone).unwrap_or(null_mut());
-    // let p4 = parameters.get(4).map(Clone::clone).unwrap_or(null_mut());
-    // let p5 = parameters.get(5).map(Clone::clone).unwrap_or(null_mut());
-    // let p6 = parameters.get(6).map(Clone::clone).unwrap_or(null_mut());
-    // let p7 = parameters.get(7).map(Clone::clone).unwrap_or(null_mut());
-    // let p8 = parameters.get(8).map(Clone::clone).unwrap_or(null_mut());
-    // let p9 = parameters.get(9).map(Clone::clone).unwrap_or(null_mut());
-    // let p10 = parameters.get(10).map(Clone::clone).unwrap_or(null_mut());
-    // let p11 = parameters.get(11).map(Clone::clone).unwrap_or(null_mut());
-    // let p12 = parameters.get(12).map(Clone::clone).unwrap_or(null_mut());
-    // let p13 = parameters.get(13).map(Clone::clone).unwrap_or(null_mut());
-    // let p14 = parameters.get(14).map(Clone::clone).unwrap_or(null_mut());
-    // let p15 = parameters.get(15).map(Clone::clone).unwrap_or(null_mut());
-    // let p16 = parameters.get(16).map(Clone::clone).unwrap_or(null_mut());
-    // let p17 = parameters.get(17).map(Clone::clone).unwrap_or(null_mut());
-    // let p18 = parameters.get(18).map(Clone::clone).unwrap_or(null_mut());
-    // let p19 = parameters.get(19).map(Clone::clone).unwrap_or(null_mut());
-    //
-    // unsafe {
-    //     zend_parse_parameters(
-    //         num_args as c_int,
-    //         type_spec.as_ptr().cast(),
-    //         p0 ,
-    //         p1 ,
-    //         p2 ,
-    //         p3 ,
-    //         p4 ,
-    //         p5 ,
-    //         p6 ,
-    //         p7 ,
-    //         p8 ,
-    //         p9 ,
-    //         p10,
-    //         p11,
-    //         p12,
-    //         p13,
-    //         p14,
-    //         p15,
-    //         p16,
-    //         p17,
-    //         p18,
-    //         p19,
-    //     ) == ZEND_RESULT_CODE_SUCCESS
-    // }
 }
 
 #[repr(u32)]
