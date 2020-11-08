@@ -108,6 +108,24 @@ pub trait ParseParameter: Sized {
     }
 }
 
+impl ParseParameter for () {
+    fn spec() -> Cow<'static, str> {
+        Cow::Borrowed("")
+    }
+
+    fn num_parameters() -> usize {
+        0
+    }
+
+    fn parameters() -> Vec<*mut c_void> {
+        Vec::new()
+    }
+
+    fn from_parameters(_parameters: &[*mut c_void]) -> Option<Self> {
+        Some(())
+    }
+}
+
 impl ParseParameter for bool {
     #[inline]
     fn spec() -> Cow<'static, str> {
