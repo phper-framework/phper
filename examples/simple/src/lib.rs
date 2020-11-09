@@ -1,21 +1,26 @@
-use phper::sys::OnUpdateBool;
-use phper::sys::{php_info_print_table_end, php_info_print_table_row, php_info_print_table_start};
-use phper::sys::{zend_function_entry, zend_internal_arg_info, PHP_INI_SYSTEM};
-use phper::sys::{zend_read_property, zend_type, OnUpdateString, ZEND_ACC_PUBLIC};
-use phper::zend::api::{function_entry_end, FunctionEntries, ModuleGlobals};
-use phper::zend::compile::{internal_arg_info_begin, MultiInternalArgInfo};
-use phper::zend::ini::{ini_entry_def_end, IniEntryDefs};
-use phper::zend::modules::{create_zend_module_entry, ModuleArgs, ModuleEntry};
-use phper::zend::types::{ClassEntry, ExecuteData, SetVal, Val};
-use phper::{c_str_ptr, php_fn};
 use phper::{
-    php_function, php_minit, php_minit_function, php_mshutdown, php_mshutdown_function,
-    php_rinit_function, php_rshutdown_function,
+    c_str_ptr, php_fn, php_function, php_minfo, php_minfo_function, php_minit, php_minit_function,
+    php_mshutdown, php_mshutdown_function, php_rinit, php_rinit_function, php_rshutdown,
+    php_rshutdown_function,
+    sys::{
+        php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
+        zend_function_entry, zend_internal_arg_info, zend_read_property, zend_type, OnUpdateBool,
+        OnUpdateString, PHP_INI_SYSTEM, ZEND_ACC_PUBLIC,
+    },
+    zend::{
+        api::{function_entry_end, FunctionEntries, ModuleGlobals},
+        compile::{internal_arg_info_begin, MultiInternalArgInfo},
+        ini::{ini_entry_def_end, IniEntryDefs},
+        modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
+        types::{ClassEntry, ExecuteData, SetVal, Val},
+    },
+    zend_get_module,
 };
-use phper::{php_minfo, php_minfo_function, php_rinit, php_rshutdown, zend_get_module};
-use std::mem::{size_of, transmute};
-use std::os::raw::c_char;
-use std::ptr::{null, null_mut};
+use std::{
+    mem::{size_of, transmute},
+    os::raw::c_char,
+    ptr::{null, null_mut},
+};
 
 static MY_CLASS_CE: ClassEntry = ClassEntry::new();
 

@@ -1,9 +1,13 @@
-use crate::sys::{zend_function_entry, zend_ini_entry_def};
-use crate::zend::ini::Mh;
-use std::cell::Cell;
-use std::mem::{size_of, transmute};
-use std::os::raw::c_int;
-use std::ptr::null_mut;
+use crate::{
+    sys::{zend_function_entry, zend_ini_entry_def},
+    zend::ini::Mh,
+};
+use std::{
+    cell::Cell,
+    mem::{size_of, transmute},
+    os::raw::c_int,
+    ptr::null_mut,
+};
 
 pub const fn function_entry_end() -> zend_function_entry {
     unsafe { transmute([0u8; size_of::<zend_function_entry>()]) }

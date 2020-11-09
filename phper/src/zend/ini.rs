@@ -1,8 +1,9 @@
-use crate::sys::zend_ini_entry_def;
-use crate::sys::{zend_ini_entry, zend_string};
-use std::cell::Cell;
-use std::mem::{size_of, transmute};
-use std::os::raw::{c_int, c_void};
+use crate::sys::{zend_ini_entry, zend_ini_entry_def, zend_string};
+use std::{
+    cell::Cell,
+    mem::{size_of, transmute},
+    os::raw::{c_int, c_void},
+};
 
 pub type Mh = unsafe extern "C" fn(
     *mut zend_ini_entry,

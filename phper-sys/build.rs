@@ -1,9 +1,5 @@
 use bindgen::Builder;
-use std::env;
-use std::ffi::OsStr;
-use std::fmt::Debug;
-use std::path::PathBuf;
-use std::process::Command;
+use std::{env, ffi::OsStr, fmt::Debug, path::PathBuf, process::Command};
 
 fn main() {
     println!("cargo:rerun-if-changed=php_wrapper.h");

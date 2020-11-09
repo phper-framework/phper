@@ -1,16 +1,17 @@
-use crate::sys::zend_function_entry;
-use crate::sys::zend_module_entry;
-use crate::sys::zend_register_ini_entries;
-use crate::sys::zend_unregister_ini_entries;
-use crate::sys::PHP_MODULE_BUILD_ID;
-use crate::sys::USING_ZTS;
-use crate::sys::ZEND_DEBUG;
-use crate::sys::ZEND_MODULE_API_NO;
-use crate::zend::ini::IniEntryDefs;
-use std::cell::Cell;
-use std::mem::size_of;
-use std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort, c_void};
-use std::ptr::{null, null_mut};
+use crate::{
+    sys::{
+        zend_function_entry, zend_module_entry, zend_register_ini_entries,
+        zend_unregister_ini_entries, PHP_MODULE_BUILD_ID, USING_ZTS, ZEND_DEBUG,
+        ZEND_MODULE_API_NO,
+    },
+    zend::ini::IniEntryDefs,
+};
+use std::{
+    cell::Cell,
+    mem::size_of,
+    os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort, c_void},
+    ptr::{null, null_mut},
+};
 
 pub const fn create_zend_module_entry(
     name: *const c_char,

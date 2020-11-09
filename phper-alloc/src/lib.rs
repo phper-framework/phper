@@ -1,9 +1,11 @@
 #![feature(allocator_api)]
 
 use phper_sys::{_efree, _emalloc};
-use std::alloc::{AllocError, AllocRef, Layout};
-use std::os::raw::c_char;
-use std::ptr::{slice_from_raw_parts_mut, NonNull};
+use std::{
+    alloc::{AllocError, AllocRef, Layout},
+    os::raw::c_char,
+    ptr::{slice_from_raw_parts_mut, NonNull},
+};
 
 pub type EBox<T> = Box<T, Allocator>;
 

@@ -1,18 +1,21 @@
-use crate::c_str_ptr;
-use crate::sys::{
-    phper_init_class_entry, phper_zval_get_type, phper_zval_stringl, zend_class_entry,
-    zend_declare_property, zend_execute_data, zend_parse_parameters, zend_register_internal_class,
-    zend_throw_exception, zend_type, zval, IS_FALSE, IS_LONG, IS_NULL, IS_STRING, IS_TRUE,
-    ZEND_RESULT_CODE_SUCCESS,
+use crate::{
+    c_str_ptr,
+    sys::{
+        phper_init_class_entry, phper_zval_get_type, phper_zval_stringl, zend_class_entry,
+        zend_declare_property, zend_execute_data, zend_parse_parameters,
+        zend_register_internal_class, zend_throw_exception, zend_type, zval, IS_FALSE, IS_LONG,
+        IS_NULL, IS_STRING, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
+    },
+    zend::{api::FunctionEntries, exceptions::Throwable},
 };
-use crate::zend::api::FunctionEntries;
-use crate::zend::exceptions::Throwable;
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::ffi::{c_void, CStr};
-use std::mem::MaybeUninit;
-use std::os::raw::{c_char, c_int};
-use std::ptr::null_mut;
+use std::{
+    borrow::Cow,
+    cell::Cell,
+    ffi::{c_void, CStr},
+    mem::MaybeUninit,
+    os::raw::{c_char, c_int},
+    ptr::null_mut,
+};
 
 pub struct ClassEntry {
     inner: Cell<*mut zend_class_entry>,
