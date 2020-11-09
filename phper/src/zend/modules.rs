@@ -1,16 +1,16 @@
-use crate::sys::zend_module_entry;
-use std::cell::Cell;
-use std::mem::size_of;
-use std::os::raw::{c_ushort, c_uint, c_uchar, c_char, c_int, c_void};
-use crate::sys::ZEND_MODULE_API_NO;
-use crate::sys::ZEND_DEBUG;
-use crate::sys::USING_ZTS;
-use crate::sys::PHP_MODULE_BUILD_ID;
 use crate::sys::zend_function_entry;
-use std::ptr::{null, null_mut};
-use crate::zend::ini::IniEntryDefs;
+use crate::sys::zend_module_entry;
 use crate::sys::zend_register_ini_entries;
 use crate::sys::zend_unregister_ini_entries;
+use crate::sys::PHP_MODULE_BUILD_ID;
+use crate::sys::USING_ZTS;
+use crate::sys::ZEND_DEBUG;
+use crate::sys::ZEND_MODULE_API_NO;
+use crate::zend::ini::IniEntryDefs;
+use std::cell::Cell;
+use std::mem::size_of;
+use std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort, c_void};
+use std::ptr::{null, null_mut};
 
 pub const fn create_zend_module_entry(
     name: *const c_char,
@@ -62,7 +62,9 @@ pub struct ModuleEntry {
 
 impl ModuleEntry {
     pub const fn new(raw: zend_module_entry) -> Self {
-        Self { raw: Cell::new(raw) }
+        Self {
+            raw: Cell::new(raw),
+        }
     }
 
     pub const fn as_ptr(&self) -> *mut zend_module_entry {
@@ -77,15 +79,15 @@ impl ModuleEntry {
 unsafe impl Sync for ModuleEntry {}
 
 pub struct ModuleArgs {
-    type_: c_int,
+    _type_: c_int,
     module_number: c_int,
 }
 
 impl ModuleArgs {
-    pub const fn new(type_: c_int, module_number: c_int) -> Self {
+    pub const fn new(_type_: c_int, module_number: c_int) -> Self {
         Self {
-            type_,
-            module_number
+            _type_,
+            module_number,
         }
     }
 
@@ -101,4 +103,3 @@ impl ModuleArgs {
         }
     }
 }
-

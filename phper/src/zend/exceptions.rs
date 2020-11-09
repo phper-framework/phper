@@ -1,6 +1,4 @@
-pub trait Throwable {
-
-}
+pub trait Throwable {}
 
 pub struct MyException;
 

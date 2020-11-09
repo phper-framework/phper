@@ -1,19 +1,18 @@
-use crate::sys::{zend_execute_data, zval, zend_type, phper_zval_get_type, IS_STRING, IS_NULL,
-                 IS_TRUE, IS_FALSE, phper_zval_stringl, zend_throw_exception,
-                 zend_class_entry, phper_init_class_entry, zend_register_internal_class,
-                 zend_declare_property_stringl, zend_declare_property, IS_LONG,
-                 zend_parse_parameters, ZEND_RESULT_CODE_SUCCESS,
-};
 use crate::c_str_ptr;
-use std::ffi::{CStr, c_void};
-use std::borrow::{Cow, Borrow};
-use crate::zend::exceptions::Throwable;
-use std::ptr::{null, null_mut};
-use std::cell::Cell;
-use std::marker::PhantomData;
-use std::os::raw::{c_char, c_int};
+use crate::sys::{
+    phper_init_class_entry, phper_zval_get_type, phper_zval_stringl, zend_class_entry,
+    zend_declare_property, zend_execute_data, zend_parse_parameters, zend_register_internal_class,
+    zend_throw_exception, zend_type, zval, IS_FALSE, IS_LONG, IS_NULL, IS_STRING, IS_TRUE,
+    ZEND_RESULT_CODE_SUCCESS,
+};
 use crate::zend::api::FunctionEntries;
+use crate::zend::exceptions::Throwable;
+use std::borrow::Cow;
+use std::cell::Cell;
+use std::ffi::{c_void, CStr};
 use std::mem::MaybeUninit;
+use std::os::raw::{c_char, c_int};
+use std::ptr::null_mut;
 
 pub struct ClassEntry {
     inner: Cell<*mut zend_class_entry>,
@@ -47,7 +46,13 @@ impl ClassEntry {
             let mut property: MaybeUninit<zval> = MaybeUninit::uninit();
             let mut property = Val::from_raw(property.as_mut_ptr());
             value.set_val(&mut property);
-            zend_declare_property(self.get(), name.as_ptr().cast(), name.len(), property.as_ptr(), access_type as c_int);
+            zend_declare_property(
+                self.get(),
+                name.as_ptr().cast(),
+                name.len(),
+                property.as_ptr(),
+                access_type as c_int,
+            );
         }
     }
 }
@@ -65,23 +70,17 @@ impl ExecuteData {
 
     #[inline]
     pub fn num_args(&self) -> usize {
-        unsafe {
-            (*self.raw).This.u2.num_args as usize
-        }
+        unsafe { (*self.raw).This.u2.num_args as usize }
     }
 
     #[inline]
     pub fn get_this(&self) -> &mut zval {
-        unsafe {
-            &mut (*self.raw).This
-        }
+        unsafe { &mut (*self.raw).This }
     }
 
     #[inline]
     pub fn get_type(&self) -> zend_type {
-        unsafe {
-            phper_zval_get_type(self.get_this()).into()
-        }
+        unsafe { phper_zval_get_type(self.get_this()).into() }
     }
 
     pub fn parse_parameters<T: ParseParameter>(&self) -> Option<T> {
@@ -99,7 +98,7 @@ pub trait ParseParameter: Sized {
     fn from_parameters(parameters: &[*mut c_void]) -> Option<Self>;
 
     fn parse(num_args: usize) -> Option<Self> {
-        let mut parameters = Self::parameters();
+        let parameters = Self::parameters();
         if zend_parse_fixed_parameters(num_args, &Self::spec(), &parameters) {
             Self::from_parameters(&parameters)
         } else {
@@ -205,7 +204,10 @@ impl ParseParameter for &str {
 
     #[inline]
     fn parameters() -> Vec<*mut c_void> {
-        vec![Box::into_raw(Box::new(null_mut::<c_char>())).cast(), Box::into_raw(Box::new(0u32)).cast()]
+        vec![
+            Box::into_raw(Box::new(null_mut::<c_char>())).cast(),
+            Box::into_raw(Box::new(0u32)).cast(),
+        ]
     }
 
     fn from_parameters(parameters: &[*mut c_void]) -> Option<Self> {
@@ -262,9 +264,39 @@ impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D));
 impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E));
 impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F));
 impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G));
-impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H));
-impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I));
-impl_parse_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I), (j, J));
+impl_parse_parameter_for_tuple!(
+    (a, A),
+    (b, B),
+    (c, C),
+    (d, D),
+    (e, E),
+    (f, F),
+    (g, G),
+    (h, H)
+);
+impl_parse_parameter_for_tuple!(
+    (a, A),
+    (b, B),
+    (c, C),
+    (d, D),
+    (e, E),
+    (f, F),
+    (g, G),
+    (h, H),
+    (i, I)
+);
+impl_parse_parameter_for_tuple!(
+    (a, A),
+    (b, B),
+    (c, C),
+    (d, D),
+    (e, E),
+    (f, F),
+    (g, G),
+    (h, H),
+    (i, I),
+    (j, J)
+);
 
 macro_rules! call_zend_parse_parameters {
     ( $num_args:expr, $type_spec:expr, $parameters:expr $(,$i:expr)* ) => {
@@ -272,32 +304,323 @@ macro_rules! call_zend_parse_parameters {
     }
 }
 
-fn zend_parse_fixed_parameters(num_args: usize, type_spec: &str, parameters: &[*mut c_void]) -> bool {
+fn zend_parse_fixed_parameters(
+    num_args: usize,
+    type_spec: &str,
+    parameters: &[*mut c_void],
+) -> bool {
     assert!(parameters.len() <= 20);
     let type_spec = format!("{}\0", type_spec);
 
     let b = match parameters.len() {
         0 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters),
-        1 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0),
-        2 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1),
-        3 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2),
-        4 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3),
-        5 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4),
-        6 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5),
-        7 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6),
-        8 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7),
-        9 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-        10 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
-        11 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-        12 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
-        13 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
-        14 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
-        15 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
-        16 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
-        17 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
-        18 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17),
-        19 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18),
-        20 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
+        1 => {
+            call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0)
+        }
+        2 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1
+        ),
+        3 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2
+        ),
+        4 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3
+        ),
+        5 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4
+        ),
+        6 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+        ),
+        7 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        ),
+        8 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ),
+        9 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+        ),
+        10 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+        ),
+        11 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+        ),
+        12 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+        ),
+        13 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+        ),
+        14 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+        ),
+        15 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+        ),
+        16 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+        ),
+        17 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+        ),
+        18 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+        ),
+        19 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+        ),
+        20 => call_zend_parse_parameters!(
+            num_args as c_int,
+            type_spec.as_ptr().cast(),
+            parameters,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+        ),
         _ => unreachable!(),
     };
 
@@ -306,17 +629,17 @@ fn zend_parse_fixed_parameters(num_args: usize, type_spec: &str, parameters: &[*
 
 #[repr(u32)]
 pub enum ValType {
-    UNDEF	 =      crate::sys::IS_UNDEF,
-    NULL	=	    crate::sys::IS_NULL,
-    FALSE	=       crate::sys::IS_FALSE,
-    TRUE	=	    crate::sys::IS_TRUE,
-    LONG	=	    crate::sys::IS_LONG,
-    DOUBLE	=       crate::sys::IS_DOUBLE,
-    STRING	=       crate::sys::IS_STRING,
-    ARRAY	=       crate::sys::IS_ARRAY,
-    OBJECT	=       crate::sys::IS_OBJECT,
-    RESOURCE =	    crate::sys::IS_RESOURCE,
-    REFERENCE =     crate::sys::IS_REFERENCE,
+    UNDEF = crate::sys::IS_UNDEF,
+    NULL = crate::sys::IS_NULL,
+    FALSE = crate::sys::IS_FALSE,
+    TRUE = crate::sys::IS_TRUE,
+    LONG = crate::sys::IS_LONG,
+    DOUBLE = crate::sys::IS_DOUBLE,
+    STRING = crate::sys::IS_STRING,
+    ARRAY = crate::sys::IS_ARRAY,
+    OBJECT = crate::sys::IS_OBJECT,
+    RESOURCE = crate::sys::IS_RESOURCE,
+    REFERENCE = crate::sys::IS_REFERENCE,
 }
 
 pub struct Val {
@@ -325,9 +648,7 @@ pub struct Val {
 
 impl Val {
     pub const fn from_raw(val: *mut zval) -> Self {
-        Self {
-            raw: val,
-        }
+        Self { raw: val }
     }
 
     pub const fn as_ptr(&self) -> *mut zval {
@@ -336,8 +657,10 @@ impl Val {
 
     pub fn as_c_str(&self) -> Option<&CStr> {
         unsafe {
-            if phper_zval_get_type(self.raw) as zend_type == IS_STRING  as zend_type {
-                Some(CStr::from_ptr((&((*(*self.raw).value.str).val)).as_ptr().cast()))
+            if phper_zval_get_type(self.raw) as zend_type == IS_STRING as zend_type {
+                Some(CStr::from_ptr(
+                    (&((*(*self.raw).value.str).val)).as_ptr().cast(),
+                ))
             } else {
                 None
             }
@@ -364,11 +687,7 @@ impl SetVal for () {
 impl SetVal for bool {
     fn set_val(self, val: &mut Val) {
         unsafe {
-            *val.type_info() = if self {
-                IS_TRUE
-            } else {
-                IS_FALSE
-            };
+            *val.type_info() = if self { IS_TRUE } else { IS_FALSE };
         }
     }
 }
@@ -412,11 +731,9 @@ impl SetVal for String {
 
 impl<T: SetVal> SetVal for Option<T> {
     fn set_val(self, val: &mut Val) {
-        unsafe {
-            match self {
-                Some(t) => t.set_val(val),
-                None => ().set_val(val),
-            }
+        match self {
+            Some(t) => t.set_val(val),
+            None => ().set_val(val),
         }
     }
 }
@@ -425,11 +742,10 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
     fn set_val(self, val: &mut Val) {
         match self {
             Ok(t) => t.set_val(val),
-            Err(e) => {
-                unsafe {
-                    zend_throw_exception(null_mut(), c_str_ptr!("Fuck"), 0);
-                }
-            }
+            Err(_e) => unsafe {
+                zend_throw_exception(null_mut(), c_str_ptr!(""), 0);
+                todo!();
+            },
         }
     }
 }

@@ -77,7 +77,10 @@ pub(crate) fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStrea
     let vis = &input.vis;
     let ret = &input.sig.output;
     let inputs = &input.sig.inputs;
-    let name = Ident::new(&format!("zif_{}", &input.sig.ident.to_string()), input.sig.ident.span().clone());
+    let name = Ident::new(
+        &format!("zif_{}", &input.sig.ident.to_string()),
+        input.sig.ident.span().clone(),
+    );
     let body = &input.block;
     let attrs = &input.attrs;
 
@@ -93,7 +96,7 @@ pub(crate) fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStrea
             fn internal(#inputs) #ret {
                 #body
             }
-            // let internal: fn(::phper::zend::types::ExecuteData) -> impl ::phper::zend::types::SetVal = internal;
+            let internal: fn(::phper::zend::types::ExecuteData) -> _ = internal;
             let value = internal(::phper::zend::types::ExecuteData::from_raw(execute_data));
             ::phper::zend::types::SetVal::set_val(value, &mut ::phper::zend::types::Val::from_raw(return_value));
         }

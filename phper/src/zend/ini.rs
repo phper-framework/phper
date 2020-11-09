@@ -1,10 +1,17 @@
 use crate::sys::zend_ini_entry_def;
-use std::cell::Cell;
-use std::os::raw::{c_int, c_void};
 use crate::sys::{zend_ini_entry, zend_string};
-use std::mem::{transmute, size_of};
+use std::cell::Cell;
+use std::mem::{size_of, transmute};
+use std::os::raw::{c_int, c_void};
 
-pub type Mh = unsafe extern "C" fn(*mut zend_ini_entry, *mut zend_string, *mut c_void, *mut c_void, *mut c_void, c_int) -> c_int;
+pub type Mh = unsafe extern "C" fn(
+    *mut zend_ini_entry,
+    *mut zend_string,
+    *mut c_void,
+    *mut c_void,
+    *mut c_void,
+    c_int,
+) -> c_int;
 
 pub const fn ini_entry_def_end() -> zend_ini_entry_def {
     unsafe { transmute([0u8; size_of::<zend_ini_entry_def>()]) }
@@ -16,7 +23,9 @@ pub struct IniEntryDefs<const N: usize> {
 
 impl<const N: usize> IniEntryDefs<N> {
     pub const fn new(inner: [zend_ini_entry_def; N]) -> Self {
-        Self { inner: Cell::new(inner) }
+        Self {
+            inner: Cell::new(inner),
+        }
     }
 
     #[inline]
@@ -26,19 +35,3 @@ impl<const N: usize> IniEntryDefs<N> {
 }
 
 unsafe impl<const N: usize> Sync for IniEntryDefs<N> {}
-
-struct Entry {
-    a: &'static str,
-    b: &'static str,
-}
-
-struct Entry2 {
-    a: &'static str,
-    b: &'static str,
-}
-
-const fn entry(e: Entry) -> Entry2 {
-    let a = e.a;
-    let b = e.b;
-    Entry2 { a, b }
-}

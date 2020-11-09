@@ -1,24 +1,21 @@
-use phper::{c_str_ptr, php_fn, ebox};
-use phper::sys::{ZEND_RESULT_CODE_SUCCESS, zend_parse_parameters, zend_internal_arg_info, zend_function_entry, PHP_INI_SYSTEM};
-use phper::sys::{zend_ini_entry_def, zend_module_entry, zend_register_ini_entries, zend_unregister_ini_entries, OnUpdateBool, phper_zval_string};
-use phper::sys::{OnUpdateString, zend_class_entry, zend_register_internal_class, zend_declare_property_string, ZEND_ACC_PUBLIC, zend_type, zend_read_property};
-use phper::zend::api::{FunctionEntries, ModuleGlobals, function_entry_end};
-use phper::zend::compile::{MultiInternalArgInfo, internal_arg_info_begin};
-use phper::zend::ini::{IniEntryDefs, ini_entry_def_end};
-use phper::zend::modules::{ModuleEntry, create_zend_module_entry, ModuleArgs};
-use phper::zend::types::{ExecuteData, Val, SetVal, Value, ClassEntry};
+use phper::sys::OnUpdateBool;
+use phper::sys::{php_info_print_table_end, php_info_print_table_row, php_info_print_table_start};
+use phper::sys::{zend_function_entry, zend_internal_arg_info, PHP_INI_SYSTEM};
+use phper::sys::{zend_read_property, zend_type, OnUpdateString, ZEND_ACC_PUBLIC};
+use phper::zend::api::{function_entry_end, FunctionEntries, ModuleGlobals};
+use phper::zend::compile::{internal_arg_info_begin, MultiInternalArgInfo};
+use phper::zend::ini::{ini_entry_def_end, IniEntryDefs};
+use phper::zend::modules::{create_zend_module_entry, ModuleArgs, ModuleEntry};
+use phper::zend::types::{ClassEntry, ExecuteData, SetVal, Val};
+use phper::{c_str_ptr, php_fn};
 use phper::{
     php_function, php_minit, php_minit_function, php_mshutdown, php_mshutdown_function,
     php_rinit_function, php_rshutdown_function,
 };
 use phper::{php_minfo, php_minfo_function, php_rinit, php_rshutdown, zend_get_module};
-use std::ffi::{CStr, CString};
-use std::mem;
 use std::mem::{size_of, transmute};
-use std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort};
+use std::os::raw::c_char;
 use std::ptr::{null, null_mut};
-use phper::zend::exceptions::MyException;
-use phper::sys::{php_info_print_table_start, php_info_print_table_row, php_info_print_table_end, phper_init_class_entry};
 
 static MY_CLASS_CE: ClassEntry = ClassEntry::new();
 
@@ -46,12 +43,12 @@ fn m_shutdown_simple(args: ModuleArgs) -> bool {
 }
 
 #[php_rinit_function]
-fn r_init_simple(args: ModuleArgs) -> bool {
+fn r_init_simple(_args: ModuleArgs) -> bool {
     true
 }
 
 #[php_rshutdown_function]
-fn r_shutdown_simple(args: ModuleArgs) -> bool {
+fn r_shutdown_simple(_args: ModuleArgs) -> bool {
     true
 }
 
@@ -60,8 +57,20 @@ fn m_info_simple(module: &ModuleEntry) {
     unsafe {
         php_info_print_table_start();
         php_info_print_table_row(2, c_str_ptr!("simple.version"), (*module.as_ptr()).version);
-        php_info_print_table_row(2, c_str_ptr!("simple.build_id"), (*module.as_ptr()).build_id);
-        php_info_print_table_row(2, c_str_ptr!("simple.enable"), if SIMPLE_ENABLE.get() { c_str_ptr!("1") } else { c_str_ptr!("0") });
+        php_info_print_table_row(
+            2,
+            c_str_ptr!("simple.build_id"),
+            (*module.as_ptr()).build_id,
+        );
+        php_info_print_table_row(
+            2,
+            c_str_ptr!("simple.enable"),
+            if SIMPLE_ENABLE.get() {
+                c_str_ptr!("1")
+            } else {
+                c_str_ptr!("0")
+            },
+        );
         php_info_print_table_row(2, c_str_ptr!("simple.text"), SIMPLE_TEXT.get());
         php_info_print_table_end();
     }
@@ -69,15 +78,17 @@ fn m_info_simple(module: &ModuleEntry) {
 
 #[php_function]
 pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
-    execute_data.parse_parameters::<(&str, &str)>().map(|(a, b)| {
-        format!(
-            "a = {}, a_len = {}, b = {}, b_len = {}",
-            a,
-            a.len(),
-            b,
-            b.len(),
-        )
-    })
+    execute_data
+        .parse_parameters::<(&str, &str)>()
+        .map(|(a, b)| {
+            format!(
+                "a = {}, a_len = {}, b = {}, b_len = {}",
+                a,
+                a.len(),
+                b,
+                b.len(),
+            )
+        })
 }
 
 static ARG_INFO_TEST_SIMPLE: MultiInternalArgInfo<3> = MultiInternalArgInfo::new([
@@ -107,7 +118,6 @@ static FUNCTION_ENTRIES: FunctionEntries<2> = FunctionEntries::new([
     function_entry_end(),
 ]);
 
-
 static ARG_INFO_MY_CLASS_FOO: MultiInternalArgInfo<2> = MultiInternalArgInfo::new([
     zend_internal_arg_info {
         name: 1 as *const _,
@@ -134,7 +144,6 @@ static MY_CLASS_METHODS: FunctionEntries<2> = FunctionEntries::new([
     unsafe { transmute([0u8; size_of::<zend_function_entry>()]) },
 ]);
 
-
 #[php_function]
 pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
     execute_data.parse_parameters::<&str>().map(|prefix| {
@@ -145,7 +154,7 @@ pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
         };
 
         let foo = unsafe {
-             zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())
+            zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())
         };
         let foo = Val::from_raw(foo);
         let foo = foo.as_c_str().unwrap().to_str().unwrap();

@@ -2,8 +2,8 @@ mod alloc;
 mod inner;
 mod utils;
 
+use crate::inner::{hook_fn, info_fn, rename};
 use proc_macro::TokenStream;
-use crate::inner::{rename, hook_fn, info_fn};
 
 #[proc_macro]
 pub fn c_str(input: TokenStream) -> TokenStream {

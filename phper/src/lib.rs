@@ -28,11 +28,11 @@ Now the library don't support `ZTS`, the template is using `thread_local!` inste
 Version `0.1.x` will be a preview version.
 */
 
-pub mod zend;
 mod error;
 mod utils;
+pub mod zend;
 
-pub use phper_alloc as alloc;
-pub use phper_sys as sys;
-pub use phper_macros::*;
 pub use crate::error::*;
+pub use phper_alloc as alloc;
+pub use phper_macros::*;
+pub use phper_sys as sys;

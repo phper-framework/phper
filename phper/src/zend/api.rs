@@ -1,9 +1,9 @@
 use crate::sys::{zend_function_entry, zend_ini_entry_def};
-use std::cell::Cell;
-use std::os::raw::{c_char, c_int, c_void};
 use crate::zend::ini::Mh;
+use std::cell::Cell;
+use std::mem::{size_of, transmute};
+use std::os::raw::c_int;
 use std::ptr::null_mut;
-use std::mem::{transmute, size_of};
 
 pub const fn function_entry_end() -> zend_function_entry {
     unsafe { transmute([0u8; size_of::<zend_function_entry>()]) }
@@ -15,14 +15,22 @@ pub struct ModuleGlobals<T: 'static> {
 
 impl<T: 'static> ModuleGlobals<T> {
     pub const fn new(inner: T) -> Self {
-        Self { inner: Cell::new(inner) }
+        Self {
+            inner: Cell::new(inner),
+        }
     }
 
     pub const fn as_ptr(&self) -> *mut T {
         self.inner.as_ptr()
     }
 
-    pub const fn create_ini_entry_def(&'static self, name: &str, default_value: &str, on_modify: Option<Mh>, modifiable: u32) -> zend_ini_entry_def {
+    pub const fn create_ini_entry_def(
+        &'static self,
+        name: &str,
+        default_value: &str,
+        on_modify: Option<Mh>,
+        modifiable: u32,
+    ) -> zend_ini_entry_def {
         zend_ini_entry_def {
             name: name.as_ptr().cast(),
             on_modify,
@@ -52,7 +60,9 @@ pub struct FunctionEntries<const N: usize> {
 
 impl<const N: usize> FunctionEntries<N> {
     pub const fn new(inner: [zend_function_entry; N]) -> Self {
-        Self { inner: Cell::new(inner) }
+        Self {
+            inner: Cell::new(inner),
+        }
     }
 
     pub const fn as_ptr(&self) -> *mut zend_function_entry {
