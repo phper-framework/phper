@@ -3,7 +3,6 @@
 use phper_sys::{_efree, _emalloc};
 use std::{
     alloc::{AllocError, AllocRef, Layout},
-    os::raw::c_char,
     ptr::{slice_from_raw_parts_mut, NonNull},
 };
 
@@ -11,20 +10,20 @@ pub type EBox<T> = Box<T, Allocator>;
 
 pub struct Allocator {
     #[cfg(phper_debug)]
-    zend_filename: *const c_char,
+    zend_filename: *const std::os::raw::c_char,
     #[cfg(phper_debug)]
     zend_lineno: u32,
     #[cfg(phper_debug)]
-    zend_orig_filename: *const c_char,
+    zend_orig_filename: *const std::os::raw::c_char,
     #[cfg(phper_debug)]
     zend_orig_lineno: u32,
 }
 
 impl Allocator {
     pub const fn new(
-        #[cfg(phper_debug)] zend_filename: *const c_char,
+        #[cfg(phper_debug)] zend_filename: *const std::os::raw::c_char,
         #[cfg(phper_debug)] zend_lineno: u32,
-        #[cfg(phper_debug)] zend_orig_filename: *const c_char,
+        #[cfg(phper_debug)] zend_orig_filename: *const std::os::raw::c_char,
         #[cfg(phper_debug)] zend_orig_lineno: u32,
     ) -> Self {
         Self {

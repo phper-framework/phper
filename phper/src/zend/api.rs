@@ -5,7 +5,6 @@ use crate::{
 use std::{
     cell::Cell,
     mem::{size_of, transmute},
-    os::raw::c_int,
     ptr::null_mut,
 };
 
@@ -35,6 +34,16 @@ impl<T: 'static> ModuleGlobals<T> {
         on_modify: Option<Mh>,
         modifiable: u32,
     ) -> zend_ini_entry_def {
+        #[cfg(phper_php_version = "7.3")]
+        let modifiable = modifiable as std::os::raw::c_uchar;
+        #[cfg(phper_php_version = "7.2")]
+        let modifiable = modifiable as std::os::raw::c_int;
+
+        #[cfg(phper_php_version = "7.3")]
+        let name_length = name.len() as u16;
+        #[cfg(phper_php_version = "7.2")]
+        let name_length = name.len() as u32;
+
         zend_ini_entry_def {
             name: name.as_ptr().cast(),
             on_modify,
@@ -43,8 +52,8 @@ impl<T: 'static> ModuleGlobals<T> {
             mh_arg3: null_mut(),
             value: default_value.as_ptr().cast(),
             displayer: None,
-            modifiable: modifiable as c_int,
-            name_length: name.len() as u32,
+            modifiable,
+            name_length,
             value_length: default_value.len() as u32,
         }
     }
