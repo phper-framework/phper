@@ -8,7 +8,7 @@ use std::{
     ptr::null_mut,
 };
 
-pub const fn function_entry_end() -> zend_function_entry {
+const fn function_entry_end() -> zend_function_entry {
     unsafe { transmute([0u8; size_of::<zend_function_entry>()]) }
 }
 
@@ -67,14 +67,17 @@ impl<T: Copy + 'static> ModuleGlobals<T> {
 
 unsafe impl<T: 'static> Sync for ModuleGlobals<T> {}
 
+#[repr(C)]
+struct ZendFunctionEntriesWithEnd<const N: usize>([zend_function_entry; N], zend_function_entry);
+
 pub struct FunctionEntries<const N: usize> {
-    inner: Cell<[zend_function_entry; N]>,
+    inner: Cell<ZendFunctionEntriesWithEnd<N>>,
 }
 
 impl<const N: usize> FunctionEntries<N> {
     pub const fn new(inner: [zend_function_entry; N]) -> Self {
         Self {
-            inner: Cell::new(inner),
+            inner: Cell::new(ZendFunctionEntriesWithEnd(inner, function_entry_end())),
         }
     }
 

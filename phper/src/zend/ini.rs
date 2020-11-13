@@ -14,18 +14,21 @@ pub type Mh = unsafe extern "C" fn(
     c_int,
 ) -> c_int;
 
-pub const fn ini_entry_def_end() -> zend_ini_entry_def {
+const fn ini_entry_def_end() -> zend_ini_entry_def {
     unsafe { transmute([0u8; size_of::<zend_ini_entry_def>()]) }
 }
 
-pub struct IniEntryDefs<const N: usize> {
-    inner: Cell<[zend_ini_entry_def; N]>,
+#[repr(C)]
+struct ZendIniEntriesWithEnd<const N: usize>([zend_ini_entry_def; N], zend_ini_entry_def);
+
+pub struct IniEntries<const N: usize> {
+    inner: Cell<ZendIniEntriesWithEnd<N>>,
 }
 
-impl<const N: usize> IniEntryDefs<N> {
+impl<const N: usize> IniEntries<N> {
     pub const fn new(inner: [zend_ini_entry_def; N]) -> Self {
         Self {
-            inner: Cell::new(inner),
+            inner: Cell::new(ZendIniEntriesWithEnd(inner, ini_entry_def_end())),
         }
     }
 
@@ -35,4 +38,4 @@ impl<const N: usize> IniEntryDefs<N> {
     }
 }
 
-unsafe impl<const N: usize> Sync for IniEntryDefs<N> {}
+unsafe impl<const N: usize> Sync for IniEntries<N> {}

@@ -1,31 +1,33 @@
-use crate::sys::zend_internal_arg_info;
-use std::cell::UnsafeCell;
+use crate::sys::{zend_internal_arg_info, zend_uchar};
+use std::cell::Cell;
 
-pub const fn internal_arg_info_begin(
-    required_num_args: usize,
-    return_reference: bool,
-) -> zend_internal_arg_info {
-    zend_internal_arg_info {
-        name: required_num_args as *const _,
-        type_: 0,
-        pass_by_reference: return_reference as _,
-        is_variadic: 0,
-    }
-}
+#[repr(C)]
+struct ZendInternalArgInfosWithEnd<const N: usize>(
+    zend_internal_arg_info,
+    [zend_internal_arg_info; N],
+);
 
 pub struct MultiInternalArgInfo<const N: usize> {
-    inner: UnsafeCell<[zend_internal_arg_info; N]>,
+    inner: Cell<ZendInternalArgInfosWithEnd<N>>,
 }
 
 impl<const N: usize> MultiInternalArgInfo<N> {
-    pub const fn new(inner: [zend_internal_arg_info; N]) -> Self {
+    pub const fn new(inner: [zend_internal_arg_info; N], return_reference: bool) -> Self {
         Self {
-            inner: UnsafeCell::new(inner),
+            inner: Cell::new(ZendInternalArgInfosWithEnd(
+                zend_internal_arg_info {
+                    name: inner.len() as *const _,
+                    type_: 0,
+                    pass_by_reference: return_reference as zend_uchar,
+                    is_variadic: 0,
+                },
+                inner,
+            )),
         }
     }
 
-    pub const fn get(&self) -> *const zend_internal_arg_info {
-        self.inner.get().cast()
+    pub const fn as_ptr(&self) -> *const zend_internal_arg_info {
+        self.inner.as_ptr().cast()
     }
 }
 

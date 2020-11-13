@@ -4,7 +4,7 @@ use crate::{
         zend_unregister_ini_entries, PHP_MODULE_BUILD_ID, USING_ZTS, ZEND_DEBUG,
         ZEND_MODULE_API_NO,
     },
-    zend::ini::IniEntryDefs,
+    zend::ini::IniEntries,
 };
 use std::{
     cell::Cell,
@@ -92,7 +92,7 @@ impl ModuleArgs {
         }
     }
 
-    pub fn register_ini_entries<const N: usize>(&self, ini_entries: &IniEntryDefs<N>) {
+    pub fn register_ini_entries<const N: usize>(&self, ini_entries: &IniEntries<N>) {
         unsafe {
             zend_register_ini_entries(ini_entries.as_ptr(), self.module_number);
         }

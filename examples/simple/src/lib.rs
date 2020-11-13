@@ -8,16 +8,15 @@ use phper::{
         OnUpdateString, PHP_INI_SYSTEM, ZEND_ACC_PUBLIC,
     },
     zend::{
-        api::{function_entry_end, FunctionEntries, ModuleGlobals},
-        compile::{internal_arg_info_begin, MultiInternalArgInfo},
-        ini::{ini_entry_def_end, IniEntryDefs},
+        api::{FunctionEntries, ModuleGlobals},
+        compile::MultiInternalArgInfo,
+        ini::IniEntries,
         modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
         types::{ClassEntry, ExecuteData, SetVal, Val},
     },
     zend_get_module,
 };
 use std::{
-    mem::{size_of, transmute},
     os::raw::c_char,
     ptr::{null, null_mut},
 };
@@ -27,10 +26,9 @@ static MY_CLASS_CE: ClassEntry = ClassEntry::new();
 static SIMPLE_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
 static SIMPLE_TEXT: ModuleGlobals<*const c_char> = ModuleGlobals::new(null());
 
-static INI_ENTRIES: IniEntryDefs<3> = IniEntryDefs::new([
+static INI_ENTRIES: IniEntries<2> = IniEntries::new([
     SIMPLE_ENABLE.create_ini_entry_def("simple.enable", "1", Some(OnUpdateBool), PHP_INI_SYSTEM),
     SIMPLE_TEXT.create_ini_entry_def("simple.text", "", Some(OnUpdateString), PHP_INI_SYSTEM),
-    ini_entry_def_end(),
 ]);
 
 #[php_minit_function]
@@ -96,58 +94,49 @@ pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
         })
 }
 
-static ARG_INFO_TEST_SIMPLE: MultiInternalArgInfo<3> = MultiInternalArgInfo::new([
-    internal_arg_info_begin(2, false),
-    zend_internal_arg_info {
-        name: c_str_ptr!("a"),
-        type_: 0,
-        pass_by_reference: 0,
-        is_variadic: 0,
-    },
-    zend_internal_arg_info {
-        name: c_str_ptr!("b"),
-        type_: 0,
-        pass_by_reference: 0,
-        is_variadic: 0,
-    },
-]);
+static ARG_INFO_TEST_SIMPLE: MultiInternalArgInfo<2> = MultiInternalArgInfo::new(
+    [
+        zend_internal_arg_info {
+            name: c_str_ptr!("a"),
+            type_: 0,
+            pass_by_reference: 0,
+            is_variadic: 0,
+        },
+        zend_internal_arg_info {
+            name: c_str_ptr!("b"),
+            type_: 0,
+            pass_by_reference: 0,
+            is_variadic: 0,
+        },
+    ],
+    false,
+);
 
-static FUNCTION_ENTRIES: FunctionEntries<2> = FunctionEntries::new([
-    zend_function_entry {
-        fname: c_str_ptr!("test_simple"),
-        handler: Some(php_fn!(test_simple)),
-        arg_info: ARG_INFO_TEST_SIMPLE.get(),
-        num_args: 2,
-        flags: 0,
-    },
-    function_entry_end(),
-]);
+static FUNCTION_ENTRIES: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
+    fname: c_str_ptr!("test_simple"),
+    handler: Some(php_fn!(test_simple)),
+    arg_info: ARG_INFO_TEST_SIMPLE.as_ptr(),
+    num_args: 2,
+    flags: 0,
+}]);
 
-static ARG_INFO_MY_CLASS_FOO: MultiInternalArgInfo<2> = MultiInternalArgInfo::new([
-    zend_internal_arg_info {
-        name: 1 as *const _,
-        type_: 0,
-        pass_by_reference: 0,
-        is_variadic: 0,
-    },
-    zend_internal_arg_info {
+static ARG_INFO_MY_CLASS_FOO: MultiInternalArgInfo<1> = MultiInternalArgInfo::new(
+    [zend_internal_arg_info {
         name: c_str_ptr!("prefix"),
         type_: 0,
         pass_by_reference: 0,
         is_variadic: 0,
-    },
-]);
+    }],
+    false,
+);
 
-static MY_CLASS_METHODS: FunctionEntries<2> = FunctionEntries::new([
-    zend_function_entry {
-        fname: c_str_ptr!("foo"),
-        handler: Some(php_fn!(my_class_foo)),
-        arg_info: ARG_INFO_MY_CLASS_FOO.get(),
-        num_args: 1,
-        flags: 0,
-    },
-    unsafe { transmute([0u8; size_of::<zend_function_entry>()]) },
-]);
+static MY_CLASS_METHODS: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
+    fname: c_str_ptr!("foo"),
+    handler: Some(php_fn!(my_class_foo)),
+    arg_info: ARG_INFO_MY_CLASS_FOO.as_ptr(),
+    num_args: 1,
+    flags: 0,
+}]);
 
 #[php_function]
 pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {

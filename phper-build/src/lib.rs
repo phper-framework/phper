@@ -21,8 +21,7 @@ pub fn register_configures() {
     );
     println!(
         "cargo:rustc-cfg=phper_php_version=\"{}.{}\"",
-        PHP_MAJOR_VERSION,
-        PHP_MINOR_VERSION,
+        PHP_MAJOR_VERSION, PHP_MINOR_VERSION,
     );
 
     if PHP_DEBUG > 0 {
