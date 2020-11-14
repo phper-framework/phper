@@ -21,6 +21,8 @@ jobs:
         os:
           - ubuntu-latest
         php-version:
+          - 7.1
+          - 7.2
           - 7.3
           - 7.4
 
@@ -30,6 +32,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
+
+      - name: PHP Config
+        run: php-config --version && php-config --phpapi
 
       - name: Checkout
         uses: actions/checkout@v2
