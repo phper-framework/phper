@@ -32,9 +32,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
+          tools: php-config
 
       - name: PHP Config
-        run: php-config --version && php-config --phpapi
+        run: php-config --version && php-config --phpapi && php --version
 
       - name: Checkout
         uses: actions/checkout@v2
