@@ -129,9 +129,11 @@ pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
         let foo = unsafe {
             zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())
         };
-        let foo = Val::from_raw(foo);
-        let foo = foo.as_c_str().unwrap().to_str().unwrap();
-        format!("{}{}", prefix, foo)
+        // let foo = Val::from_raw(foo);
+        // let foo = foo.as_c_str().unwrap().to_str().unwrap();
+        // format!("{}{}", prefix, foo)
+
+        ""
     })
 }
 

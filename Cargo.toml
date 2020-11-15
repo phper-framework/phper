@@ -5,6 +5,7 @@ members = [
     "phper-build",
     "phper-macros",
     "phper-sys",
+    "phper-test",
 
     # internal
     "examples/simple",

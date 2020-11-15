@@ -8,8 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-#  RUST_BACKTRACE: 1
-#  RUST_LOG: debug
+  #  RUST_BACKTRACE: 1
+  #  RUST_LOG: debug
   RUSTFLAGS: "-D warnings"
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: php-config
 
-      - name: PHP Config
+      - name: PHP version
         run: php-config --version && php-config --phpapi && php --version
 
       - name: Checkout
@@ -44,20 +44,40 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly-2020-11-09
-            override: true
-            components: rustfmt, clippy
+          toolchain: nightly-2020-11-09
+          override: true
+          components: rustfmt, clippy
 
-      - uses: actions-rs/cargo@v1
+      - name: Install Cargo make
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-make
+
+      - name: Cargo fmt
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-          
-      - uses: actions-rs/cargo@v1
+
+      - name: Cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+      - name: Cargo test
+        uses: actions-rs/cargo@v1
         with:
           command: test
           args: -- --nocapture
 
-      - uses: actions-rs/cargo@v1
+      - name: Cargo doc
+        uses: actions-rs/cargo@v1
         with:
           command: doc
+
+      - name: Cargo test example simple
+        uses: actions-rs/cargo@v1
+        with:
+          command: make
+          args: test-php --cwd examples/simple --profile production

@@ -13,5 +13,8 @@ crate-type = ["cdylib"]
 [dependencies]
 phper = { version = "0.2", path = "../../phper" }
 
+[dev-dependencies]
+phper-test = { version = "0.2", path = "../../phper-test" }
+
 [build-dependencies]
 phper-build = { version = "0.2", path = "../../phper-build" }

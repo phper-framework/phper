@@ -1,9 +1,5 @@
 /target
 **/*.rs.bk
 Cargo.lock
-/.idea
-.vscode
 /.cargo
 /vendor
-/trail-extension
-*.test.sh
