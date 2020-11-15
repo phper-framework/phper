@@ -4,12 +4,12 @@ use phper::{
     php_rshutdown_function,
     sys::{
         php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
-        zend_function_entry, zend_internal_arg_info, zend_read_property, zend_type, OnUpdateBool,
-        OnUpdateString, PHP_INI_SYSTEM, ZEND_ACC_PUBLIC,
+        zend_function_entry, zend_read_property, OnUpdateBool, OnUpdateString, PHP_INI_SYSTEM,
+        ZEND_ACC_PUBLIC,
     },
     zend::{
         api::{FunctionEntries, ModuleGlobals},
-        compile::MultiInternalArgInfo,
+        compile::{create_zend_arg_info, MultiInternalArgInfo},
         ini::IniEntries,
         modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
         types::{ClassEntry, ExecuteData, SetVal, Val},
@@ -96,18 +96,8 @@ pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
 
 static ARG_INFO_TEST_SIMPLE: MultiInternalArgInfo<2> = MultiInternalArgInfo::new(
     [
-        zend_internal_arg_info {
-            name: c_str_ptr!("a"),
-            type_: 0,
-            pass_by_reference: 0,
-            is_variadic: 0,
-        },
-        zend_internal_arg_info {
-            name: c_str_ptr!("b"),
-            type_: 0,
-            pass_by_reference: 0,
-            is_variadic: 0,
-        },
+        create_zend_arg_info(c_str_ptr!("a"), false),
+        create_zend_arg_info(c_str_ptr!("b"), false),
     ],
     false,
 );
@@ -120,15 +110,8 @@ static FUNCTION_ENTRIES: FunctionEntries<1> = FunctionEntries::new([zend_functio
     flags: 0,
 }]);
 
-static ARG_INFO_MY_CLASS_FOO: MultiInternalArgInfo<1> = MultiInternalArgInfo::new(
-    [zend_internal_arg_info {
-        name: c_str_ptr!("prefix"),
-        type_: 0,
-        pass_by_reference: 0,
-        is_variadic: 0,
-    }],
-    false,
-);
+static ARG_INFO_MY_CLASS_FOO: MultiInternalArgInfo<1> =
+    MultiInternalArgInfo::new([create_zend_arg_info(c_str_ptr!("prefix"), false)], false);
 
 static MY_CLASS_METHODS: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
     fname: c_str_ptr!("foo"),
@@ -141,11 +124,7 @@ static MY_CLASS_METHODS: FunctionEntries<1> = FunctionEntries::new([zend_functio
 #[php_function]
 pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
     execute_data.parse_parameters::<&str>().map(|prefix| {
-        let this = if execute_data.get_type() == phper::sys::IS_OBJECT as zend_type {
-            execute_data.get_this()
-        } else {
-            null_mut()
-        };
+        let this = execute_data.get_this();
 
         let foo = unsafe {
             zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())

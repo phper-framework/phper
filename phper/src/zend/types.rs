@@ -3,8 +3,8 @@ use crate::{
     sys::{
         phper_init_class_entry, phper_zval_get_type, phper_zval_stringl, zend_class_entry,
         zend_declare_property, zend_execute_data, zend_parse_parameters,
-        zend_register_internal_class, zend_throw_exception, zend_type, zval, IS_FALSE, IS_LONG,
-        IS_NULL, IS_STRING, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
+        zend_register_internal_class, zend_throw_exception, zval, IS_FALSE, IS_LONG, IS_NULL,
+        IS_STRING, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
     },
     zend::{api::FunctionEntries, exceptions::Throwable},
 };
@@ -79,11 +79,6 @@ impl ExecuteData {
     #[inline]
     pub fn get_this(&self) -> &mut zval {
         unsafe { &mut (*self.raw).This }
-    }
-
-    #[inline]
-    pub fn get_type(&self) -> zend_type {
-        unsafe { phper_zval_get_type(self.get_this()).into() }
     }
 
     pub fn parse_parameters<T: ParseParameter>(&self) -> Option<T> {
@@ -344,7 +339,7 @@ impl Val {
 
     pub fn as_c_str(&self) -> Option<&CStr> {
         unsafe {
-            if phper_zval_get_type(self.raw) as zend_type == IS_STRING as zend_type {
+            if phper_zval_get_type(self.raw) == IS_STRING as u8 {
                 Some(CStr::from_ptr(
                     (&((*(*self.raw).value.str).val)).as_ptr().cast(),
                 ))
