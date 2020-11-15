@@ -34,14 +34,12 @@ impl<T: 'static> ModuleGlobals<T> {
         on_modify: Option<Mh>,
         modifiable: u32,
     ) -> zend_ini_entry_def {
-        #[cfg(any(
-            phper_php_version = "7.4",
-            phper_php_version = "7.3",
-        ))]
+        #[cfg(any(phper_php_version = "7.4", phper_php_version = "7.3",))]
         let (modifiable, name_length) = (modifiable as std::os::raw::c_uchar, name.len() as u16);
         #[cfg(any(
             phper_php_version = "7.2",
             phper_php_version = "7.1",
+            phper_php_version = "7.0",
         ))]
         let (modifiable, name_length) = (modifiable as std::os::raw::c_int, name.len() as u32);
 
