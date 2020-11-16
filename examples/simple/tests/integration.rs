@@ -1,5 +1,5 @@
 use phper_test::test_php_scripts;
-use std::{env, ffi::OsStr, fmt::Debug, path::Path, process::Command, sync::Once};
+use std::{env, path::Path};
 
 #[test]
 fn test_php() {

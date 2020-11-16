@@ -75,9 +75,3 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: doc
-
-      - name: Cargo test example simple
-        uses: actions-rs/cargo@v1
-        with:
-          command: make
-          args: test-php --cwd examples/simple --profile production

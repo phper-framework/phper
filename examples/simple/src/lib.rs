@@ -35,7 +35,7 @@ static INI_ENTRIES: IniEntries<2> = IniEntries::new([
 fn m_init_simple(args: ModuleArgs) -> bool {
     args.register_ini_entries(&INI_ENTRIES);
     MY_CLASS_CE.init(c_str_ptr!("MyClass"), &MY_CLASS_METHODS);
-    MY_CLASS_CE.declare_property("foo", 3, ZEND_ACC_PUBLIC);
+    MY_CLASS_CE.declare_property("foo", "3", ZEND_ACC_PUBLIC);
     true
 }
 
@@ -125,15 +125,14 @@ static MY_CLASS_METHODS: FunctionEntries<1> = FunctionEntries::new([zend_functio
 pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
     execute_data.parse_parameters::<&str>().map(|prefix| {
         let this = execute_data.get_this();
+        assert_ne!(this as *mut _, null_mut());
 
         let foo = unsafe {
             zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())
         };
-        // let foo = Val::from_raw(foo);
-        // let foo = foo.as_c_str().unwrap().to_str().unwrap();
-        // format!("{}{}", prefix, foo)
-
-        ""
+        let foo = Val::from_raw(foo);
+        let foo = foo.as_c_str().unwrap().to_str().unwrap();
+        format!("{}{}", prefix, foo)
     })
 }
 

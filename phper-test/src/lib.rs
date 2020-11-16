@@ -1,9 +1,8 @@
 use once_cell::sync::OnceCell;
-use serde_json::Value;
 use std::{
-    env, ffi::OsStr, fmt::Debug, fs::read_to_string, io, io::Write, path::Path, process::Command,
+    env, ffi::OsStr, fmt::Debug, fs::read_to_string, io::Write, path::Path, process::Command,
 };
-use tempfile::{tempfile, NamedTempFile};
+use tempfile::NamedTempFile;
 
 pub fn test_php_scripts(
     target_dir: impl AsRef<Path>,
@@ -12,7 +11,7 @@ pub fn test_php_scripts(
 ) {
     let context = php_context();
 
-    let mut lib_path = target_dir
+    let lib_path = target_dir
         .as_ref()
         .join(if cfg!(debug_assertions) {
             "debug"
@@ -39,19 +38,21 @@ pub fn test_php_scripts(
             .arg(out_ini_temp_file.path())
             .arg(script);
         let output = cmd.output().unwrap();
+        let path = script.to_str().unwrap();
+
+        println!(
+            "test php file: {}\nstdout: {}\nstderr: {}",
+            path,
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap()
+        );
         if !output.status.success() {
-            eprintln!(
-                "stdout: {}\nstderr: {}",
-                String::from_utf8(output.stdout).unwrap(),
-                String::from_utf8(output.stderr).unwrap()
-            );
-            panic!("test php file `{}` failed", script.to_str().unwrap());
+            panic!("test php file `{}` failed", path);
         }
     }
 }
 
 struct Context {
-    php_config: String,
     php_bin: String,
     ini_content: String,
 }
@@ -85,7 +86,6 @@ fn php_context() -> &'static Context {
         }
 
         Context {
-            php_config,
             php_bin,
             ini_content,
         }
