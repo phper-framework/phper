@@ -3,8 +3,8 @@ use crate::{
     sys::{
         self, phper_init_class_entry, phper_z_strval_p, phper_zval_get_type, phper_zval_stringl,
         zend_class_entry, zend_declare_property, zend_execute_data, zend_parse_parameters,
-        zend_register_internal_class, zend_throw_exception, zval, IS_FALSE, IS_LONG,
-        IS_NULL, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
+        zend_register_internal_class, zend_throw_exception, zval, IS_FALSE, IS_LONG, IS_NULL,
+        IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
     },
     zend::{api::FunctionEntries, exceptions::Throwable},
 };
