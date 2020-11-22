@@ -96,9 +96,11 @@ pub(crate) fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStrea
             fn internal(#inputs) #ret {
                 #body
             }
-            let internal: fn(::phper::zend::types::ExecuteData) -> _ = internal;
-            let value = internal(::phper::zend::types::ExecuteData::from_raw(execute_data));
-            ::phper::zend::types::SetVal::set_val(value, &mut ::phper::zend::types::Val::from_raw(return_value));
+            let internal: fn(&mut ::phper::zend::types::ExecuteData) -> _ = internal;
+            unsafe {
+                let value = internal(::phper::zend::types::ExecuteData::from_mut(execute_data));
+                ::phper::zend::types::SetVal::set_val(value, ::phper::zend::types::Val::from_mut(return_value));
+            }
         }
     };
 

@@ -13,5 +13,6 @@ void phper_zval_string(zval *return_value, const char *s);
 zend_uchar phper_zval_get_type(const zval* pz);
 void phper_zval_stringl(zval *return_value, const char *s, size_t len);
 char *phper_z_strval_p(const zval *v);
+zval *phper_get_this(zend_execute_data *execute_data);
 
 #endif //PHPER_PHP_WRAPPER_H

@@ -29,3 +29,7 @@ void phper_zval_stringl(zval *return_value, const char *s, size_t len) {
 char *phper_z_strval_p(const zval *v) {
     return Z_STRVAL_P(v);
 }
+
+zval *phper_get_this(zend_execute_data *execute_data) {
+    return getThis();
+}

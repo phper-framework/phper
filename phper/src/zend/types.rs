@@ -1,10 +1,10 @@
 use crate::{
     c_str_ptr,
     sys::{
-        self, phper_init_class_entry, phper_z_strval_p, phper_zval_get_type, phper_zval_stringl,
-        zend_class_entry, zend_declare_property, zend_execute_data, zend_parse_parameters,
-        zend_register_internal_class, zend_throw_exception, zval, IS_FALSE, IS_LONG, IS_NULL,
-        IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
+        self, phper_get_this, phper_init_class_entry, phper_z_strval_p, phper_zval_get_type,
+        phper_zval_stringl, zend_class_entry, zend_declare_property_stringl, zend_execute_data,
+        zend_parse_parameters, zend_read_property, zend_register_internal_class,
+        zend_throw_exception, zval, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
     },
     zend::{api::FunctionEntries, exceptions::Throwable},
 };
@@ -12,7 +12,6 @@ use std::{
     borrow::Cow,
     cell::Cell,
     ffi::{c_void, CStr},
-    mem::MaybeUninit,
     os::raw::{c_char, c_int},
     ptr::null_mut,
 };
@@ -43,42 +42,85 @@ impl ClassEntry {
         }
     }
 
-    pub fn declare_property(&self, name: impl AsRef<str>, value: impl SetVal, access_type: u32) {
+    pub fn declare_property(
+        &self,
+        name: impl AsRef<str>,
+        value: impl DeclareProperty,
+        access_type: c_int,
+    ) -> bool {
         unsafe {
             let name = name.as_ref();
-            let mut property: MaybeUninit<zval> = MaybeUninit::uninit();
-            let mut property = Val::from_raw(property.as_mut_ptr());
-            value.set_val(&mut property);
-            zend_declare_property(
+            value.declare_property(self.get(), name, access_type) == ZEND_RESULT_CODE_SUCCESS
+        }
+    }
+
+    pub fn read_property(&self, this: *mut zval, name: impl AsRef<str>) -> &mut Val {
+        let name = name.as_ref();
+        unsafe {
+            let v = zend_read_property(
                 self.get(),
+                this,
                 name.as_ptr().cast(),
                 name.len(),
-                property.as_ptr(),
-                access_type as c_int,
+                1,
+                null_mut(),
             );
+            Val::from_mut(v)
         }
     }
 }
 
 unsafe impl Sync for ClassEntry {}
 
+pub trait DeclareProperty {
+    unsafe fn declare_property(
+        self,
+        ce: *mut zend_class_entry,
+        name: &str,
+        access_type: c_int,
+    ) -> c_int;
+}
+
+impl DeclareProperty for &str {
+    unsafe fn declare_property(
+        self,
+        ce: *mut zend_class_entry,
+        name: &str,
+        access_type: i32,
+    ) -> c_int {
+        zend_declare_property_stringl(
+            ce,
+            name.as_ptr().cast(),
+            name.len(),
+            self.as_ptr().cast(),
+            self.len(),
+            access_type,
+        )
+    }
+}
+
+#[repr(transparent)]
 pub struct ExecuteData {
-    raw: *mut zend_execute_data,
+    inner: zend_execute_data,
 }
 
 impl ExecuteData {
-    pub fn from_raw(execute_data: *mut zend_execute_data) -> Self {
-        Self { raw: execute_data }
+    pub unsafe fn from_mut<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
+        &mut *(ptr as *mut Self)
+    }
+
+    pub fn as_mut(&mut self) -> *mut zend_execute_data {
+        &mut self.inner
     }
 
     #[inline]
     pub fn num_args(&self) -> usize {
-        unsafe { (*self.raw).This.u2.num_args as usize }
+        unsafe { self.inner.This.u2.num_args as usize }
     }
 
     #[inline]
-    pub fn get_this(&self) -> &mut zval {
-        unsafe { &mut (*self.raw).This }
+    pub fn get_this(&mut self) -> *mut zval {
+        unsafe { phper_get_this(&mut self.inner) }
     }
 
     pub fn parse_parameters<T: ParseParameter>(&self) -> Option<T> {
@@ -309,25 +351,26 @@ fn zend_parse_fixed_parameters(
     b == ZEND_RESULT_CODE_SUCCESS
 }
 
+#[repr(transparent)]
 pub struct Val {
-    raw: *mut zval,
+    inner: zval,
 }
 
 impl Val {
-    pub const fn from_raw(val: *mut zval) -> Self {
-        Self { raw: val }
+    pub unsafe fn from_mut<'a>(ptr: *mut zval) -> &'a mut Self {
+        &mut *(ptr as *mut Self)
     }
 
-    pub const fn as_ptr(&self) -> *mut zval {
-        self.raw
+    pub fn as_mut(&mut self) -> *mut zval {
+        &mut self.inner
     }
 
-    pub fn try_into_value<'a>(self) -> crate::Result<Value<'a>> {
-        Value::from_zval(self.raw)
+    pub fn try_into_value<'a>(&self) -> crate::Result<Value<'a>> {
+        Value::from_ptr(&self.inner)
     }
 
     unsafe fn type_info(&mut self) -> &mut u32 {
-        &mut (*self.raw).u1.type_info
+        &mut self.inner.u1.type_info
     }
 }
 
@@ -366,8 +409,8 @@ impl SetVal for u32 {
 impl SetVal for i64 {
     fn set_val(self, val: &mut Val) {
         unsafe {
-            (*val.as_ptr()).value.lval = self;
-            (*val.as_ptr()).u1.type_info = IS_LONG;
+            (*val.as_mut()).value.lval = self;
+            (*val.as_mut()).u1.type_info = IS_LONG;
         }
     }
 }
@@ -375,7 +418,7 @@ impl SetVal for i64 {
 impl SetVal for &str {
     fn set_val(self, val: &mut Val) {
         unsafe {
-            phper_zval_stringl(val.raw, self.as_ptr().cast(), self.len());
+            phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
         }
     }
 }
@@ -383,7 +426,7 @@ impl SetVal for &str {
 impl SetVal for String {
     fn set_val(self, val: &mut Val) {
         unsafe {
-            phper_zval_stringl(val.raw, self.as_ptr().cast(), self.len());
+            phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
         }
     }
 }
@@ -422,7 +465,7 @@ pub enum Value<'a> {
 }
 
 impl<'a> Value<'a> {
-    pub fn from_zval(v: *const zval) -> crate::Result<Self> {
+    pub fn from_ptr(v: *const zval) -> crate::Result<Self> {
         unsafe {
             match phper_zval_get_type(v) as u32 {
                 sys::IS_NULL => Ok(Self::Null),

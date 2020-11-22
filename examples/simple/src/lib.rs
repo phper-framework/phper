@@ -4,21 +4,20 @@ use phper::{
     php_rshutdown_function,
     sys::{
         php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
-        zend_function_entry, zend_read_property, OnUpdateBool, OnUpdateString, PHP_INI_SYSTEM,
-        ZEND_ACC_PUBLIC,
+        zend_function_entry, OnUpdateBool, OnUpdateString, PHP_INI_SYSTEM, ZEND_ACC_PUBLIC,
     },
     zend::{
         api::{FunctionEntries, ModuleGlobals},
         compile::{create_zend_arg_info, MultiInternalArgInfo},
         ini::IniEntries,
         modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
-        types::{ClassEntry, ExecuteData, SetVal, Val, Value},
+        types::{ClassEntry, ExecuteData, SetVal, Value},
     },
     zend_get_module,
 };
 use std::{
-    os::raw::c_char,
-    ptr::{null, null_mut},
+    os::raw::{c_char, c_int},
+    ptr::null,
 };
 
 static MY_CLASS_CE: ClassEntry = ClassEntry::new();
@@ -35,7 +34,7 @@ static INI_ENTRIES: IniEntries<2> = IniEntries::new([
 fn m_init_simple(args: ModuleArgs) -> bool {
     args.register_ini_entries(&INI_ENTRIES);
     MY_CLASS_CE.init(c_str_ptr!("MyClass"), &MY_CLASS_METHODS);
-    MY_CLASS_CE.declare_property("foo", "foo", ZEND_ACC_PUBLIC);
+    MY_CLASS_CE.declare_property("name", "world", ZEND_ACC_PUBLIC as c_int);
     true
 }
 
@@ -80,7 +79,7 @@ fn m_info_simple(module: &ModuleEntry) {
 }
 
 #[php_function]
-pub fn test_simple(execute_data: ExecuteData) -> impl SetVal {
+pub fn test_simple(execute_data: &mut ExecuteData) -> impl SetVal {
     execute_data
         .parse_parameters::<(&str, &str)>()
         .map(|(a, b)| {
@@ -110,28 +109,23 @@ static FUNCTION_ENTRIES: FunctionEntries<1> = FunctionEntries::new([zend_functio
     flags: 0,
 }]);
 
-static ARG_INFO_MY_CLASS_FOO: MultiInternalArgInfo<1> =
+static ARG_INFO_MY_CLASS_HELLO: MultiInternalArgInfo<1> =
     MultiInternalArgInfo::new([create_zend_arg_info(c_str_ptr!("prefix"), false)], false);
 
 static MY_CLASS_METHODS: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
-    fname: c_str_ptr!("foo"),
-    handler: Some(php_fn!(my_class_foo)),
-    arg_info: ARG_INFO_MY_CLASS_FOO.as_ptr(),
+    fname: c_str_ptr!("hello"),
+    handler: Some(php_fn!(my_class_hello)),
+    arg_info: ARG_INFO_MY_CLASS_HELLO.as_ptr(),
     num_args: 1,
     flags: 0,
 }]);
 
 #[php_function]
-pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
+pub fn my_class_hello(execute_data: &mut ExecuteData) -> impl SetVal {
     execute_data.parse_parameters::<&str>().map(|prefix| {
         let this = execute_data.get_this();
-        assert_ne!(this as *mut _, null_mut());
-
-        let foo = unsafe {
-            zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())
-        };
-        let foo = Val::from_raw(foo);
-        let value = foo.try_into_value().unwrap();
+        let val = MY_CLASS_CE.read_property(this, "name");
+        let value = val.try_into_value().unwrap();
 
         if let Value::CStr(foo) = value {
             Some(format!("{}{}", prefix, foo.to_str().unwrap()))

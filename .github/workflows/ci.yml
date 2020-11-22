@@ -48,11 +48,11 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: Install Cargo make
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-make
+      # - name: Install Cargo make
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: install
+      #     args: cargo-make
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
