@@ -2,7 +2,7 @@
 
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
 
-***Now the peojct is still under development.***
+***Now the project is still under development.***
 
 ## Requirement
 
