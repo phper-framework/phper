@@ -4,8 +4,8 @@ TARGET_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/../../target"
 
 [env.development]
 TARGET_BUILD_DIR = "${TARGET_DIR}/debug"
-BUILD_ARGS = ""
-TEST_ARGS = ""
+BUILD_ARGS = "--"
+TEST_ARGS = "--"
 
 [env.production]
 TARGET_BUILD_DIR = "${TARGET_DIR}/release"

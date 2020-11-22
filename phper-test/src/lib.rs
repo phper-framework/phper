@@ -82,7 +82,9 @@ fn php_context() -> &'static Context {
         ini_content.push_str(&read_to_string(ini_file).unwrap());
         for file in ini_files.split(',') {
             let file = file.trim();
-            ini_content.push_str(&read_to_string(file).unwrap());
+            if !file.is_empty() {
+                ini_content.push_str(&read_to_string(file).unwrap());
+            }
         }
 
         Context {

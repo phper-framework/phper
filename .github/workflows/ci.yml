@@ -44,7 +44,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-11-09
+          toolchain: nightly
           override: true
           components: rustfmt, clippy
 
@@ -64,12 +64,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
+          args: --release
 
       - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -- --nocapture
+          args: --release -- --nocapture
 
       - name: Cargo doc
         uses: actions-rs/cargo@v1

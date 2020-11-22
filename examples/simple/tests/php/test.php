@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 assert_eq(get_extension_funcs('simple'), ["test_simple"]);
 assert_eq(test_simple("aaa", "bbb"), "a = aaa, a_len = 3, b = bbb, b_len = 3");
-assert_eq((new MyClass())->foo("foo-"), "foo-3");
+assert_eq((new MyClass())->foo("bar-"), "bar-foo");
 
 function assert_eq($left, $right) {
     if ($left !== $right) {

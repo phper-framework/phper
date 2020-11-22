@@ -1,10 +1,10 @@
 use crate::{
     c_str_ptr,
     sys::{
-        phper_init_class_entry, phper_zval_get_type, phper_zval_stringl, zend_class_entry,
-        zend_declare_property, zend_execute_data, zend_parse_parameters,
-        zend_register_internal_class, zend_throw_exception, zval, IS_FALSE, IS_LONG, IS_NULL,
-        IS_STRING, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
+        self, phper_init_class_entry, phper_z_strval_p, phper_zval_get_type, phper_zval_stringl,
+        zend_class_entry, zend_declare_property, zend_execute_data, zend_parse_parameters,
+        zend_register_internal_class, zend_throw_exception, zval, IS_DOUBLE, IS_FALSE, IS_LONG,
+        IS_NULL, IS_STRING, IS_STRING_EX, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
     },
     zend::{api::FunctionEntries, exceptions::Throwable},
 };
@@ -309,21 +309,6 @@ fn zend_parse_fixed_parameters(
     b == ZEND_RESULT_CODE_SUCCESS
 }
 
-#[repr(u32)]
-pub enum ValType {
-    UNDEF = crate::sys::IS_UNDEF,
-    NULL = crate::sys::IS_NULL,
-    FALSE = crate::sys::IS_FALSE,
-    TRUE = crate::sys::IS_TRUE,
-    LONG = crate::sys::IS_LONG,
-    DOUBLE = crate::sys::IS_DOUBLE,
-    STRING = crate::sys::IS_STRING,
-    ARRAY = crate::sys::IS_ARRAY,
-    OBJECT = crate::sys::IS_OBJECT,
-    RESOURCE = crate::sys::IS_RESOURCE,
-    REFERENCE = crate::sys::IS_REFERENCE,
-}
-
 pub struct Val {
     raw: *mut zval,
 }
@@ -337,16 +322,8 @@ impl Val {
         self.raw
     }
 
-    pub fn as_c_str(&self) -> Option<&CStr> {
-        unsafe {
-            if phper_zval_get_type(self.raw) == IS_STRING as u8 {
-                Some(CStr::from_ptr(
-                    (&((*(*self.raw).value.str).val)).as_ptr().cast(),
-                ))
-            } else {
-                None
-            }
-        }
+    pub fn try_into_value<'a>(self) -> crate::Result<Value<'a>> {
+        Value::from_zval(self.raw)
     }
 
     unsafe fn type_info(&mut self) -> &mut u32 {
@@ -432,20 +409,33 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
     }
 }
 
+#[derive(Debug)]
 pub enum Value<'a> {
     Null,
     Bool(bool),
-    Str(&'a str),
-    String(String),
+    Long(i64),
+    Double(f64),
+    CStr(&'a CStr),
+    Array(()),
+    Object(()),
+    Resource(()),
 }
 
-impl SetVal for Value<'_> {
-    fn set_val(self, val: &mut Val) {
-        match self {
-            Value::Null => ().set_val(val),
-            Value::Bool(b) => b.set_val(val),
-            Value::Str(s) => s.set_val(val),
-            Value::String(s) => s.set_val(val),
+impl<'a> Value<'a> {
+    pub fn from_zval(v: *const zval) -> crate::Result<Self> {
+        unsafe {
+            match phper_zval_get_type(v) as u32 {
+                sys::IS_NULL => Ok(Self::Null),
+                sys::IS_FALSE => Ok(Self::Bool(false)),
+                sys::IS_TRUE => Ok(Self::Bool(true)),
+                sys::IS_LONG => Ok(Self::Long((*v).value.lval)),
+                sys::IS_DOUBLE => Ok(Self::Double((*v).value.dval)),
+                sys::IS_STRING | sys::IS_STRING_EX => {
+                    let s = phper_z_strval_p(v);
+                    Ok(Self::CStr(CStr::from_ptr(s)))
+                }
+                t => Err(crate::Error::UnKnownValueType(t)),
+            }
         }
     }
 }

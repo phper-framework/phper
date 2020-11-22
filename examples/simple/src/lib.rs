@@ -12,7 +12,7 @@ use phper::{
         compile::{create_zend_arg_info, MultiInternalArgInfo},
         ini::IniEntries,
         modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
-        types::{ClassEntry, ExecuteData, SetVal, Val},
+        types::{ClassEntry, ExecuteData, SetVal, Val, Value},
     },
     zend_get_module,
 };
@@ -35,7 +35,7 @@ static INI_ENTRIES: IniEntries<2> = IniEntries::new([
 fn m_init_simple(args: ModuleArgs) -> bool {
     args.register_ini_entries(&INI_ENTRIES);
     MY_CLASS_CE.init(c_str_ptr!("MyClass"), &MY_CLASS_METHODS);
-    MY_CLASS_CE.declare_property("foo", "3", ZEND_ACC_PUBLIC);
+    MY_CLASS_CE.declare_property("foo", "foo", ZEND_ACC_PUBLIC);
     true
 }
 
@@ -131,8 +131,13 @@ pub fn my_class_foo(execute_data: ExecuteData) -> impl SetVal {
             zend_read_property(MY_CLASS_CE.get(), this, c_str_ptr!("foo"), 3, 1, null_mut())
         };
         let foo = Val::from_raw(foo);
-        let foo = foo.as_c_str().unwrap().to_str().unwrap();
-        format!("{}{}", prefix, foo)
+        let value = foo.try_into_value().unwrap();
+
+        if let Value::CStr(foo) = value {
+            Some(format!("{}{}", prefix, foo.to_str().unwrap()))
+        } else {
+            None
+        }
     })
 }
 
