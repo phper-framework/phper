@@ -1,6 +1,7 @@
 #![feature(min_const_generics)]
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(const_fn_transmute)]
+#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 
 /*!
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.

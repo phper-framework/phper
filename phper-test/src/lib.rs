@@ -33,18 +33,32 @@ pub fn test_php_scripts(
     for script in scripts {
         let script = script.as_ref();
         let mut cmd = Command::new(&context.php_bin);
-        cmd.arg("-n")
-            .arg("-c")
-            .arg(out_ini_temp_file.path())
-            .arg(script);
+        let args = &[
+            "-n",
+            "-c",
+            out_ini_temp_file.path().to_str().unwrap(),
+            script.to_str().unwrap(),
+        ];
+        cmd.args(args);
         let output = cmd.output().unwrap();
         let path = script.to_str().unwrap();
 
+        let mut stdout = String::from_utf8(output.stdout).unwrap();
+        if stdout.is_empty() {
+            stdout.push_str("<empty>");
+        }
+
+        let mut stderr = String::from_utf8(output.stderr).unwrap();
+        if stderr.is_empty() {
+            stderr.push_str("<empty>");
+        }
+
         println!(
-            "test php file: {}\nstdout: {}\nstderr: {}",
-            path,
-            String::from_utf8(output.stdout).unwrap(),
-            String::from_utf8(output.stderr).unwrap()
+            "command: {} {}\nstdout: {}\nstderr: {}",
+            &context.php_bin,
+            args.join(" "),
+            stdout,
+            stderr,
         );
         if !output.status.success() {
             panic!("test php file `{}` failed", path);

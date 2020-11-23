@@ -8,7 +8,7 @@
 
 zend_string *zend_string_init_(const char *str, size_t len, int persistent);
 zend_string *zend_new_interned_string_(zend_string *str);
-zend_class_entry phper_init_class_entry(const char *class_name, const zend_function_entry *functions);
+zend_class_entry phper_init_class_entry_ex(const char *class_name, size_t class_name_len, const zend_function_entry *functions);
 void phper_zval_string(zval *return_value, const char *s);
 zend_uchar phper_zval_get_type(const zval* pz);
 void phper_zval_stringl(zval *return_value, const char *s, size_t len);

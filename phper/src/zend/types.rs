@@ -1,12 +1,13 @@
 use crate::{
     c_str_ptr,
     sys::{
-        self, phper_get_this, phper_init_class_entry, phper_z_strval_p, phper_zval_get_type,
-        phper_zval_stringl, zend_class_entry, zend_declare_property_stringl, zend_execute_data,
+        self, phper_get_this, phper_init_class_entry_ex, phper_z_strval_p, phper_zval_get_type,
+        phper_zval_stringl, zend_class_entry, zend_declare_property_bool,
+        zend_declare_property_null, zend_declare_property_stringl, zend_execute_data, zend_long,
         zend_parse_parameters, zend_read_property, zend_register_internal_class,
         zend_throw_exception, zval, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
     },
-    zend::{api::FunctionEntries, exceptions::Throwable},
+    zend::{api::FunctionEntries, compile::Visibility, exceptions::Throwable},
 };
 use std::{
     borrow::Cow,
@@ -35,9 +36,18 @@ impl ClassEntry {
         self.inner.get()
     }
 
-    pub fn init<const N: usize>(&self, class_name: *const c_char, functions: &FunctionEntries<N>) {
+    pub fn init<const N: usize>(
+        &self,
+        class_name: impl AsRef<str>,
+        functions: &FunctionEntries<N>,
+    ) {
+        let class_name = class_name.as_ref();
         unsafe {
-            let mut class_ce = phper_init_class_entry(class_name, functions.as_ptr());
+            let mut class_ce = phper_init_class_entry_ex(
+                class_name.as_ptr().cast(),
+                class_name.len(),
+                functions.as_ptr(),
+            );
             *self.as_ptr() = zend_register_internal_class(&mut class_ce);
         }
     }
@@ -46,11 +56,12 @@ impl ClassEntry {
         &self,
         name: impl AsRef<str>,
         value: impl DeclareProperty,
-        access_type: c_int,
+        access_type: Visibility,
     ) -> bool {
         unsafe {
             let name = name.as_ref();
-            value.declare_property(self.get(), name, access_type) == ZEND_RESULT_CODE_SUCCESS
+            value.declare_property(self.get(), name, access_type as c_int)
+                == ZEND_RESULT_CODE_SUCCESS
         }
     }
 
@@ -79,6 +90,34 @@ pub trait DeclareProperty {
         name: &str,
         access_type: c_int,
     ) -> c_int;
+}
+
+impl DeclareProperty for () {
+    unsafe fn declare_property(
+        self,
+        ce: *mut zend_class_entry,
+        name: &str,
+        access_type: i32,
+    ) -> i32 {
+        zend_declare_property_null(ce, name.as_ptr().cast(), name.len(), access_type)
+    }
+}
+
+impl DeclareProperty for bool {
+    unsafe fn declare_property(
+        self,
+        ce: *mut zend_class_entry,
+        name: &str,
+        access_type: i32,
+    ) -> i32 {
+        zend_declare_property_bool(
+            ce,
+            name.as_ptr().cast(),
+            name.len(),
+            self as zend_long,
+            access_type,
+        )
+    }
 }
 
 impl DeclareProperty for &str {

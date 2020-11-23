@@ -1,4 +1,6 @@
-use crate::sys::{zend_internal_arg_info, zend_uchar};
+use crate::sys::{
+    zend_internal_arg_info, zend_uchar, ZEND_ACC_PRIVATE, ZEND_ACC_PROTECTED, ZEND_ACC_PUBLIC,
+};
 use std::{cell::Cell, os::raw::c_char};
 
 #[repr(C)]
@@ -57,4 +59,12 @@ pub const fn create_zend_arg_info(
             is_variadic: 0,
         }
     }
+}
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Visibility {
+    Public = ZEND_ACC_PUBLIC,
+    Protected = ZEND_ACC_PROTECTED,
+    Private = ZEND_ACC_PRIVATE,
 }

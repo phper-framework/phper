@@ -19,7 +19,6 @@ args = ["build", "${BUILD_ARGS}"]
 [tasks.test]
 command = "cargo"
 args = ["test", "${TEST_ARGS}", "--", "--nocapture"]
-env = { "LIB_SO" = "${TARGET_BUILD_DIR}/lib${CARGO_MAKE_CRATE_NAME}.so" }
 
 [tasks.install]
 dependencies = ["build"]

@@ -8,9 +8,9 @@ zend_string *phper_zend_new_interned_string(zend_string *str) {
     return zend_new_interned_string(str);
 }
 
-zend_class_entry phper_init_class_entry(const char *class_name, const zend_function_entry *functions) {
+zend_class_entry phper_init_class_entry_ex(const char *class_name, size_t class_name_len, const zend_function_entry *functions) {
     zend_class_entry class_container;
-    INIT_CLASS_ENTRY(class_container, class_name, functions);
+    INIT_CLASS_ENTRY_EX(class_container, class_name, class_name_len, functions);
     return class_container;
 }
 

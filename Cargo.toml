@@ -8,5 +8,6 @@ members = [
     "phper-test",
 
     # internal
-    "examples/simple",
+    "examples/hello",
+    "examples/hello-class",
 ]
