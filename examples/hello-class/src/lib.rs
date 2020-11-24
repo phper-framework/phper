@@ -23,13 +23,13 @@ static HELLO_CLASS_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
 static HELLO_CLASS_DESCRIPTION: ModuleGlobals<*const c_char> = ModuleGlobals::new(null());
 
 static INI_ENTRIES: IniEntries<2> = IniEntries::new([
-    HELLO_CLASS_ENABLE.create_ini_entry_def(
+    HELLO_CLASS_ENABLE.create_ini_entry(
         "hello_class.enable",
         "1",
         Some(OnUpdateBool),
         PHP_INI_SYSTEM,
     ),
-    HELLO_CLASS_DESCRIPTION.create_ini_entry_def(
+    HELLO_CLASS_DESCRIPTION.create_ini_entry(
         "hello_class.description",
         "",
         Some(OnUpdateString),
@@ -93,8 +93,11 @@ fn module_info(module: &ModuleEntry) {
     }
 }
 
-static ARG_INFO_HELLO_CLASS_SAY_HELLO: MultiInternalArgInfo<1> =
-    MultiInternalArgInfo::new([create_zend_arg_info(c_str_ptr!("prefix"), false)], false);
+static ARG_INFO_HELLO_CLASS_SAY_HELLO: MultiInternalArgInfo<1> = MultiInternalArgInfo::new(
+    1,
+    false,
+    [create_zend_arg_info(c_str_ptr!("prefix"), false)],
+);
 
 static HELLO_CLASS_METHODS: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
     fname: c_str_ptr!("sayHello"),

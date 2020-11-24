@@ -5,7 +5,8 @@ use crate::{
         phper_zval_stringl, zend_class_entry, zend_declare_property_bool,
         zend_declare_property_null, zend_declare_property_stringl, zend_execute_data, zend_long,
         zend_parse_parameters, zend_read_property, zend_register_internal_class,
-        zend_throw_exception, zval, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
+        zend_throw_exception, zval, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE,
+        ZEND_RESULT_CODE_SUCCESS,
     },
     zend::{api::FunctionEntries, compile::Visibility, exceptions::Throwable},
 };
@@ -15,6 +16,7 @@ use std::{
     ffi::{c_void, CStr},
     os::raw::{c_char, c_int},
     ptr::null_mut,
+    slice, str,
 };
 
 pub struct ClassEntry {
@@ -163,7 +165,14 @@ impl ExecuteData {
     }
 
     pub fn parse_parameters<T: ParseParameter>(&self) -> Option<T> {
-        <T>::parse(self.num_args())
+        <T>::parse(self.num_args(), ())
+    }
+
+    pub fn parse_parameters_optional<T: ParseParameter, O: OptionalParameter>(
+        &self,
+        default: O,
+    ) -> Option<T> {
+        <T>::parse(self.num_args(), default)
     }
 }
 
@@ -176,9 +185,20 @@ pub trait ParseParameter: Sized {
 
     fn from_parameters(parameters: &[*mut c_void]) -> Option<Self>;
 
-    fn parse(num_args: usize) -> Option<Self> {
+    fn parse<O: OptionalParameter>(num_args: usize, optional: O) -> Option<Self> {
         let parameters = Self::parameters();
-        if zend_parse_fixed_parameters(num_args, &Self::spec(), &parameters) {
+        let mut spec = Self::spec();
+
+        let num_optional = <O>::num_optional();
+        if num_optional > 0 {
+            let s = spec.to_mut();
+            s.insert(s.len() - num_optional, '|');
+            unsafe {
+                optional.set_optional(&parameters);
+            }
+        }
+
+        if zend_parse_fixed_parameters(num_args, &spec, &parameters) {
             Self::from_parameters(&parameters)
         } else {
             None
@@ -187,6 +207,7 @@ pub trait ParseParameter: Sized {
 }
 
 impl ParseParameter for () {
+    #[inline]
     fn spec() -> Cow<'static, str> {
         Cow::Borrowed("")
     }
@@ -195,10 +216,12 @@ impl ParseParameter for () {
         0
     }
 
+    #[inline]
     fn parameters() -> Vec<*mut c_void> {
         Vec::new()
     }
 
+    #[inline]
     fn from_parameters(_parameters: &[*mut c_void]) -> Option<Self> {
         Some(())
     }
@@ -292,8 +315,9 @@ impl ParseParameter for &str {
     fn from_parameters(parameters: &[*mut c_void]) -> Option<Self> {
         unsafe {
             let ptr = Box::from_raw(parameters[0] as *mut *mut c_char);
-            let _len = Box::from_raw(parameters[1] as *mut c_int);
-            CStr::from_ptr(*ptr).to_str().ok()
+            let len = Box::from_raw(parameters[1] as *mut c_int);
+            let bytes = slice::from_raw_parts(*ptr as *const u8, *len as usize);
+            str::from_utf8(bytes).ok()
         }
     }
 }
@@ -390,6 +414,93 @@ fn zend_parse_fixed_parameters(
     b == ZEND_RESULT_CODE_SUCCESS
 }
 
+pub trait OptionalParameter: ParseParameter {
+    fn num_optional() -> usize;
+    unsafe fn set_optional(self, parameters: &[*mut c_void]);
+}
+
+impl OptionalParameter for () {
+    fn num_optional() -> usize {
+        0
+    }
+
+    unsafe fn set_optional(self, _parameters: &[*mut c_void]) {}
+}
+
+impl OptionalParameter for bool {
+    fn num_optional() -> usize {
+        1
+    }
+
+    unsafe fn set_optional(self, parameters: &[*mut c_void]) {
+        *(parameters[parameters.len() - 1] as *mut Self) = self;
+    }
+}
+
+impl OptionalParameter for i64 {
+    fn num_optional() -> usize {
+        1
+    }
+
+    unsafe fn set_optional(self, parameters: &[*mut c_void]) {
+        *(parameters[parameters.len() - 1] as *mut Self) = self;
+    }
+}
+
+impl OptionalParameter for f64 {
+    fn num_optional() -> usize {
+        1
+    }
+
+    unsafe fn set_optional(self, parameters: &[*mut c_void]) {
+        *(parameters[parameters.len() - 1] as *mut Self) = self;
+    }
+}
+
+impl OptionalParameter for &'static str {
+    fn num_optional() -> usize {
+        1
+    }
+
+    unsafe fn set_optional(self, parameters: &[*mut c_void]) {
+        *(parameters[parameters.len() - 2] as *mut *const c_char) = self.as_ptr().cast();
+        *(parameters[parameters.len() - 1] as *mut c_int) = self.len() as c_int;
+    }
+}
+
+macro_rules! impl_optional_parameter_for_tuple {
+    ( $(($i:ident,$T:ident)),* ) => {
+        impl<$($T: OptionalParameter,)*> OptionalParameter for ($($T,)*) {
+            fn num_optional() -> usize {
+                0 $( + <$T>::num_optional())*
+            }
+
+            #[allow(unused_assignments)]
+            unsafe fn set_optional(self, parameters: &[*mut c_void]) {
+                let mut i = parameters.len() - <Self as ParseParameter>::num_parameters();
+                let ($($i, )*) = self;
+
+                $({
+                    let j = i + <$T as ParseParameter>::num_parameters();
+                    $i.set_optional(&parameters[i..j]);
+                    i = j;
+                })*
+            }
+        }
+    }
+}
+
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I));
+#[rustfmt::skip] impl_optional_parameter_for_tuple!((a, A), (b, B), (c, C), (d, D), (e, E), (f, F), (g, G), (h, H), (i, I), (j, J));
+
 #[repr(transparent)]
 pub struct Val {
     inner: zval,
@@ -450,6 +561,15 @@ impl SetVal for i64 {
         unsafe {
             (*val.as_mut()).value.lval = self;
             (*val.as_mut()).u1.type_info = IS_LONG;
+        }
+    }
+}
+
+impl SetVal for f64 {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            (*val.as_mut()).value.dval = self;
+            (*val.as_mut()).u1.type_info = IS_DOUBLE;
         }
     }
 }
@@ -518,6 +638,32 @@ impl<'a> Value<'a> {
                 }
                 t => Err(crate::Error::UnKnownValueType(t)),
             }
+        }
+    }
+}
+
+pub enum ReturnValue<'a> {
+    Null,
+    Bool(bool),
+    Long(i64),
+    Double(f64),
+    Str(&'a str),
+    String(String),
+    Array(()),
+    Object(()),
+    Resource(()),
+}
+
+impl SetVal for ReturnValue<'_> {
+    fn set_val(self, val: &mut Val) {
+        match self {
+            ReturnValue::Null => SetVal::set_val((), val),
+            ReturnValue::Bool(b) => SetVal::set_val(b, val),
+            ReturnValue::Long(l) => SetVal::set_val(l, val),
+            ReturnValue::Double(f) => SetVal::set_val(f, val),
+            ReturnValue::Str(s) => SetVal::set_val(s.as_ref(), val),
+            ReturnValue::String(s) => SetVal::set_val(s.as_str(), val),
+            _ => todo!(),
         }
     }
 }

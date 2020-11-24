@@ -1,0 +1,30 @@
+[env]
+PHP_CONFIG = "php-config"
+TARGET_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}/../../target"
+
+[env.development]
+TARGET_BUILD_DIR = "${TARGET_DIR}/debug"
+BUILD_ARGS = "--"
+TEST_ARGS = "--"
+
+[env.production]
+TARGET_BUILD_DIR = "${TARGET_DIR}/release"
+BUILD_ARGS = "--release"
+TEST_ARGS = "--release"
+
+[tasks.build]
+command = "cargo"
+args = ["build", "${BUILD_ARGS}"]
+
+[tasks.test]
+command = "cargo"
+args = ["test", "${TEST_ARGS}", "--", "--nocapture"]
+
+[tasks.install]
+dependencies = ["build"]
+script = [
+    """
+    cp ${TARGET_BUILD_DIR}/lib${CARGO_MAKE_CRATE_NAME}.so `${PHP_CONFIG} --extension-dir`/${CARGO_MAKE_CRATE_NAME}.so && \
+    echo Installing shared extensions:     `${PHP_CONFIG} --extension-dir`
+    """
+]

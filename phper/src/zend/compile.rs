@@ -14,10 +14,14 @@ pub struct MultiInternalArgInfo<const N: usize> {
 }
 
 impl<const N: usize> MultiInternalArgInfo<N> {
-    pub const fn new(inner: [zend_internal_arg_info; N], return_reference: bool) -> Self {
+    pub const fn new(
+        required_num_args: usize,
+        return_reference: bool,
+        inner: [zend_internal_arg_info; N],
+    ) -> Self {
         Self {
             inner: Cell::new(ZendInternalArgInfosWithEnd(
-                create_zend_arg_info(inner.len() as *const _, return_reference),
+                create_zend_arg_info(required_num_args as *const _, return_reference),
                 inner,
             )),
         }
@@ -25,6 +29,10 @@ impl<const N: usize> MultiInternalArgInfo<N> {
 
     pub const fn as_ptr(&self) -> *const zend_internal_arg_info {
         self.inner.as_ptr().cast()
+    }
+
+    pub const fn len(&self) -> usize {
+        N
     }
 }
 

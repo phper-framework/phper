@@ -18,7 +18,7 @@ use phper::{
 
 static SIMPLE_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
 
-static INI_ENTRIES: IniEntries<1> = IniEntries::new([SIMPLE_ENABLE.create_ini_entry_def(
+static INI_ENTRIES: IniEntries<1> = IniEntries::new([SIMPLE_ENABLE.create_ini_entry(
     "hello.enable",
     "1",
     Some(OnUpdateBool),
@@ -73,7 +73,7 @@ pub fn say_hello(execute_data: &mut ExecuteData) -> impl SetVal {
 }
 
 static ARG_INFO_SAY_HELLO: MultiInternalArgInfo<1> =
-    MultiInternalArgInfo::new([create_zend_arg_info(c_str_ptr!("name"), false)], false);
+    MultiInternalArgInfo::new(1, false, [create_zend_arg_info(c_str_ptr!("name"), false)]);
 
 static FUNCTION_ENTRIES: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
     fname: c_str_ptr!("say_hello"),

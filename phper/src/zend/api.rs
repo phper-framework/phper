@@ -1,11 +1,15 @@
 use crate::{
-    sys::{zend_function_entry, zend_ini_entry_def},
-    zend::ini::Mh,
+    sys::{zend_function_entry, zend_ini_entry_def, zend_internal_arg_info, zif_handler},
+    zend::{
+        compile::MultiInternalArgInfo,
+        ini::{create_ini_entry_ex, Mh},
+    },
 };
 use std::{
     cell::Cell,
     mem::{size_of, transmute},
-    ptr::null_mut,
+    os::raw::c_char,
+    ptr::null,
 };
 
 const fn function_entry_end() -> zend_function_entry {
@@ -27,34 +31,20 @@ impl<T: 'static> ModuleGlobals<T> {
         self.inner.as_ptr()
     }
 
-    pub const fn create_ini_entry_def(
-        &'static self,
+    pub const fn create_ini_entry(
+        &self,
         name: &str,
         default_value: &str,
         on_modify: Option<Mh>,
         modifiable: u32,
     ) -> zend_ini_entry_def {
-        #[cfg(any(phper_php_version = "7.4", phper_php_version = "7.3"))]
-        let (modifiable, name_length) = (modifiable as std::os::raw::c_uchar, name.len() as u16);
-        #[cfg(any(
-            phper_php_version = "7.2",
-            phper_php_version = "7.1",
-            phper_php_version = "7.0",
-        ))]
-        let (modifiable, name_length) = (modifiable as std::os::raw::c_int, name.len() as u32);
-
-        zend_ini_entry_def {
-            name: name.as_ptr().cast(),
+        create_ini_entry_ex(
+            name,
+            default_value,
             on_modify,
-            mh_arg1: 0 as *mut _,
-            mh_arg2: self.as_ptr().cast(),
-            mh_arg3: null_mut(),
-            value: default_value.as_ptr().cast(),
-            displayer: None,
             modifiable,
-            name_length,
-            value_length: default_value.len() as u32,
-        }
+            self.as_ptr().cast(),
+        )
     }
 }
 
@@ -86,3 +76,48 @@ impl<const N: usize> FunctionEntries<N> {
 }
 
 unsafe impl<const N: usize> Sync for FunctionEntries<N> {}
+
+pub struct FunctionEntryBuilder {
+    fname: *const c_char,
+    handler: zif_handler,
+    arg_info: *const zend_internal_arg_info,
+    num_args: u32,
+    flags: u32,
+}
+
+impl FunctionEntryBuilder {
+    pub const fn new(fname: *const c_char, handler: zif_handler) -> Self {
+        Self {
+            fname,
+            handler,
+            arg_info: null(),
+            num_args: 0,
+            flags: 0,
+        }
+    }
+
+    pub const fn arg_info<const N: usize>(
+        self,
+        arg_info: &'static MultiInternalArgInfo<N>,
+    ) -> Self {
+        Self {
+            arg_info: arg_info.as_ptr(),
+            num_args: arg_info.len() as u32,
+            ..self
+        }
+    }
+
+    pub const fn flags(self, flags: u32) -> Self {
+        Self { flags, ..self }
+    }
+
+    pub const fn build(self) -> zend_function_entry {
+        zend_function_entry {
+            fname: self.fname,
+            handler: self.handler,
+            arg_info: self.arg_info,
+            num_args: self.num_args,
+            flags: self.flags,
+        }
+    }
+}

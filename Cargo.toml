@@ -10,4 +10,5 @@ members = [
     # internal
     "examples/hello",
     "examples/hello-class",
+    "examples/mini-curl",
 ]

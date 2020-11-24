@@ -1,5 +1,5 @@
 [package]
-name = "hello"
+name = "mini_curl"
 version = "0.2.0"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"
@@ -12,6 +12,7 @@ license = "Unlicense"
 crate-type = ["cdylib"]
 
 [dependencies]
+curl = "0.4.34"
 phper = { version = "0.2", path = "../../phper" }
 
 [dev-dependencies]
