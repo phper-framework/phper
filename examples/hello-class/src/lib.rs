@@ -10,7 +10,7 @@ use phper::{
         api::{FunctionEntries, ModuleGlobals},
         compile::{create_zend_arg_info, MultiInternalArgInfo, Visibility},
         ini::IniEntries,
-        modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
+        modules::{ModuleArgs, ModuleEntry, ModuleEntryBuilder},
         types::{ClassEntry, ExecuteData, SetVal, Value},
     },
     zend_get_module,
@@ -130,18 +130,17 @@ static FUNCTION_ENTRIES: FunctionEntries<1> = FunctionEntries::new([zend_functio
     flags: 0,
 }]);
 
-static MODULE_ENTRY: ModuleEntry = ModuleEntry::new(create_zend_module_entry(
+static MODULE_ENTRY: ModuleEntry = ModuleEntryBuilder::new(
     c_str_ptr!(env!("CARGO_PKG_NAME")),
     c_str_ptr!(env!("CARGO_PKG_VERSION")),
-    FUNCTION_ENTRIES.as_ptr(),
-    Some(php_minit!(module_init)),
-    Some(php_mshutdown!(module_shutdown)),
-    Some(php_rinit!(request_init)),
-    Some(php_rshutdown!(request_shutdown)),
-    Some(php_minfo!(module_info)),
-    None,
-    None,
-));
+)
+.functions(FUNCTION_ENTRIES.as_ptr())
+.module_startup_func(php_minit!(module_init))
+.module_shutdown_func(php_mshutdown!(module_shutdown))
+.request_startup_func(php_rinit!(request_init))
+.request_shutdown_func(php_rshutdown!(request_shutdown))
+.info_func(php_minfo!(module_info))
+.build();
 
 #[zend_get_module]
 pub fn get_module() -> &'static ModuleEntry {

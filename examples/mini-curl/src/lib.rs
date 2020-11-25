@@ -11,12 +11,11 @@ use phper::{
         compile::{create_zend_arg_info, MultiInternalArgInfo, Visibility},
         errors::Level,
         ini::{create_ini_entry, IniEntries},
-        modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
+        modules::{ModuleArgs, ModuleEntry, ModuleEntryBuilder},
         types::{ClassEntry, ExecuteData, ReturnValue, SetVal, Value},
     },
     zend_get_module,
 };
-use std::ptr::null;
 
 static MINI_CURL_CE: ClassEntry = ClassEntry::new();
 
@@ -145,18 +144,16 @@ pub fn mini_curl_destruct(execute_data: &mut ExecuteData) -> impl SetVal {
     ReturnValue::Null
 }
 
-static MODULE_ENTRY: ModuleEntry = ModuleEntry::new(create_zend_module_entry(
+static MODULE_ENTRY: ModuleEntry = ModuleEntryBuilder::new(
     c_str_ptr!(env!("CARGO_PKG_NAME")),
     c_str_ptr!(env!("CARGO_PKG_VERSION")),
-    null(),
-    Some(php_minit!(module_init)),
-    Some(php_mshutdown!(module_shutdown)),
-    Some(php_rinit!(request_init)),
-    Some(php_rshutdown!(request_shutdown)),
-    Some(php_minfo!(module_info)),
-    None,
-    None,
-));
+)
+.module_startup_func(php_minit!(module_init))
+.module_shutdown_func(php_mshutdown!(module_shutdown))
+.request_startup_func(php_rinit!(request_init))
+.request_shutdown_func(php_rshutdown!(request_shutdown))
+.info_func(php_minfo!(module_info))
+.build();
 
 #[zend_get_module]
 pub fn get_module() -> &'static ModuleEntry {
