@@ -1,15 +1,15 @@
 use curl::easy::Easy;
 use phper::{
-    c_str_ptr, php_fn, php_function, php_minfo, php_minfo_function, php_minit, php_minit_function,
+    c_str_ptr,
+    main::php::error_doc_ref,
+    php_fn, php_function, php_minfo, php_minfo_function, php_minit, php_minit_function,
     php_mshutdown, php_mshutdown_function, php_rinit, php_rinit_function, php_rshutdown,
     php_rshutdown_function,
-    sys::{
-        php_error_docref0, php_info_print_table_end, php_info_print_table_start, E_WARNING,
-        PHP_INI_SYSTEM,
-    },
+    sys::{php_info_print_table_end, php_info_print_table_start, PHP_INI_SYSTEM},
     zend::{
         api::{FunctionEntries, FunctionEntryBuilder},
         compile::{create_zend_arg_info, MultiInternalArgInfo, Visibility},
+        errors::Level,
         ini::{create_ini_entry, IniEntries},
         modules::{create_zend_module_entry, ModuleArgs, ModuleEntry},
         types::{ClassEntry, ExecuteData, ReturnValue, SetVal, Value},
@@ -60,7 +60,7 @@ static ARG_INFO_VOID: MultiInternalArgInfo<0> = MultiInternalArgInfo::new(0, fal
 static ARG_INFO_MINI_CURL_CONSTRUCT: MultiInternalArgInfo<1> =
     MultiInternalArgInfo::new(0, false, [create_zend_arg_info(c_str_ptr!("url"), false)]);
 
-static MINI_CURL_METHODS: FunctionEntries<2> = FunctionEntries::new([
+static MINI_CURL_METHODS: FunctionEntries<3> = FunctionEntries::new([
     FunctionEntryBuilder::new(
         c_str_ptr!("__construct"),
         Some(php_fn!(mini_curl_construct)),
@@ -68,6 +68,9 @@ static MINI_CURL_METHODS: FunctionEntries<2> = FunctionEntries::new([
     .arg_info(&ARG_INFO_MINI_CURL_CONSTRUCT)
     .build(),
     FunctionEntryBuilder::new(c_str_ptr!("__destruct"), Some(php_fn!(mini_curl_destruct)))
+        .arg_info(&ARG_INFO_VOID)
+        .build(),
+    FunctionEntryBuilder::new(c_str_ptr!("exec"), Some(php_fn!(mini_curl_exec)))
         .arg_info(&ARG_INFO_VOID)
         .build(),
 ]);
@@ -85,13 +88,7 @@ pub fn mini_curl_construct(execute_data: &mut ExecuteData) -> impl SetVal {
 
     if !url.is_empty() {
         if let Err(e) = easy.url(url) {
-            unsafe {
-                php_error_docref0(
-                    null(),
-                    E_WARNING as i32,
-                    format!("curl set failed: {}\0", e).as_ptr().cast(),
-                );
-            }
+            error_doc_ref(Level::Warning, format!("curl set failed: {}\0", e));
             return ReturnValue::Bool(false);
         }
     }
@@ -99,6 +96,35 @@ pub fn mini_curl_construct(execute_data: &mut ExecuteData) -> impl SetVal {
     MINI_CURL_CE.update_property(this, "_rust_easy_ptr", Box::into_raw(easy) as i64);
 
     ReturnValue::Null
+}
+
+#[php_function]
+pub fn mini_curl_exec(execute_data: &mut ExecuteData) -> impl SetVal {
+    if execute_data.parse_parameters::<()>().is_none() {
+        return ReturnValue::Bool(false);
+    }
+
+    let mut data = Vec::new();
+
+    let this = execute_data.get_this();
+    let ptr = MINI_CURL_CE.read_property(this, "_rust_easy_ptr");
+    let value = ptr.try_into_value().unwrap();
+    let ptr = value.into_long().unwrap();
+
+    let mut handle = unsafe { Box::from_raw(ptr as *mut Easy) };
+    let mut transfer = handle.transfer();
+    transfer
+        .write_function(|new_data| {
+            data.extend_from_slice(new_data);
+            Ok(new_data.len())
+        })
+        .unwrap();
+    transfer.perform().unwrap();
+    drop(transfer);
+
+    Box::into_raw(handle);
+
+    ReturnValue::String(String::from_utf8(data).unwrap())
 }
 
 #[php_function]

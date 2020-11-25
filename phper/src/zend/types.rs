@@ -703,6 +703,13 @@ impl<'a> Value<'a> {
             }
         }
     }
+
+    pub fn into_long(self) -> Option<i64> {
+        match self {
+            Self::Long(l) => Some(l),
+            _ => None,
+        }
+    }
 }
 
 pub enum ReturnValue<'a> {

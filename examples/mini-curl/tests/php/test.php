@@ -5,7 +5,8 @@ ini_set("display_startup_errors", "On");
 error_reporting(E_ALL);
 
 $mc = new MiniCurl("http://httpbin.org/ip");
-var_dump($mc);
+$response = $mc->exec();
+var_dump($response);
 
 function assert_eq($left, $right) {
     if ($left !== $right) {

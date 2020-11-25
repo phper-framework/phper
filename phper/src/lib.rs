@@ -30,6 +30,7 @@ Version `0.1.x` will be a preview version.
 */
 
 mod error;
+pub mod main;
 mod utils;
 pub mod zend;
 
