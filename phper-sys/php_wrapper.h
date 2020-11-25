@@ -6,6 +6,8 @@
 #include <ext/standard/info.h>
 #include <zend_exceptions.h>
 
+typedef void (ZEND_FASTCALL *zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
+
 zend_string *zend_string_init_(const char *str, size_t len, int persistent);
 zend_string *zend_new_interned_string_(zend_string *str);
 zend_class_entry phper_init_class_entry_ex(const char *class_name, size_t class_name_len, const zend_function_entry *functions);

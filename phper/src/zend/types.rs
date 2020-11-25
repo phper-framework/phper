@@ -3,10 +3,11 @@ use crate::{
     sys::{
         self, phper_get_this, phper_init_class_entry_ex, phper_z_strval_p, phper_zval_get_type,
         phper_zval_stringl, zend_class_entry, zend_declare_property_bool,
-        zend_declare_property_null, zend_declare_property_stringl, zend_execute_data, zend_long,
-        zend_parse_parameters, zend_read_property, zend_register_internal_class,
-        zend_throw_exception, zval, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE,
-        ZEND_RESULT_CODE_SUCCESS,
+        zend_declare_property_long, zend_declare_property_null, zend_declare_property_stringl,
+        zend_execute_data, zend_long, zend_parse_parameters, zend_read_property,
+        zend_register_internal_class, zend_throw_exception, zend_update_property_bool,
+        zend_update_property_long, zend_update_property_null, zend_update_property_stringl, zval,
+        IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
     },
     zend::{api::FunctionEntries, compile::Visibility, exceptions::Throwable},
 };
@@ -57,14 +58,22 @@ impl ClassEntry {
     pub fn declare_property(
         &self,
         name: impl AsRef<str>,
-        value: impl DeclareProperty,
+        value: impl HandleProperty,
         access_type: Visibility,
     ) -> bool {
         unsafe {
-            let name = name.as_ref();
-            value.declare_property(self.get(), name, access_type as c_int)
+            value.declare_property(self.get(), name.as_ref(), access_type as c_int)
                 == ZEND_RESULT_CODE_SUCCESS
         }
+    }
+
+    pub fn update_property(
+        &self,
+        object: *mut zval,
+        name: impl AsRef<str>,
+        value: impl HandleProperty,
+    ) {
+        unsafe { value.update_property(self.get(), object, name.as_ref()) }
     }
 
     pub fn read_property(&self, this: *mut zval, name: impl AsRef<str>) -> &mut Val {
@@ -85,16 +94,18 @@ impl ClassEntry {
 
 unsafe impl Sync for ClassEntry {}
 
-pub trait DeclareProperty {
+pub trait HandleProperty {
     unsafe fn declare_property(
         self,
         ce: *mut zend_class_entry,
         name: &str,
         access_type: c_int,
     ) -> c_int;
+
+    unsafe fn update_property(self, scope: *mut zend_class_entry, object: *mut zval, name: &str);
 }
 
-impl DeclareProperty for () {
+impl HandleProperty for () {
     unsafe fn declare_property(
         self,
         ce: *mut zend_class_entry,
@@ -103,9 +114,13 @@ impl DeclareProperty for () {
     ) -> i32 {
         zend_declare_property_null(ce, name.as_ptr().cast(), name.len(), access_type)
     }
+
+    unsafe fn update_property(self, scope: *mut zend_class_entry, object: *mut zval, name: &str) {
+        zend_update_property_null(scope, object, name.as_ptr().cast(), name.len())
+    }
 }
 
-impl DeclareProperty for bool {
+impl HandleProperty for bool {
     unsafe fn declare_property(
         self,
         ce: *mut zend_class_entry,
@@ -120,9 +135,46 @@ impl DeclareProperty for bool {
             access_type,
         )
     }
+
+    unsafe fn update_property(self, scope: *mut zend_class_entry, object: *mut zval, name: &str) {
+        zend_update_property_bool(
+            scope,
+            object,
+            name.as_ptr().cast(),
+            name.len(),
+            self as zend_long,
+        )
+    }
 }
 
-impl DeclareProperty for &str {
+impl HandleProperty for i64 {
+    unsafe fn declare_property(
+        self,
+        ce: *mut zend_class_entry,
+        name: &str,
+        access_type: i32,
+    ) -> i32 {
+        zend_declare_property_long(
+            ce,
+            name.as_ptr().cast(),
+            name.len(),
+            self as zend_long,
+            access_type,
+        )
+    }
+
+    unsafe fn update_property(self, scope: *mut zend_class_entry, object: *mut zval, name: &str) {
+        zend_update_property_long(
+            scope,
+            object,
+            name.as_ptr().cast(),
+            name.len(),
+            self as zend_long,
+        )
+    }
+}
+
+impl HandleProperty for &str {
     unsafe fn declare_property(
         self,
         ce: *mut zend_class_entry,
@@ -136,6 +188,17 @@ impl DeclareProperty for &str {
             self.as_ptr().cast(),
             self.len(),
             access_type,
+        )
+    }
+
+    unsafe fn update_property(self, scope: *mut zend_class_entry, object: *mut zval, name: &str) {
+        zend_update_property_stringl(
+            scope,
+            object,
+            name.as_ptr().cast(),
+            name.len(),
+            self.as_ptr().cast(),
+            self.len(),
         )
     }
 }
