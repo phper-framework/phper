@@ -8,7 +8,7 @@ use std::{
 };
 
 pub type EBox<T> = Box<T, Allocator>;
-pub type EVec<T> = Vec<T, Allocator>;
+pub type EVec<T> = Vec<(T, Allocator)>;
 
 pub struct Allocator {
     #[cfg(phper_debug)]
