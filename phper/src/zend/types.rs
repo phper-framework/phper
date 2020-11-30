@@ -3,11 +3,12 @@ use crate::{
     sys::{
         self, phper_get_this, phper_init_class_entry_ex, phper_z_strval_p, phper_zval_get_type,
         phper_zval_stringl, zend_class_entry, zend_declare_property_bool,
-        zend_declare_property_long, zend_declare_property_null, zend_declare_property_stringl,
-        zend_execute_data, zend_long, zend_parse_parameters, zend_read_property,
-        zend_register_internal_class, zend_throw_exception, zend_update_property_bool,
-        zend_update_property_long, zend_update_property_null, zend_update_property_stringl, zval,
-        IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
+        zend_declare_property_double, zend_declare_property_long, zend_declare_property_null,
+        zend_declare_property_stringl, zend_execute_data, zend_long, zend_parse_parameters,
+        zend_read_property, zend_register_internal_class, zend_throw_exception,
+        zend_update_property_bool, zend_update_property_double, zend_update_property_long,
+        zend_update_property_null, zend_update_property_stringl, zval, IS_DOUBLE, IS_FALSE,
+        IS_LONG, IS_NULL, IS_TRUE, ZEND_RESULT_CODE_SUCCESS,
     },
     zend::{api::FunctionEntries, compile::Visibility, exceptions::Throwable},
 };
@@ -171,6 +172,21 @@ impl HandleProperty for i64 {
             name.len(),
             self as zend_long,
         )
+    }
+}
+
+impl HandleProperty for f64 {
+    unsafe fn declare_property(
+        self,
+        ce: *mut zend_class_entry,
+        name: &str,
+        access_type: i32,
+    ) -> i32 {
+        zend_declare_property_double(ce, name.as_ptr().cast(), name.len(), self, access_type)
+    }
+
+    unsafe fn update_property(self, scope: *mut zend_class_entry, object: *mut zval, name: &str) {
+        zend_update_property_double(scope, object, name.as_ptr().cast(), name.len(), self)
     }
 }
 
