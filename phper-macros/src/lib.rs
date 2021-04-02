@@ -2,7 +2,7 @@ mod alloc;
 mod inner;
 mod utils;
 
-use crate::inner::{hook_fn, info_fn, rename};
+use crate::inner::{hook_fn, info_fn};
 use proc_macro::TokenStream;
 
 #[proc_macro]

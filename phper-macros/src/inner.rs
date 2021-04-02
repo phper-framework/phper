@@ -1,14 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Ident, ItemFn, Visibility};
-
-pub(crate) fn rename(input: TokenStream, prefix: impl ToString) -> TokenStream {
-    let input = parse_macro_input!(input as Ident);
-    let name = prefix.to_string() + &input.to_string();
-    let name = Ident::new(&name, input.span().clone());
-    let result = quote! { #name };
-    result.into()
-}
+use syn::{parse_macro_input, ItemFn, Visibility};
 
 pub(crate) fn hook_fn(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
