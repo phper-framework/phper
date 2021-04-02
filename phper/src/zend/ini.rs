@@ -56,7 +56,11 @@ pub const fn create_ini_entry_ex(
     modifiable: u32,
     arg2: *mut c_void,
 ) -> zend_ini_entry_def {
-    #[cfg(any(phper_php_version = "7.4", phper_php_version = "7.3"))]
+    #[cfg(any(
+        phper_php_version = "8.0",
+        phper_php_version = "7.4",
+        phper_php_version = "7.3",
+    ))]
     let (modifiable, name_length) = (modifiable as std::os::raw::c_uchar, name.len() as u16);
     #[cfg(any(
         phper_php_version = "7.2",

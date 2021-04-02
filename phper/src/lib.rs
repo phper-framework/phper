@@ -1,6 +1,4 @@
-#![feature(min_const_generics)]
-#![feature(const_fn_fn_ptr_basics)]
-#![feature(const_fn_transmute)]
+#![feature(const_fn_transmute, const_fn_fn_ptr_basics)]
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 
 /*!

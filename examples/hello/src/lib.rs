@@ -1,7 +1,6 @@
 use phper::{
-    c_str_ptr, php_fn, php_function, php_minfo, php_minfo_function, php_minit, php_minit_function,
-    php_mshutdown, php_mshutdown_function, php_rinit, php_rinit_function, php_rshutdown,
-    php_rshutdown_function,
+    c_str_ptr, php_function, php_get_module, php_minfo_function, php_minit_function,
+    php_mshutdown_function, php_rinit_function, php_rshutdown_function,
     sys::{
         php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
         zend_function_entry, OnUpdateBool, PHP_INI_SYSTEM,
@@ -13,7 +12,6 @@ use phper::{
         modules::{ModuleArgs, ModuleEntry, ModuleEntryBuilder},
         types::{ExecuteData, SetVal},
     },
-    zend_get_module,
 };
 
 static SIMPLE_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
@@ -77,7 +75,7 @@ static ARG_INFO_SAY_HELLO: MultiInternalArgInfo<1> =
 
 static FUNCTION_ENTRIES: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
     fname: c_str_ptr!("say_hello"),
-    handler: Some(php_fn!(say_hello)),
+    handler: Some(say_hello),
     arg_info: ARG_INFO_SAY_HELLO.as_ptr(),
     num_args: 2,
     flags: 0,
@@ -88,14 +86,14 @@ static MODULE_ENTRY: ModuleEntry = ModuleEntryBuilder::new(
     c_str_ptr!(env!("CARGO_PKG_VERSION")),
 )
 .functions(FUNCTION_ENTRIES.as_ptr())
-.module_startup_func(php_minit!(module_init))
-.module_shutdown_func(php_mshutdown!(module_shutdown))
-.request_startup_func(php_rinit!(request_init))
-.request_shutdown_func(php_rshutdown!(request_shutdown))
-.info_func(php_minfo!(module_info))
+.module_startup_func(module_init)
+.module_shutdown_func(module_shutdown)
+.request_startup_func(request_init)
+.request_shutdown_func(request_shutdown)
+.info_func(module_info)
 .build();
 
-#[zend_get_module]
+#[php_get_module]
 pub fn get_module() -> &'static ModuleEntry {
     &MODULE_ENTRY
 }

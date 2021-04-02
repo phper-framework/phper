@@ -448,29 +448,41 @@ fn zend_parse_fixed_parameters(
     assert!(parameters.len() <= 20);
     let type_spec = format!("{}\0", type_spec);
 
+    #[cfg(any(
+        phper_php_version = "7.4",
+        phper_php_version = "7.3",
+        phper_php_version = "7.2",
+        phper_php_version = "7.1",
+        phper_php_version = "7.0",
+    ))]
+    let num_args = num_args as c_int;
+
+    #[cfg(phper_php_version = "8.0")]
+    let num_args = num_args as u32;
+
     #[rustfmt::skip]
     let b = match parameters.len() {
-        0  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters),
-        1  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0),
-        2  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1),
-        3  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2),
-        4  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3),
-        5  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4),
-        6  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5),
-        7  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6),
-        8  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7),
-        9  => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-        10 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
-        11 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-        12 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
-        13 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
-        14 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
-        15 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
-        16 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
-        17 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
-        18 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17),
-        19 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18),
-        20 => call_zend_parse_parameters!(num_args as c_int, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
+        0  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters),
+        1  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0),
+        2  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1),
+        3  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2),
+        4  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3),
+        5  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4),
+        6  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5),
+        7  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6),
+        8  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7),
+        9  => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8),
+        10 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
+        11 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+        12 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+        13 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+        14 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
+        15 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+        16 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+        17 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+        18 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17),
+        19 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18),
+        20 => call_zend_parse_parameters!(num_args, type_spec.as_ptr().cast(), parameters, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),
         _  => unreachable!(),
     };
 

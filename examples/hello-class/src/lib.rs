@@ -1,6 +1,6 @@
 use phper::{
-    c_str_ptr, php_fn, php_function, php_minfo, php_minfo_function, php_minit, php_minit_function,
-    php_mshutdown, php_mshutdown_function, php_rinit, php_rinit_function, php_rshutdown,
+    c_str_ptr, php_minfo_function, php_minit_function,
+    php_mshutdown_function, php_rinit_function,
     php_rshutdown_function,
     sys::{
         php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
@@ -13,7 +13,7 @@ use phper::{
         modules::{ModuleArgs, ModuleEntry, ModuleEntryBuilder},
         types::{ClassEntry, ExecuteData, SetVal, Value},
     },
-    zend_get_module,
+    php_get_module,
 };
 use std::{os::raw::c_char, ptr::null};
 
@@ -142,7 +142,7 @@ static MODULE_ENTRY: ModuleEntry = ModuleEntryBuilder::new(
 .info_func(php_minfo!(module_info))
 .build();
 
-#[zend_get_module]
+#[php_get_module]
 pub fn get_module() -> &'static ModuleEntry {
     &MODULE_ENTRY
 }

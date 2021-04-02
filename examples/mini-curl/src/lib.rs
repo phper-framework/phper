@@ -14,7 +14,7 @@ use phper::{
         modules::{ModuleArgs, ModuleEntry, ModuleEntryBuilder},
         types::{ClassEntry, ExecuteData, ReturnValue, SetVal, Value},
     },
-    zend_get_module,
+    php_get_module,
 };
 
 static MINI_CURL_CE: ClassEntry = ClassEntry::new();
@@ -155,7 +155,7 @@ static MODULE_ENTRY: ModuleEntry = ModuleEntryBuilder::new(
 .info_func(php_minfo!(module_info))
 .build();
 
-#[zend_get_module]
+#[php_get_module]
 pub fn get_module() -> &'static ModuleEntry {
     &MODULE_ENTRY
 }

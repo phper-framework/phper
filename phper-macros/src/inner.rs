@@ -10,20 +10,16 @@ pub(crate) fn rename(input: TokenStream, prefix: impl ToString) -> TokenStream {
     result.into()
 }
 
-pub(crate) fn hook_fn(input: TokenStream, prefix: impl ToString) -> TokenStream {
+pub(crate) fn hook_fn(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let name = prefix.to_string() + &input.sig.ident.to_string();
-    let name = Ident::new(&name, input.sig.ident.span());
+    let name = &input.sig.ident;
     let inputs = &input.sig.inputs;
     let ret = &input.sig.output;
     let body = &input.block;
     let attrs = &input.attrs;
 
     let result = quote! {
-        #[allow(dead_code)]
-        #input
-
         #(#attrs)*
         extern "C" fn #name(type_: ::std::os::raw::c_int, module_number: ::std::os::raw::c_int) -> ::std::os::raw::c_int {
             fn internal(#inputs) #ret {
@@ -43,20 +39,16 @@ pub(crate) fn hook_fn(input: TokenStream, prefix: impl ToString) -> TokenStream 
     result.into()
 }
 
-pub(crate) fn info_fn(input: TokenStream, prefix: impl ToString) -> TokenStream {
+pub(crate) fn info_fn(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
-    let name = prefix.to_string() + &input.sig.ident.to_string();
-    let name = Ident::new(&name, input.sig.ident.span());
+    let name = &input.sig.ident;
     let inputs = &input.sig.inputs;
     let ret = &input.sig.output;
     let body = &input.block;
     let attrs = &input.attrs;
 
     let result = quote! {
-        #[allow(dead_code)]
-        #input
-
         #(#attrs)*
         extern "C" fn #name(zend_module: *mut ::phper::sys::zend_module_entry) {
             fn internal(#inputs) #ret {
@@ -77,17 +69,11 @@ pub(crate) fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStrea
     let vis = &input.vis;
     let ret = &input.sig.output;
     let inputs = &input.sig.inputs;
-    let name = Ident::new(
-        &format!("zif_{}", &input.sig.ident.to_string()),
-        input.sig.ident.span().clone(),
-    );
+    let name = &input.sig.ident;
     let body = &input.block;
     let attrs = &input.attrs;
 
     let result = quote! {
-        #[allow(dead_code)]
-        #input
-
         #(#attrs)*
         #vis extern "C" fn #name(
             execute_data: *mut ::phper::sys::zend_execute_data,
@@ -107,7 +93,7 @@ pub(crate) fn php_function(_attr: TokenStream, input: TokenStream) -> TokenStrea
     result.into()
 }
 
-pub(crate) fn zend_get_module(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub(crate) fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
 
     let vis = &input.vis;

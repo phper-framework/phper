@@ -1,5 +1,6 @@
 use crate::sys::{
-    zend_internal_arg_info, zend_uchar, ZEND_ACC_PRIVATE, ZEND_ACC_PROTECTED, ZEND_ACC_PUBLIC,
+    zend_internal_arg_info, zend_type, zend_uchar, ZEND_ACC_PRIVATE, ZEND_ACC_PROTECTED,
+    ZEND_ACC_PUBLIC,
 };
 use std::{cell::Cell, os::raw::c_char};
 
@@ -43,6 +44,7 @@ pub const fn create_zend_arg_info(
     pass_by_ref: bool,
 ) -> zend_internal_arg_info {
     #[cfg(any(
+        phper_php_version = "8.0",
         phper_php_version = "7.4",
         phper_php_version = "7.3",
         phper_php_version = "7.2"
@@ -50,7 +52,7 @@ pub const fn create_zend_arg_info(
     {
         zend_internal_arg_info {
             name,
-            type_: 0,
+            type_: 0 as zend_type,
             pass_by_reference: pass_by_ref as zend_uchar,
             is_variadic: 0,
         }
