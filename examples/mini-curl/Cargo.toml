@@ -1,6 +1,6 @@
 [package]
-name = "mini_curl"
-version = "0.2.0"
+name = "mini-curl"
+version = "0.0.0"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"
 publish = false

@@ -1,27 +1,3 @@
-use curl::easy::Easy;
-use phper::{
-    c_str_ptr,
-    main::php::error_doc_ref,
-    php_fn, php_function, php_minfo, php_minfo_function, php_minit, php_minit_function,
-    php_mshutdown, php_mshutdown_function, php_rinit, php_rinit_function, php_rshutdown,
-    php_rshutdown_function,
-    sys::{php_info_print_table_end, php_info_print_table_start, PHP_INI_SYSTEM},
-    zend::{
-        api::{FunctionEntries, FunctionEntryBuilder},
-        compile::{create_zend_arg_info, MultiInternalArgInfo, Visibility},
-        errors::Level,
-        ini::{create_ini_entry, IniEntries},
-        modules::{ModuleArgs, ModuleEntry, ModuleEntryBuilder},
-        types::{ClassEntry, ExecuteData, ReturnValue, SetVal, Value},
-    },
-    php_get_module,
-};
-
-static MINI_CURL_CE: ClassEntry = ClassEntry::new();
-
-static INI_ENTRIES: IniEntries<1> =
-    IniEntries::new([create_ini_entry("curl.cainfo", "", PHP_INI_SYSTEM)]);
-
 #[php_minit_function]
 fn module_init(args: ModuleArgs) -> bool {
     args.register_ini_entries(&INI_ENTRIES);
@@ -155,7 +131,32 @@ static MODULE_ENTRY: ModuleEntry = ModuleEntryBuilder::new(
 .info_func(php_minfo!(module_info))
 .build();
 
-#[php_get_module]
-pub fn get_module() -> &'static ModuleEntry {
-    &MODULE_ENTRY
+
+fn curl_init() {
+
+}
+
+
+#[get_module]
+pub fn get_module() -> Module {
+    let module = Module::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+
+    module.on_module_startup(|module_args: ModuleArgs| -> bool {
+        true
+    });
+    module.on_module_shutdown(|module_args: ModuleArgs| -> bool {
+        true
+    });
+    module.on_request_startup(|module_args: ModuleArgs| -> bool {
+        true
+    });
+    module.on_request_shutdown(|module_args: ModuleArgs| -> bool {
+        true
+    });
+
+    module.add_ini("curl.cainfo", "???", INI::System);
+
+    module.add_function("curl_init", curl_init);
+
+    module
 }

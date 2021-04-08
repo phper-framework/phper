@@ -110,7 +110,7 @@ pub(crate) fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStr
             fn internal(#inputs) #ret {
                 #body
             }
-            let internal: fn() -> &'static ::phper::zend::modules::ModuleEntry = internal;
+            let internal: fn() -> &::phper::zend::modules::ModuleEntry = internal;
             internal().as_ptr()
         }
     };

@@ -1,16 +1,89 @@
 use crate::{
-    sys::{zend_function_entry, zend_ini_entry_def, zend_internal_arg_info, zif_handler},
+    sys::{
+        _zend_get_parameters_array_ex, phper_z_strval_p, zend_arg_info, zend_execute_data,
+        zend_function_entry, zend_ini_entry_def, zend_internal_arg_info, zif_handler, zval,
+    },
     zend::{
+        classes::Method,
         compile::MultiInternalArgInfo,
         ini::{create_ini_entry_ex, Mh},
+        types::{ExecuteData, Val, Value},
     },
 };
 use std::{
     cell::Cell,
-    mem::{size_of, transmute},
-    os::raw::c_char,
+    ffi::CStr,
+    mem::{size_of, transmute, zeroed},
+    os::raw::{c_char, c_int},
     ptr::null,
 };
+
+pub struct Parameters;
+
+pub trait Function: Send + Sync {
+    fn call(&self, arguments: &mut [Val], return_value: &mut Val);
+}
+
+impl<F> Function for F
+where
+    F: Fn() + Send + Sync,
+{
+    fn call(&self, arguments: &mut [Val], return_value: &mut Val) {
+        self()
+    }
+}
+
+#[repr(transparent)]
+pub struct FunctionEntry {
+    inner: zend_function_entry,
+}
+
+pub(crate) struct FunctionEntity {
+    pub(crate) name: String,
+    pub(crate) handler: Box<dyn Function>,
+}
+
+pub(crate) unsafe extern "C" fn invoke(
+    execute_data: *mut zend_execute_data,
+    return_value: *mut zval,
+) {
+    let execute_data = ExecuteData::from_mut(execute_data);
+    let return_value = Val::from_mut(return_value);
+
+    let num_args = execute_data.common_num_args();
+    let arg_info = execute_data.common_arg_info();
+
+    let last_arg_info = arg_info.offset(num_args as isize);
+    let handler = (*last_arg_info).name as *const Box<dyn Function>;
+    let handler = handler.as_ref().expect("handler is null");
+
+    // TODO Do num args check
+
+    let mut arguments = execute_data.get_parameters_array();
+
+    handler.call(&mut arguments, return_value);
+}
+
+pub(crate) unsafe extern "C" fn method_invoke(
+    execute_data: *mut zend_execute_data,
+    return_value: *mut zval,
+) {
+    let execute_data = ExecuteData::from_mut(execute_data);
+    let return_value = Val::from_mut(return_value);
+
+    let num_args = execute_data.common_num_args();
+    let arg_info = execute_data.common_arg_info();
+
+    let last_arg_info = arg_info.offset(num_args as isize);
+    let handler = (*last_arg_info).name as *const Box<dyn Method>;
+    let handler = handler.as_ref().expect("handler is null");
+
+    // TODO Do num args check
+
+    let mut arguments = execute_data.get_parameters_array();
+
+    handler.call(execute_data.get_this(), &mut arguments, return_value);
+}
 
 const fn function_entry_end() -> zend_function_entry {
     unsafe { transmute([0u8; size_of::<zend_function_entry>()]) }
