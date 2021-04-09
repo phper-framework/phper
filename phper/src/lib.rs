@@ -1,4 +1,3 @@
-#![feature(const_fn_transmute, const_fn_fn_ptr_basics)]
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 
 /*!
@@ -27,12 +26,18 @@ Now the library don't support `ZTS`, the template is using `thread_local!` inste
 Version `0.1.x` will be a preview version.
 */
 
-mod error;
-pub mod main;
+pub mod classes;
+pub mod cmd;
+mod errors;
+pub mod functions;
+pub mod ini;
+pub mod logs;
+pub mod modules;
+pub mod throws;
 mod utils;
-pub mod zend;
+pub mod values;
 
-pub use crate::error::*;
+pub use crate::errors::*;
 pub use phper_alloc as alloc;
 pub use phper_macros::*;
 pub use phper_sys as sys;

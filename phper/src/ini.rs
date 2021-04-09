@@ -39,63 +39,30 @@ impl IniEntity {
     // TODO Pass the logic of multi type item.
     pub(crate) fn ini_entry_def(&self) -> zend_ini_entry_def {
         let arg2: Box<*mut c_void> = Box::new(null_mut());
+        let arg2 = Box::into_raw(arg2);
         create_ini_entry_ex(
             &self.name,
             &self.default_value,
             Some(OnUpdateString),
             self.policy as u32,
-            Box::leak(arg2).cast(),
+            arg2.cast(),
         )
     }
 }
 
-pub type Mh = unsafe extern "C" fn(
-    *mut zend_ini_entry,
-    *mut zend_string,
-    *mut c_void,
-    *mut c_void,
-    *mut c_void,
-    c_int,
-) -> c_int;
-
-const fn ini_entry_def_end() -> zend_ini_entry_def {
-    unsafe { transmute([0u8; size_of::<zend_ini_entry_def>()]) }
-}
-
-#[repr(C)]
-struct ZendIniEntriesWithEnd<const N: usize>([zend_ini_entry_def; N], zend_ini_entry_def);
-
-pub struct IniEntries<const N: usize> {
-    inner: Cell<ZendIniEntriesWithEnd<N>>,
-}
-
-impl<const N: usize> IniEntries<N> {
-    pub const fn new(inner: [zend_ini_entry_def; N]) -> Self {
-        Self {
-            inner: Cell::new(ZendIniEntriesWithEnd(inner, ini_entry_def_end())),
-        }
-    }
-
-    #[inline]
-    pub const fn as_ptr(&self) -> *const zend_ini_entry_def {
-        self.inner.as_ptr().cast()
-    }
-}
-
-unsafe impl<const N: usize> Sync for IniEntries<N> {}
-
-pub const fn create_ini_entry(
+pub(crate) fn create_ini_entry_ex(
     name: &str,
     default_value: &str,
-    modifiable: u32,
-) -> zend_ini_entry_def {
-    create_ini_entry_ex(name, default_value, None, modifiable, null_mut())
-}
-
-pub const fn create_ini_entry_ex(
-    name: &str,
-    default_value: &str,
-    on_modify: Option<Mh>,
+    on_modify: Option<
+        unsafe extern "C" fn(
+            *mut zend_ini_entry,
+            *mut zend_string,
+            *mut c_void,
+            *mut c_void,
+            *mut c_void,
+            c_int,
+        ) -> c_int,
+    >,
     modifiable: u32,
     arg2: *mut c_void,
 ) -> zend_ini_entry_def {
@@ -115,7 +82,7 @@ pub const fn create_ini_entry_ex(
     zend_ini_entry_def {
         name: name.as_ptr().cast(),
         on_modify,
-        mh_arg1: 0 as *mut _,
+        mh_arg1: null_mut(),
         mh_arg2: arg2,
         mh_arg3: null_mut(),
         value: default_value.as_ptr().cast(),

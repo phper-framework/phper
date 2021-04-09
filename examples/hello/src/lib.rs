@@ -1,24 +1,19 @@
-use once_cell::sync::Lazy;
+use std::{fs::OpenOptions, io::Write};
+
 use phper::{
-    c_str_ptr, php_function, php_get_module, php_minfo_function, php_minit_function,
-    php_mshutdown_function, php_rinit_function, php_rshutdown_function,
+    c_str_ptr,
+    classes::{Class, MethodEntity, StdClass, This},
+    functions::create_zend_arg_info,
+    ini::Policy,
+    modules::{read_global_module, write_global_module, Module, ModuleArgs},
+    php_function, php_get_module, php_minfo_function, php_minit_function, php_mshutdown_function,
+    php_rinit_function, php_rshutdown_function,
     sys::{
         php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
         zend_function_entry, OnUpdateBool, PHP_INI_SYSTEM,
     },
-    zend::{
-        api::{FunctionEntries, ModuleGlobals},
-        classes::{Class, MethodEntity, StdClass, This},
-        compile::{create_zend_arg_info, MultiInternalArgInfo},
-        ini::{IniEntries, Policy},
-        modules::{
-            read_global_module, write_global_module, Module, ModuleArgs, ModuleEntry,
-            ModuleEntryBuilder,
-        },
-        types::{ExecuteData, SetVal, Val},
-    },
+    values::{ExecuteData, Val},
 };
-use std::{fs::OpenOptions, io::Write};
 
 // static HELLO_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
 //
@@ -108,22 +103,22 @@ use std::{fs::OpenOptions, io::Write};
 //     module
 // }
 
-fn module_init(args: ModuleArgs) -> bool {
+fn module_init(_args: ModuleArgs) -> bool {
     // append_file("module_init");
     true
 }
 
-fn module_shutdown(args: ModuleArgs) -> bool {
+fn module_shutdown(_args: ModuleArgs) -> bool {
     // append_file("module_shutdown");
     true
 }
 
-fn request_init(args: ModuleArgs) -> bool {
+fn request_init(_args: ModuleArgs) -> bool {
     // append_file("request_init");
     true
 }
 
-fn request_shutdown(args: ModuleArgs) -> bool {
+fn request_shutdown(_args: ModuleArgs) -> bool {
     // append_file("request_shutdown");
     true
 }
@@ -154,7 +149,7 @@ pub extern "C" fn get_module() -> *const ::phper::sys::zend_module_entry {
         module.set_name(env!("CARGO_PKG_NAME"));
         module.set_version(env!("CARGO_PKG_VERSION"));
 
-        module.add_ini("hello.enable", "on", Policy::All);
+        module.add_ini("hello.enable", "off", Policy::All);
 
         module.on_module_init(module_init);
         module.on_module_shutdown(module_shutdown);

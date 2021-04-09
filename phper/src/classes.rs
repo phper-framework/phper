@@ -1,15 +1,3 @@
-use crate::{
-    sys::{
-        phper_init_class_entry_ex, zend_class_entry, zend_declare_property_long,
-        zend_function_entry, zend_internal_arg_info, zend_register_internal_class, zval,
-    },
-    zend::{
-        api::{invoke, method_invoke, FunctionEntry},
-        compile::Visibility,
-        types::Val,
-    },
-};
-use once_cell::sync::OnceCell;
 use std::{
     mem::zeroed,
     os::raw::c_int,
@@ -20,6 +8,18 @@ use std::{
     },
 };
 
+use once_cell::sync::OnceCell;
+
+use crate::{
+    functions::{method_invoke, FunctionEntry},
+    sys::{
+        phper_init_class_entry_ex, zend_class_entry, zend_declare_property_long,
+        zend_function_entry, zend_internal_arg_info, zend_register_internal_class, zval,
+        ZEND_ACC_PRIVATE, ZEND_ACC_PROTECTED, ZEND_ACC_PUBLIC,
+    },
+    values::Val,
+};
+
 pub trait Method: Send + Sync {
     fn call(&self, this: &mut This, arguments: &mut [Val], return_value: &mut Val);
 }
@@ -28,7 +28,7 @@ impl<F> Method for F
 where
     F: Fn(&mut This) + Send + Sync,
 {
-    fn call(&self, this: &mut This, arguments: &mut [Val], return_value: &mut Val) {
+    fn call(&self, this: &mut This, _arguments: &mut [Val], _return_value: &mut Val) {
         self(this)
     }
 }
@@ -198,4 +198,12 @@ impl PropertyEntity {
             value,
         }
     }
+}
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Visibility {
+    Public = ZEND_ACC_PUBLIC,
+    Protected = ZEND_ACC_PROTECTED,
+    Private = ZEND_ACC_PRIVATE,
 }
