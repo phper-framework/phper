@@ -137,19 +137,14 @@ fn test_func() {}
 
 #[no_mangle]
 pub extern "C" fn get_module() -> *const ::phper::sys::zend_module_entry {
-    // static module: Lazy<Module> = Lazy::new(|| {
-    //     let mut module = Module::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    //     module
-    // });
-    // unsafe {
-    //     module.create_zend_module_entry()
-    // }
-
     let f = |module: &mut Module| {
         module.set_name(env!("CARGO_PKG_NAME"));
         module.set_version(env!("CARGO_PKG_VERSION"));
 
-        module.add_ini("hello.enable", "off", Policy::All);
+        module.add_bool_ini("hello.enable", false, Policy::All);
+        module.add_long_ini("hello.len", 100, Policy::All);
+        module.add_real_ini("hello.ratio", 1.5, Policy::All);
+        module.add_str_ini("hello.description", "empty", Policy::All);
 
         module.on_module_init(module_init);
         module.on_module_shutdown(module_shutdown);
@@ -157,7 +152,11 @@ pub extern "C" fn get_module() -> *const ::phper::sys::zend_module_entry {
         module.on_request_shutdown(request_shutdown);
 
         module.add_function("hello_fuck", || {
-            println!("Fuck you!");
+            let hello_enable = Module::get_bool_ini("hello.enable");
+            dbg!(hello_enable);
+
+            let hello_description = Module::get_str_ini("hello.description");
+            dbg!(hello_description);
         });
         module.add_function("test_func", test_func);
 

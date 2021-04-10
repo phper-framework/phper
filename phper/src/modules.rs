@@ -6,6 +6,7 @@ use crate::{
         zend_class_entry, zend_function_entry, zend_ini_entry_def, zend_internal_arg_info,
         zend_module_entry, zend_register_ini_entries, zend_string, zend_unregister_ini_entries,
         PHP_MODULE_BUILD_ID, USING_ZTS, ZEND_DEBUG, ZEND_MODULE_API_NO,
+        OnUpdateBool, OnUpdateLong, OnUpdateReal, OnUpdateString,
     },
 };
 use once_cell::sync::Lazy;
@@ -19,6 +20,9 @@ use std::{
     ptr::{null, null_mut},
     sync::{atomic::AtomicPtr, Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
+use std::ffi::CStr;
+use crate::ini::{StrPtrBox, IniValue};
+use std::thread::LocalKey;
 
 static GLOBAL_MODULE: Lazy<RwLock<Module>> = Lazy::new(Default::default);
 
@@ -79,12 +83,18 @@ pub struct Module {
     module_shutdown: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
     request_init: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
     request_shutdown: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
-    ini_entities: HashMap<String, IniEntity>,
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity>,
 }
 
 impl Module {
+    thread_local! {
+        static BOOL_INI_ENTITIES: RefCell<HashMap<String, IniEntity<bool>>> = Default::default();
+        static LONG_INI_ENTITIES: RefCell<HashMap<String, IniEntity<i64>>> = Default::default();
+        static REAL_INI_ENTITIES: RefCell<HashMap<String, IniEntity<f64>>> = Default::default();
+        static STR_INI_ENTITIES: RefCell<HashMap<String, IniEntity<StrPtrBox>>> = Default::default();
+    }
+
     pub fn set_name(&mut self, name: impl ToString) {
         let mut name = name.to_string();
         name.push('\0');
@@ -119,9 +129,52 @@ impl Module {
         self.request_shutdown = Some(Box::new(func));
     }
 
-    pub fn add_ini(&mut self, name: impl ToString, value: impl ToString, policy: Policy) {
-        self.ini_entities
-            .insert(name.to_string(), IniEntity::new(name, value, policy));
+    pub fn add_bool_ini(&mut self, name: impl ToString, default_value: bool, policy: Policy) {
+        Self::BOOL_INI_ENTITIES.with(|entities| {
+            entities.borrow_mut().insert(name.to_string(), IniEntity::new(name, default_value, policy));
+        })
+    }
+
+    pub fn get_bool_ini(name: &str) -> Option<bool> {
+        Self::BOOL_INI_ENTITIES.with(|entities| {
+            entities.borrow().get(name).map(|entity| *entity.value())
+        })
+    }
+
+    pub fn add_long_ini(&mut self, name: impl ToString, default_value: i64, policy: Policy) {
+        Self::LONG_INI_ENTITIES.with(|entities| {
+            entities.borrow_mut().insert(name.to_string(), IniEntity::new(name, default_value, policy));
+        })
+    }
+
+    pub fn get_long_ini(name: &str) -> Option<i64> {
+        Self::LONG_INI_ENTITIES.with(|entities| {
+            entities.borrow().get(name).map(|entity| *entity.value())
+        })
+    }
+
+    pub fn add_real_ini(&mut self, name: impl ToString, default_value: f64, policy: Policy) {
+        Self::REAL_INI_ENTITIES.with(|entities| {
+            entities.borrow_mut().insert(name.to_string(), IniEntity::new(name, default_value, policy));
+        })
+    }
+
+    pub fn get_real_ini(name: &str) -> Option<f64> {
+        Self::REAL_INI_ENTITIES.with(|entities| {
+            entities.borrow().get(name).map(|entity| *entity.value())
+        })
+    }
+
+    pub fn add_str_ini(&mut self, name: impl ToString, default_value: impl ToString, policy: Policy) {
+        Self::STR_INI_ENTITIES.with(|entities| {
+            entities.borrow_mut().insert(name.to_string(), IniEntity::new(name, default_value, policy));
+        })
+    }
+
+    pub fn get_str_ini(name: &str) -> Option<String> {
+        Self::STR_INI_ENTITIES.with(|entities| {
+            entities.borrow().get(name).and_then(|entity| unsafe { entity.value().to_string() }.ok())
+        })
     }
 
     pub fn add_function(&mut self, name: impl ToString, handler: impl Function + 'static) {
@@ -207,16 +260,23 @@ impl Module {
         Box::into_raw(entries.into_boxed_slice()).cast()
     }
 
-    fn ini_entries(&self) -> *const zend_ini_entry_def {
+    unsafe fn ini_entries(&self) -> *const zend_ini_entry_def {
         let mut entries = Vec::new();
 
-        for (_, ini) in &self.ini_entities {
-            entries.push(ini.ini_entry_def());
-        }
+        Self::BOOL_INI_ENTITIES.with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
+        Self::LONG_INI_ENTITIES.with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
+        Self::REAL_INI_ENTITIES.with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
+        Self::STR_INI_ENTITIES.with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
 
         entries.push(unsafe { zeroed::<zend_ini_entry_def>() });
 
         Box::into_raw(entries.into_boxed_slice()).cast()
+    }
+
+    unsafe fn push_ini_entry<T: IniValue>(entries: &mut Vec<zend_ini_entry_def>, entities: &mut HashMap<String, IniEntity<T>>) {
+        for (_, entry) in &mut *entities.borrow_mut() {
+            entries.push(entry.ini_entry_def());
+        }
     }
 }
 

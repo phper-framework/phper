@@ -1,6 +1,6 @@
 use crate::sys::{
     zend_ini_entry, zend_ini_entry_def, zend_string, OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR,
-    PHP_INI_SYSTEM, PHP_INI_USER,
+    PHP_INI_SYSTEM, PHP_INI_USER, OnUpdateBool, OnUpdateLong, OnUpdateReal,
 };
 use std::{
     cell::Cell,
@@ -9,6 +9,20 @@ use std::{
     ptr::null_mut,
     sync::atomic::AtomicPtr,
 };
+use std::os::raw::c_char;
+use std::ffi::CStr;
+use std::str;
+
+type OnModify = Option<
+unsafe extern "C" fn(
+*mut zend_ini_entry,
+*mut zend_string,
+*mut c_void,
+*mut c_void,
+*mut c_void,
+c_int,
+) -> c_int,
+>;
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -19,33 +33,88 @@ pub enum Policy {
     System = PHP_INI_SYSTEM,
 }
 
-pub(crate) struct IniEntity {
+pub(crate) struct StrPtrBox {
+    inner: Box<*mut c_char>,
+}
+
+impl StrPtrBox {
+    pub(crate) unsafe fn to_string(&self) -> Result<String, str::Utf8Error> {
+        Ok(CStr::from_ptr(*self.inner).to_str()?.to_string() )
+    }
+}
+
+impl Default for StrPtrBox {
+    fn default() -> Self {
+        Self {
+            inner: Box::new(null_mut()),
+        }
+    }
+}
+
+pub trait IniValue: Default {
+    fn on_modify() -> OnModify;
+
+    fn arg2(&mut self) -> *mut c_void {
+        &mut *self as *mut _ as *mut c_void
+    }
+}
+
+impl IniValue for bool {
+    fn on_modify() -> OnModify {
+        Some(OnUpdateBool)
+    }
+}
+
+impl IniValue for i64 {
+    fn on_modify() -> OnModify {
+        Some(OnUpdateLong)
+    }
+}
+
+impl IniValue for f64 {
+    fn on_modify() -> OnModify {
+        Some(OnUpdateReal)
+    }
+}
+
+impl IniValue for StrPtrBox {
+    fn on_modify() -> OnModify {
+        Some(OnUpdateString)
+    }
+
+    fn arg2(&mut self) -> *mut c_void {
+        Box::as_mut(&mut self.inner) as *mut _ as *mut c_void
+    }
+}
+
+pub(crate) struct IniEntity<T: IniValue> {
     name: String,
-    value: usize,
+    value: T,
     default_value: String,
     policy: Policy,
 }
 
-impl IniEntity {
+impl<T: IniValue> IniEntity<T> {
     pub(crate) fn new(name: impl ToString, default_value: impl ToString, policy: Policy) -> Self {
         Self {
             name: name.to_string(),
-            value: 0,
+            value: Default::default(),
             default_value: default_value.to_string(),
             policy,
         }
     }
 
-    // TODO Pass the logic of multi type item.
-    pub(crate) fn ini_entry_def(&self) -> zend_ini_entry_def {
-        let arg2: Box<*mut c_void> = Box::new(null_mut());
-        let arg2 = Box::into_raw(arg2);
+    pub(crate) fn value(&self) -> &T {
+        &self.value
+    }
+
+    pub(crate) unsafe fn ini_entry_def(&mut self) -> zend_ini_entry_def {
         create_ini_entry_ex(
             &self.name,
             &self.default_value,
-            Some(OnUpdateString),
+            <T>::on_modify(),
             self.policy as u32,
-            arg2.cast(),
+            self.value.arg2(),
         )
     }
 }
@@ -53,16 +122,7 @@ impl IniEntity {
 pub(crate) fn create_ini_entry_ex(
     name: &str,
     default_value: &str,
-    on_modify: Option<
-        unsafe extern "C" fn(
-            *mut zend_ini_entry,
-            *mut zend_string,
-            *mut c_void,
-            *mut c_void,
-            *mut c_void,
-            c_int,
-        ) -> c_int,
-    >,
+    on_modify: OnModify,
     modifiable: u32,
     arg2: *mut c_void,
 ) -> zend_ini_entry_def {
