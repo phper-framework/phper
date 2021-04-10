@@ -137,7 +137,7 @@ fn test_func() {}
 
 #[no_mangle]
 pub extern "C" fn get_module() -> *const ::phper::sys::zend_module_entry {
-    let f = |module: &mut Module| {
+    write_global_module(|module| {
         module.set_name(env!("CARGO_PKG_NAME"));
         module.set_version(env!("CARGO_PKG_VERSION"));
 
@@ -166,9 +166,11 @@ pub extern "C" fn get_module() -> *const ::phper::sys::zend_module_entry {
             println!("hello test1");
         });
         module.add_class("Test1", std_class);
-    };
+    });
 
-    f(&mut *write_global_module());
-
-    unsafe { read_global_module().module_entry() }
+    unsafe {
+        read_global_module(|module| {
+            module.module_entry()
+        })
+    }
 }

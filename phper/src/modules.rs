@@ -26,53 +26,58 @@ use std::thread::LocalKey;
 
 static GLOBAL_MODULE: Lazy<RwLock<Module>> = Lazy::new(Default::default);
 
-pub fn read_global_module() -> RwLockReadGuard<'static, Module> {
-    (&*GLOBAL_MODULE).read().expect("get write lock failed")
+pub fn read_global_module<R>(f: impl FnOnce(&Module) -> R) -> R {
+    let module = (&*GLOBAL_MODULE).read().expect("get write lock failed");
+    f(&module)
 }
 
-pub fn write_global_module() -> RwLockWriteGuard<'static, Module> {
-    (&*GLOBAL_MODULE).write().expect("get write lock failed")
+pub fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
+    let mut module = (&*GLOBAL_MODULE).write().expect("get write lock failed");
+    f(&mut module)
 }
 
 unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_int {
     let args = ModuleArgs::new(r#type, module_number);
-    {
-        args.register_ini_entries(read_global_module().ini_entries());
-    }
-    {
-        for class_entity in &read_global_module().class_entities {
+    read_global_module(|module| {
+        args.register_ini_entries(module.ini_entries());
+        for class_entity in &module.class_entities {
             class_entity.init();
             class_entity.declare_properties();
         }
-    }
-    match &read_global_module().module_init {
-        Some(f) => f(args) as c_int,
-        None => 1,
-    }
+        match &module.module_init {
+            Some(f) => f(args) as c_int,
+            None => 1,
+        }
+    })
 }
 
 unsafe extern "C" fn module_shutdown(r#type: c_int, module_number: c_int) -> c_int {
     let args = ModuleArgs::new(r#type, module_number);
     args.unregister_ini_entries();
-
-    match &read_global_module().module_shutdown {
-        Some(f) => f(args) as c_int,
-        None => 1,
-    }
+    read_global_module(|module| {
+        match &module.module_shutdown {
+            Some(f) => f(args) as c_int,
+            None => 1,
+        }
+    })
 }
 
 unsafe extern "C" fn request_startup(r#type: c_int, request_number: c_int) -> c_int {
-    match &read_global_module().request_init {
-        Some(f) => f(ModuleArgs::new(r#type, request_number)) as c_int,
-        None => 1,
-    }
+    read_global_module(|module| {
+        match &module.request_init {
+            Some(f) => f(ModuleArgs::new(r#type, request_number)) as c_int,
+            None => 1,
+        }
+    })
 }
 
 unsafe extern "C" fn request_shutdown(r#type: c_int, request_number: c_int) -> c_int {
-    match &read_global_module().request_shutdown {
-        Some(f) => f(ModuleArgs::new(r#type, request_number)) as c_int,
-        None => 1,
-    }
+    read_global_module(|module| {
+        match &module.request_shutdown {
+            Some(f) => f(ModuleArgs::new(r#type, request_number)) as c_int,
+            None => 1,
+        }
+    })
 }
 
 #[derive(Default)]
