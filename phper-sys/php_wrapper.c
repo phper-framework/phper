@@ -33,3 +33,19 @@ char *phper_z_strval_p(const zval *v) {
 zval *phper_get_this(zend_execute_data *execute_data) {
     return getThis();
 }
+
+void phper_zval_zval(zval *return_value, zval *zv, int copy, int dtor) {
+    ZVAL_ZVAL(return_value, zv, copy, dtor);
+}
+
+zend_string *phper_zval_get_string(zval *op) {
+    return zval_get_string(op);
+}
+
+void phper_zend_string_release(zend_string *s) {
+    return zend_string_release(s);
+}
+
+zend_long phper_zval_get_long(zval *op) {
+    return zval_get_long(op);
+}

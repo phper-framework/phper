@@ -1,28 +1,18 @@
 use crate::sys::{
-    zend_ini_entry, zend_ini_entry_def, zend_string, OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR,
-    PHP_INI_SYSTEM, PHP_INI_USER, OnUpdateBool, OnUpdateLong, OnUpdateReal,
+    phper_zend_ini_mh, zend_ini_entry, zend_ini_entry_def, zend_string, OnUpdateBool, OnUpdateLong,
+    OnUpdateReal, OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
 };
 use std::{
     cell::Cell,
+    ffi::CStr,
     mem::{size_of, transmute},
-    os::raw::{c_int, c_void},
+    os::raw::{c_char, c_int, c_void},
     ptr::null_mut,
+    str,
     sync::atomic::AtomicPtr,
 };
-use std::os::raw::c_char;
-use std::ffi::CStr;
-use std::str;
 
-type OnModify = Option<
-unsafe extern "C" fn(
-*mut zend_ini_entry,
-*mut zend_string,
-*mut c_void,
-*mut c_void,
-*mut c_void,
-c_int,
-) -> c_int,
->;
+type OnModify = phper_zend_ini_mh;
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -39,7 +29,7 @@ pub(crate) struct StrPtrBox {
 
 impl StrPtrBox {
     pub(crate) unsafe fn to_string(&self) -> Result<String, str::Utf8Error> {
-        Ok(CStr::from_ptr(*self.inner).to_str()?.to_string() )
+        Ok(CStr::from_ptr(*self.inner).to_str()?.to_string())
     }
 }
 

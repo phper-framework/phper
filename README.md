@@ -2,30 +2,15 @@
 
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
 
-***Now the project is still under development.***
-
 ## Requirement
 
-- php version: 
-- libclang >= 9
+- os: linux
+- libclang: version >= 9
+- php: version in (7.1, 7.2, 7.3, 7.4, 8.0), mode: nts
 
 ## Usage
 
 Now see [examples](examples).
-
-<!--
-First you have to install `cargo-generate`:
-
-# ```bash
-cargo install cargo-generate
-```
-
-Then create a PHP extension project from the [template](https://github.com/jmjoy/phper-ext-skel.git):
-
-```bash
-cargo generate --git https://github.com/jmjoy/phper-ext-skel.git
-```
--->
 
 ## License
 

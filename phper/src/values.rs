@@ -13,7 +13,8 @@ use crate::{
     classes::{This, Visibility},
     sys::{
         self, _zend_get_parameters_array_ex, phper_get_this, phper_init_class_entry_ex,
-        phper_z_strval_p, phper_zval_get_type, phper_zval_stringl, zend_arg_info, zend_class_entry,
+        phper_z_strval_p, phper_zend_string_release, phper_zval_get_long, phper_zval_get_string,
+        phper_zval_get_type, phper_zval_stringl, phper_zval_zval, zend_arg_info, zend_class_entry,
         zend_declare_property_bool, zend_declare_property_long, zend_declare_property_null,
         zend_declare_property_stringl, zend_execute_data, zend_long, zend_parse_parameters,
         zend_read_property, zend_register_internal_class, zend_throw_exception,
@@ -23,6 +24,7 @@ use crate::{
     },
     throws::Throwable,
 };
+use std::slice::from_raw_parts;
 
 #[repr(transparent)]
 pub struct ExecuteData {
@@ -94,5 +96,113 @@ impl Val {
 
     unsafe fn type_info(&mut self) -> &mut u32 {
         &mut self.inner.u1.type_info
+    }
+
+    pub fn as_string(&mut self) -> String {
+        unsafe {
+            let s = phper_zval_get_string(&mut self.inner);
+            let buf = from_raw_parts(&(*s).val as *const i8 as *const u8, (*s).len);
+            phper_zend_string_release(s);
+            str::from_utf8(buf).unwrap().to_string()
+        }
+    }
+
+    pub fn as_i64(&mut self) -> i64 {
+        unsafe { phper_zval_get_long(&mut self.inner) }
+    }
+}
+
+pub trait SetVal {
+    fn set_val(self, val: &mut Val);
+}
+
+impl SetVal for () {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            *val.type_info() = IS_NULL;
+        }
+    }
+}
+
+impl SetVal for bool {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            *val.type_info() = if self { IS_TRUE } else { IS_FALSE };
+        }
+    }
+}
+
+impl SetVal for i32 {
+    fn set_val(self, val: &mut Val) {
+        (self as i64).set_val(val)
+    }
+}
+
+impl SetVal for u32 {
+    fn set_val(self, val: &mut Val) {
+        (self as i64).set_val(val)
+    }
+}
+
+impl SetVal for i64 {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            (*val.as_mut()).value.lval = self;
+            (*val.as_mut()).u1.type_info = IS_LONG;
+        }
+    }
+}
+
+impl SetVal for f64 {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            (*val.as_mut()).value.dval = self;
+            (*val.as_mut()).u1.type_info = IS_DOUBLE;
+        }
+    }
+}
+
+impl SetVal for &str {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
+        }
+    }
+}
+
+impl SetVal for String {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
+        }
+    }
+}
+
+impl<T: SetVal> SetVal for Option<T> {
+    fn set_val(self, val: &mut Val) {
+        match self {
+            Some(t) => t.set_val(val),
+            None => ().set_val(val),
+        }
+    }
+}
+
+impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
+    fn set_val(self, val: &mut Val) {
+        match self {
+            Ok(t) => t.set_val(val),
+            Err(_e) => unsafe {
+                zend_throw_exception(null_mut(), c_str_ptr!(""), 0);
+                todo!();
+            },
+        }
+    }
+}
+
+impl SetVal for Val {
+    fn set_val(mut self, val: &mut Val) {
+        unsafe {
+            phper_zval_zval(val.as_mut(), self.as_mut(), 1, 0);
+        }
     }
 }

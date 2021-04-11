@@ -1,34 +1,34 @@
+use crate::{
+    classes::Method,
+    ini::create_ini_entry_ex,
+    sys::{
+        _zend_get_parameters_array_ex, phper_z_strval_p, phper_zval_zval, zend_arg_info,
+        zend_ce_exception, zend_execute_data, zend_function_entry, zend_ini_entry_def,
+        zend_internal_arg_info, zend_throw_exception, zend_uchar, zif_handler, zval,
+    },
+    throws::Throwable,
+    values::{ExecuteData, SetVal, Val},
+};
 use std::{
     cell::Cell,
     ffi::CStr,
     mem::{size_of, transmute, zeroed},
     os::raw::{c_char, c_int},
-    ptr::null,
+    ptr::{null, null_mut},
 };
-
-use crate::{
-    classes::Method,
-    ini::create_ini_entry_ex,
-    sys::{
-        _zend_get_parameters_array_ex, phper_z_strval_p, zend_arg_info, zend_execute_data,
-        zend_function_entry, zend_ini_entry_def, zend_internal_arg_info, zend_uchar, zif_handler,
-        zval,
-    },
-    values::{ExecuteData, Val},
-};
-
-pub struct Parameters;
 
 pub trait Function: Send + Sync {
     fn call(&self, arguments: &mut [Val], return_value: &mut Val);
 }
 
-impl<F> Function for F
+impl<F, R> Function for F
 where
-    F: Fn() + Send + Sync,
+    F: Fn(&mut [Val]) -> R + Send + Sync,
+    R: SetVal,
 {
-    fn call(&self, _arguments: &mut [Val], _return_value: &mut Val) {
-        self()
+    fn call(&self, arguments: &mut [Val], return_value: &mut Val) {
+        let r = self(arguments);
+        r.set_val(return_value);
     }
 }
 

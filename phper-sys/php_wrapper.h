@@ -6,7 +6,7 @@
 #include <ext/standard/info.h>
 #include <zend_exceptions.h>
 
-typedef void (ZEND_FASTCALL *zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
+typedef ZEND_INI_MH(phper_zend_ini_mh);
 
 zend_string *zend_string_init_(const char *str, size_t len, int persistent);
 zend_string *zend_new_interned_string_(zend_string *str);
@@ -16,5 +16,9 @@ zend_uchar phper_zval_get_type(const zval* pz);
 void phper_zval_stringl(zval *return_value, const char *s, size_t len);
 char *phper_z_strval_p(const zval *v);
 zval *phper_get_this(zend_execute_data *execute_data);
+void phper_zval_zval(zval *return_value, zval *zv, int copy, int dtor);
+zend_string *phper_zval_get_string(zval *op);
+void phper_zend_string_release(zend_string *s);
+zend_long phper_zval_get_long(zval *op);
 
 #endif //PHPER_PHP_WRAPPER_H

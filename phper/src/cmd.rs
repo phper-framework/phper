@@ -27,7 +27,7 @@ pub fn make() {
     try_make().expect("make failed");
 }
 
-pub fn try_make() -> anyhow::Result<()> {
+pub fn try_make() -> crate::Result<()> {
     let make: Make = Make::parse();
     match make.sub {
         SubCommand::Install(_) => {
@@ -41,7 +41,7 @@ pub fn try_make() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn get_lib_path_and_ext_name() -> anyhow::Result<(PathBuf, OsString)> {
+fn get_lib_path_and_ext_name() -> crate::Result<(PathBuf, OsString)> {
     let exe_path = env::current_exe()?;
     let exe_stem = exe_path
         .file_stem()
