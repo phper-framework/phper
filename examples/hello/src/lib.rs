@@ -1,7 +1,7 @@
 use phper::{
     c_str_ptr,
     classes::{Class, MethodEntity, StdClass, This},
-    functions::create_zend_arg_info,
+    functions::{create_zend_arg_info, Argument},
     ini::Policy,
     modules::{read_global_module, write_global_module, Module, ModuleArgs},
     php_get_module,
@@ -43,7 +43,7 @@ pub extern "C" fn get_module(module: &mut Module) {
     module.on_request_shutdown(|_| true);
 
     // register functions
-    module.add_function("hello_say_hello", say_hello);
+    module.add_function("hello_say_hello", say_hello, vec![Argument::by_val("name")]);
     module.add_function(
         "hello_get_all_ini",
         |_: &mut [Val]| -> Result<String, Exception> {
@@ -55,6 +55,7 @@ pub extern "C" fn get_module(module: &mut Module) {
 
             Ok(String::new())
         },
+        vec![],
     );
 
     // register classes

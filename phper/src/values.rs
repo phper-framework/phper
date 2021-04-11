@@ -51,6 +51,11 @@ impl ExecuteData {
     }
 
     #[inline]
+    pub unsafe fn common_required_num_args(&self) -> u32 {
+        (*self.inner.func).common.required_num_args
+    }
+
+    #[inline]
     pub unsafe fn common_arg_info(&self) -> *mut zend_arg_info {
         (*self.inner.func).common.arg_info
     }

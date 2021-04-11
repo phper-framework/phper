@@ -1,7 +1,7 @@
 use crate::{
     c_str_ptr,
     classes::{Class, ClassEntity, ClassEntry},
-    functions::{invoke, Function, FunctionEntity},
+    functions::{create_zend_arg_info, invoke, Argument, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
 };
@@ -209,13 +209,19 @@ impl Module {
         })
     }
 
-    pub fn add_function(&mut self, name: impl ToString, handler: impl Function + 'static) {
+    pub fn add_function(
+        &mut self,
+        name: impl ToString,
+        handler: impl Function + 'static,
+        arguments: Vec<Argument>,
+    ) {
         let mut name = name.to_string();
         name.push('\0');
 
         self.function_entities.push(FunctionEntity {
             name,
             handler: Box::new(handler),
+            arguments,
         });
     }
 
@@ -270,6 +276,20 @@ impl Module {
 
         for f in &self.function_entities {
             let mut infos = Vec::new();
+
+            let require_arg_count = f.arguments.iter().filter(|arg| arg.required).count();
+            infos.push(create_zend_arg_info(
+                require_arg_count as *const c_char,
+                false,
+            ));
+
+            for arg in &f.arguments {
+                infos.push(create_zend_arg_info(
+                    arg.name.as_ptr().cast(),
+                    arg.pass_by_ref,
+                ));
+            }
+
             infos.push(unsafe { zeroed::<zend_internal_arg_info>() });
 
             let mut last_arg_info = unsafe { zeroed::<zend_internal_arg_info>() };
