@@ -1,9 +1,10 @@
 use crate::{
     c_str_ptr,
-    classes::{Class, ClassEntity, ClassEntry},
-    functions::{create_zend_arg_info, invoke, Argument, Function, FunctionEntity},
+    classes::{Class, ClassEntity, ClassEntry, StdClass},
+    functions::{create_zend_arg_info, invoke, Argument, Callable, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
+    EXCEPTION_CLASS_NAME,
 };
 use once_cell::sync::Lazy;
 use std::{
@@ -35,7 +36,7 @@ unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_in
     let args = ModuleArgs::new(r#type, module_number);
     read_global_module(|module| {
         args.register_ini_entries(module.ini_entries());
-        for class_entity in &module.class_entities {
+        for (_, class_entity) in &module.class_entities {
             class_entity.init();
             class_entity.declare_properties();
         }
@@ -93,7 +94,7 @@ pub struct Module {
     request_init: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
     request_shutdown: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
     function_entities: Vec<FunctionEntity>,
-    class_entities: Vec<ClassEntity>,
+    pub(crate) class_entities: HashMap<String, ClassEntity>,
 }
 
 impl Module {
@@ -215,24 +216,23 @@ impl Module {
         handler: impl Function + 'static,
         arguments: Vec<Argument>,
     ) {
-        let mut name = name.to_string();
-        name.push('\0');
-
-        self.function_entities.push(FunctionEntity {
+        self.function_entities.push(FunctionEntity::new(
             name,
-            handler: Box::new(handler),
+            Callable::Function(Box::new(handler)),
             arguments,
-        });
+        ));
     }
 
     pub fn add_class(&mut self, name: impl ToString, class: impl Class + 'static) {
         self.class_entities
-            .push(unsafe { ClassEntity::new(name, class) })
+            .insert(name.to_string(), unsafe { ClassEntity::new(name, class) });
     }
 
-    pub unsafe fn module_entry(&self) -> *const zend_module_entry {
+    pub unsafe fn module_entry(&mut self) -> *const zend_module_entry {
         assert!(!self.name.is_empty(), "module name must be set");
         assert!(!self.version.is_empty(), "module version must be set");
+
+        self.add_error_exception_class();
 
         let entry: Box<zend_module_entry> = Box::new(zend_module_entry {
             size: size_of::<zend_module_entry>() as c_ushort,
@@ -273,40 +273,9 @@ impl Module {
         }
 
         let mut entries = Vec::new();
-
         for f in &self.function_entities {
-            let mut infos = Vec::new();
-
-            let require_arg_count = f.arguments.iter().filter(|arg| arg.required).count();
-            infos.push(create_zend_arg_info(
-                require_arg_count as *const c_char,
-                false,
-            ));
-
-            for arg in &f.arguments {
-                infos.push(create_zend_arg_info(
-                    arg.name.as_ptr().cast(),
-                    arg.pass_by_ref,
-                ));
-            }
-
-            infos.push(unsafe { zeroed::<zend_internal_arg_info>() });
-
-            let mut last_arg_info = unsafe { zeroed::<zend_internal_arg_info>() };
-            last_arg_info.name = ((&f.handler) as *const _ as *mut i8).cast();
-            infos.push(last_arg_info);
-
-            let entry = zend_function_entry {
-                fname: f.name.as_ptr().cast(),
-                handler: Some(invoke),
-                arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
-                num_args: 0,
-                flags: 0,
-            };
-
-            entries.push(entry);
+            entries.push(unsafe { f.entry() });
         }
-
         entries.push(unsafe { zeroed::<zend_function_entry>() });
 
         Box::into_raw(entries.into_boxed_slice()).cast()
@@ -336,6 +305,12 @@ impl Module {
         for (_, entry) in &mut *entities.borrow_mut() {
             entries.push(entry.ini_entry_def());
         }
+    }
+
+    fn add_error_exception_class(&mut self) {
+        let mut class = StdClass::new();
+        class.extends("\\Exception");
+        self.add_class(EXCEPTION_CLASS_NAME, class);
     }
 }
 

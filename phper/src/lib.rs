@@ -26,15 +26,16 @@ Now the library don't support `ZTS`, the template is using `thread_local!` inste
 Version `0.1.x` will be a preview version.
 */
 
+mod errors;
+mod utils;
+pub mod arrays;
 pub mod classes;
 pub mod cmd;
-mod errors;
 pub mod functions;
 pub mod ini;
 pub mod logs;
 pub mod modules;
-pub mod throws;
-mod utils;
+pub mod strings;
 pub mod values;
 
 pub use crate::errors::*;

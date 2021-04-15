@@ -31,7 +31,7 @@ pub(crate) fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStr
 
             ::phper::modules::write_global_module(internal);
             unsafe {
-                ::phper::modules::read_global_module(|module| {
+                ::phper::modules::write_global_module(|module| {
                     module.module_entry()
                 })
             }

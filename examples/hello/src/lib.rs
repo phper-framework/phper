@@ -1,6 +1,7 @@
+use std::{fs::OpenOptions, io::Write};
 use phper::{
     c_str_ptr,
-    classes::{Class, MethodEntity, StdClass, This},
+    classes::{Class, StdClass, This},
     functions::{create_zend_arg_info, Argument},
     ini::Policy,
     modules::{read_global_module, write_global_module, Module, ModuleArgs},
@@ -9,10 +10,11 @@ use phper::{
         php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
         zend_function_entry, OnUpdateBool, PHP_INI_SYSTEM,
     },
-    throws::{Exception, Throwable},
     values::{ExecuteData, Val},
+    Throwable,
 };
-use std::{fs::OpenOptions, io::Write};
+use phper::arrays::Array;
+use phper::values::SetVal;
 
 fn module_init(_args: ModuleArgs) -> bool {
     true
@@ -20,7 +22,11 @@ fn module_init(_args: ModuleArgs) -> bool {
 
 fn say_hello(arguments: &mut [Val]) -> String {
     let name = arguments[0].as_string();
-    format!("Hello, {}\n", name)
+    format!("Hello, {}!\n", name)
+}
+
+fn throw_exception(_: &mut [Val]) -> phper::Result<()> {
+    Err(phper::Error::other("I am sorry"))
 }
 
 #[php_get_module]
@@ -44,16 +50,21 @@ pub extern "C" fn get_module(module: &mut Module) {
 
     // register functions
     module.add_function("hello_say_hello", say_hello, vec![Argument::by_val("name")]);
+    module.add_function("hello_throw_exception", throw_exception, vec![]);
     module.add_function(
         "hello_get_all_ini",
-        |_: &mut [Val]| -> Result<String, Exception> {
-            let hello_enable = Module::get_bool_ini("hello.enable");
-            dbg!(hello_enable);
+        |_: &mut [Val]| -> Array {
+            let mut arr = Array::new();
 
-            let hello_description = Module::get_str_ini("hello.description");
-            dbg!(hello_description);
+            let mut hello_enable = Val::null();
+            Module::get_bool_ini("hello.enable").set_val(&mut hello_enable);
+            arr.insert("hello.enable", &mut hello_enable);
 
-            Ok(String::new())
+            let mut hello_description = Val::null();
+            Module::get_str_ini("hello.description").set_val(&mut hello_description);
+            arr.insert("hello.description", &mut hello_description);
+
+            arr
         },
         vec![],
     );
@@ -61,8 +72,12 @@ pub extern "C" fn get_module(module: &mut Module) {
     // register classes
     let mut std_class = StdClass::new();
     std_class.add_property("foo", 100);
-    std_class.add_method("test1", |_: &mut This| {
-        println!("hello test1");
-    });
+    std_class.add_method(
+        "test1",
+        |_: &mut This, _: &mut [Val]| {
+            println!("hello test1");
+        },
+        vec![],
+    );
     module.add_class("Test1", std_class);
 }

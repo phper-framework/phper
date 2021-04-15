@@ -1,3 +1,9 @@
+use crate::{
+    functions::{invoke, Argument, Callable, FunctionEntity, FunctionEntry, Method},
+    sys::*,
+    values::Val,
+};
+use once_cell::sync::OnceCell;
 use std::{
     mem::zeroed,
     os::raw::c_int,
@@ -8,73 +14,16 @@ use std::{
     },
 };
 
-use once_cell::sync::OnceCell;
-
-use crate::{
-    functions::{method_invoke, FunctionEntry},
-    sys::{
-        phper_init_class_entry_ex, zend_class_entry, zend_declare_property_long,
-        zend_function_entry, zend_internal_arg_info, zend_register_internal_class, zval,
-        ZEND_ACC_PRIVATE, ZEND_ACC_PROTECTED, ZEND_ACC_PUBLIC,
-    },
-    values::Val,
-};
-
-pub trait Method: Send + Sync {
-    fn call(&self, this: &mut This, arguments: &mut [Val], return_value: &mut Val);
-}
-
-impl<F> Method for F
-where
-    F: Fn(&mut This) + Send + Sync,
-{
-    fn call(&self, this: &mut This, _arguments: &mut [Val], _return_value: &mut Val) {
-        self(this)
-    }
-}
-
-pub struct MethodEntity {
-    pub(crate) name: String,
-    pub(crate) handler: Box<dyn Method>,
-}
-
-impl MethodEntity {
-    pub fn new(name: impl ToString, handler: impl Method + 'static) -> Self {
-        let mut name = name.to_string();
-        name.push('\0');
-
-        Self {
-            name,
-            handler: Box::new(handler),
-        }
-    }
-
-    unsafe fn function_entry(&self) -> zend_function_entry {
-        let mut infos = Vec::new();
-        infos.push(zeroed::<zend_internal_arg_info>());
-
-        let mut last_arg_info = zeroed::<zend_internal_arg_info>();
-        last_arg_info.name = &self.handler as *const _ as *mut _;
-        infos.push(last_arg_info);
-
-        zend_function_entry {
-            fname: self.name.as_ptr().cast(),
-            handler: Some(method_invoke),
-            arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
-            num_args: 0,
-            flags: 0,
-        }
-    }
-}
-
 pub trait Class: Send + Sync {
-    fn methods(&self) -> &[MethodEntity];
+    fn methods(&self) -> &[FunctionEntity];
     fn properties(&self) -> &[PropertyEntity];
+    fn parent(&self) -> Option<&str>;
 }
 
 pub struct StdClass {
-    pub(crate) method_entities: Vec<MethodEntity>,
+    pub(crate) method_entities: Vec<FunctionEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
+    pub(crate) parent: Option<String>,
 }
 
 impl StdClass {
@@ -82,26 +31,45 @@ impl StdClass {
         Self {
             method_entities: Vec::new(),
             property_entities: Vec::new(),
+            parent: None,
         }
     }
 
-    pub fn add_method(&mut self, name: impl ToString, handler: impl Method + 'static) {
-        self.method_entities.push(MethodEntity::new(name, handler));
+    pub fn add_method(
+        &mut self,
+        name: impl ToString,
+        handler: impl Method + 'static,
+        arguments: Vec<Argument>,
+    ) {
+        self.method_entities.push(FunctionEntity::new(
+            name,
+            Callable::Method(Box::new(handler)),
+            arguments,
+        ));
     }
 
     pub fn add_property(&mut self, name: impl ToString, value: i32) {
         self.property_entities
             .push(PropertyEntity::new(name, value));
     }
+
+    pub fn extends(&mut self, name: impl ToString) {
+        let mut name = name.to_string();
+        self.parent = Some(name);
+    }
 }
 
 impl Class for StdClass {
-    fn methods(&self) -> &[MethodEntity] {
+    fn methods(&self) -> &[FunctionEntity] {
         &self.method_entities
     }
 
     fn properties(&self) -> &[PropertyEntity] {
         &self.property_entities
+    }
+
+    fn parent(&self) -> Option<&str> {
+        self.parent.as_deref()
     }
 }
 
@@ -110,7 +78,11 @@ pub struct ClassEntry {
     inner: zend_class_entry,
 }
 
-impl ClassEntry {}
+impl ClassEntry {
+    pub fn as_mut(&mut self) -> *mut zend_class_entry {
+        &mut self.inner
+    }
+}
 
 pub struct ClassEntity {
     pub(crate) name: String,
@@ -138,10 +110,17 @@ impl ClassEntity {
                 self.name.len(),
                 self.function_entries().load(Ordering::SeqCst).cast(),
             );
-            self.entry.store(
-                zend_register_internal_class(&mut class_ce).cast(),
-                Ordering::SeqCst,
-            );
+
+            let parent = self.class.parent().map(|s| match s {
+                "Exception" | "\\Exception" => zend_ce_exception,
+                _ => todo!(),
+            });
+
+            let ptr = match parent {
+                Some(parent) => zend_register_internal_class_ex(&mut class_ce, parent).cast(),
+                None => zend_register_internal_class(&mut class_ce).cast(),
+            };
+            self.entry.store(ptr, Ordering::SeqCst);
         });
     }
 
@@ -164,7 +143,7 @@ impl ClassEntity {
                 .class
                 .methods()
                 .iter()
-                .map(|method| method.function_entry())
+                .map(|method| method.entry())
                 .collect::<Vec<_>>();
             methods.push(zeroed::<zend_function_entry>());
             let entry = Box::into_raw(methods.into_boxed_slice()).cast();

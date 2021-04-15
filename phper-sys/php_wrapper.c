@@ -1,9 +1,5 @@
 #include "php_wrapper.h"
 
-zend_string *phper_zend_string_init(const char *str, size_t len, int persistent) {
-    return zend_string_init(str, len, persistent);
-}
-
 zend_string *phper_zend_new_interned_string(zend_string *str) {
     return zend_new_interned_string(str);
 }
@@ -20,6 +16,10 @@ void phper_zval_string(zval *return_value, const char *s) {
 
 zend_uchar phper_zval_get_type(const zval* pz) {
     return zval_get_type(pz);
+}
+
+void phper_zval_arr(zval *return_value, zend_array *arr) {
+    ZVAL_ARR(return_value, arr);
 }
 
 void phper_zval_stringl(zval *return_value, const char *s, size_t len) {
@@ -42,10 +42,18 @@ zend_string *phper_zval_get_string(zval *op) {
     return zval_get_string(op);
 }
 
-void phper_zend_string_release(zend_string *s) {
-    return zend_string_release(s);
-}
-
 zend_long phper_zval_get_long(zval *op) {
     return zval_get_long(op);
+}
+
+zend_string *phper_zend_string_init(const char *str, size_t len, int persistent) {
+    return zend_string_init(str, len, persistent);
+}
+
+zend_string *phper_zend_string_alloc(size_t len, int persistent) {
+    return zend_string_alloc(len, persistent);
+}
+
+void phper_zend_string_release(zend_string *s) {
+    return zend_string_release(s);
 }

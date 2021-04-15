@@ -7,9 +7,9 @@ on:
     branches: [ "**" ]
 
 env:
-  CARGO_TERM_COLOR: always
-  #  RUST_BACKTRACE: 1
   #  RUST_LOG: debug
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
   RUSTFLAGS: "-D warnings"
 
 jobs:
@@ -48,12 +48,6 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt, clippy
-
-      # - name: Install Cargo make
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     command: install
-      #     args: cargo-make
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1

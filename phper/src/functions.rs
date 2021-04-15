@@ -1,8 +1,8 @@
 use crate::{
-    classes::Method,
+    classes::This,
+    errors::Throwable,
     ini::create_ini_entry_ex,
     sys::*,
-    throws::Throwable,
     values::{ExecuteData, SetVal, Val},
 };
 use std::{
@@ -28,15 +28,79 @@ where
     }
 }
 
+pub trait Method: Send + Sync {
+    fn call(&self, this: &mut This, arguments: &mut [Val], return_value: &mut Val);
+}
+
+impl<F, R> Method for F
+where
+    F: Fn(&mut This, &mut [Val]) -> R + Send + Sync,
+    R: SetVal,
+{
+    fn call(&self, this: &mut This, arguments: &mut [Val], return_value: &mut Val) {
+        let r = self(this, arguments);
+        r.set_val(return_value);
+    }
+}
+
+pub(crate) enum Callable {
+    Function(Box<dyn Function>),
+    Method(Box<dyn Method>),
+}
+
 #[repr(transparent)]
 pub struct FunctionEntry {
     inner: zend_function_entry,
 }
 
-pub(crate) struct FunctionEntity {
+pub struct FunctionEntity {
     pub(crate) name: String,
-    pub(crate) handler: Box<dyn Function>,
+    pub(crate) handler: Callable,
     pub(crate) arguments: Vec<Argument>,
+}
+
+impl FunctionEntity {
+    pub(crate) fn new(name: impl ToString, handler: Callable, arguments: Vec<Argument>) -> Self {
+        let mut name = name.to_string();
+        name.push('\0');
+        FunctionEntity {
+            name,
+            handler,
+            arguments,
+        }
+    }
+
+    // Leak memory
+    pub(crate) unsafe fn entry(&self) -> zend_function_entry {
+        let mut infos = Vec::new();
+
+        let require_arg_count = self.arguments.iter().filter(|arg| arg.required).count();
+        infos.push(create_zend_arg_info(
+            require_arg_count as *const c_char,
+            false,
+        ));
+
+        for arg in &self.arguments {
+            infos.push(create_zend_arg_info(
+                arg.name.as_ptr().cast(),
+                arg.pass_by_ref,
+            ));
+        }
+
+        infos.push(unsafe { zeroed::<zend_internal_arg_info>() });
+
+        let mut last_arg_info = unsafe { zeroed::<zend_internal_arg_info>() };
+        last_arg_info.name = ((&self.handler) as *const _ as *mut i8).cast();
+        infos.push(last_arg_info);
+
+        zend_function_entry {
+            fname: self.name.as_ptr().cast(),
+            handler: Some(invoke),
+            arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
+            num_args: self.arguments.len() as u32,
+            flags: 0,
+        }
+    }
 }
 
 pub struct Argument {
@@ -94,25 +158,11 @@ pub(crate) unsafe extern "C" fn invoke(
     let execute_data = ExecuteData::from_mut(execute_data);
     let return_value = Val::from_mut(return_value);
 
-    // TODO I don't know why this field is zero.
     let num_args = execute_data.common_num_args();
     let arg_info = execute_data.common_arg_info();
 
-    let mut num_args = 0isize;
-    for i in 0..10isize {
-        let buf = transmute::<_, [u8; size_of::<zend_arg_info>()]>(*arg_info.offset(i as isize));
-        if buf == zeroed::<[u8; size_of::<zend_arg_info>()]>() {
-            num_args = i;
-            break;
-        }
-    }
-    if num_args == 0 {
-        unreachable!();
-    }
-    num_args += 1;
-
-    let last_arg_info = arg_info.offset(num_args as isize);
-    let handler = (*last_arg_info).name as *const Box<dyn Function>;
+    let last_arg_info = arg_info.offset((num_args + 1) as isize);
+    let handler = (*last_arg_info).name as *const Callable;
     let handler = handler.as_ref().expect("handler is null");
 
     // Check arguments count.
@@ -129,28 +179,14 @@ pub(crate) unsafe extern "C" fn invoke(
 
     let mut arguments = execute_data.get_parameters_array();
 
-    handler.call(&mut arguments, return_value);
-}
-
-pub(crate) unsafe extern "C" fn method_invoke(
-    execute_data: *mut zend_execute_data,
-    return_value: *mut zval,
-) {
-    let execute_data = ExecuteData::from_mut(execute_data);
-    let return_value = Val::from_mut(return_value);
-
-    let num_args = execute_data.common_num_args();
-    let arg_info = execute_data.common_arg_info();
-
-    let last_arg_info = arg_info.offset(num_args as isize);
-    let handler = (*last_arg_info).name as *const Box<dyn Method>;
-    let handler = handler.as_ref().expect("handler is null");
-
-    // TODO Do num args check
-
-    let mut arguments = execute_data.get_parameters_array();
-
-    handler.call(execute_data.get_this(), &mut arguments, return_value);
+    match handler {
+        Callable::Function(f) => {
+            f.call(&mut arguments, return_value);
+        }
+        Callable::Method(m) => {
+            m.call(execute_data.get_this(), &mut arguments, return_value);
+        }
+    }
 }
 
 pub const fn create_zend_arg_info(

@@ -7,24 +7,14 @@ use std::{
     ptr::null_mut,
     slice, str,
 };
-
 use crate::{
     c_str_ptr,
     classes::{This, Visibility},
-    sys::{
-        self, _zend_get_parameters_array_ex, phper_get_this, phper_init_class_entry_ex,
-        phper_z_strval_p, phper_zend_string_release, phper_zval_get_long, phper_zval_get_string,
-        phper_zval_get_type, phper_zval_stringl, phper_zval_zval, zend_arg_info, zend_class_entry,
-        zend_declare_property_bool, zend_declare_property_long, zend_declare_property_null,
-        zend_declare_property_stringl, zend_execute_data, zend_long, zend_parse_parameters,
-        zend_read_property, zend_register_internal_class, zend_throw_exception,
-        zend_update_property_bool, zend_update_property_long, zend_update_property_null,
-        zend_update_property_stringl, zval, IS_DOUBLE, IS_FALSE, IS_LONG, IS_NULL, IS_TRUE,
-        ZEND_RESULT_CODE_SUCCESS,
-    },
-    throws::Throwable,
+    errors::Throwable,
+    sys::*,
 };
-use std::slice::from_raw_parts;
+use std::{slice::from_raw_parts, sync::atomic::Ordering};
+use crate::arrays::Array;
 
 #[repr(transparent)]
 pub struct ExecuteData {
@@ -87,6 +77,14 @@ impl Val {
     #[inline]
     pub const fn new(inner: zval) -> Self {
         Self { inner }
+    }
+
+    pub fn null() -> Self {
+        let mut val = Self {
+            inner: unsafe { zeroed::<zval>() },
+        };
+        ().set_val(&mut val);
+        val
     }
 
     #[inline]
@@ -183,6 +181,14 @@ impl SetVal for String {
     }
 }
 
+impl SetVal for Array {
+    fn set_val(mut self, val: &mut Val) {
+        unsafe {
+            phper_zval_arr(val.as_mut(), self.as_mut());
+        }
+    }
+}
+
 impl<T: SetVal> SetVal for Option<T> {
     fn set_val(self, val: &mut Val) {
         match self {
@@ -196,9 +202,18 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
     fn set_val(self, val: &mut Val) {
         match self {
             Ok(t) => t.set_val(val),
-            Err(_e) => unsafe {
-                zend_throw_exception(null_mut(), c_str_ptr!(""), 0);
-                todo!();
+            Err(e) => unsafe {
+                let class = e
+                    .class_entity()
+                    .as_ref()
+                    .expect("class entry is null pointer");
+                let mut message = e.to_string();
+                message.push('\0');
+                zend_throw_exception(
+                    class.entry.load(Ordering::SeqCst).cast(),
+                    message.as_ptr().cast(),
+                    e.code() as i64,
+                );
             },
         }
     }
