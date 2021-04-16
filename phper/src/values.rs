@@ -1,20 +1,23 @@
-use std::{
-    borrow::Cow,
-    cell::Cell,
-    ffi::{c_void, CStr},
-    mem::zeroed,
-    os::raw::{c_char, c_int},
-    ptr::null_mut,
-    slice, str,
-};
 use crate::{
+    arrays::Array,
     c_str_ptr,
     classes::{This, Visibility},
     errors::Throwable,
     sys::*,
 };
-use std::{slice::from_raw_parts, sync::atomic::Ordering};
-use crate::arrays::Array;
+use std::{
+    borrow::Cow,
+    cell::Cell,
+    ffi::{c_void, CStr},
+    io::empty,
+    mem::{size_of, zeroed},
+    os::raw::{c_char, c_int},
+    ptr::null_mut,
+    slice,
+    slice::from_raw_parts,
+    str,
+    sync::atomic::Ordering,
+};
 
 #[repr(transparent)]
 pub struct ExecuteData {
@@ -56,8 +59,8 @@ impl ExecuteData {
     }
 
     #[inline]
-    pub unsafe fn get_this(&mut self) -> &mut This {
-        This::from_mut(phper_get_this(&mut self.inner))
+    pub unsafe fn get_this(&mut self) -> *mut Val {
+        phper_get_this(&mut self.inner).cast()
     }
 
     pub unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
@@ -79,22 +82,36 @@ impl Val {
         Self { inner }
     }
 
-    pub fn null() -> Self {
-        let mut val = Self {
-            inner: unsafe { zeroed::<zval>() },
-        };
-        ().set_val(&mut val);
-        val
-    }
-
-    #[inline]
     pub unsafe fn from_mut<'a>(ptr: *mut zval) -> &'a mut Self {
         assert!(!ptr.is_null(), "ptr should not be null");
         &mut *(ptr as *mut Self)
     }
 
+    #[inline]
+    fn empty() -> Self {
+        Self {
+            inner: unsafe { zeroed::<zval>() },
+        }
+    }
+
+    pub fn null() -> Self {
+        let mut val = Self::empty();
+        val.set(&());
+        val
+    }
+
+    pub fn from_val(other: &Val) -> Self {
+        let mut val = Self::empty();
+        val.set(other);
+        val
+    }
+
     pub fn as_mut(&mut self) -> *mut zval {
         &mut self.inner
+    }
+
+    pub fn set(&mut self, v: impl SetVal) {
+        v.set_val(self);
     }
 
     unsafe fn type_info(&mut self) -> &mut u32 {
@@ -116,11 +133,11 @@ impl Val {
 }
 
 pub trait SetVal {
-    fn set_val(self, val: &mut Val);
+    fn set_val(&self, val: &mut Val);
 }
 
 impl SetVal for () {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
             *val.type_info() = IS_NULL;
         }
@@ -128,45 +145,45 @@ impl SetVal for () {
 }
 
 impl SetVal for bool {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
-            *val.type_info() = if self { IS_TRUE } else { IS_FALSE };
+            *val.type_info() = if *self { IS_TRUE } else { IS_FALSE };
         }
     }
 }
 
 impl SetVal for i32 {
-    fn set_val(self, val: &mut Val) {
-        (self as i64).set_val(val)
+    fn set_val(&self, val: &mut Val) {
+        (*self as i64).set_val(val)
     }
 }
 
 impl SetVal for u32 {
-    fn set_val(self, val: &mut Val) {
-        (self as i64).set_val(val)
+    fn set_val(&self, val: &mut Val) {
+        (*self as i64).set_val(val)
     }
 }
 
 impl SetVal for i64 {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
-            (*val.as_mut()).value.lval = self;
+            (*val.as_mut()).value.lval = *self;
             (*val.as_mut()).u1.type_info = IS_LONG;
         }
     }
 }
 
 impl SetVal for f64 {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
-            (*val.as_mut()).value.dval = self;
+            (*val.as_mut()).value.dval = *self;
             (*val.as_mut()).u1.type_info = IS_DOUBLE;
         }
     }
 }
 
-impl SetVal for &str {
-    fn set_val(self, val: &mut Val) {
+impl SetVal for str {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
             phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
         }
@@ -174,7 +191,7 @@ impl SetVal for &str {
 }
 
 impl SetVal for String {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
             phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
         }
@@ -182,15 +199,15 @@ impl SetVal for String {
 }
 
 impl SetVal for Array {
-    fn set_val(mut self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
-            phper_zval_arr(val.as_mut(), self.as_mut());
+            phper_zval_arr(val.as_mut(), &self as *const _ as *mut _);
         }
     }
 }
 
 impl<T: SetVal> SetVal for Option<T> {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         match self {
             Some(t) => t.set_val(val),
             None => ().set_val(val),
@@ -199,7 +216,7 @@ impl<T: SetVal> SetVal for Option<T> {
 }
 
 impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         match self {
             Ok(t) => t.set_val(val),
             Err(e) => unsafe {
@@ -220,9 +237,26 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 }
 
 impl SetVal for Val {
-    fn set_val(mut self, val: &mut Val) {
+    fn set_val(&self, val: &mut Val) {
         unsafe {
-            phper_zval_zval(val.as_mut(), self.as_mut(), 1, 0);
+            phper_zval_copy(val.as_mut(), &self.inner as *const _ as *mut _);
         }
+    }
+}
+
+impl<T: SetVal + ?Sized> SetVal for Box<T> {
+    fn set_val(&self, val: &mut Val) {
+        T::set_val(&self, val)
+    }
+}
+
+impl<T: SetVal + ?Sized> SetVal for &T {
+    fn set_val(&self, val: &mut Val) {
+        T::set_val(self, val)
+    }
+}
+impl<T: SetVal + ?Sized> SetVal for &mut T {
+    fn set_val(&self, val: &mut Val) {
+        T::set_val(self, val)
     }
 }

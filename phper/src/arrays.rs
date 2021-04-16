@@ -1,8 +1,9 @@
-use crate::sys::*;
-use std::ptr::null_mut;
-use std::mem::zeroed;
-use crate::values::Val;
-use std::ops::{Deref, DerefMut};
+use crate::{sys::*, values::Val};
+use std::{
+    mem::zeroed,
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
+};
 
 pub struct Array {
     inner: Box<zend_array>,
@@ -14,15 +15,18 @@ impl Array {
         unsafe {
             _zend_hash_init(&mut *inner, 0, None, 1);
         }
-        Self {
-            inner,
-        }
+        Self { inner }
     }
 
     pub fn insert(&mut self, key: impl AsRef<str>, value: &mut Val) {
         let key = key.as_ref();
         unsafe {
-            zend_hash_str_update(&mut *self.inner, key.as_ptr().cast(), key.len(), value.as_mut());
+            zend_hash_str_update(
+                &mut *self.inner,
+                key.as_ptr().cast(),
+                key.len(),
+                value.as_mut(),
+            );
         }
     }
 
@@ -35,9 +39,7 @@ impl Array {
     }
 
     pub fn len(&mut self) -> usize {
-        unsafe {
-            zend_array_count(&mut *self.inner) as usize
-        }
+        unsafe { zend_array_count(&mut *self.inner) as usize }
     }
 }
 

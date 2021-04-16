@@ -1,7 +1,7 @@
 use crate::{
     functions::{invoke, Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
-    values::Val,
+    values::{SetVal, Val},
 };
 use once_cell::sync::OnceCell;
 use std::{
@@ -15,8 +15,8 @@ use std::{
 };
 
 pub trait Class: Send + Sync {
-    fn methods(&self) -> &[FunctionEntity];
-    fn properties(&self) -> &[PropertyEntity];
+    fn methods(&mut self) -> &mut [FunctionEntity];
+    fn properties(&mut self) -> &mut [PropertyEntity];
     fn parent(&self) -> Option<&str>;
 }
 
@@ -43,12 +43,16 @@ impl StdClass {
     ) {
         self.method_entities.push(FunctionEntity::new(
             name,
-            Callable::Method(Box::new(handler)),
+            Callable::Method(Box::new(handler), AtomicPtr::new(null_mut())),
             arguments,
         ));
     }
 
-    pub fn add_property(&mut self, name: impl ToString, value: i32) {
+    pub fn add_property(
+        &mut self,
+        name: impl ToString,
+        value: impl SetVal + Send + Sync + 'static,
+    ) {
         self.property_entities
             .push(PropertyEntity::new(name, value));
     }
@@ -60,12 +64,12 @@ impl StdClass {
 }
 
 impl Class for StdClass {
-    fn methods(&self) -> &[FunctionEntity] {
-        &self.method_entities
+    fn methods(&mut self) -> &mut [FunctionEntity] {
+        &mut self.method_entities
     }
 
-    fn properties(&self) -> &[PropertyEntity] {
-        &self.property_entities
+    fn properties(&mut self) -> &mut [PropertyEntity] {
+        &mut self.property_entities
     }
 
     fn parent(&self) -> Option<&str> {
@@ -88,7 +92,6 @@ pub struct ClassEntity {
     pub(crate) name: String,
     pub(crate) entry: AtomicPtr<ClassEntry>,
     pub(crate) class: Box<dyn Class>,
-    pub(crate) init_once: Once,
     pub(crate) function_entries: OnceCell<AtomicPtr<FunctionEntry>>,
 }
 
@@ -98,50 +101,59 @@ impl ClassEntity {
             name: name.to_string(),
             entry: AtomicPtr::new(null_mut()),
             class: Box::new(class),
-            init_once: Once::new(),
             function_entries: Default::default(),
         }
     }
 
-    pub(crate) unsafe fn init(&self) {
-        self.init_once.call_once(|| {
-            let mut class_ce = phper_init_class_entry_ex(
-                self.name.as_ptr().cast(),
-                self.name.len(),
-                self.function_entries().load(Ordering::SeqCst).cast(),
-            );
+    pub(crate) unsafe fn init(&mut self) {
+        let mut class_ce = phper_init_class_entry_ex(
+            self.name.as_ptr().cast(),
+            self.name.len(),
+            self.function_entries().load(Ordering::SeqCst).cast(),
+        );
 
-            let parent = self.class.parent().map(|s| match s {
-                "Exception" | "\\Exception" => zend_ce_exception,
-                _ => todo!(),
-            });
-
-            let ptr = match parent {
-                Some(parent) => zend_register_internal_class_ex(&mut class_ce, parent).cast(),
-                None => zend_register_internal_class(&mut class_ce).cast(),
-            };
-            self.entry.store(ptr, Ordering::SeqCst);
+        let parent = self.class.parent().map(|s| match s {
+            "Exception" | "\\Exception" => zend_ce_exception,
+            _ => todo!(),
         });
+
+        let ptr = match parent {
+            Some(parent) => zend_register_internal_class_ex(&mut class_ce, parent).cast(),
+            None => zend_register_internal_class(&mut class_ce).cast(),
+        };
+        self.entry.store(ptr, Ordering::SeqCst);
+
+        let methods = self.class.methods();
+        for method in methods {
+            match &method.handler {
+                Callable::Method(_, class) => {
+                    class.store(ptr, Ordering::SeqCst);
+                }
+                _ => unreachable!(),
+            }
+        }
     }
 
-    pub(crate) unsafe fn declare_properties(&self) {
+    pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.class.properties();
         for property in properties {
-            zend_declare_property_long(
+            let mut val = Val::null();
+            val.set(&property.value);
+            zend_declare_property(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),
                 property.name.len(),
-                property.value.into(),
+                val.as_mut(),
                 Visibility::Public as c_int,
             );
         }
     }
 
-    unsafe fn function_entries(&self) -> &AtomicPtr<FunctionEntry> {
+    unsafe fn function_entries(&mut self) -> &AtomicPtr<FunctionEntry> {
+        let methods = &*self.class.methods();
+
         self.function_entries.get_or_init(|| {
-            let mut methods = self
-                .class
-                .methods()
+            let mut methods = methods
                 .iter()
                 .map(|method| method.entry())
                 .collect::<Vec<_>>();
@@ -152,29 +164,44 @@ impl ClassEntity {
     }
 }
 
-#[repr(transparent)]
 pub struct This {
-    inner: zval,
+    val: *mut Val,
+    class: *mut ClassEntry,
 }
 
 impl This {
-    #[inline]
-    pub unsafe fn from_mut<'a>(ptr: *mut zval) -> &'a mut Self {
-        assert!(!ptr.is_null(), "ptr should not be null");
-        &mut *(ptr as *mut Self)
+    pub(crate) fn new<'a>(val: *mut Val, class: *mut ClassEntry) -> This {
+        assert!(!val.is_null());
+        assert!(!class.is_null());
+        Self { val, class }
+    }
+
+    pub fn get_property(&self, name: impl AsRef<str>) -> &mut Val {
+        let name = name.as_ref();
+        unsafe {
+            let prop = zend_read_property(
+                self.class as *mut _,
+                self.val as *mut _,
+                name.as_ptr().cast(),
+                name.len(),
+                0,
+                null_mut(),
+            );
+            Val::from_mut(prop)
+        }
     }
 }
 
 pub struct PropertyEntity {
     name: String,
-    value: i32,
+    value: Box<dyn SetVal + Send + Sync>,
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl ToString, value: i32) -> Self {
+    pub fn new(name: impl ToString, value: impl SetVal + Send + Sync + 'static) -> Self {
         Self {
             name: name.to_string(),
-            value,
+            value: Box::new(value),
         }
     }
 }

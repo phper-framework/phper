@@ -1,5 +1,5 @@
-use std::{fs::OpenOptions, io::Write};
 use phper::{
+    arrays::Array,
     c_str_ptr,
     classes::{Class, StdClass, This},
     functions::{create_zend_arg_info, Argument},
@@ -10,11 +10,10 @@ use phper::{
         php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
         zend_function_entry, OnUpdateBool, PHP_INI_SYSTEM,
     },
-    values::{ExecuteData, Val},
+    values::{ExecuteData, SetVal, Val},
     Throwable,
 };
-use phper::arrays::Array;
-use phper::values::SetVal;
+use std::{fs::OpenOptions, io::Write};
 
 fn module_init(_args: ModuleArgs) -> bool {
     true
@@ -70,14 +69,23 @@ pub extern "C" fn get_module(module: &mut Module) {
     );
 
     // register classes
-    let mut std_class = StdClass::new();
-    std_class.add_property("foo", 100);
-    std_class.add_method(
-        "test1",
-        |_: &mut This, _: &mut [Val]| {
-            println!("hello test1");
+    let mut foo_class = StdClass::new();
+    foo_class.add_property("foo", 100);
+    foo_class.add_method(
+        "getFoo",
+        |this: &mut This, _: &mut [Val]| {
+            let prop = this.get_property("foo");
+            Val::from_val(prop)
         },
         vec![],
     );
-    module.add_class("Test1", std_class);
+    foo_class.add_method(
+        "setFoo",
+        |this: &mut This, arguments: &mut [Val]| {
+            let prop = this.get_property("foo");
+            prop.set(&arguments[0]);
+        },
+        vec![Argument::by_val("foo")],
+    );
+    module.add_class("FooClass", foo_class);
 }

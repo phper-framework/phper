@@ -1,5 +1,5 @@
 use crate::{
-    classes::This,
+    classes::{ClassEntry, This},
     errors::Throwable,
     ini::create_ini_entry_ex,
     sys::*,
@@ -11,6 +11,7 @@ use std::{
     mem::{size_of, transmute, zeroed},
     os::raw::{c_char, c_int},
     ptr::{null, null_mut},
+    sync::atomic::{AtomicPtr, Ordering},
 };
 
 pub trait Function: Send + Sync {
@@ -45,7 +46,7 @@ where
 
 pub(crate) enum Callable {
     Function(Box<dyn Function>),
-    Method(Box<dyn Method>),
+    Method(Box<dyn Method>, AtomicPtr<ClassEntry>),
 }
 
 #[repr(transparent)]
@@ -173,7 +174,7 @@ pub(crate) unsafe extern "C" fn invoke(
             execute_data.num_args()
         );
         php_error_docref(null(), E_WARNING as i32, s.as_ptr().cast());
-        ().set_val(return_value);
+        return_value.set(());
         return;
     }
 
@@ -183,8 +184,9 @@ pub(crate) unsafe extern "C" fn invoke(
         Callable::Function(f) => {
             f.call(&mut arguments, return_value);
         }
-        Callable::Method(m) => {
-            m.call(execute_data.get_this(), &mut arguments, return_value);
+        Callable::Method(m, class) => {
+            let mut this = This::new(execute_data.get_this(), class.load(Ordering::SeqCst));
+            m.call(&mut this, &mut arguments, return_value);
         }
     }
 }

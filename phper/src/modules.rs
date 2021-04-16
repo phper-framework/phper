@@ -34,9 +34,9 @@ pub fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
 
 unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_int {
     let args = ModuleArgs::new(r#type, module_number);
-    read_global_module(|module| {
+    write_global_module(|module| {
         args.register_ini_entries(module.ini_entries());
-        for (_, class_entity) in &module.class_entities {
+        for (_, class_entity) in &mut module.class_entities {
             class_entity.init();
             class_entity.declare_properties();
         }

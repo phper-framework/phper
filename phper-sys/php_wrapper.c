@@ -38,6 +38,14 @@ void phper_zval_zval(zval *return_value, zval *zv, int copy, int dtor) {
     ZVAL_ZVAL(return_value, zv, copy, dtor);
 }
 
+void phper_zval_dup(zval *return_value, zval *zv) {
+    ZVAL_DUP(return_value, zv);
+}
+
+void phper_zval_copy(zval *return_value, zval *zv) {
+    ZVAL_COPY(return_value, zv);
+}
+
 zend_string *phper_zval_get_string(zval *op) {
     return zval_get_string(op);
 }
