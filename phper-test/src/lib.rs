@@ -1,16 +1,16 @@
 use once_cell::sync::OnceCell;
 use std::{
-    env, ffi::OsStr, fmt::Debug, fs::read_to_string, io::Write, path::Path, process::Command,
+    env,
+    ffi::{OsStr, OsString},
+    fmt::Debug,
+    fs::read_to_string,
+    io::Write,
+    path::{Path, PathBuf},
+    process::Command,
 };
 use tempfile::NamedTempFile;
-use std::ffi::OsString;
-use std::path::PathBuf;
-use std::error::Error;
 
-pub fn test_php_scripts(
-    exe_path: impl AsRef<Path>,
-    scripts: &[impl AsRef<Path>],
-) {
+pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[impl AsRef<Path>]) {
     let context = php_context();
 
     let lib_path = get_lib_path(exe_path);
@@ -115,8 +115,12 @@ fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
 
 fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
     let exe_path = exe_path.as_ref();
-    let exe_stem = exe_path.file_stem().expect("failed to get current exe stem");
-    let target_dir = exe_path.parent().expect("failed to get current exe directory");
+    let exe_stem = exe_path
+        .file_stem()
+        .expect("failed to get current exe stem");
+    let target_dir = exe_path
+        .parent()
+        .expect("failed to get current exe directory");
 
     let mut ext_name = OsString::new();
     ext_name.push("lib");

@@ -1,19 +1,12 @@
 use phper::{
     arrays::Array,
-    c_str_ptr,
-    classes::{Class, StdClass, This},
-    functions::{create_zend_arg_info, Argument},
+    classes::{StdClass, This},
+    functions::Argument,
     ini::Policy,
-    modules::{read_global_module, write_global_module, Module, ModuleArgs},
+    modules::{Module, ModuleArgs},
     php_get_module,
-    sys::{
-        php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
-        zend_function_entry, OnUpdateBool, PHP_INI_SYSTEM,
-    },
-    values::{ExecuteData, SetVal, Val},
-    Throwable,
+    values::{SetVal, Val},
 };
-use std::{fs::OpenOptions, io::Write};
 
 fn module_init(_args: ModuleArgs) -> bool {
     true

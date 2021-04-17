@@ -42,18 +42,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Rust
+      - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
-          components: rustfmt, clippy
+          components: rustfmt
+
+      - name: Install Rust Stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: +nightly --all -- --check
 
       - name: Cargo build
         uses: actions-rs/cargo@v1

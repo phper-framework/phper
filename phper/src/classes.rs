@@ -1,5 +1,5 @@
 use crate::{
-    functions::{invoke, Argument, Callable, FunctionEntity, FunctionEntry, Method},
+    functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
     values::{SetVal, Val},
 };
@@ -7,11 +7,8 @@ use once_cell::sync::OnceCell;
 use std::{
     mem::zeroed,
     os::raw::c_int,
-    ptr::{null, null_mut},
-    sync::{
-        atomic::{AtomicPtr, Ordering},
-        Arc, Once, RwLock,
-    },
+    ptr::null_mut,
+    sync::atomic::{AtomicPtr, Ordering},
 };
 
 pub trait Class: Send + Sync {
@@ -58,7 +55,7 @@ impl StdClass {
     }
 
     pub fn extends(&mut self, name: impl ToString) {
-        let mut name = name.to_string();
+        let name = name.to_string();
         self.parent = Some(name);
     }
 }

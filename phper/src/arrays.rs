@@ -2,7 +2,6 @@ use crate::{sys::*, values::Val};
 use std::{
     mem::zeroed,
     ops::{Deref, DerefMut},
-    ptr::null_mut,
 };
 
 pub struct Array {

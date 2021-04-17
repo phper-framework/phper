@@ -1,15 +1,12 @@
 use crate::sys::{
-    phper_zend_ini_mh, zend_ini_entry, zend_ini_entry_def, zend_string, OnUpdateBool, OnUpdateLong,
-    OnUpdateReal, OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
+    phper_zend_ini_mh, zend_ini_entry_def, OnUpdateBool, OnUpdateLong, OnUpdateReal,
+    OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
 };
 use std::{
-    cell::Cell,
     ffi::CStr,
-    mem::{size_of, transmute},
-    os::raw::{c_char, c_int, c_void},
+    os::raw::{c_char, c_void},
     ptr::null_mut,
     str,
-    sync::atomic::AtomicPtr,
 };
 
 type OnModify = phper_zend_ini_mh;

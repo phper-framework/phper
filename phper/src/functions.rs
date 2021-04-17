@@ -1,16 +1,12 @@
 use crate::{
     classes::{ClassEntry, This},
-    errors::Throwable,
-    ini::create_ini_entry_ex,
     sys::*,
     values::{ExecuteData, SetVal, Val},
 };
 use std::{
-    cell::Cell,
-    ffi::CStr,
-    mem::{size_of, transmute, zeroed},
-    os::raw::{c_char, c_int},
-    ptr::{null, null_mut},
+    mem::zeroed,
+    os::raw::c_char,
+    ptr::null,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
@@ -51,6 +47,7 @@ pub(crate) enum Callable {
 
 #[repr(transparent)]
 pub struct FunctionEntry {
+    #[allow(dead_code)]
     inner: zend_function_entry,
 }
 
@@ -88,9 +85,9 @@ impl FunctionEntity {
             ));
         }
 
-        infos.push(unsafe { zeroed::<zend_internal_arg_info>() });
+        infos.push(zeroed::<zend_internal_arg_info>());
 
-        let mut last_arg_info = unsafe { zeroed::<zend_internal_arg_info>() };
+        let mut last_arg_info = zeroed::<zend_internal_arg_info>();
         last_arg_info.name = ((&self.handler) as *const _ as *mut i8).cast();
         infos.push(last_arg_info);
 

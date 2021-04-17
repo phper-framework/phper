@@ -1,7 +1,7 @@
 use crate::{
     c_str_ptr,
-    classes::{Class, ClassEntity, ClassEntry, StdClass},
-    functions::{create_zend_arg_info, invoke, Argument, Callable, Function, FunctionEntity},
+    classes::{Class, ClassEntity, StdClass},
+    functions::{Argument, Callable, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
     EXCEPTION_CLASS_NAME,
@@ -9,15 +9,12 @@ use crate::{
 use once_cell::sync::Lazy;
 use std::{
     borrow::BorrowMut,
-    cell::{Cell, RefCell, RefMut},
+    cell::RefCell,
     collections::HashMap,
-    ffi::CStr,
-    mem::{forget, size_of, transmute, zeroed},
-    ops::DerefMut,
-    os::raw::{c_char, c_int, c_uchar, c_uint, c_ushort, c_void},
+    mem::{size_of, zeroed},
+    os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
-    sync::{atomic::AtomicPtr, Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard},
-    thread::LocalKey,
+    sync::RwLock,
 };
 
 static GLOBAL_MODULE: Lazy<RwLock<Module>> = Lazy::new(Default::default);
@@ -293,7 +290,7 @@ impl Module {
         Self::STR_INI_ENTITIES
             .with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
 
-        entries.push(unsafe { zeroed::<zend_ini_entry_def>() });
+        entries.push(zeroed::<zend_ini_entry_def>());
 
         Box::into_raw(entries.into_boxed_slice()).cast()
     }
@@ -315,6 +312,7 @@ impl Module {
 }
 
 pub struct ModuleArgs {
+    #[allow(dead_code)]
     r#type: c_int,
     module_number: c_int,
 }

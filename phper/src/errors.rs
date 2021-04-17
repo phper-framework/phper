@@ -1,14 +1,6 @@
-use crate::{
-    classes::{ClassEntity, ClassEntry},
-    modules::{read_global_module, write_global_module},
-    Error::Other,
-};
+use crate::{classes::ClassEntity, modules::read_global_module, Error::Other};
 use anyhow::anyhow;
-use once_cell::sync::Lazy;
-use std::{
-    cell::RefCell, error, ffi::FromBytesWithNulError, io, ptr::null_mut, str::Utf8Error,
-    sync::atomic::AtomicPtr,
-};
+use std::{error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
 pub type Result<T> = std::result::Result<T, self::Error>;
 
