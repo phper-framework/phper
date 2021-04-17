@@ -18,11 +18,15 @@ impl Array {
         Self { inner }
     }
 
+    pub fn as_ptr(&self) -> *const zend_array {
+        self.inner.deref()
+    }
+
     pub fn insert(&mut self, key: impl AsRef<str>, value: &mut Val) {
         let key = key.as_ref();
         unsafe {
             zend_hash_str_update(
-                &mut *self.inner,
+                self.inner.deref_mut(),
                 key.as_ptr().cast(),
                 key.len(),
                 value.as_mut(),

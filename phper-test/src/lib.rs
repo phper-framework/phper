@@ -3,22 +3,17 @@ use std::{
     env, ffi::OsStr, fmt::Debug, fs::read_to_string, io::Write, path::Path, process::Command,
 };
 use tempfile::NamedTempFile;
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::error::Error;
 
 pub fn test_php_scripts(
-    target_dir: impl AsRef<Path>,
-    lib_name: &str,
+    exe_path: impl AsRef<Path>,
     scripts: &[impl AsRef<Path>],
 ) {
     let context = php_context();
 
-    let lib_path = target_dir
-        .as_ref()
-        .join(if cfg!(debug_assertions) {
-            "debug"
-        } else {
-            "release"
-        })
-        .join(format!("lib{}.so", lib_name));
+    let lib_path = get_lib_path(exe_path);
 
     let mut out_ini_temp_file = NamedTempFile::new().unwrap();
     let out_ini_file = out_ini_temp_file.as_file_mut();
@@ -116,4 +111,17 @@ fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
         .expect(&format!("Execute command {:?} failed", &argv))
         .stdout;
     String::from_utf8(output).unwrap().trim().to_owned()
+}
+
+fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
+    let exe_path = exe_path.as_ref();
+    let exe_stem = exe_path.file_stem().expect("failed to get current exe stem");
+    let target_dir = exe_path.parent().expect("failed to get current exe directory");
+
+    let mut ext_name = OsString::new();
+    ext_name.push("lib");
+    ext_name.push(exe_stem);
+    ext_name.push(".so");
+
+    target_dir.join(ext_name)
 }

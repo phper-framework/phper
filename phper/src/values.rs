@@ -34,7 +34,7 @@ impl ExecuteData {
         &mut *(ptr as *mut Self)
     }
 
-    pub fn as_mut(&mut self) -> *mut zend_execute_data {
+    pub fn as_mut_ptr(&mut self) -> *mut zend_execute_data {
         &mut self.inner
     }
 
@@ -213,7 +213,7 @@ impl SetVal for String {
 impl SetVal for Array {
     fn set_val(&self, val: &mut Val) {
         unsafe {
-            phper_zval_arr(val.as_mut(), &self as *const _ as *mut _);
+            phper_zval_arr(val.as_mut(), self.as_ptr() as *mut _);
         }
     }
 }

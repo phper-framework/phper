@@ -39,7 +39,7 @@ pub trait Throwable: error::Error {
     fn code(&self) -> u64;
 }
 
-pub(crate) const EXCEPTION_CLASS_NAME: &'static str = "\\Phper\\Exception\\ErrorException";
+pub(crate) const EXCEPTION_CLASS_NAME: &'static str = "PHPerException";
 
 impl Throwable for Error {
     fn class_entity(&self) -> *const ClassEntity {
