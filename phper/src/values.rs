@@ -1,5 +1,5 @@
 use crate::{arrays::Array, errors::Throwable, sys::*};
-use std::{mem::zeroed, os::raw::c_int, slice::from_raw_parts, str, sync::atomic::Ordering};
+use std::{mem::zeroed, slice::from_raw_parts, str, sync::atomic::Ordering};
 
 #[repr(transparent)]
 pub struct ExecuteData {
@@ -26,8 +26,8 @@ impl ExecuteData {
     }
 
     #[inline]
-    pub unsafe fn common_required_num_args(&self) -> u32 {
-        (*self.inner.func).common.required_num_args
+    pub unsafe fn common_required_num_args(&self) -> u16 {
+        (*self.inner.func).common.required_num_args as u16
     }
 
     #[inline]
@@ -36,8 +36,8 @@ impl ExecuteData {
     }
 
     #[inline]
-    pub unsafe fn num_args(&self) -> u32 {
-        self.inner.This.u2.num_args
+    pub unsafe fn num_args(&self) -> u16 {
+        self.inner.This.u2.num_args as u16
     }
 
     #[inline]
@@ -48,7 +48,7 @@ impl ExecuteData {
     pub unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
-        _zend_get_parameters_array_ex(num_args as c_int, arguments.as_mut_ptr());
+        _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
         arguments.into_iter().map(Val::from_inner).collect()
     }
 }

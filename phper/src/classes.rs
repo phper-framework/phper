@@ -181,7 +181,7 @@ impl This {
                 self.val as *mut _,
                 name.as_ptr().cast(),
                 name.len(),
-                0,
+                false.into(),
                 null_mut(),
             );
             Val::from_mut(prop)

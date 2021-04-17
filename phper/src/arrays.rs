@@ -12,7 +12,7 @@ impl Array {
     pub fn new() -> Self {
         let mut inner = Box::new(unsafe { zeroed::<zend_array>() });
         unsafe {
-            _zend_hash_init(&mut *inner, 0, None, 1);
+            _zend_hash_init(&mut *inner, 0, None, true.into());
         }
         Self { inner }
     }
@@ -24,7 +24,7 @@ impl Array {
     pub fn insert(&mut self, key: impl AsRef<str>, value: &mut Val) {
         let key = key.as_ref();
         unsafe {
-            zend_hash_str_update(
+            phper_zend_hash_str_update(
                 self.inner.deref_mut(),
                 key.as_ptr().cast(),
                 key.len(),

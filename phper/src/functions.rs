@@ -170,7 +170,12 @@ pub(crate) unsafe extern "C" fn invoke(
             execute_data.common_required_num_args(),
             execute_data.num_args()
         );
-        php_error_docref(null(), E_WARNING as i32, s.as_ptr().cast());
+        php_error_docref1(
+            null(),
+            "\0".as_ptr().cast(),
+            E_WARNING as i32,
+            s.as_ptr().cast(),
+        );
         return_value.set(());
         return;
     }
@@ -190,10 +195,21 @@ pub(crate) unsafe extern "C" fn invoke(
 
 pub const fn create_zend_arg_info(
     name: *const c_char,
-    pass_by_ref: bool,
+    _pass_by_ref: bool,
 ) -> zend_internal_arg_info {
+    #[cfg(phper_php_version = "8.0")]
+    {
+        zend_internal_arg_info {
+            name,
+            type_: zend_type {
+                ptr: null_mut(),
+                type_mask: 0,
+            },
+            default_value: null_mut(),
+        }
+    }
+
     #[cfg(any(
-        phper_php_version = "8.0",
         phper_php_version = "7.4",
         phper_php_version = "7.3",
         phper_php_version = "7.2"
@@ -202,7 +218,7 @@ pub const fn create_zend_arg_info(
         zend_internal_arg_info {
             name,
             type_: 0 as crate::sys::zend_type,
-            pass_by_reference: pass_by_ref as zend_uchar,
+            pass_by_reference: _pass_by_ref as zend_uchar,
             is_variadic: 0,
         }
     }
@@ -214,7 +230,7 @@ pub const fn create_zend_arg_info(
             class_name: std::ptr::null(),
             type_hint: 0,
             allow_null: 0,
-            pass_by_reference: pass_by_ref as zend_uchar,
+            pass_by_reference: _pass_by_ref as zend_uchar,
             is_variadic: 0,
         }
     }

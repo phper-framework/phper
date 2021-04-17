@@ -15,7 +15,7 @@ try {
 }
 
 assert_eq(hello_get_all_ini(), [
-    "hello.enable" => true,
+    "hello.enable" => false,
     "hello.description" => "hello world.",
 ]);
 
@@ -27,6 +27,6 @@ assert_eq($foo->getFoo(), "Hello");
 
 function assert_eq($left, $right) {
     if ($left !== $right) {
-        throw new Exception("left != right,\n left: {$left},\n right: {$right};");
+        throw new Exception(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));
     }
 }

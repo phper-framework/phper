@@ -27,4 +27,8 @@ zend_string *phper_zend_string_init(const char *str, size_t len, int persistent)
 zend_string *phper_zend_string_alloc(size_t len, int persistent);
 void phper_zend_string_release(zend_string *s);
 
+void phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData);
+
+
+
 #endif //PHPER_PHP_WRAPPER_H

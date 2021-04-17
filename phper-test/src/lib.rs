@@ -88,11 +88,15 @@ fn php_context() -> &'static Context {
             "echo php_ini_scanned_files();",
         ]);
 
-        ini_content.push_str(&read_to_string(ini_file).unwrap());
-        for file in ini_files.split(',') {
-            let file = file.trim();
-            if !file.is_empty() {
-                ini_content.push_str(&read_to_string(file).unwrap());
+        if !ini_file.is_empty() {
+            ini_content.push_str(&read_to_string(ini_file).unwrap());
+        }
+        if !ini_files.is_empty() {
+            for file in ini_files.split(',') {
+                let file = file.trim();
+                if !file.is_empty() {
+                    ini_content.push_str(&read_to_string(file).unwrap());
+                }
             }
         }
 
