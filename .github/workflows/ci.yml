@@ -59,22 +59,26 @@ jobs:
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
         with:
+          toolchain: nightly
           command: fmt
-          args: +nightly --all -- --check
+          args: --all -- --check
 
       - name: Cargo build
         uses: actions-rs/cargo@v1
         with:
+          toolchain: stable
           command: build
           args: --release
 
       - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
+          toolchain: stable
           command: test
           args: --release -- --nocapture
 
       - name: Cargo doc
         uses: actions-rs/cargo@v1
         with:
+          toolchain: stable
           command: doc
