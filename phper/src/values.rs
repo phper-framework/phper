@@ -67,7 +67,7 @@ impl ExecuteData {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
         _zend_get_parameters_array_ex(num_args as c_int, arguments.as_mut_ptr());
-        arguments.into_iter().map(Val::new).collect()
+        arguments.into_iter().map(Val::from_inner).collect()
     }
 }
 
@@ -77,8 +77,14 @@ pub struct Val {
 }
 
 impl Val {
+    pub fn new<T: SetVal>(t: T) -> Self {
+        let mut val = Self::empty();
+        val.set(t);
+        val
+    }
+
     #[inline]
-    pub const fn new(inner: zval) -> Self {
+    pub const fn from_inner(inner: zval) -> Self {
         Self { inner }
     }
 
@@ -97,6 +103,12 @@ impl Val {
     pub fn null() -> Self {
         let mut val = Self::empty();
         val.set(&());
+        val
+    }
+
+    pub fn from_bool(b: bool) -> Self {
+        let mut val = Self::empty();
+        val.set(b);
         val
     }
 
@@ -255,6 +267,7 @@ impl<T: SetVal + ?Sized> SetVal for &T {
         T::set_val(self, val)
     }
 }
+
 impl<T: SetVal + ?Sized> SetVal for &mut T {
     fn set_val(&self, val: &mut Val) {
         T::set_val(self, val)

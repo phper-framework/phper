@@ -19,7 +19,7 @@ fn module_init(_args: ModuleArgs) -> bool {
     true
 }
 
-fn say_hello(arguments: &mut [Val]) -> String {
+fn say_hello(arguments: &mut [Val]) -> impl SetVal {
     let name = arguments[0].as_string();
     format!("Hello, {}!\n", name)
 }
@@ -52,15 +52,13 @@ pub extern "C" fn get_module(module: &mut Module) {
     module.add_function("hello_throw_exception", throw_exception, vec![]);
     module.add_function(
         "hello_get_all_ini",
-        |_: &mut [Val]| -> Array {
+        |_: &mut [Val]| {
             let mut arr = Array::new();
 
-            let mut hello_enable = Val::null();
-            Module::get_bool_ini("hello.enable").set_val(&mut hello_enable);
+            let mut hello_enable = Val::new(Module::get_bool_ini("hello.enable"));
             arr.insert("hello.enable", &mut hello_enable);
 
-            let mut hello_description = Val::null();
-            Module::get_str_ini("hello.description").set_val(&mut hello_description);
+            let mut hello_description = Val::new(Module::get_str_ini("hello.description"));
             arr.insert("hello.description", &mut hello_description);
 
             arr
