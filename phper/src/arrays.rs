@@ -12,6 +12,7 @@ impl Array {
     pub fn new() -> Self {
         let mut inner = Box::new(unsafe { zeroed::<zend_array>() });
         unsafe {
+            // TODO should destroy in module shutdown hook.
             _zend_hash_init(&mut *inner, 0, None, true.into());
         }
         Self { inner }
@@ -58,10 +59,10 @@ impl AsMut<zend_array> for Array {
     }
 }
 
-impl Drop for Array {
-    fn drop(&mut self) {
-        unsafe {
-            zend_hash_destroy(&mut *self.inner);
-        }
-    }
-}
+// impl Drop for Array {
+//     fn drop(&mut self) {
+//         unsafe {
+//             zend_hash_graceful_destroy(&mut *self.inner);
+//         }
+//     }
+// }

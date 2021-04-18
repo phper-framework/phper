@@ -22,6 +22,10 @@ void phper_zval_arr(zval *return_value, zend_array *arr) {
     ZVAL_ARR(return_value, arr);
 }
 
+void phper_zval_new_arr(zval *return_value) {
+    ZVAL_NEW_ARR(return_value);
+}
+
 void phper_zval_stringl(zval *return_value, const char *s, size_t len) {
     ZVAL_STRINGL(return_value, s, len);
 }
@@ -44,6 +48,10 @@ void phper_zval_dup(zval *return_value, zval *zv) {
 
 void phper_zval_copy(zval *return_value, zval *zv) {
     ZVAL_COPY(return_value, zv);
+}
+
+void phper_zval_copy_value(zval *return_value, zval *zv) {
+    ZVAL_COPY_VALUE(return_value, zv);
 }
 
 zend_string *phper_zval_get_string(zval *op) {
