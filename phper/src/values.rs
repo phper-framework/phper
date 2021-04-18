@@ -195,7 +195,7 @@ impl SetVal for String {
 impl SetVal for Array {
     fn set_val(&self, val: &mut Val) {
         unsafe {
-            phper_zval_arr(val.as_mut(), self.as_ptr() as *mut _);
+            phper_zval_arr(&mut val.inner, self.as_ptr() as *mut _);
         }
     }
 }
@@ -233,7 +233,7 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 impl SetVal for Val {
     fn set_val(&self, val: &mut Val) {
         unsafe {
-            phper_zval_copy(val.as_mut(), &self.inner as *const _ as *mut _);
+            phper_zval_copy_value(val.as_mut(), &self.inner as *const _ as *mut _);
         }
     }
 }
