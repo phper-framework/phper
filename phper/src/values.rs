@@ -55,7 +55,7 @@ impl ExecuteData {
 
 #[repr(transparent)]
 pub struct Val {
-    inner: zval,
+    pub(crate) inner: zval,
 }
 
 impl Val {

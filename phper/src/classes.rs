@@ -175,17 +175,34 @@ impl This {
 
     pub fn get_property(&self, name: impl AsRef<str>) -> &mut Val {
         let name = name.as_ref();
-        unsafe {
-            let prop = zend_read_property(
-                self.class as *mut _,
-                self.val as *mut _,
-                name.as_ptr().cast(),
-                name.len(),
-                false.into(),
-                null_mut(),
-            );
-            Val::from_mut(prop)
-        }
+
+        let prop = unsafe {
+            #[cfg(phper_major_version = "8")]
+            {
+                zend_read_property(
+                    self.class as *mut _,
+                    (*self.val).inner.value.obj,
+                    name.as_ptr().cast(),
+                    name.len(),
+                    false.into(),
+                    null_mut(),
+                )
+            }
+
+            #[cfg(phper_major_version = "7")]
+            {
+                zend_read_property(
+                    self.class as *mut _,
+                    self.val as *mut _,
+                    name.as_ptr().cast(),
+                    name.len(),
+                    false.into(),
+                    null_mut(),
+                )
+            }
+        };
+
+        unsafe { Val::from_mut(prop) }
     }
 }
 
