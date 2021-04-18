@@ -22,7 +22,7 @@ fn throw_exception(_: &mut [Val]) -> phper::Result<()> {
 }
 
 #[php_get_module]
-pub extern "C" fn get_module(module: &mut Module) {
+pub fn get_module(module: &mut Module) {
     // set module metadata
     module.set_name(env!("CARGO_PKG_NAME"));
     module.set_version(env!("CARGO_PKG_VERSION"));

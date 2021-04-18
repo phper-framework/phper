@@ -199,6 +199,7 @@ pub const fn create_zend_arg_info(
 ) -> zend_internal_arg_info {
     #[cfg(phper_php_version = "8.0")]
     {
+        use std::ptr::null_mut;
         zend_internal_arg_info {
             name,
             type_: zend_type {

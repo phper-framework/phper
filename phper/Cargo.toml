@@ -5,6 +5,7 @@ authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"
 description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
 repository = "https://github.com/jmjoy/phper.git"
+documentation = "https://docs.rs/phper"
 license = "Unlicense"
 readme = "../README.md"
 keywords = ["php", "binding", "extension"]
