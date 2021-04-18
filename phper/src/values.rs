@@ -197,7 +197,7 @@ impl SetVal for Array {
         unsafe {
             let mut new_val = Val::null();
             phper_zval_arr(new_val.as_mut(), self.as_ptr() as *mut _);
-            phper_zval_copy(val.as_mut(), &mut new_val.inner);
+            phper_zval_dup(val.as_mut(), &mut new_val.inner);
         }
     }
 }
@@ -235,7 +235,7 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 impl SetVal for Val {
     fn set_val(&self, val: &mut Val) {
         unsafe {
-            phper_zval_copy(val.as_mut(), &self.inner as *const _ as *mut _);
+            phper_zval_dup(val.as_mut(), &self.inner as *const _ as *mut _);
         }
     }
 }
