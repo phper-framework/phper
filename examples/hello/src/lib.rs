@@ -1,101 +1,82 @@
 use phper::{
-    c_str_ptr, php_fn, php_function, php_minfo, php_minfo_function, php_minit, php_minit_function,
-    php_mshutdown, php_mshutdown_function, php_rinit, php_rinit_function, php_rshutdown,
-    php_rshutdown_function,
-    sys::{
-        php_info_print_table_end, php_info_print_table_row, php_info_print_table_start,
-        zend_function_entry, OnUpdateBool, PHP_INI_SYSTEM,
-    },
-    zend::{
-        api::{FunctionEntries, ModuleGlobals},
-        compile::{create_zend_arg_info, MultiInternalArgInfo},
-        ini::IniEntries,
-        modules::{ModuleArgs, ModuleEntry, ModuleEntryBuilder},
-        types::{ExecuteData, SetVal},
-    },
-    zend_get_module,
+    arrays::Array,
+    classes::{StdClass, This},
+    functions::Argument,
+    ini::Policy,
+    modules::{Module, ModuleArgs},
+    php_get_module,
+    values::{SetVal, Val},
 };
 
-static SIMPLE_ENABLE: ModuleGlobals<bool> = ModuleGlobals::new(false);
-
-static INI_ENTRIES: IniEntries<1> = IniEntries::new([SIMPLE_ENABLE.create_ini_entry(
-    "hello.enable",
-    "1",
-    Some(OnUpdateBool),
-    PHP_INI_SYSTEM,
-)]);
-
-#[php_minit_function]
-fn module_init(args: ModuleArgs) -> bool {
-    args.register_ini_entries(&INI_ENTRIES);
+fn module_init(_args: ModuleArgs) -> bool {
     true
 }
 
-#[php_mshutdown_function]
-fn module_shutdown(args: ModuleArgs) -> bool {
-    args.unregister_ini_entries();
-    true
+fn say_hello(arguments: &mut [Val]) -> impl SetVal {
+    let name = arguments[0].as_string();
+    format!("Hello, {}!\n", name)
 }
 
-#[php_rinit_function]
-fn request_init(_args: ModuleArgs) -> bool {
-    true
+fn throw_exception(_: &mut [Val]) -> phper::Result<()> {
+    Err(phper::Error::other("I am sorry"))
 }
 
-#[php_rshutdown_function]
-fn request_shutdown(_args: ModuleArgs) -> bool {
-    true
-}
+#[php_get_module]
+pub fn get_module(module: &mut Module) {
+    // set module metadata
+    module.set_name(env!("CARGO_PKG_NAME"));
+    module.set_version(env!("CARGO_PKG_VERSION"));
+    module.set_author(env!("CARGO_PKG_AUTHORS"));
 
-#[php_minfo_function]
-fn module_info(module: &ModuleEntry) {
-    unsafe {
-        php_info_print_table_start();
-        php_info_print_table_row(2, c_str_ptr!("hello.version"), (*module.as_ptr()).version);
-        php_info_print_table_row(
-            2,
-            c_str_ptr!("hello.enable"),
-            if SIMPLE_ENABLE.get() {
-                c_str_ptr!("1")
-            } else {
-                c_str_ptr!("0")
-            },
-        );
-        php_info_print_table_end();
-    }
-}
+    // register module ini
+    module.add_bool_ini("hello.enable", false, Policy::All);
+    module.add_long_ini("hello.num", 100, Policy::All);
+    module.add_real_ini("hello.ratio", 1.5, Policy::All);
+    module.add_str_ini("hello.description", "hello world.", Policy::All);
 
-#[php_function]
-pub fn say_hello(execute_data: &mut ExecuteData) -> impl SetVal {
-    execute_data
-        .parse_parameters::<&str>()
-        .map(|name| format!("Hello, {}!", name))
-}
+    // register hook functions
+    module.on_module_init(module_init);
+    module.on_module_shutdown(|_| true);
+    module.on_request_init(|_| true);
+    module.on_request_shutdown(|_| true);
 
-static ARG_INFO_SAY_HELLO: MultiInternalArgInfo<1> =
-    MultiInternalArgInfo::new(1, false, [create_zend_arg_info(c_str_ptr!("name"), false)]);
+    // register functions
+    module.add_function("hello_say_hello", say_hello, vec![Argument::by_val("name")]);
+    module.add_function("hello_throw_exception", throw_exception, vec![]);
+    module.add_function(
+        "hello_get_all_ini",
+        |_: &mut [Val]| {
+            let mut arr = Array::new();
 
-static FUNCTION_ENTRIES: FunctionEntries<1> = FunctionEntries::new([zend_function_entry {
-    fname: c_str_ptr!("say_hello"),
-    handler: Some(php_fn!(say_hello)),
-    arg_info: ARG_INFO_SAY_HELLO.as_ptr(),
-    num_args: 2,
-    flags: 0,
-}]);
+            let mut hello_enable = Val::new(Module::get_bool_ini("hello.enable"));
+            arr.insert("hello.enable", &mut hello_enable);
 
-static MODULE_ENTRY: ModuleEntry = ModuleEntryBuilder::new(
-    c_str_ptr!(env!("CARGO_PKG_NAME")),
-    c_str_ptr!(env!("CARGO_PKG_VERSION")),
-)
-.functions(FUNCTION_ENTRIES.as_ptr())
-.module_startup_func(php_minit!(module_init))
-.module_shutdown_func(php_mshutdown!(module_shutdown))
-.request_startup_func(php_rinit!(request_init))
-.request_shutdown_func(php_rshutdown!(request_shutdown))
-.info_func(php_minfo!(module_info))
-.build();
+            let mut hello_description = Val::new(Module::get_str_ini("hello.description"));
+            arr.insert("hello.description", &mut hello_description);
 
-#[zend_get_module]
-pub fn get_module() -> &'static ModuleEntry {
-    &MODULE_ENTRY
+            arr
+        },
+        vec![],
+    );
+
+    // register classes
+    let mut foo_class = StdClass::new();
+    foo_class.add_property("foo", 100);
+    foo_class.add_method(
+        "getFoo",
+        |this: &mut This, _: &mut [Val]| {
+            let prop = this.get_property("foo");
+            Val::from_val(prop)
+        },
+        vec![],
+    );
+    foo_class.add_method(
+        "setFoo",
+        |this: &mut This, arguments: &mut [Val]| {
+            let prop = this.get_property("foo");
+            prop.set(&arguments[0]);
+        },
+        vec![Argument::by_val("foo")],
+    );
+    module.add_class("FooClass", foo_class);
 }

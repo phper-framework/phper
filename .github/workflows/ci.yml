@@ -7,9 +7,9 @@ on:
     branches: [ "**" ]
 
 env:
-  CARGO_TERM_COLOR: always
-  #  RUST_BACKTRACE: 1
   #  RUST_LOG: debug
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
   RUSTFLAGS: "-D warnings"
 
 jobs:
@@ -26,6 +26,7 @@ jobs:
           - "7.2"
           - "7.3"
           - "7.4"
+          - "8.0"
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,38 +42,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Rust
+      - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
-          components: rustfmt, clippy
+          components: rustfmt
 
-      # - name: Install Cargo make
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     command: install
-      #     args: cargo-make
+      - name: Install Rust Stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
         with:
+          toolchain: nightly
           command: fmt
           args: --all -- --check
 
       - name: Cargo build
         uses: actions-rs/cargo@v1
         with:
+          toolchain: stable
           command: build
           args: --release
 
       - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
+          toolchain: stable
           command: test
           args: --release -- --nocapture
 
       - name: Cargo doc
         uses: actions-rs/cargo@v1
         with:
+          toolchain: stable
           command: doc
