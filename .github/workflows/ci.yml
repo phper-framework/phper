@@ -30,6 +30,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -38,9 +41,6 @@ jobs:
 
       - name: PHP version
         run: php-config --version && php-config --phpapi && php --version
-
-      - name: Checkout
-        uses: actions/checkout@v2
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
