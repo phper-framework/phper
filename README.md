@@ -18,7 +18,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 **os**
 
 - linux
-  
+
 **php**
 
 *version*
@@ -29,7 +29,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 - 7.3
 - 7.4
 - 8.0
-  
+
 *mode*
 
 - nts
@@ -41,7 +41,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 ## Usage
 
 1. Make sure `libclang` and `php` is installed.
-   
+
 ```bash
 # If you are using debian like linux system:
 sudo apt install libclang-10-dev php-cli
@@ -76,13 +76,15 @@ fn main() {
 5. Write you owned extension logic in `lib.rs`.
 
 ```rust
+use phper::{php_get_module, modules::Module};
+
 #[php_get_module]
 pub fn get_module(module: &mut Module) {
     // set module metadata
     module.set_name(env!("CARGO_PKG_NAME"));
     module.set_version(env!("CARGO_PKG_VERSION"));
     module.set_author(env!("CARGO_PKG_AUTHORS"));
-    
+
     // ...
 }
 ```
@@ -110,8 +112,8 @@ extension = myapp
 
 ## examples
 
-See [examples](examples).
+See [examples](https://github.com/jmjoy/phper/tree/master/examples).
 
 ## License
 
-[Unlicense](LICENSE).
+[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).

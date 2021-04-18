@@ -68,7 +68,7 @@ phper = "0.2"
 
 4. Add these code to `main.rs`.
 
-```rust
+```rust,no_run
 use phper::cmd::make;
 
 fn main() {
@@ -79,6 +79,8 @@ fn main() {
 5. Write you owned extension logic in `lib.rs`.
 
 ```rust
+use phper::{php_get_module, modules::Module};
+
 #[php_get_module]
 pub fn get_module(module: &mut Module) {
     // set module metadata
