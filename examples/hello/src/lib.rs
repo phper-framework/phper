@@ -1,9 +1,10 @@
 use phper::{
     arrays::Array,
-    classes::{StdClass, This},
+    classes::StdClass,
     functions::Argument,
     ini::Policy,
     modules::{Module, ModuleArgs},
+    objects::This,
     php_get_module,
     values::{SetVal, Val},
 };

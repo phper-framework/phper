@@ -130,6 +130,7 @@ pub mod functions;
 pub mod ini;
 pub mod logs;
 pub mod modules;
+pub mod objects;
 pub mod strings;
 mod utils;
 pub mod values;

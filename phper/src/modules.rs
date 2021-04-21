@@ -19,11 +19,13 @@ use std::{
 
 static GLOBAL_MODULE: Lazy<RwLock<Module>> = Lazy::new(Default::default);
 
+#[doc(hidden)]
 pub fn read_global_module<R>(f: impl FnOnce(&Module) -> R) -> R {
     let module = (&*GLOBAL_MODULE).read().expect("get write lock failed");
     f(&module)
 }
 
+#[doc(hidden)]
 pub fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
     let mut module = (&*GLOBAL_MODULE).write().expect("get write lock failed");
     f(&mut module)

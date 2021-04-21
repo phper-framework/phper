@@ -1,13 +1,15 @@
-use crate::{
-    classes::{ClassEntry, This},
-    sys::*,
-    values::{ExecuteData, SetVal, Val},
-};
 use std::{
     mem::zeroed,
     os::raw::c_char,
     ptr::null,
     sync::atomic::{AtomicPtr, Ordering},
+};
+
+use crate::{
+    classes::ClassEntry,
+    objects::This,
+    sys::*,
+    values::{ExecuteData, SetVal, Val},
 };
 
 pub trait Function: Send + Sync {

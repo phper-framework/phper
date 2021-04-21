@@ -77,3 +77,7 @@ void phper_zend_string_release(zend_string *s) {
 void phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData) {
     zend_hash_str_update(ht, key, len, pData);
 }
+
+void phper_array_init(zval *arg) {
+    array_init(arg);
+}

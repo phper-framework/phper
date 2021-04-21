@@ -195,7 +195,8 @@ impl SetVal for String {
 impl SetVal for Array {
     fn set_val(&self, val: &mut Val) {
         unsafe {
-            phper_zval_arr(&mut val.inner, self.as_ptr() as *mut _);
+            phper_array_init(val.as_mut());
+            zend_hash_copy((*val.as_mut()).value.arr, self.as_ptr() as *mut _, None);
         }
     }
 }
