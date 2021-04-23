@@ -4,7 +4,7 @@ use phper::{
     functions::Argument,
     ini::Policy,
     modules::{Module, ModuleArgs},
-    objects::This,
+    objects::Object,
     php_get_module,
     values::{SetVal, Val},
 };
@@ -65,7 +65,7 @@ pub fn get_module(module: &mut Module) {
     foo_class.add_property("foo", 100);
     foo_class.add_method(
         "getFoo",
-        |this: &mut This, _: &mut [Val]| {
+        |this: &mut Object, _: &mut [Val]| {
             let prop = this.get_property("foo");
             Val::from_val(prop)
         },
@@ -73,7 +73,7 @@ pub fn get_module(module: &mut Module) {
     );
     foo_class.add_method(
         "setFoo",
-        |this: &mut This, arguments: &mut [Val]| {
+        |this: &mut Object, arguments: &mut [Val]| {
             let prop = this.get_property("foo");
             prop.set(&arguments[0]);
         },

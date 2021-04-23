@@ -1,13 +1,13 @@
 use crate::{classes::ClassEntry, sys::*, values::Val};
 use std::ptr::null_mut;
 
-pub struct This {
+pub struct Object {
     val: *mut Val,
     class: *mut ClassEntry,
 }
 
-impl This {
-    pub(crate) fn new<'a>(val: *mut Val, class: *mut ClassEntry) -> This {
+impl Object {
+    pub(crate) fn new<'a>(val: *mut Val, class: *mut ClassEntry) -> Object {
         assert!(!val.is_null());
         assert!(!class.is_null());
         Self { val, class }

@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     classes::ClassEntry,
-    objects::This,
+    objects::Object,
     sys::*,
     values::{ExecuteData, SetVal, Val},
 };
@@ -28,15 +28,15 @@ where
 }
 
 pub trait Method: Send + Sync {
-    fn call(&self, this: &mut This, arguments: &mut [Val], return_value: &mut Val);
+    fn call(&self, this: &mut Object, arguments: &mut [Val], return_value: &mut Val);
 }
 
 impl<F, R> Method for F
 where
-    F: Fn(&mut This, &mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut Object, &mut [Val]) -> R + Send + Sync,
     R: SetVal,
 {
-    fn call(&self, this: &mut This, arguments: &mut [Val], return_value: &mut Val) {
+    fn call(&self, this: &mut Object, arguments: &mut [Val], return_value: &mut Val) {
         let r = self(this, arguments);
         r.set_val(return_value);
     }
@@ -189,7 +189,7 @@ pub(crate) unsafe extern "C" fn invoke(
             f.call(&mut arguments, return_value);
         }
         Callable::Method(m, class) => {
-            let mut this = This::new(execute_data.get_this(), class.load(Ordering::SeqCst));
+            let mut this = Object::new(execute_data.get_this(), class.load(Ordering::SeqCst));
             m.call(&mut this, &mut arguments, return_value);
         }
     }
