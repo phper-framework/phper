@@ -75,7 +75,7 @@ pub fn get_module(module: &mut Module) {
         "setFoo",
         |this: &mut Object, arguments: &mut [Val]| {
             let prop = this.get_property("foo");
-            prop.set(&arguments[0]);
+            prop.set(&mut arguments[0]);
         },
         vec![Argument::by_val("foo")],
     );

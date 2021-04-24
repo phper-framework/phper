@@ -137,7 +137,7 @@ impl ClassEntity {
         let properties = self.class.properties();
         for property in properties {
             let mut val = Val::null();
-            val.set(&property.value);
+            val.set(&mut property.value);
             zend_declare_property(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),

@@ -22,7 +22,7 @@ where
     R: SetVal,
 {
     fn call(&self, arguments: &mut [Val], return_value: &mut Val) {
-        let r = self(arguments);
+        let mut r = self(arguments);
         r.set_val(return_value);
     }
 }
@@ -37,7 +37,7 @@ where
     R: SetVal,
 {
     fn call(&self, this: &mut Object, arguments: &mut [Val], return_value: &mut Val) {
-        let r = self(this, arguments);
+        let mut r = self(this, arguments);
         r.set_val(return_value);
     }
 }

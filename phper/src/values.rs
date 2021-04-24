@@ -84,7 +84,7 @@ impl Val {
 
     pub fn null() -> Self {
         let mut val = Self::empty();
-        val.set(&());
+        val.set(());
         val
     }
 
@@ -94,7 +94,7 @@ impl Val {
         val
     }
 
-    pub fn from_val(other: &Val) -> Self {
+    pub fn from_val(other: &mut Val) -> Self {
         let mut val = Self::empty();
         val.set(other);
         val
@@ -104,7 +104,7 @@ impl Val {
         &mut self.inner
     }
 
-    pub fn set(&mut self, v: impl SetVal) {
+    pub fn set(&mut self, mut v: impl SetVal) {
         v.set_val(self);
     }
 
@@ -127,11 +127,11 @@ impl Val {
 }
 
 pub trait SetVal {
-    fn set_val(&self, val: &mut Val);
+    fn set_val(&mut self, val: &mut Val);
 }
 
 impl SetVal for () {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
             *val.type_info() = IS_NULL;
         }
@@ -139,7 +139,7 @@ impl SetVal for () {
 }
 
 impl SetVal for bool {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
             *val.type_info() = if *self { IS_TRUE } else { IS_FALSE };
         }
@@ -147,19 +147,19 @@ impl SetVal for bool {
 }
 
 impl SetVal for i32 {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         (*self as i64).set_val(val)
     }
 }
 
 impl SetVal for u32 {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         (*self as i64).set_val(val)
     }
 }
 
 impl SetVal for i64 {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
             (*val.as_mut()).value.lval = *self;
             (*val.as_mut()).u1.type_info = IS_LONG;
@@ -168,7 +168,7 @@ impl SetVal for i64 {
 }
 
 impl SetVal for f64 {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
             (*val.as_mut()).value.dval = *self;
             (*val.as_mut()).u1.type_info = IS_DOUBLE;
@@ -177,7 +177,7 @@ impl SetVal for f64 {
 }
 
 impl SetVal for str {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
             phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
         }
@@ -185,7 +185,7 @@ impl SetVal for str {
 }
 
 impl SetVal for String {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
             phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
         }
@@ -193,16 +193,18 @@ impl SetVal for String {
 }
 
 impl SetVal for Array {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
-            phper_array_init(val.as_mut());
-            zend_hash_copy((*val.as_mut()).value.arr, self.as_ptr() as *mut _, None);
+            let mut new_val = zeroed::<zval>();
+            phper_zval_arr(&mut new_val, self.as_mut_ptr());
+            *self.leak() = true;
+            phper_zval_zval(val.as_mut(), &mut new_val, true.into(), false.into());
         }
     }
 }
 
 impl<T: SetVal> SetVal for Option<T> {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         match self {
             Some(t) => t.set_val(val),
             None => ().set_val(val),
@@ -211,7 +213,7 @@ impl<T: SetVal> SetVal for Option<T> {
 }
 
 impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         match self {
             Ok(t) => t.set_val(val),
             Err(e) => unsafe {
@@ -232,27 +234,21 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 }
 
 impl SetVal for Val {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         unsafe {
-            phper_zval_copy_value(val.as_mut(), &self.inner as *const _ as *mut _);
+            phper_zval_copy_value(val.as_mut(), &mut self.inner);
         }
     }
 }
 
 impl<T: SetVal + ?Sized> SetVal for Box<T> {
-    fn set_val(&self, val: &mut Val) {
-        T::set_val(&self, val)
-    }
-}
-
-impl<T: SetVal + ?Sized> SetVal for &T {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         T::set_val(self, val)
     }
 }
 
 impl<T: SetVal + ?Sized> SetVal for &mut T {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(&mut self, val: &mut Val) {
         T::set_val(self, val)
     }
 }
