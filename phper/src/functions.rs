@@ -1,7 +1,6 @@
 use std::{
     mem::zeroed,
     os::raw::c_char,
-    ptr::null,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
@@ -9,9 +8,9 @@ use crate::{
     classes::ClassEntry,
     objects::Object,
     sys::*,
+    utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
-use crate::utils::ensure_end_with_zero;
 
 pub trait Function: Send + Sync {
     fn call(&self, arguments: &mut [Val], return_value: &mut Val);
@@ -163,16 +162,10 @@ pub(crate) unsafe extern "C" fn invoke(
 
     // Check arguments count.
     if execute_data.num_args() < execute_data.common_required_num_args() {
-        let s = format!(
+        warning!(
             "expects at least {} parameter(s), {} given\0",
             execute_data.common_required_num_args(),
             execute_data.num_args()
-        );
-        php_error_docref1(
-            null(),
-            "\0".as_ptr().cast(),
-            E_WARNING as i32,
-            s.as_ptr().cast(),
         );
         return_value.set(());
         return;

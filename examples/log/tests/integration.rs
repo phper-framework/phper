@@ -8,6 +8,18 @@ fn test_php() {
         &[Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("php")
+            .join("test_php_say.php")],
+        |output| {
+            let stdout = str::from_utf8(&output.stdout).unwrap();
+            stdout == "Hello, world!" && output.status.success()
+        },
+    );
+
+    test_php_scripts_with_condition(
+        env!("CARGO_BIN_EXE_log"),
+        &[Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("php")
             .join("test_php_notice.php")],
         |output| {
             let stdout = str::from_utf8(&output.stdout).unwrap();

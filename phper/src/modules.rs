@@ -4,6 +4,7 @@ use crate::{
     functions::{Argument, Callable, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
+    utils::ensure_end_with_zero,
     EXCEPTION_CLASS_NAME,
 };
 use once_cell::sync::Lazy;
@@ -16,7 +17,6 @@ use std::{
     ptr::{null, null_mut},
     sync::RwLock,
 };
-use crate::utils::ensure_end_with_zero;
 
 static GLOBAL_MODULE: Lazy<RwLock<Module>> = Lazy::new(Default::default);
 

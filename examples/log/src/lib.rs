@@ -1,6 +1,6 @@
 use phper::{
-    deprecated, error, functions::Argument, modules::Module, notice, php_get_module, values::Val,
-    warning,
+    deprecated, echo, error, functions::Argument, modules::Module, notice, php_get_module,
+    values::Val, warning,
 };
 
 #[php_get_module]
@@ -9,6 +9,15 @@ pub fn get_module(module: &mut Module) {
     module.set_name(env!("CARGO_PKG_NAME"));
     module.set_version(env!("CARGO_PKG_VERSION"));
     module.set_author(env!("CARGO_PKG_AUTHORS"));
+
+    module.add_function(
+        "log_say",
+        |params: &mut [Val]| {
+            let message = params[0].as_string();
+            echo!("Hello, {}!", message);
+        },
+        vec![Argument::by_val("message")],
+    );
 
     module.add_function(
         "log_notice",

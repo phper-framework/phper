@@ -1,6 +1,5 @@
-use crate::{arrays::Array, errors::Throwable, sys::*};
+use crate::{arrays::Array, errors::Throwable, sys::*, utils::ensure_end_with_zero};
 use std::{mem::zeroed, slice::from_raw_parts, str, sync::atomic::Ordering};
-use crate::utils::ensure_end_with_zero;
 
 #[repr(transparent)]
 pub struct ExecuteData {
