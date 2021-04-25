@@ -16,6 +16,7 @@ use std::{
     ptr::{null, null_mut},
     sync::RwLock,
 };
+use crate::utils::ensure_end_with_zero;
 
 static GLOBAL_MODULE: Lazy<RwLock<Module>> = Lazy::new(Default::default);
 
@@ -105,20 +106,17 @@ impl Module {
     }
 
     pub fn set_name(&mut self, name: impl ToString) {
-        let mut name = name.to_string();
-        name.push('\0');
+        let name = ensure_end_with_zero(name);
         self.name = name;
     }
 
     pub fn set_version(&mut self, version: impl ToString) {
-        let mut version = version.to_string();
-        version.push('\0');
+        let version = ensure_end_with_zero(version);
         self.version = version;
     }
 
     pub fn set_author(&mut self, author: impl ToString) {
-        let mut author = author.to_string();
-        author.push('\0');
+        let author = ensure_end_with_zero(author);
         self.author = author;
     }
 

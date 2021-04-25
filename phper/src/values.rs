@@ -1,5 +1,6 @@
 use crate::{arrays::Array, errors::Throwable, sys::*};
 use std::{mem::zeroed, slice::from_raw_parts, str, sync::atomic::Ordering};
+use crate::utils::ensure_end_with_zero;
 
 #[repr(transparent)]
 pub struct ExecuteData {
@@ -221,8 +222,7 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
                     .class_entity()
                     .as_ref()
                     .expect("class entry is null pointer");
-                let mut message = e.to_string();
-                message.push('\0');
+                let message = ensure_end_with_zero(&e);
                 zend_throw_exception(
                     class.entry.load(Ordering::SeqCst).cast(),
                     message.as_ptr().cast(),

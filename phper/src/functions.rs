@@ -11,6 +11,7 @@ use crate::{
     sys::*,
     values::{ExecuteData, SetVal, Val},
 };
+use crate::utils::ensure_end_with_zero;
 
 pub trait Function: Send + Sync {
     fn call(&self, arguments: &mut [Val], return_value: &mut Val);
@@ -61,8 +62,7 @@ pub struct FunctionEntity {
 
 impl FunctionEntity {
     pub(crate) fn new(name: impl ToString, handler: Callable, arguments: Vec<Argument>) -> Self {
-        let mut name = name.to_string();
-        name.push('\0');
+        let name = ensure_end_with_zero(name);
         FunctionEntity {
             name,
             handler,
@@ -111,8 +111,7 @@ pub struct Argument {
 
 impl Argument {
     pub fn by_val(name: impl ToString) -> Self {
-        let mut name = name.to_string();
-        name.push('\0');
+        let name = ensure_end_with_zero(name);
         Self {
             name,
             pass_by_ref: false,
@@ -121,8 +120,7 @@ impl Argument {
     }
 
     pub fn by_ref(name: impl ToString) -> Self {
-        let mut name = name.to_string();
-        name.push('\0');
+        let name = ensure_end_with_zero(name);
         Self {
             name,
             pass_by_ref: true,
@@ -131,8 +129,7 @@ impl Argument {
     }
 
     pub fn by_val_optional(name: impl ToString) -> Self {
-        let mut name = name.to_string();
-        name.push('\0');
+        let name = ensure_end_with_zero(name);
         Self {
             name,
             pass_by_ref: false,
@@ -141,8 +138,7 @@ impl Argument {
     }
 
     pub fn by_ref_optional(name: impl ToString) -> Self {
-        let mut name = name.to_string();
-        name.push('\0');
+        let name = ensure_end_with_zero(name);
         Self {
             name,
             pass_by_ref: true,
