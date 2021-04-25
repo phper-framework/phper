@@ -1,5 +1,6 @@
 mod alloc;
 mod inner;
+mod log;
 mod utils;
 
 use proc_macro::TokenStream;

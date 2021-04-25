@@ -6,11 +6,19 @@ use std::{
     fs::read_to_string,
     io::Write,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Output},
 };
 use tempfile::NamedTempFile;
 
 pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[impl AsRef<Path>]) {
+    test_php_scripts_with_condition(exe_path, scripts, |output| output.status.success());
+}
+
+pub fn test_php_scripts_with_condition(
+    exe_path: impl AsRef<Path>,
+    scripts: &[impl AsRef<Path>],
+    condition: impl Fn(Output) -> bool,
+) {
     let context = php_context();
 
     let lib_path = get_lib_path(exe_path);
@@ -38,12 +46,12 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[impl AsRef<Path>]
         let output = cmd.output().unwrap();
         let path = script.to_str().unwrap();
 
-        let mut stdout = String::from_utf8(output.stdout).unwrap();
+        let mut stdout = String::from_utf8(output.stdout.clone()).unwrap();
         if stdout.is_empty() {
             stdout.push_str("<empty>");
         }
 
-        let mut stderr = String::from_utf8(output.stderr).unwrap();
+        let mut stderr = String::from_utf8(output.stderr.clone()).unwrap();
         if stderr.is_empty() {
             stderr.push_str("<empty>");
         }
@@ -55,7 +63,7 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[impl AsRef<Path>]
             stdout,
             stderr,
         );
-        if !output.status.success() {
+        if !condition(output) {
             panic!("test php file `{}` failed", path);
         }
     }

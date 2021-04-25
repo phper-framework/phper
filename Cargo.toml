@@ -9,5 +9,6 @@ members = [
 
     # internal
     "examples/hello",
+    "examples/log",
 #    "examples/mini-curl",
 ]

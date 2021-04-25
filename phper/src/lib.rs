@@ -122,6 +122,9 @@ See [examples](https://github.com/jmjoy/phper/tree/master/examples).
 [Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
 */
 
+#[macro_use]
+mod macros;
+
 pub mod arrays;
 pub mod classes;
 pub mod cmd;
