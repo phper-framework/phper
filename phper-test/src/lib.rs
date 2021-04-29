@@ -10,14 +10,18 @@ use std::{
 };
 use tempfile::NamedTempFile;
 
-pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[impl AsRef<Path>]) {
-    test_php_scripts_with_condition(exe_path, scripts, |output| output.status.success());
+pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
+    let condition = |output: Output| output.status.success();
+    let scripts = scripts
+        .into_iter()
+        .map(|s| (*s, &condition as _))
+        .collect::<Vec<_>>();
+    test_php_scripts_with_condition(exe_path, &*scripts);
 }
 
 pub fn test_php_scripts_with_condition(
     exe_path: impl AsRef<Path>,
-    scripts: &[impl AsRef<Path>],
-    condition: impl Fn(Output) -> bool,
+    scripts: &[(&dyn AsRef<Path>, &dyn Fn(Output) -> bool)],
 ) {
     let context = php_context();
 
@@ -33,7 +37,7 @@ pub fn test_php_scripts_with_condition(
         .write_fmt(format_args!("extension={}\n", lib_path.to_str().unwrap()))
         .unwrap();
 
-    for script in scripts {
+    for (script, condition) in scripts {
         let script = script.as_ref();
         let mut cmd = Command::new(&context.php_bin);
         let args = &[

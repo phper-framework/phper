@@ -24,7 +24,11 @@ fn throw_exception(_: &mut [Val]) -> phper::Result<()> {
 
 #[php_get_module]
 pub fn get_module() -> Module {
-    let mut module = Module::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"));
+    let mut module = Module::new(
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
 
     // register module ini
     module.add_bool_ini("hello.enable", false, Policy::All);

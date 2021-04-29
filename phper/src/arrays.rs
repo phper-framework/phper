@@ -31,7 +31,12 @@ impl Array {
     pub fn insert(&mut self, key: impl AsRef<str>, value: &mut Val) {
         let key = key.as_ref();
         unsafe {
-            phper_zend_hash_str_update(self.inner, key.as_ptr().cast(), key.len(), value.as_mut_ptr());
+            phper_zend_hash_str_update(
+                self.inner,
+                key.as_ptr().cast(),
+                key.len(),
+                value.as_mut_ptr(),
+            );
         }
     }
 

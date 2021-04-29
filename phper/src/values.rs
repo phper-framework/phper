@@ -197,7 +197,12 @@ impl SetVal for Array {
         unsafe {
             let mut new_val = Val::empty();
             phper_zval_arr(new_val.as_mut_ptr(), self.into_raw());
-            phper_zval_zval(val.as_mut_ptr(), new_val.as_mut_ptr(), true.into(), false.into());
+            phper_zval_zval(
+                val.as_mut_ptr(),
+                new_val.as_mut_ptr(),
+                true.into(),
+                false.into(),
+            );
         }
     }
 }

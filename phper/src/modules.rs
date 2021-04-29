@@ -15,9 +15,11 @@ use std::{
     mem::{size_of, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
-    sync::RwLock,
+    sync::{
+        atomic::{AtomicPtr, Ordering},
+        RwLock,
+    },
 };
-use std::sync::atomic::{AtomicPtr, Ordering};
 
 static GLOBAL_MODULE: AtomicPtr<Module> = AtomicPtr::new(null_mut());
 
