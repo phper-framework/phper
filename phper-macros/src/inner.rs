@@ -27,14 +27,8 @@ pub(crate) fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStr
             fn internal(#inputs) #ret {
                 #body
             }
-            let internal: fn(module: &mut ::phper::modules::Module) = internal;
-
-            ::phper::modules::write_global_module(internal);
-            unsafe {
-                ::phper::modules::write_global_module(|module| {
-                    module.module_entry()
-                })
-            }
+            let internal: fn() -> ::phper::modules::Module = internal;
+            unsafe { internal().module_entry() }
         }
     };
 
