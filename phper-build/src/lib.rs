@@ -1,7 +1,3 @@
-//! cfg:
-//!
-//!
-
 use phper_sys::{PHP_DEBUG, PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION, USING_ZTS};
 
 /// Register useful rust cfg for project using phper.

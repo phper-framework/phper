@@ -1,3 +1,10 @@
+/// PHP echo.
+///
+/// # Examples
+///
+/// ```no_run
+/// phper::echo!("Hello, {}!", message)
+/// ```
 #[macro_export]
 macro_rules! echo {
     ($($arg:tt)*) => ({
@@ -5,6 +12,13 @@ macro_rules! echo {
     })
 }
 
+/// PHP error log, will exit the request.
+///
+/// # Examples
+///
+/// ```no_run
+/// phper::errro!("Hello, {}!", message)
+/// ```
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => ({
@@ -12,6 +26,13 @@ macro_rules! error {
     })
 }
 
+/// PHP warning log.
+///
+/// # Examples
+///
+/// ```no_run
+/// phper::warning!("Hello, {}!", message)
+/// ```
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => ({
@@ -19,6 +40,13 @@ macro_rules! warning {
     })
 }
 
+/// PHP notice log.
+///
+/// # Examples
+///
+/// ```no_run
+/// phper::notice!("Hello, {}!", message)
+/// ```
 #[macro_export]
 macro_rules! notice {
     ($($arg:tt)*) => ({
@@ -26,6 +54,13 @@ macro_rules! notice {
     })
 }
 
+/// PHP deprecated log.
+///
+/// # Examples
+///
+/// ```no_run
+/// phper::deprecated!("Hello, {}!", message)
+/// ```
 #[macro_export]
 macro_rules! deprecated {
     ($($arg:tt)*) => ({

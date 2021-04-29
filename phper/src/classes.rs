@@ -136,13 +136,14 @@ impl ClassEntity {
     pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.class.properties();
         for property in properties {
-            let mut val = Val::null();
-            val.set(&mut property.value);
+            // TODO Fix
+            // let mut val = Val::null();
+            // val.set(property.value);
             zend_declare_property(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),
                 property.name.len(),
-                val.as_mut(),
+                null_mut(),
                 Visibility::Public as c_int,
             );
         }

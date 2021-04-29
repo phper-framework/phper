@@ -2,8 +2,10 @@ use crate::{classes::ClassEntity, modules::read_global_module, Error::Other};
 use anyhow::anyhow;
 use std::{error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
+/// Type of [std::result::Result]<T, [crate::Error]>.
 pub type Result<T> = std::result::Result<T, self::Error>;
 
+/// Crate level Error, which also can become an exception in php.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -20,12 +22,14 @@ pub enum Error {
 }
 
 impl Error {
+    /// An essy way to cause an anyhow::Error.
     pub fn other(message: impl ToString) -> Self {
         let message = message.to_string();
         Other(anyhow!(message))
     }
 }
 
+/// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
 pub trait Throwable: error::Error {
     fn class_entity(&self) -> *const ClassEntity;
     fn code(&self) -> u64;

@@ -23,10 +23,15 @@ impl Array {
         self.inner
     }
 
+    pub fn into_raw(mut self) -> *mut zend_array {
+        self.leak = true;
+        self.inner
+    }
+
     pub fn insert(&mut self, key: impl AsRef<str>, value: &mut Val) {
         let key = key.as_ref();
         unsafe {
-            phper_zend_hash_str_update(self.inner, key.as_ptr().cast(), key.len(), value.as_mut());
+            phper_zend_hash_str_update(self.inner, key.as_ptr().cast(), key.len(), value.as_mut_ptr());
         }
     }
 
@@ -40,10 +45,6 @@ impl Array {
 
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(self.inner) as usize }
-    }
-
-    pub(crate) fn leak(&mut self) -> &mut bool {
-        &mut self.leak
     }
 }
 
