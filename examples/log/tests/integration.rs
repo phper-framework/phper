@@ -1,26 +1,25 @@
 use phper_test::test_php_scripts_with_condition;
 use std::{env, path::Path, str};
+use std::process::Output;
 
 #[test]
 fn test_php() {
+    let base_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("php");
+
     test_php_scripts_with_condition(
         env!("CARGO_BIN_EXE_log"),
         &[
             (
-                &Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests")
-                    .join("php")
-                    .join("test_php_say.php"),
+                &base_dir.join("test_php_say.php"),
                 &|output| {
                     let stdout = str::from_utf8(&output.stdout).unwrap();
                     stdout == "Hello, world!" && output.status.success()
                 },
             ),
             (
-                &Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests")
-                    .join("php")
-                    .join("test_php_notice.php"),
+                &base_dir.join("test_php_notice.php"),
                 &|output| {
                     let stdout = str::from_utf8(&output.stdout).unwrap();
                     stdout.contains("Notice:")
@@ -29,10 +28,7 @@ fn test_php() {
                 },
             ),
             (
-                &Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests")
-                    .join("php")
-                    .join("test_php_warning.php"),
+                &base_dir.join("test_php_warning.php"),
                 &|output| {
                     let stdout = str::from_utf8(&output.stdout).unwrap();
                     stdout.contains("Warning:")
@@ -41,10 +37,7 @@ fn test_php() {
                 },
             ),
             (
-                &Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests")
-                    .join("php")
-                    .join("test_php_error.php"),
+                &base_dir.join("test_php_error.php"),
                 &|output| {
                     let stdout = str::from_utf8(&output.stdout).unwrap();
                     stdout.contains("Fatal error:")
@@ -52,10 +45,7 @@ fn test_php() {
                 },
             ),
             (
-                &Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests")
-                    .join("php")
-                    .join("test_php_deprecated.php"),
+                &base_dir.join("test_php_deprecated.php"),
                 &|output| {
                     let stdout = str::from_utf8(&output.stdout).unwrap();
                     stdout.contains("Deprecated:")

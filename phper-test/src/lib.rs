@@ -1,3 +1,15 @@
+#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+
+/*!
+Integration test tool for [phper](https://crates.io/crates/phper).
+
+The `php-config` is needed. You can set environment `PHP_CONFIG` to specify the path.
+
+## License
+
+[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
+!*/
+
 use once_cell::sync::OnceCell;
 use std::{
     env,
@@ -10,6 +22,14 @@ use std::{
 };
 use tempfile::NamedTempFile;
 
+/// Check your extension by executing the php script, if the all executing return success, than the test is pass.
+///
+/// - `exec_path` is the path of the make executable, which will be used to detect the path of
+/// extension lib.
+///
+/// - `scripts` is the path of your php test scripts.
+///
+/// See [example hello integration test](https://github.com/jmjoy/phper/blob/master/examples/hello/tests/integration.rs).
 pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
     let condition = |output: Output| output.status.success();
     let scripts = scripts
@@ -19,6 +39,14 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]
     test_php_scripts_with_condition(exe_path, &*scripts);
 }
 
+/// Check your extension by executing the php script, if the all your specified checkers are pass, than the test is pass.
+///
+/// - `exec_path` is the path of the make executable, which will be used to detect the path of
+/// extension lib.
+///
+/// - `scripts` is the slice of the tuple, format is `(path of your php test script, checker function or closure)`.
+///
+/// See [example log integration test](https://github.com/jmjoy/phper/blob/master/examples/log/tests/integration.rs).
 pub fn test_php_scripts_with_condition(
     exe_path: impl AsRef<Path>,
     scripts: &[(&dyn AsRef<Path>, &dyn Fn(Output) -> bool)],

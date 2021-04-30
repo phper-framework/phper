@@ -1,3 +1,15 @@
+#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+
+/*!
+Generate stubs for project using [phper](https://crates.io/crates/phper).
+
+Add this crate in your `[build-dependencies]` and using in `build.rs`.
+
+## License
+
+[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
+*/
+
 use phper_sys::{PHP_DEBUG, PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION, USING_ZTS};
 
 /// Register useful rust cfg for project using phper.

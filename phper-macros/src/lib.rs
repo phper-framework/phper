@@ -1,3 +1,13 @@
+#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+
+/*!
+The proc-macros for [phper](https://crates.io/crates/phper).
+
+## License
+
+[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
+*/
+
 mod alloc;
 mod inner;
 mod log;

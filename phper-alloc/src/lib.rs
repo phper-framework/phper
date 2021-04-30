@@ -1,4 +1,11 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+/*!
+Alloc related items for [phper](https://crates.io/crates/phper).
+
+## License
+
+[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
+*/
 
 /// The Box which use php `emalloc` and `efree` to manage memory.
 ///
