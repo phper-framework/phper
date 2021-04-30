@@ -11,4 +11,5 @@ members = [
     "examples/hello",
     "examples/log",
     "examples/http-client",
+    "tests/integration",
 ]
