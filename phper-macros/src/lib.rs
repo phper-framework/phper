@@ -51,14 +51,18 @@ pub fn c_str_ptr(input: TokenStream) -> TokenStream {
 /// use phper::{php_get_module, modules::Module};
 ///
 /// #[php_get_module]
-/// pub fn get_module(module: &mut Module) {
-///     // set module metadata
-///     module.set_name(env!("CARGO_PKG_NAME"));
-///     module.set_version(env!("CARGO_PKG_VERSION"));
-///     module.set_author(env!("CARGO_PKG_AUTHORS"));
+/// pub fn get_module() -> Module {
+///     let mut module = Module::new(
+///         env!("CARGO_PKG_NAME"),
+///         env!("CARGO_PKG_VERSION"),
+///         env!("CARGO_PKG_AUTHORS"),
+///     );
 ///
 ///     // ...
+///
+///     module
 /// }
+///
 /// ```
 #[proc_macro_attribute]
 pub fn php_get_module(attr: TokenStream, input: TokenStream) -> TokenStream {

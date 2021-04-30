@@ -35,6 +35,7 @@ pub fn try_make() -> crate::Result<()> {
             let extension_dir = CStr::from_bytes_with_nul(PHP_EXTENSION_DIR)?.to_str()?;
             println!("Installing shared extensions:     {}", extension_dir);
             let ext_path = Path::new(extension_dir).join(ext_name);
+            fs::create_dir_all(extension_dir)?;
             fs::copy(lib_path, ext_path)?;
         }
     }
@@ -52,7 +53,11 @@ fn get_lib_path_and_ext_name() -> crate::Result<(PathBuf, OsString)> {
 
     let mut exe_name = OsString::new();
     exe_name.push("lib");
-    exe_name.push(exe_stem);
+    let lib_stem = exe_stem
+        .to_str()
+        .context("failed to generate target lib name")?
+        .replace("-", "_");
+    exe_name.push(lib_stem);
     exe_name.push(".so");
 
     let mut ext_name = OsString::new();
