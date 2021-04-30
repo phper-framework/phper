@@ -262,10 +262,10 @@ impl SetVal for String {
 }
 
 impl SetVal for Array {
-    fn set_val(self, val: &mut Val) {
+    fn set_val(mut self, val: &mut Val) {
         unsafe {
             let mut new_val = Val::empty();
-            phper_zval_arr(new_val.as_mut_ptr(), self.into_raw());
+            phper_zval_arr(new_val.as_mut_ptr(), self.as_mut_ptr());
             phper_zval_zval(
                 val.as_mut_ptr(),
                 new_val.as_mut_ptr(),
