@@ -1,5 +1,5 @@
 [package]
-name = "values"
+name = "integration"
 version = "0.1.0"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"

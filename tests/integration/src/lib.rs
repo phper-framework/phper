@@ -12,7 +12,7 @@ pub fn get_module() -> Module {
         env!("CARGO_PKG_AUTHORS"),
     );
 
-    // ...
+    values::integrate(&mut module);
 
     module
 }

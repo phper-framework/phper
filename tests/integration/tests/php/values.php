@@ -1,5 +1,7 @@
 <?php
 
-ini_set("display_errors", "On");
-ini_set("display_startup_errors", "On");
-error_reporting(E_ALL);
+require_once __DIR__ . '/_common.php';
+
+assert_eq(integration_values_return_null(), null);
+assert_eq(integration_values_return_i32(), 32);
+assert_eq(integration_values_return_i64(), 64);
