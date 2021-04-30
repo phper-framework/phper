@@ -135,6 +135,7 @@ pub mod modules;
 pub mod objects;
 pub mod output;
 pub mod strings;
+pub mod types;
 mod utils;
 pub mod values;
 

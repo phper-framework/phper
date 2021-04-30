@@ -1,5 +1,15 @@
-use crate::{arrays::Array, errors::Throwable, sys::*, utils::ensure_end_with_zero};
-use std::{mem::zeroed, slice::from_raw_parts, str, sync::atomic::Ordering};
+use crate::{
+    arrays::Array, errors::Throwable, sys::*, types::get_type_by_const,
+    utils::ensure_end_with_zero, TypeError,
+};
+use std::{
+    mem::zeroed,
+    os::raw::{c_char, c_int},
+    slice::from_raw_parts,
+    str,
+    str::Utf8Error,
+    sync::atomic::Ordering,
+};
 
 #[repr(transparent)]
 pub struct ExecuteData {
@@ -45,7 +55,7 @@ impl ExecuteData {
         phper_get_this(&mut self.inner).cast()
     }
 
-    pub unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
+    pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
         _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
@@ -108,21 +118,80 @@ impl Val {
         v.set_val(self);
     }
 
-    unsafe fn type_info(&mut self) -> &mut u32 {
+    #[inline]
+    fn type_info(&self) -> u32 {
+        unsafe { self.inner.u1.type_info }
+    }
+
+    fn type_name(&self) -> crate::Result<String> {
+        get_type_by_const(unsafe { self.type_info() })
+    }
+
+    unsafe fn type_info_mut(&mut self) -> &mut u32 {
         &mut self.inner.u1.type_info
     }
 
-    pub fn as_string(&mut self) -> String {
-        unsafe {
-            let s = phper_zval_get_string(&mut self.inner);
-            let buf = from_raw_parts(&(*s).val as *const i8 as *const u8, (*s).len);
-            phper_zend_string_release(s);
-            str::from_utf8(buf).unwrap().to_string()
+    pub fn as_bool(&self) -> crate::Result<bool> {
+        match self.type_info() {
+            IS_TRUE => Ok(true),
+            IS_FALSE => Ok(false),
+            _ => Err(self.must_be_type_error("bool").into()),
         }
     }
 
-    pub fn as_i64(&mut self) -> i64 {
-        unsafe { phper_zval_get_long(&mut self.inner) }
+    pub fn as_i64(&self) -> crate::Result<i64> {
+        if self.type_info() == IS_LONG {
+            unsafe { Ok(self.inner.value.lval) }
+        } else {
+            Err(self.must_be_type_error("long").into())
+        }
+    }
+
+    pub fn as_i64_value(&self) -> i64 {
+        unsafe { phper_zval_get_long(&self.inner as *const _ as *mut _) }
+    }
+
+    pub fn as_f64(&self) -> crate::Result<f64> {
+        if self.type_info() == IS_DOUBLE {
+            unsafe { Ok(self.inner.value.dval) }
+        } else {
+            Err(self.must_be_type_error("float").into())
+        }
+    }
+
+    pub fn as_string(&self) -> crate::Result<String> {
+        if self.type_info() == IS_STRING {
+            unsafe {
+                let s = self.inner.value.str;
+                let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
+                let string = str::from_utf8(buf)?.to_string();
+                Ok(string)
+            }
+        } else {
+            Err(self.must_be_type_error("string").into())
+        }
+    }
+
+    pub fn as_string_value(&self) -> Result<String, Utf8Error> {
+        unsafe {
+            let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
+            let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
+            let string = str::from_utf8(buf)?.to_string();
+            phper_zend_string_release(s);
+            Ok(string)
+        }
+    }
+
+    pub fn as_array(&self) {}
+
+    fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
+        match self.type_name() {
+            Ok(type_name) => {
+                let message = format!("must be of type {}, {} given", expect_type, type_name);
+                TypeError::new(message).into()
+            }
+            Err(e) => e.into(),
+        }
     }
 }
 
@@ -133,7 +202,7 @@ pub trait SetVal {
 impl SetVal for () {
     fn set_val(self, val: &mut Val) {
         unsafe {
-            *val.type_info() = IS_NULL;
+            *val.type_info_mut() = IS_NULL;
         }
     }
 }
@@ -141,7 +210,7 @@ impl SetVal for () {
 impl SetVal for bool {
     fn set_val(self, val: &mut Val) {
         unsafe {
-            *val.type_info() = if self { IS_TRUE } else { IS_FALSE };
+            *val.type_info_mut() = if self { IS_TRUE } else { IS_FALSE };
         }
     }
 }

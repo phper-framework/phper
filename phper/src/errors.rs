@@ -18,6 +18,9 @@ pub enum Error {
     FromBytesWithNul(#[from] FromBytesWithNulError),
 
     #[error(transparent)]
+    TypeError(#[from] TypeError),
+
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
@@ -26,6 +29,19 @@ impl Error {
     pub fn other(message: impl ToString) -> Self {
         let message = message.to_string();
         Other(anyhow!(message))
+    }
+}
+
+/// PHP type error.
+#[derive(thiserror::Error, Debug)]
+#[error("{message}")]
+pub struct TypeError {
+    message: String,
+}
+
+impl TypeError {
+    pub fn new(message: String) -> Self {
+        Self { message }
     }
 }
 

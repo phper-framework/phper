@@ -13,9 +13,9 @@ fn module_init(_args: ModuleArgs) -> bool {
     true
 }
 
-fn say_hello(arguments: &mut [Val]) -> impl SetVal {
-    let name = arguments[0].as_string();
-    format!("Hello, {}!\n", name)
+fn say_hello(arguments: &mut [Val]) -> phper::Result<String> {
+    let name = arguments[0].as_string_value()?;
+    Ok(format!("Hello, {}!\n", name))
 }
 
 fn throw_exception(_: &mut [Val]) -> phper::Result<()> {
@@ -66,9 +66,9 @@ pub fn get_module() -> Module {
     foo_class.add_property("foo", 100);
     foo_class.add_method(
         "getFoo",
-        |this: &mut Object, _: &mut [Val]| {
+        |this: &mut Object, _: &mut [Val]| -> phper::Result<Val> {
             let prop = this.get_property("foo");
-            Val::new(prop.as_string())
+            Ok(Val::new(prop.as_string_value()?))
         },
         vec![],
     );

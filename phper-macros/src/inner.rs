@@ -22,6 +22,7 @@ pub(crate) fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStr
 
     let result = quote! {
         #[no_mangle]
+        #[doc(hidden)]
         #(#attrs)*
         #vis extern "C" fn #name() -> *const ::phper::sys::zend_module_entry {
             fn internal(#inputs) #ret {
