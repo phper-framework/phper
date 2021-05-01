@@ -1,5 +1,5 @@
 use crate::{sys::*, values::Val};
-use std::mem::{size_of, zeroed};
+use std::mem::zeroed;
 
 #[repr(transparent)]
 pub struct Array {
@@ -15,6 +15,11 @@ impl Array {
         }
     }
 
+    pub(crate) unsafe fn from_raw<'a>(ptr: *mut zend_array) -> &'a mut Array {
+        let ptr = ptr as *mut Array;
+        ptr.as_mut().expect("ptr shouldn't be null")
+    }
+
     pub fn as_ptr(&self) -> *const zend_array {
         &self.inner
     }
@@ -23,7 +28,7 @@ impl Array {
         &mut self.inner
     }
 
-    pub fn insert(&mut self, key: impl AsRef<str>, value: &mut Val) {
+    pub fn insert(&mut self, key: impl AsRef<str>, mut value: Val) {
         let key = key.as_ref();
         unsafe {
             phper_zend_hash_str_update(

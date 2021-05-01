@@ -22,7 +22,7 @@ where
     R: SetVal,
 {
     fn call(&self, arguments: &mut [Val], return_value: &mut Val) {
-        let mut r = self(arguments);
+        let r = self(arguments);
         r.set_val(return_value);
     }
 }

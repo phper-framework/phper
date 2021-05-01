@@ -1,17 +1,14 @@
 use crate::{
     arrays::Array,
     errors::Throwable,
+    objects::Object,
     sys::*,
     types::{get_type_by_const, Type},
     utils::ensure_end_with_zero,
     TypeError,
 };
 use std::{
-    mem::zeroed,
-    os::raw::{c_char, c_int},
-    slice::from_raw_parts,
-    str,
-    str::Utf8Error,
+    mem::zeroed, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error,
     sync::atomic::Ordering,
 };
 
@@ -118,24 +115,21 @@ impl Val {
         &mut self.inner
     }
 
-    pub fn set(&mut self, mut v: impl SetVal) {
+    pub fn set(&mut self, v: impl SetVal) {
         v.set_val(self);
     }
 
-    #[inline]
     fn get_type(&self) -> Type {
         let t = unsafe { self.inner.u1.type_info };
         t.into()
     }
 
     fn get_type_name(&self) -> crate::Result<String> {
-        get_type_by_const(unsafe { self.get_type() as u32 })
+        get_type_by_const(self.get_type() as u32)
     }
 
     fn set_type(&mut self, t: Type) {
-        unsafe {
-            self.inner.u1.type_info = t as u32;
-        }
+        self.inner.u1.type_info = t as u32;
     }
 
     pub fn as_bool(&self) -> crate::Result<bool> {
@@ -167,15 +161,14 @@ impl Val {
     }
 
     pub fn as_string(&self) -> crate::Result<String> {
-        if self.get_type() == Type::String {
-            unsafe {
+        match self.get_type() {
+            Type::String | Type::StringEx => unsafe {
                 let s = self.inner.value.str;
                 let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
                 let string = str::from_utf8(buf)?.to_string();
                 Ok(string)
-            }
-        } else {
-            Err(self.must_be_type_error("string").into())
+            },
+            _ => Err(self.must_be_type_error("string").into()),
         }
     }
 
@@ -189,7 +182,29 @@ impl Val {
         }
     }
 
-    pub fn as_array(&self) {}
+    pub fn as_array(&self) -> crate::Result<&Array> {
+        match self.get_type() {
+            Type::Array | Type::ArrayEx => unsafe {
+                let ptr = self.inner.value.arr;
+                Ok(Array::from_raw(ptr))
+            },
+            _ => Err(self.must_be_type_error("array").into()),
+        }
+    }
+
+    pub fn as_mut_array(&mut self) -> crate::Result<&mut Array> {
+        match self.get_type() {
+            Type::Array | Type::ArrayEx => unsafe {
+                let ptr = self.inner.value.arr;
+                Ok(Array::from_raw(ptr))
+            },
+            _ => Err(self.must_be_type_error("array").into()),
+        }
+    }
+
+    pub fn as_object(&self) -> crate::Result<Object> {
+        todo!()
+    }
 
     fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
         match self.get_type_name() {
@@ -199,6 +214,16 @@ impl Val {
             }
             Err(e) => e.into(),
         }
+    }
+
+    fn deep_copy(&self, other: &mut Val) -> crate::Result<()> {
+        match self.get_type() {
+            Type::Null => SetVal::set_val((), other),
+            Type::Long => SetVal::set_val(self.as_i64()?, other),
+            Type::String | Type::StringEx => SetVal::set_val(self.as_string()?, other),
+            _ => unreachable!(),
+        }
+        Ok(())
     }
 }
 
@@ -267,16 +292,16 @@ impl SetVal for String {
 impl SetVal for Array {
     fn set_val(mut self, val: &mut Val) {
         unsafe {
-            let mut new_val = Val::empty();
-            phper_zval_arr(new_val.as_mut_ptr(), self.as_mut_ptr());
-            phper_zval_zval(
-                val.as_mut_ptr(),
-                new_val.as_mut_ptr(),
-                true.into(),
-                false.into(),
-            );
+            phper_array_init(val.as_mut_ptr());
+            phper_zend_hash_merge_with_key((*val.as_mut_ptr()).value.arr, self.as_mut_ptr());
         }
     }
+}
+
+extern "C" fn array_copy_ctor(zv: *mut zval) {
+    let val = unsafe { Val::from_mut(zv) };
+    let other = unsafe { Val::from_mut(zv) };
+    val.deep_copy(other).expect("deep copy failed");
 }
 
 impl<T: SetVal> SetVal for Option<T> {

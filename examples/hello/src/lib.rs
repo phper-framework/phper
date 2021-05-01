@@ -51,10 +51,10 @@ pub fn get_module() -> Module {
             let mut arr = Array::new();
 
             let mut hello_enable = Val::new(Module::get_bool_ini("hello.enable"));
-            arr.insert("hello.enable", &mut hello_enable);
+            arr.insert("hello.enable", hello_enable);
 
             let mut hello_description = Val::new(Module::get_str_ini("hello.description"));
-            arr.insert("hello.description", &mut hello_description);
+            arr.insert("hello.description", hello_description);
 
             arr
         },

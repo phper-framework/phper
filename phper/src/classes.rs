@@ -10,7 +10,7 @@ use once_cell::sync::OnceCell;
 use crate::{
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
-    values::{SetVal, Val},
+    values::SetVal,
 };
 
 pub trait Class: Send + Sync {

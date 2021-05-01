@@ -1,6 +1,6 @@
 use crate::sys::*;
 use num_traits::cast::FromPrimitive;
-use std::{convert::TryInto, ffi::CStr, os::raw::c_int};
+use std::{ffi::CStr, os::raw::c_int};
 
 #[derive(FromPrimitive, PartialEq)]
 #[repr(u32)]
@@ -13,7 +13,9 @@ pub enum Type {
     Long = IS_LONG,
     Double = IS_DOUBLE,
     String = IS_STRING,
+    StringEx = IS_STRING_EX,
     Array = IS_ARRAY,
+    ArrayEx = IS_ARRAY_EX,
     Object = IS_OBJECT,
     Resource = IS_RESOURCE,
     Reference = IS_REFERENCE,
