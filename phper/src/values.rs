@@ -1,6 +1,10 @@
 use crate::{
-    arrays::Array, errors::Throwable, sys::*, types::get_type_by_const,
-    utils::ensure_end_with_zero, TypeError,
+    arrays::Array,
+    errors::Throwable,
+    sys::*,
+    types::{get_type_by_const, Type},
+    utils::ensure_end_with_zero,
+    TypeError,
 };
 use std::{
     mem::zeroed,
@@ -119,28 +123,31 @@ impl Val {
     }
 
     #[inline]
-    fn type_info(&self) -> u32 {
-        unsafe { self.inner.u1.type_info }
+    fn get_type(&self) -> Type {
+        let t = unsafe { self.inner.u1.type_info };
+        t.into()
     }
 
-    fn type_name(&self) -> crate::Result<String> {
-        get_type_by_const(unsafe { self.type_info() })
+    fn get_type_name(&self) -> crate::Result<String> {
+        get_type_by_const(unsafe { self.get_type() as u32 })
     }
 
-    unsafe fn type_info_mut(&mut self) -> &mut u32 {
-        &mut self.inner.u1.type_info
+    fn set_type(&mut self, t: Type) {
+        unsafe {
+            self.inner.u1.type_info = t as u32;
+        }
     }
 
     pub fn as_bool(&self) -> crate::Result<bool> {
-        match self.type_info() {
-            IS_TRUE => Ok(true),
-            IS_FALSE => Ok(false),
+        match self.get_type() {
+            Type::True => Ok(true),
+            Type::False => Ok(false),
             _ => Err(self.must_be_type_error("bool").into()),
         }
     }
 
     pub fn as_i64(&self) -> crate::Result<i64> {
-        if self.type_info() == IS_LONG {
+        if self.get_type() == Type::Long {
             unsafe { Ok(self.inner.value.lval) }
         } else {
             Err(self.must_be_type_error("long").into())
@@ -152,7 +159,7 @@ impl Val {
     }
 
     pub fn as_f64(&self) -> crate::Result<f64> {
-        if self.type_info() == IS_DOUBLE {
+        if self.get_type() == Type::Double {
             unsafe { Ok(self.inner.value.dval) }
         } else {
             Err(self.must_be_type_error("float").into())
@@ -160,7 +167,7 @@ impl Val {
     }
 
     pub fn as_string(&self) -> crate::Result<String> {
-        if self.type_info() == IS_STRING {
+        if self.get_type() == Type::String {
             unsafe {
                 let s = self.inner.value.str;
                 let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
@@ -185,7 +192,7 @@ impl Val {
     pub fn as_array(&self) {}
 
     fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
-        match self.type_name() {
+        match self.get_type_name() {
             Ok(type_name) => {
                 let message = format!("must be of type {}, {} given", expect_type, type_name);
                 TypeError::new(message).into()
@@ -201,17 +208,13 @@ pub trait SetVal {
 
 impl SetVal for () {
     fn set_val(self, val: &mut Val) {
-        unsafe {
-            *val.type_info_mut() = IS_NULL;
-        }
+        val.set_type(Type::Null);
     }
 }
 
 impl SetVal for bool {
     fn set_val(self, val: &mut Val) {
-        unsafe {
-            *val.type_info_mut() = if self { IS_TRUE } else { IS_FALSE };
-        }
+        val.set_type(if self { Type::True } else { Type::False });
     }
 }
 
@@ -229,18 +232,18 @@ impl SetVal for u32 {
 
 impl SetVal for i64 {
     fn set_val(self, val: &mut Val) {
+        val.set_type(Type::Long);
         unsafe {
             (*val.as_mut_ptr()).value.lval = self;
-            (*val.as_mut_ptr()).u1.type_info = IS_LONG;
         }
     }
 }
 
 impl SetVal for f64 {
     fn set_val(self, val: &mut Val) {
+        val.set_type(Type::Double);
         unsafe {
             (*val.as_mut_ptr()).value.dval = self;
-            (*val.as_mut_ptr()).u1.type_info = IS_DOUBLE;
         }
     }
 }
