@@ -1,4 +1,5 @@
 use phper::{arrays::Array, modules::Module, values::Val};
+use std::collections::HashMap;
 
 pub fn integrate(module: &mut Module) {
     integrate_returns(module);
@@ -51,6 +52,26 @@ fn integrate_returns(module: &mut Module) {
         vec![],
     );
     module.add_function(
+        "integration_values_return_i64_vec",
+        integration_values_return_i64_vec,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_string_vec",
+        integration_values_return_string_vec,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_i64_map",
+        integration_values_return_i64_map,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_string_map",
+        integration_values_return_string_map,
+        vec![],
+    );
+    module.add_function(
         "integration_values_return_array",
         integration_values_return_array,
         vec![],
@@ -89,6 +110,30 @@ fn integration_values_return_str(_: &mut [Val]) -> &'static str {
 
 fn integration_values_return_string(_: &mut [Val]) -> String {
     "foo".to_string()
+}
+
+fn integration_values_return_i64_vec(_: &mut [Val]) -> Vec<i64> {
+    vec![0, 1, 2]
+}
+
+fn integration_values_return_string_vec(_: &mut [Val]) -> Vec<String> {
+    vec!["a".to_string(), "b".to_string(), "c".to_string()]
+}
+
+fn integration_values_return_i64_map(_: &mut [Val]) -> HashMap<&'static str, i64> {
+    let mut map = HashMap::new();
+    map.insert("a", 0);
+    map.insert("b", 1);
+    map.insert("c", 2);
+    map
+}
+
+fn integration_values_return_string_map(_: &mut [Val]) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    map.insert("a".to_string(), "x".to_string());
+    map.insert("b".to_string(), "y".to_string());
+    map.insert("c".to_string(), "z".to_string());
+    map
 }
 
 fn integration_values_return_array(_: &mut [Val]) -> Array {

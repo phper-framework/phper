@@ -11,4 +11,8 @@ assert_eq(integration_values_return_i64(), 64);
 assert_eq(integration_values_return_f64(), 64.0);
 assert_eq(integration_values_return_str(), "foo");
 assert_eq(integration_values_return_string(), "foo");
+assert_eq(integration_values_return_i64_vec(), [0, 1, 2]);
+assert_eq(integration_values_return_string_vec(), ["a", "b", "c"]);
+assert_eq(integration_values_return_i64_map(), ["a" => 0, "b" => 1, "c" => 2]);
+assert_eq(integration_values_return_string_map(), ["a" => "x", "b" => "y", "c" => "z"]);
 assert_eq(integration_values_return_array(), ["a" => 1, "b" => "foo"]);

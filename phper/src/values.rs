@@ -8,7 +8,7 @@ use crate::{
     TypeError,
 };
 use std::{
-    mem::zeroed, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error,
+    collections::HashMap, mem::zeroed, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error,
     sync::atomic::Ordering,
 };
 
@@ -285,6 +285,38 @@ impl SetVal for String {
     fn set_val(self, val: &mut Val) {
         unsafe {
             phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
+        }
+    }
+}
+
+impl<T: SetVal> SetVal for Vec<T> {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            phper_array_init(val.as_mut_ptr());
+            for (k, v) in self.into_iter().enumerate() {
+                zend_hash_index_update(
+                    (*val.as_mut_ptr()).value.arr,
+                    k as u64,
+                    Val::new(v).as_mut_ptr(),
+                );
+            }
+        }
+    }
+}
+
+impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            phper_array_init(val.as_mut_ptr());
+            for (k, v) in self {
+                let k = k.as_ref();
+                zend_hash_str_update(
+                    (*val.as_mut_ptr()).value.arr,
+                    k.as_ptr().cast(),
+                    k.len(),
+                    Val::new(v).as_mut_ptr(),
+                );
+            }
         }
     }
 }
