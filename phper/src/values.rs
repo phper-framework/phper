@@ -7,6 +7,7 @@ use crate::{
     utils::ensure_end_with_zero,
     TypeError,
 };
+use indexmap::map::IndexMap;
 use std::{
     collections::HashMap, mem::zeroed, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error,
     sync::atomic::Ordering,
@@ -227,6 +228,10 @@ impl Val {
     }
 }
 
+/// The trait for setting the value of [Val], mainly as the return value of
+/// [crate::functions::Function] and [crate::functions::Method], and initializer of [Val].
+///
+/// TODO Fix the possibility of leak memory.
 pub trait SetVal {
     fn set_val(self, val: &mut Val);
 }
@@ -304,7 +309,27 @@ impl<T: SetVal> SetVal for Vec<T> {
     }
 }
 
+/// Setting the val to an array, Because of the feature of [std::collections::HashMap], the item
+/// order of array is not guarantee.
 impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            phper_array_init(val.as_mut_ptr());
+            for (k, v) in self {
+                let k = k.as_ref();
+                zend_hash_str_update(
+                    (*val.as_mut_ptr()).value.arr,
+                    k.as_ptr().cast(),
+                    k.len(),
+                    Val::new(v).as_mut_ptr(),
+                );
+            }
+        }
+    }
+}
+
+/// Setting the val to an array, which preserves item order.
+impl<K: AsRef<str>, V: SetVal> SetVal for IndexMap<K, V> {
     fn set_val(self, val: &mut Val) {
         unsafe {
             phper_array_init(val.as_mut_ptr());
@@ -328,12 +353,6 @@ impl SetVal for Array {
             phper_zend_hash_merge_with_key((*val.as_mut_ptr()).value.arr, self.as_mut_ptr());
         }
     }
-}
-
-extern "C" fn array_copy_ctor(zv: *mut zval) {
-    let val = unsafe { Val::from_mut(zv) };
-    let other = unsafe { Val::from_mut(zv) };
-    val.deep_copy(other).expect("deep copy failed");
 }
 
 impl<T: SetVal> SetVal for Option<T> {

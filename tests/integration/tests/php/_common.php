@@ -9,3 +9,8 @@ function assert_eq($left, $right) {
         throw new Exception(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));
     }
 }
+
+function array_ksort($array) {
+    ksort($array);
+    return $array;
+}

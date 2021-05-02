@@ -1,3 +1,4 @@
+use indexmap::map::IndexMap;
 use phper::{arrays::Array, modules::Module, values::Val};
 use std::collections::HashMap;
 
@@ -72,8 +73,23 @@ fn integrate_returns(module: &mut Module) {
         vec![],
     );
     module.add_function(
+        "integration_values_return_i64_index_map",
+        integration_values_return_i64_index_map,
+        vec![],
+    );
+    module.add_function(
         "integration_values_return_array",
         integration_values_return_array,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_option_i64_some",
+        integration_values_return_option_i64_some,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_option_i64_none",
+        integration_values_return_option_i64_none,
         vec![],
     );
 }
@@ -136,9 +152,25 @@ fn integration_values_return_string_map(_: &mut [Val]) -> HashMap<String, String
     map
 }
 
+fn integration_values_return_i64_index_map(_: &mut [Val]) -> IndexMap<&'static str, i64> {
+    let mut map = IndexMap::new();
+    map.insert("a", 0);
+    map.insert("b", 1);
+    map.insert("c", 2);
+    map
+}
+
 fn integration_values_return_array(_: &mut [Val]) -> Array {
     let mut arr = Array::new();
     arr.insert("a", Val::new(1));
     arr.insert("b", Val::new("foo"));
     arr
+}
+
+fn integration_values_return_option_i64_some(_: &mut [Val]) -> Option<i64> {
+    Some(64)
+}
+
+fn integration_values_return_option_i64_none(_: &mut [Val]) -> Option<i64> {
+    None
 }

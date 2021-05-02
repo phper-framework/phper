@@ -12,6 +12,7 @@ license = "Unlicense"
 crate-type = ["cdylib"]
 
 [dependencies]
+indexmap = "1.6.2"
 phper = { version = "0.2.0-alpha.2", path = "../../phper" }
 
 [dev-dependencies]
