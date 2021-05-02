@@ -92,6 +92,16 @@ fn integrate_returns(module: &mut Module) {
         integration_values_return_option_i64_none,
         vec![],
     );
+    module.add_function(
+        "integration_values_return_result_string_ok",
+        integration_values_return_result_string_ok,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_result_string_err",
+        integration_values_return_result_string_err,
+        vec![],
+    );
 }
 
 fn integration_values_return_null(_: &mut [Val]) {}
@@ -173,4 +183,12 @@ fn integration_values_return_option_i64_some(_: &mut [Val]) -> Option<i64> {
 
 fn integration_values_return_option_i64_none(_: &mut [Val]) -> Option<i64> {
     None
+}
+
+fn integration_values_return_result_string_ok(_: &mut [Val]) -> phper::Result<String> {
+    Ok("foo".to_string())
+}
+
+fn integration_values_return_result_string_err(_: &mut [Val]) -> phper::Result<()> {
+    Err(phper::Error::other("a zhe"))
 }

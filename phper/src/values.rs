@@ -313,35 +313,33 @@ impl<T: SetVal> SetVal for Vec<T> {
 /// order of array is not guarantee.
 impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
     fn set_val(self, val: &mut Val) {
-        unsafe {
-            phper_array_init(val.as_mut_ptr());
-            for (k, v) in self {
-                let k = k.as_ref();
-                zend_hash_str_update(
-                    (*val.as_mut_ptr()).value.arr,
-                    k.as_ptr().cast(),
-                    k.len(),
-                    Val::new(v).as_mut_ptr(),
-                );
-            }
-        }
+        map_set_val(self, val);
     }
 }
 
 /// Setting the val to an array, which preserves item order.
 impl<K: AsRef<str>, V: SetVal> SetVal for IndexMap<K, V> {
     fn set_val(self, val: &mut Val) {
-        unsafe {
-            phper_array_init(val.as_mut_ptr());
-            for (k, v) in self {
-                let k = k.as_ref();
-                zend_hash_str_update(
-                    (*val.as_mut_ptr()).value.arr,
-                    k.as_ptr().cast(),
-                    k.len(),
-                    Val::new(v).as_mut_ptr(),
-                );
-            }
+        map_set_val(self, val);
+    }
+}
+
+fn map_set_val<K, V, I>(iterator: I, val: &mut Val)
+where
+    I: IntoIterator<Item = (K, V)>,
+    K: AsRef<str>,
+    V: SetVal,
+{
+    unsafe {
+        phper_array_init(val.as_mut_ptr());
+        for (k, v) in iterator.into_iter() {
+            let k = k.as_ref();
+            zend_hash_str_update(
+                (*val.as_mut_ptr()).value.arr,
+                k.as_ptr().cast(),
+                k.len(),
+                Val::new(v).as_mut_ptr(),
+            );
         }
     }
 }
