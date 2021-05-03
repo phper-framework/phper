@@ -1,14 +1,10 @@
 use crate::{
-    classes::{get_global_class_entry_ptr, ClassEntry},
+    classes::get_global_class_entry_ptr,
     sys::*,
     values::{SetVal, Val},
     ClassNotFoundError,
 };
-use std::{
-    mem::zeroed,
-    ptr::null_mut,
-    sync::atomic::{AtomicPtr, Ordering},
-};
+use std::{mem::zeroed, ptr::null_mut};
 
 /// Wrapper of [crate::sys::zend_object].
 #[repr(transparent)]

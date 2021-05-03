@@ -1,15 +1,14 @@
 use crate::{
-    arrays::Array,
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
-    utils::ensure_end_with_zero,
-    values::SetVal,
+    values::{SetVal, Val},
 };
 use once_cell::sync::OnceCell;
 use std::{
     mem::zeroed,
     os::raw::c_int,
-    ptr::{null, null_mut},
+    ptr::null_mut,
+    rc::Rc,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
@@ -175,6 +174,7 @@ impl ClassEntity {
 pub struct PropertyEntity {
     name: String,
     value: Box<dyn SetVal + Send + Sync>,
+    _x: Val,
 }
 
 impl PropertyEntity {
@@ -182,6 +182,7 @@ impl PropertyEntity {
         Self {
             name: name.to_string(),
             value: Box::new(value),
+            _x: Val::null(),
         }
     }
 }

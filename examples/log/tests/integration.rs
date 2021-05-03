@@ -1,5 +1,5 @@
 use phper_test::test_php_scripts_with_condition;
-use std::{env, path::Path, process::Output, str};
+use std::{env, path::Path, str};
 
 #[test]
 fn test_php() {

@@ -29,6 +29,10 @@ impl<T> EBox<T> {
         }
     }
 
+    pub unsafe fn from_raw(raw: *mut T) -> Self {
+        Self { ptr: raw }
+    }
+
     pub fn into_raw(b: EBox<T>) -> *mut T {
         let ptr = b.ptr;
         forget(b);

@@ -4,7 +4,7 @@ use crate::{
     errors::Throwable,
     objects::Object,
     sys::*,
-    types::{get_type_by_const, Type},
+    types::{get_type_by_const, Type, Type::ObjectEx},
     utils::ensure_end_with_zero,
     TypeError,
 };
@@ -121,7 +121,7 @@ impl Val {
         v.set_val(self);
     }
 
-    fn get_type(&self) -> Type {
+    pub fn get_type(&self) -> Type {
         let t = unsafe { self.inner.u1.type_info };
         t.into()
     }
@@ -134,32 +134,31 @@ impl Val {
         self.inner.u1.type_info = t as u32;
     }
 
-    pub fn is_object(&self) -> bool {
-        matches!(self.get_type(), Type::Object | Type::ObjectEx)
-    }
-
     pub fn as_bool(&self) -> crate::Result<bool> {
-        match self.get_type() {
-            Type::True => Ok(true),
-            Type::False => Ok(false),
-            _ => Err(self.must_be_type_error("bool").into()),
+        let t = self.get_type();
+        if t.is_true() {
+            Ok(true)
+        } else if t.is_false() {
+            Ok(false)
+        } else {
+            Err(self.must_be_type_error("bool").into())
         }
     }
 
-    pub fn as_i64(&self) -> crate::Result<i64> {
-        if self.get_type() == Type::Long {
+    pub fn as_long(&self) -> crate::Result<i64> {
+        if self.get_type().is_long() {
             unsafe { Ok(self.inner.value.lval) }
         } else {
             Err(self.must_be_type_error("long").into())
         }
     }
 
-    pub fn as_i64_value(&self) -> i64 {
+    pub fn as_long_value(&self) -> i64 {
         unsafe { phper_zval_get_long(&self.inner as *const _ as *mut _) }
     }
 
-    pub fn as_f64(&self) -> crate::Result<f64> {
-        if self.get_type() == Type::Double {
+    pub fn as_double(&self) -> crate::Result<f64> {
+        if self.get_type().is_double() {
             unsafe { Ok(self.inner.value.dval) }
         } else {
             Err(self.must_be_type_error("float").into())
@@ -167,14 +166,15 @@ impl Val {
     }
 
     pub fn as_string(&self) -> crate::Result<String> {
-        match self.get_type() {
-            Type::String | Type::StringEx => unsafe {
+        if self.get_type().is_string() {
+            unsafe {
                 let s = self.inner.value.str;
                 let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
                 let string = str::from_utf8(buf)?.to_string();
                 Ok(string)
-            },
-            _ => Err(self.must_be_type_error("string").into()),
+            }
+        } else {
+            Err(self.must_be_type_error("string").into())
         }
     }
 
@@ -189,27 +189,25 @@ impl Val {
     }
 
     pub fn as_array(&self) -> crate::Result<&Array> {
-        match self.get_type() {
-            Type::Array | Type::ArrayEx => unsafe {
+        if self.get_type().is_array() {
+            unsafe {
                 let ptr = self.inner.value.arr;
-                Ok(Array::from_raw(ptr))
-            },
-            _ => Err(self.must_be_type_error("array").into()),
+                Ok(Array::from_mut_ptr(ptr))
+            }
+        } else {
+            Err(self.must_be_type_error("array").into())
         }
     }
 
-    pub fn as_mut_array(&mut self) -> crate::Result<&mut Array> {
-        match self.get_type() {
-            Type::Array | Type::ArrayEx => unsafe {
-                let ptr = self.inner.value.arr;
-                Ok(Array::from_raw(ptr))
-            },
-            _ => Err(self.must_be_type_error("array").into()),
+    pub fn as_object(&self) -> crate::Result<&Object> {
+        if self.get_type().is_object() {
+            unsafe {
+                let ptr = self.inner.value.obj;
+                Ok(Object::from_mut_ptr(ptr))
+            }
+        } else {
+            Err(self.must_be_type_error("object").into())
         }
-    }
-
-    pub fn as_object(&self) -> crate::Result<Object> {
-        todo!()
     }
 
     fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
@@ -221,15 +219,24 @@ impl Val {
             Err(e) => e.into(),
         }
     }
+}
 
-    fn deep_copy(&self, other: &mut Val) -> crate::Result<()> {
-        match self.get_type() {
-            Type::Null => SetVal::set_val((), other),
-            Type::Long => SetVal::set_val(self.as_i64()?, other),
-            Type::String | Type::StringEx => SetVal::set_val(self.as_string()?, other),
-            _ => unreachable!(),
-        }
-        Ok(())
+impl Drop for Val {
+    // TODO Write the drop.
+    fn drop(&mut self) {
+        // let t = self.get_type();
+        // unsafe {
+        //     if t.is_string() {
+        //         phper_zend_string_release(self.inner.value.str);
+        //         drop(EBox::from_raw(self.inner.value.str))
+        //     } else if t.is_array() {
+        //         zend_hash_destroy(self.inner.value.arr);
+        //         drop(EBox::from_raw(self.inner.value.arr))
+        //     } else if t.is_object() {
+        //         zend_objects_destroy_object(self.inner.value.obj);
+        //         drop(EBox::from_raw(self.inner.value.obj))
+        //     }
+        // }
     }
 }
 
@@ -349,22 +356,20 @@ where
     }
 }
 
-impl SetVal for Array {
-    fn set_val(mut self, val: &mut Val) {
+impl SetVal for EBox<Array> {
+    fn set_val(self, val: &mut Val) {
         unsafe {
-            phper_array_init(val.as_mut_ptr());
-            phper_zend_hash_merge_with_key((*val.as_mut_ptr()).value.arr, self.as_mut_ptr());
+            let arr = EBox::into_raw(self);
+            phper_zval_arr(val.as_mut_ptr(), arr.cast());
         }
     }
 }
 
 impl SetVal for EBox<Object> {
-    fn set_val(mut self, val: &mut Val) {
-        unsafe {
-            let object = EBox::into_raw(self);
-            val.inner.value.obj = object.cast();
-            val.set_type(Type::ObjectEx);
-        }
+    fn set_val(self, val: &mut Val) {
+        let object = EBox::into_raw(self);
+        val.inner.value.obj = object.cast();
+        val.set_type(Type::ObjectEx);
     }
 }
 

@@ -11,7 +11,7 @@ pub fn get_module() -> Module {
         env!("CARGO_PKG_AUTHORS"),
     );
 
-    let client = HttpClient::new();
+    // let client = HttpClient::new();
     let client_class = StdClass::new();
     module.add_class("HttpClient", client_class);
 

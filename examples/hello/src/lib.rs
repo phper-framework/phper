@@ -1,4 +1,5 @@
 use phper::{
+    alloc::EBox,
     arrays::Array,
     classes::StdClass,
     functions::Argument,
@@ -6,7 +7,7 @@ use phper::{
     modules::{Module, ModuleArgs},
     objects::Object,
     php_get_module,
-    values::{SetVal, Val},
+    values::Val,
 };
 
 fn module_init(_args: ModuleArgs) -> bool {
@@ -56,7 +57,7 @@ pub fn get_module() -> Module {
             let mut hello_description = Val::new(Module::get_str_ini("hello.description"));
             arr.insert("hello.description", hello_description);
 
-            arr
+            EBox::new(arr)
         },
         vec![],
     );

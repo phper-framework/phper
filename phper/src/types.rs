@@ -2,7 +2,7 @@ use crate::sys::*;
 use num_traits::cast::FromPrimitive;
 use std::{ffi::CStr, os::raw::c_int};
 
-#[derive(FromPrimitive, PartialEq)]
+#[derive(FromPrimitive, PartialEq, Clone, Copy)]
 #[repr(u32)]
 #[non_exhaustive]
 pub enum Type {
@@ -22,6 +22,53 @@ pub enum Type {
     Reference = IS_REFERENCE,
     ConstantAst = IS_CONSTANT_AST,
     IsCallable = IS_CALLABLE,
+}
+
+impl Type {
+    #[inline]
+    pub fn is_null(self) -> bool {
+        self == Type::Null
+    }
+
+    #[inline]
+    pub fn is_bool(self) -> bool {
+        matches!(self, Type::True | Type::False)
+    }
+
+    #[inline]
+    pub fn is_true(self) -> bool {
+        self == Type::True
+    }
+
+    #[inline]
+    pub fn is_false(self) -> bool {
+        self == Type::False
+    }
+
+    #[inline]
+    pub fn is_long(self) -> bool {
+        self == Type::Long
+    }
+
+    #[inline]
+    pub fn is_double(self) -> bool {
+        self == Type::Double
+    }
+
+    #[inline]
+    pub fn is_string(self) -> bool {
+        matches!(self, Type::String | Type::StringEx)
+    }
+
+    #[inline]
+    pub fn is_array(self) -> bool {
+        matches!(self, Type::Array | Type::ArrayEx)
+    }
+
+    #[inline]
+    pub fn is_object(self) -> bool {
+        matches!(self, Type::Object | Type::ObjectEx)
+    }
 }
 
 impl From<u32> for Type {

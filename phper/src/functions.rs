@@ -1,8 +1,4 @@
-use std::{
-    mem::zeroed,
-    os::raw::c_char,
-    sync::atomic::{AtomicPtr, Ordering},
-};
+use std::{mem::zeroed, os::raw::c_char, sync::atomic::AtomicPtr};
 
 use crate::{
     classes::ClassEntry,
@@ -37,7 +33,7 @@ where
     R: SetVal,
 {
     fn call(&self, this: &mut Object, arguments: &mut [Val], return_value: &mut Val) {
-        let mut r = self(this, arguments);
+        let r = self(this, arguments);
         r.set_val(return_value);
     }
 }
@@ -177,10 +173,10 @@ pub(crate) unsafe extern "C" fn invoke(
         Callable::Function(f) => {
             f.call(&mut arguments, return_value);
         }
-        Callable::Method(m, class) => {
-            let mut this = execute_data.get_this();
+        Callable::Method(m, _class) => {
+            let this = execute_data.get_this();
             let this = this.as_mut().expect("this should not be null");
-            assert!(this.is_object());
+            assert!(this.get_type().is_object());
             m.call(
                 Object::from_mut_ptr(this.inner.value.obj),
                 &mut arguments,

@@ -10,12 +10,12 @@ impl Array {
     pub fn new() -> Self {
         unsafe {
             let mut array = zeroed::<Array>();
-            _zend_hash_init(&mut array.inner, 0, None, true.into());
+            _zend_hash_init(array.as_mut_ptr(), 0, None, false.into());
             array
         }
     }
 
-    pub(crate) unsafe fn from_raw<'a>(ptr: *mut zend_array) -> &'a mut Array {
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Array {
         let ptr = ptr as *mut Array;
         ptr.as_mut().expect("ptr shouldn't be null")
     }
