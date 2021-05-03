@@ -17,35 +17,35 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 **os**
 
--[x] linux
--[ ] macos
--[ ] windows
+- [x] linux
+- [ ] macos
+- [ ] windows
 
 **php**
 
 *version*
 
--[x] 7.0
--[x] 7.1
--[x] 7.2
--[x] 7.3
--[x] 7.4
--[x] 8.0
+- [x] 7.0
+- [x] 7.1
+- [x] 7.2
+- [x] 7.3
+- [x] 7.4
+- [x] 8.0
 
 *mode*
 
--[x] nts
--[ ] zts
+- [x] nts
+- [ ] zts
 
 *sapi*
 
--[x] cli
--[ ] fpm
+- [x] cli
+- [ ] fpm
 
 *debug*
 
--[x] disable
--[ ] enable
+- [x] disable
+- [ ] enable
 
 ## Usage
 
