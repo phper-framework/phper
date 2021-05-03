@@ -1,16 +1,16 @@
+use crate::{
+    arrays::Array,
+    functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
+    sys::*,
+    utils::ensure_end_with_zero,
+    values::SetVal,
+};
+use once_cell::sync::OnceCell;
 use std::{
     mem::zeroed,
     os::raw::c_int,
-    ptr::null_mut,
+    ptr::{null, null_mut},
     sync::atomic::{AtomicPtr, Ordering},
-};
-
-use once_cell::sync::OnceCell;
-
-use crate::{
-    functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
-    sys::*,
-    values::SetVal,
 };
 
 pub trait Class: Send + Sync {
@@ -82,7 +82,15 @@ pub struct ClassEntry {
 }
 
 impl ClassEntry {
-    pub fn as_mut(&mut self) -> *mut zend_class_entry {
+    pub fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
+        unsafe { (ptr as *const Self).as_ref() }.expect("ptr should not be null")
+    }
+
+    pub fn as_ptr(&self) -> *const zend_class_entry {
+        &self.inner
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
         &mut self.inner
     }
 }
@@ -184,4 +192,16 @@ pub enum Visibility {
     Public = ZEND_ACC_PUBLIC,
     Protected = ZEND_ACC_PROTECTED,
     Private = ZEND_ACC_PRIVATE,
+}
+
+pub(crate) fn get_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
+    let name = name.as_ref();
+    unsafe {
+        zend_hash_str_find_ptr_lc(
+            compiler_globals.class_table,
+            name.as_ptr().cast(),
+            name.len(),
+        )
+        .cast()
+    }
 }

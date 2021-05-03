@@ -151,7 +151,7 @@ pub(crate) unsafe extern "C" fn invoke(
     return_value: *mut zval,
 ) {
     let execute_data = ExecuteData::from_mut(execute_data);
-    let return_value = Val::from_mut(return_value);
+    let return_value = Val::from_mut_ptr(return_value);
 
     let num_args = execute_data.common_num_args();
     let arg_info = execute_data.common_arg_info();
@@ -178,8 +178,14 @@ pub(crate) unsafe extern "C" fn invoke(
             f.call(&mut arguments, return_value);
         }
         Callable::Method(m, class) => {
-            let mut this = Object::new(execute_data.get_this(), class.load(Ordering::SeqCst));
-            m.call(&mut this, &mut arguments, return_value);
+            let mut this = execute_data.get_this();
+            let this = this.as_mut().expect("this should not be null");
+            assert!(this.is_object());
+            m.call(
+                Object::from_mut_ptr(this.inner.value.obj),
+                &mut arguments,
+                return_value,
+            );
         }
     }
 }

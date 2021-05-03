@@ -10,6 +10,17 @@ function assert_eq($left, $right) {
     }
 }
 
+function assert_object($object, $expect_class_name, $expect_fields) {
+    if (get_class($object) != $expect_class_name) {
+        throw new AssertionError(sprintf("expect class `%s`, found `%s`", $expect_class_name, get_class($object)));
+    }
+    foreach ($expect_fields as $key => $value) {
+        if ($object->$key !== $value) {
+            throw new AssertionError(sprintf("expect field `%s` value %s, found `%s`", $key, $value, $object->$key));
+        }
+    }
+}
+
 function assert_throw($callable, $expect_exception_class, $expect_exception_code, $expect_exception_message) {
     try {
         $callable();

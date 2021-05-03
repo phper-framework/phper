@@ -1,4 +1,5 @@
 use crate::{
+    alloc::EBox,
     arrays::Array,
     errors::Throwable,
     objects::Object,
@@ -82,7 +83,7 @@ impl Val {
         Self { inner }
     }
 
-    pub unsafe fn from_mut<'a>(ptr: *mut zval) -> &'a mut Self {
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         assert!(!ptr.is_null(), "ptr should not be null");
         &mut *(ptr as *mut Self)
     }
@@ -131,6 +132,10 @@ impl Val {
 
     fn set_type(&mut self, t: Type) {
         self.inner.u1.type_info = t as u32;
+    }
+
+    pub fn is_object(&self) -> bool {
+        matches!(self.get_type(), Type::Object | Type::ObjectEx)
     }
 
     pub fn as_bool(&self) -> crate::Result<bool> {
@@ -349,6 +354,16 @@ impl SetVal for Array {
         unsafe {
             phper_array_init(val.as_mut_ptr());
             phper_zend_hash_merge_with_key((*val.as_mut_ptr()).value.arr, self.as_mut_ptr());
+        }
+    }
+}
+
+impl SetVal for EBox<Object> {
+    fn set_val(mut self, val: &mut Val) {
+        unsafe {
+            let object = EBox::into_raw(self);
+            val.inner.value.obj = object.cast();
+            val.set_type(Type::ObjectEx);
         }
     }
 }

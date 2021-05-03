@@ -44,7 +44,7 @@ impl Array {
         let key = key.as_ref();
         unsafe {
             let value = zend_hash_str_find(&mut self.inner, key.as_ptr().cast(), key.len());
-            Val::from_mut(value)
+            Val::from_mut_ptr(value)
         }
     }
 

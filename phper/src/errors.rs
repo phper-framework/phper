@@ -21,6 +21,9 @@ pub enum Error {
     TypeError(#[from] TypeError),
 
     #[error(transparent)]
+    ClassNotFound(#[from] ClassNotFoundError),
+
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
@@ -34,7 +37,7 @@ impl Error {
 
 /// PHP type error.
 #[derive(thiserror::Error, Debug)]
-#[error("{message}")]
+#[error("type error: {message}")]
 pub struct TypeError {
     message: String,
 }
@@ -42,6 +45,18 @@ pub struct TypeError {
 impl TypeError {
     pub fn new(message: String) -> Self {
         Self { message }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("class `{class_name}` not found")]
+pub struct ClassNotFoundError {
+    class_name: String,
+}
+
+impl ClassNotFoundError {
+    pub fn new(class_name: String) -> Self {
+        Self { class_name }
     }
 }
 

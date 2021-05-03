@@ -17,6 +17,7 @@ pub enum Type {
     Array = IS_ARRAY,
     ArrayEx = IS_ARRAY_EX,
     Object = IS_OBJECT,
+    ObjectEx = IS_OBJECT_EX,
     Resource = IS_RESOURCE,
     Reference = IS_REFERENCE,
     ConstantAst = IS_CONSTANT_AST,

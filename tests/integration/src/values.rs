@@ -1,5 +1,5 @@
 use indexmap::map::IndexMap;
-use phper::{arrays::Array, modules::Module, values::Val};
+use phper::{alloc::EBox, arrays::Array, modules::Module, objects::Object, values::Val};
 use std::collections::HashMap;
 
 pub fn integrate(module: &mut Module) {
@@ -80,6 +80,11 @@ fn integrate_returns(module: &mut Module) {
     module.add_function(
         "integration_values_return_array",
         integration_values_return_array,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_object",
+        integration_values_return_object,
         vec![],
     );
     module.add_function(
@@ -175,6 +180,12 @@ fn integration_values_return_array(_: &mut [Val]) -> Array {
     arr.insert("a", Val::new(1));
     arr.insert("b", Val::new("foo"));
     arr
+}
+
+fn integration_values_return_object(_: &mut [Val]) -> EBox<Object> {
+    let mut object = EBox::new(Object::new_std());
+    object.set_property("foo", "bar");
+    object
 }
 
 fn integration_values_return_option_i64_some(_: &mut [Val]) -> Option<i64> {

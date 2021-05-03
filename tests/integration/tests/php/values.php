@@ -17,6 +17,7 @@ assert_eq(array_ksort(integration_values_return_i64_map()), ["a" => 0, "b" => 1,
 assert_eq(array_ksort(integration_values_return_string_map()), ["a" => "x", "b" => "y", "c" => "z"]);
 assert_eq(integration_values_return_i64_index_map(), ["a" => 0, "b" => 1, "c" => 2]);
 assert_eq(integration_values_return_array(), ["a" => 1, "b" => "foo"]);
+assert_object(integration_values_return_object(), "stdClass", ["foo" => "bar"]);
 assert_eq(integration_values_return_option_i64_some(), 64);
 assert_eq(integration_values_return_option_i64_none(), null);
 assert_eq(integration_values_return_result_string_ok(), "foo");
