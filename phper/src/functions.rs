@@ -176,7 +176,8 @@ pub(crate) unsafe extern "C" fn invoke(
         Callable::Method(m, _class) => {
             let this = execute_data.get_this();
             let this = this.as_mut().expect("this should not be null");
-            assert!(this.get_type().is_object());
+            // TODO Fix the object type assertion.
+            // assert!(this.get_type().is_object());
             m.call(
                 Object::from_mut_ptr(this.inner.value.obj),
                 &mut arguments,

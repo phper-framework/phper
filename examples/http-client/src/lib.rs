@@ -1,4 +1,3 @@
-use crate::http_client::HttpClient;
 use phper::{classes::StdClass, modules::Module, php_get_module};
 
 pub mod http_client;

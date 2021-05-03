@@ -4,7 +4,7 @@ use crate::{
     errors::Throwable,
     objects::Object,
     sys::*,
-    types::{get_type_by_const, Type, Type::ObjectEx},
+    types::{get_type_by_const, Type},
     utils::ensure_end_with_zero,
     TypeError,
 };
@@ -113,6 +113,7 @@ impl Val {
         val
     }
 
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zval {
         &mut self.inner
     }

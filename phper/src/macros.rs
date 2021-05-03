@@ -2,7 +2,7 @@
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```no_test
 /// phper::echo!("Hello, {}!", message)
 /// ```
 #[macro_export]
@@ -16,7 +16,7 @@ macro_rules! echo {
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```no_test
 /// phper::errro!("Hello, {}!", message)
 /// ```
 #[macro_export]
@@ -30,7 +30,7 @@ macro_rules! error {
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```no_test
 /// phper::warning!("Hello, {}!", message)
 /// ```
 #[macro_export]
@@ -44,7 +44,7 @@ macro_rules! warning {
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```no_test
 /// phper::notice!("Hello, {}!", message)
 /// ```
 #[macro_export]
@@ -58,7 +58,7 @@ macro_rules! notice {
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```no_test
 /// phper::deprecated!("Hello, {}!", message)
 /// ```
 #[macro_export]

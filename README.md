@@ -17,26 +17,35 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 **os**
 
-- linux
+-[x] linux
+-[ ] macos
+-[ ] windows
 
 **php**
 
 *version*
 
-- 7.0
-- 7.1
-- 7.2
-- 7.3
-- 7.4
-- 8.0
+-[x] 7.0
+-[x] 7.1
+-[x] 7.2
+-[x] 7.3
+-[x] 7.4
+-[x] 8.0
 
 *mode*
 
-- nts
+-[x] nts
+-[ ] zts
 
 *sapi*
 
-- cli
+-[x] cli
+-[ ] fpm
+
+*debug*
+
+-[x] disable
+-[ ] enable
 
 ## Usage
 
@@ -79,13 +88,16 @@ fn main() {
 use phper::{php_get_module, modules::Module};
 
 #[php_get_module]
-pub fn get_module(module: &mut Module) {
-    // set module metadata
-    module.set_name(env!("CARGO_PKG_NAME"));
-    module.set_version(env!("CARGO_PKG_VERSION"));
-    module.set_author(env!("CARGO_PKG_AUTHORS"));
+pub fn get_module() -> Module {
+    let mut module = Module::new(
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
 
     // ...
+
+    module
 }
 ```
 

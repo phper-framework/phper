@@ -51,10 +51,10 @@ pub fn get_module() -> Module {
         |_: &mut [Val]| {
             let mut arr = Array::new();
 
-            let mut hello_enable = Val::new(Module::get_bool_ini("hello.enable"));
+            let hello_enable = Val::new(Module::get_bool_ini("hello.enable"));
             arr.insert("hello.enable", hello_enable);
 
-            let mut hello_description = Val::new(Module::get_str_ini("hello.description"));
+            let hello_description = Val::new(Module::get_str_ini("hello.description"));
             arr.insert("hello.description", hello_description);
 
             EBox::new(arr)
@@ -64,7 +64,7 @@ pub fn get_module() -> Module {
 
     // register classes
     let mut foo_class = StdClass::new();
-    foo_class.add_property("foo", 100);
+    foo_class.add_property("foo", 100.to_string());
     foo_class.add_method(
         "getFoo",
         |this: &mut Object, _: &mut [Val]| -> phper::Result<Val> {
@@ -75,10 +75,9 @@ pub fn get_module() -> Module {
     );
     foo_class.add_method(
         "setFoo",
-        |this: &mut Object, arguments: &mut [Val]| {
-            let prop = this.get_property("foo");
-            // TODO add set_property method
-            // prop.set(&mut arguments[0]);
+        |this: &mut Object, arguments: &mut [Val]| -> phper::Result<()> {
+            this.set_property("foo", arguments[0].as_string_value()?);
+            Ok(())
         },
         vec![Argument::by_val("foo")],
     );

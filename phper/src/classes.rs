@@ -1,14 +1,13 @@
 use crate::{
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
-    values::{SetVal, Val},
+    values::Val,
 };
 use once_cell::sync::OnceCell;
 use std::{
     mem::zeroed,
     os::raw::c_int,
     ptr::null_mut,
-    rc::Rc,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
@@ -46,11 +45,7 @@ impl StdClass {
         ));
     }
 
-    pub fn add_property(
-        &mut self,
-        name: impl ToString,
-        value: impl SetVal + Send + Sync + 'static,
-    ) {
+    pub fn add_property(&mut self, name: impl ToString, value: String) {
         self.property_entities
             .push(PropertyEntity::new(name, value));
     }
@@ -143,14 +138,12 @@ impl ClassEntity {
     pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.class.properties();
         for property in properties {
-            // TODO Fix
-            // let mut val = Val::null();
-            // val.set(property.value);
+            let mut val = Val::new(&*property.value);
             zend_declare_property(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),
                 property.name.len(),
-                null_mut(),
+                val.as_mut_ptr(),
                 Visibility::Public as c_int,
             );
         }
@@ -173,16 +166,15 @@ impl ClassEntity {
 
 pub struct PropertyEntity {
     name: String,
-    value: Box<dyn SetVal + Send + Sync>,
-    _x: Val,
+    // TODO to be a SetVal
+    value: String,
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl ToString, value: impl SetVal + Send + Sync + 'static) -> Self {
+    pub fn new(name: impl ToString, value: String) -> Self {
         Self {
             name: name.to_string(),
-            value: Box::new(value),
-            _x: Val::null(),
+            value,
         }
     }
 }

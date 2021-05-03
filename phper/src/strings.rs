@@ -7,6 +7,8 @@ pub struct ZendString {
 }
 
 impl ZendString {
+    // TODO Remove dead_code tag
+    #[allow(dead_code)]
     pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
         let ptr = ptr as *mut Self;
         ptr.as_mut().expect("ptr shouldn't be null")

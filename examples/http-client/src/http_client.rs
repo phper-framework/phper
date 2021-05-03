@@ -2,7 +2,7 @@ use reqwest::blocking::{Client, ClientBuilder};
 use std::time::Duration;
 
 pub struct HttpClient {
-    client: Client,
+    _client: Client,
 }
 
 impl HttpClient {
@@ -10,6 +10,6 @@ impl HttpClient {
         let client = ClientBuilder::new()
             .timeout(Duration::from_secs(15))
             .build()?;
-        Ok(Self { client })
+        Ok(Self { _client: client })
     }
 }
