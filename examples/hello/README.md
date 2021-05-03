@@ -26,3 +26,7 @@ cargo test --release
 ```bash
 cargo run --release -- install
 ```
+
+## License
+
+[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).

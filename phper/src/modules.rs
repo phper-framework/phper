@@ -4,9 +4,9 @@ use crate::{
     functions::{Argument, Callable, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
+    utils::ensure_end_with_zero,
     EXCEPTION_CLASS_NAME,
 };
-use once_cell::sync::Lazy;
 use std::{
     borrow::BorrowMut,
     cell::RefCell,
@@ -14,19 +14,19 @@ use std::{
     mem::{size_of, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
-    sync::RwLock,
+    sync::atomic::{AtomicPtr, Ordering},
 };
 
-static GLOBAL_MODULE: Lazy<RwLock<Module>> = Lazy::new(Default::default);
+static GLOBAL_MODULE: AtomicPtr<Module> = AtomicPtr::new(null_mut());
 
-pub fn read_global_module<R>(f: impl FnOnce(&Module) -> R) -> R {
-    let module = (&*GLOBAL_MODULE).read().expect("get write lock failed");
-    f(&module)
+pub(crate) fn read_global_module<R>(f: impl FnOnce(&Module) -> R) -> R {
+    let module = GLOBAL_MODULE.load(Ordering::SeqCst);
+    f(unsafe { module.as_ref() }.expect("GLOBAL_MODULE is null"))
 }
 
-pub fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
-    let mut module = (&*GLOBAL_MODULE).write().expect("get write lock failed");
-    f(&mut module)
+pub(crate) fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
+    let module = GLOBAL_MODULE.load(Ordering::SeqCst);
+    f(unsafe { module.as_mut() }.expect("GLOBAL_MODULE is null"))
 }
 
 unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_int {
@@ -81,7 +81,6 @@ unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
     display_ini_entries(zend_module);
 }
 
-#[derive(Default)]
 pub struct Module {
     name: String,
     version: String,
@@ -102,22 +101,18 @@ impl Module {
         static STR_INI_ENTITIES: RefCell<HashMap<String, IniEntity<StrPtrBox>>> = Default::default();
     }
 
-    pub fn set_name(&mut self, name: impl ToString) {
-        let mut name = name.to_string();
-        name.push('\0');
-        self.name = name;
-    }
-
-    pub fn set_version(&mut self, version: impl ToString) {
-        let mut version = version.to_string();
-        version.push('\0');
-        self.version = version;
-    }
-
-    pub fn set_author(&mut self, author: impl ToString) {
-        let mut author = author.to_string();
-        author.push('\0');
-        self.author = author;
+    pub fn new(name: impl ToString, version: impl ToString, author: impl ToString) -> Self {
+        Self {
+            name: ensure_end_with_zero(name),
+            version: ensure_end_with_zero(version),
+            author: ensure_end_with_zero(author),
+            module_init: None,
+            module_shutdown: None,
+            request_init: None,
+            request_shutdown: None,
+            function_entities: vec![],
+            class_entities: Default::default(),
+        }
     }
 
     pub fn on_module_init(&mut self, func: impl Fn(ModuleArgs) -> bool + Send + Sync + 'static) {
@@ -225,7 +220,7 @@ impl Module {
             .insert(name.to_string(), unsafe { ClassEntity::new(name, class) });
     }
 
-    pub unsafe fn module_entry(&mut self) -> *const zend_module_entry {
+    pub unsafe fn module_entry(mut self) -> *const zend_module_entry {
         assert!(!self.name.is_empty(), "module name must be set");
         assert!(!self.version.is_empty(), "module version must be set");
 
@@ -261,7 +256,9 @@ impl Module {
             build_id: PHP_MODULE_BUILD_ID,
         });
 
-        Box::into_raw(entry)
+        let entry = Box::into_raw(entry);
+        GLOBAL_MODULE.store(Box::into_raw(Box::new(self)), Ordering::SeqCst);
+        entry
     }
 
     fn function_entries(&self) -> *const zend_function_entry {

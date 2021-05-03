@@ -1,5 +1,18 @@
-use crate::{arrays::Array, errors::Throwable, sys::*};
-use std::{mem::zeroed, slice::from_raw_parts, str, sync::atomic::Ordering};
+use crate::{
+    alloc::EBox,
+    arrays::Array,
+    errors::Throwable,
+    objects::Object,
+    sys::*,
+    types::{get_type_by_const, Type},
+    utils::ensure_end_with_zero,
+    TypeError,
+};
+use indexmap::map::IndexMap;
+use std::{
+    collections::HashMap, mem::zeroed, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error,
+    sync::atomic::Ordering,
+};
 
 #[repr(transparent)]
 pub struct ExecuteData {
@@ -45,7 +58,7 @@ impl ExecuteData {
         phper_get_this(&mut self.inner).cast()
     }
 
-    pub unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
+    pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
         _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
@@ -70,13 +83,13 @@ impl Val {
         Self { inner }
     }
 
-    pub unsafe fn from_mut<'a>(ptr: *mut zval) -> &'a mut Self {
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         assert!(!ptr.is_null(), "ptr should not be null");
         &mut *(ptr as *mut Self)
     }
 
     #[inline]
-    fn empty() -> Self {
+    pub(crate) fn empty() -> Self {
         Self {
             inner: unsafe { zeroed::<zval>() },
         }
@@ -84,7 +97,7 @@ impl Val {
 
     pub fn null() -> Self {
         let mut val = Self::empty();
-        val.set(&());
+        val.set(());
         val
     }
 
@@ -94,13 +107,14 @@ impl Val {
         val
     }
 
-    pub fn from_val(other: &Val) -> Self {
+    pub fn from_val(other: Val) -> Self {
         let mut val = Self::empty();
         val.set(other);
         val
     }
 
-    pub fn as_mut(&mut self) -> *mut zval {
+    #[inline]
+    pub fn as_mut_ptr(&mut self) -> *mut zval {
         &mut self.inner
     }
 
@@ -108,109 +122,269 @@ impl Val {
         v.set_val(self);
     }
 
-    unsafe fn type_info(&mut self) -> &mut u32 {
-        &mut self.inner.u1.type_info
+    pub fn get_type(&self) -> Type {
+        let t = unsafe { self.inner.u1.type_info };
+        t.into()
     }
 
-    pub fn as_string(&mut self) -> String {
-        unsafe {
-            let s = phper_zval_get_string(&mut self.inner);
-            let buf = from_raw_parts(&(*s).val as *const i8 as *const u8, (*s).len);
-            phper_zend_string_release(s);
-            str::from_utf8(buf).unwrap().to_string()
+    fn get_type_name(&self) -> crate::Result<String> {
+        get_type_by_const(self.get_type() as u32)
+    }
+
+    fn set_type(&mut self, t: Type) {
+        self.inner.u1.type_info = t as u32;
+    }
+
+    pub fn as_bool(&self) -> crate::Result<bool> {
+        let t = self.get_type();
+        if t.is_true() {
+            Ok(true)
+        } else if t.is_false() {
+            Ok(false)
+        } else {
+            Err(self.must_be_type_error("bool").into())
         }
     }
 
-    pub fn as_i64(&mut self) -> i64 {
-        unsafe { phper_zval_get_long(&mut self.inner) }
+    pub fn as_long(&self) -> crate::Result<i64> {
+        if self.get_type().is_long() {
+            unsafe { Ok(self.inner.value.lval) }
+        } else {
+            Err(self.must_be_type_error("long").into())
+        }
+    }
+
+    pub fn as_long_value(&self) -> i64 {
+        unsafe { phper_zval_get_long(&self.inner as *const _ as *mut _) }
+    }
+
+    pub fn as_double(&self) -> crate::Result<f64> {
+        if self.get_type().is_double() {
+            unsafe { Ok(self.inner.value.dval) }
+        } else {
+            Err(self.must_be_type_error("float").into())
+        }
+    }
+
+    pub fn as_string(&self) -> crate::Result<String> {
+        if self.get_type().is_string() {
+            unsafe {
+                let s = self.inner.value.str;
+                let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
+                let string = str::from_utf8(buf)?.to_string();
+                Ok(string)
+            }
+        } else {
+            Err(self.must_be_type_error("string").into())
+        }
+    }
+
+    pub fn as_string_value(&self) -> Result<String, Utf8Error> {
+        unsafe {
+            let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
+            let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
+            let string = str::from_utf8(buf)?.to_string();
+            phper_zend_string_release(s);
+            Ok(string)
+        }
+    }
+
+    pub fn as_array(&self) -> crate::Result<&Array> {
+        if self.get_type().is_array() {
+            unsafe {
+                let ptr = self.inner.value.arr;
+                Ok(Array::from_mut_ptr(ptr))
+            }
+        } else {
+            Err(self.must_be_type_error("array").into())
+        }
+    }
+
+    pub fn as_object(&self) -> crate::Result<&Object> {
+        if self.get_type().is_object() {
+            unsafe {
+                let ptr = self.inner.value.obj;
+                Ok(Object::from_mut_ptr(ptr))
+            }
+        } else {
+            Err(self.must_be_type_error("object").into())
+        }
+    }
+
+    fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
+        match self.get_type_name() {
+            Ok(type_name) => {
+                let message = format!("must be of type {}, {} given", expect_type, type_name);
+                TypeError::new(message).into()
+            }
+            Err(e) => e.into(),
+        }
     }
 }
 
+impl Drop for Val {
+    // TODO Write the drop.
+    fn drop(&mut self) {
+        // let t = self.get_type();
+        // unsafe {
+        //     if t.is_string() {
+        //         phper_zend_string_release(self.inner.value.str);
+        //         drop(EBox::from_raw(self.inner.value.str))
+        //     } else if t.is_array() {
+        //         zend_hash_destroy(self.inner.value.arr);
+        //         drop(EBox::from_raw(self.inner.value.arr))
+        //     } else if t.is_object() {
+        //         zend_objects_destroy_object(self.inner.value.obj);
+        //         drop(EBox::from_raw(self.inner.value.obj))
+        //     }
+        // }
+    }
+}
+
+/// The trait for setting the value of [Val], mainly as the return value of
+/// [crate::functions::Function] and [crate::functions::Method], and initializer of [Val].
+///
+/// TODO Fix the possibility of leak memory.
 pub trait SetVal {
-    fn set_val(&self, val: &mut Val);
+    fn set_val(self, val: &mut Val);
 }
 
 impl SetVal for () {
-    fn set_val(&self, val: &mut Val) {
-        unsafe {
-            *val.type_info() = IS_NULL;
-        }
+    fn set_val(self, val: &mut Val) {
+        val.set_type(Type::Null);
     }
 }
 
 impl SetVal for bool {
-    fn set_val(&self, val: &mut Val) {
-        unsafe {
-            *val.type_info() = if *self { IS_TRUE } else { IS_FALSE };
-        }
+    fn set_val(self, val: &mut Val) {
+        val.set_type(if self { Type::True } else { Type::False });
     }
 }
 
 impl SetVal for i32 {
-    fn set_val(&self, val: &mut Val) {
-        (*self as i64).set_val(val)
+    fn set_val(self, val: &mut Val) {
+        SetVal::set_val(self as i64, val)
     }
 }
 
 impl SetVal for u32 {
-    fn set_val(&self, val: &mut Val) {
-        (*self as i64).set_val(val)
+    fn set_val(self, val: &mut Val) {
+        SetVal::set_val(self as i64, val)
     }
 }
 
 impl SetVal for i64 {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(self, val: &mut Val) {
+        val.set_type(Type::Long);
         unsafe {
-            (*val.as_mut()).value.lval = *self;
-            (*val.as_mut()).u1.type_info = IS_LONG;
+            (*val.as_mut_ptr()).value.lval = self;
         }
     }
 }
 
 impl SetVal for f64 {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(self, val: &mut Val) {
+        val.set_type(Type::Double);
         unsafe {
-            (*val.as_mut()).value.dval = *self;
-            (*val.as_mut()).u1.type_info = IS_DOUBLE;
+            (*val.as_mut_ptr()).value.dval = self;
         }
     }
 }
 
-impl SetVal for str {
-    fn set_val(&self, val: &mut Val) {
+impl SetVal for &str {
+    fn set_val(self, val: &mut Val) {
         unsafe {
-            phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
+            phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
         }
     }
 }
 
 impl SetVal for String {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(self, val: &mut Val) {
         unsafe {
-            phper_zval_stringl(val.as_mut(), self.as_ptr().cast(), self.len());
+            phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
         }
     }
 }
 
-impl SetVal for Array {
-    fn set_val(&self, val: &mut Val) {
+impl<T: SetVal> SetVal for Vec<T> {
+    fn set_val(self, val: &mut Val) {
         unsafe {
-            phper_zval_arr(&mut val.inner, self.as_ptr() as *mut _);
+            phper_array_init(val.as_mut_ptr());
+            for (k, v) in self.into_iter().enumerate() {
+                phper_zend_hash_index_update(
+                    (*val.as_mut_ptr()).value.arr,
+                    k as u64,
+                    Val::new(v).as_mut_ptr(),
+                );
+            }
         }
+    }
+}
+
+/// Setting the val to an array, Because of the feature of [std::collections::HashMap], the item
+/// order of array is not guarantee.
+impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
+    fn set_val(self, val: &mut Val) {
+        map_set_val(self, val);
+    }
+}
+
+/// Setting the val to an array, which preserves item order.
+impl<K: AsRef<str>, V: SetVal> SetVal for IndexMap<K, V> {
+    fn set_val(self, val: &mut Val) {
+        map_set_val(self, val);
+    }
+}
+
+fn map_set_val<K, V, I>(iterator: I, val: &mut Val)
+where
+    I: IntoIterator<Item = (K, V)>,
+    K: AsRef<str>,
+    V: SetVal,
+{
+    unsafe {
+        phper_array_init(val.as_mut_ptr());
+        for (k, v) in iterator.into_iter() {
+            let k = k.as_ref();
+            phper_zend_hash_str_update(
+                (*val.as_mut_ptr()).value.arr,
+                k.as_ptr().cast(),
+                k.len(),
+                Val::new(v).as_mut_ptr(),
+            );
+        }
+    }
+}
+
+impl SetVal for EBox<Array> {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            let arr = EBox::into_raw(self);
+            phper_zval_arr(val.as_mut_ptr(), arr.cast());
+        }
+    }
+}
+
+impl SetVal for EBox<Object> {
+    fn set_val(self, val: &mut Val) {
+        let object = EBox::into_raw(self);
+        val.inner.value.obj = object.cast();
+        val.set_type(Type::ObjectEx);
     }
 }
 
 impl<T: SetVal> SetVal for Option<T> {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(self, val: &mut Val) {
         match self {
-            Some(t) => t.set_val(val),
-            None => ().set_val(val),
+            Some(t) => SetVal::set_val(t, val),
+            None => SetVal::set_val((), val),
         }
     }
 }
 
 impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(self, val: &mut Val) {
         match self {
             Ok(t) => t.set_val(val),
             Err(e) => unsafe {
@@ -218,8 +392,7 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
                     .class_entity()
                     .as_ref()
                     .expect("class entry is null pointer");
-                let mut message = e.to_string();
-                message.push('\0');
+                let message = ensure_end_with_zero(&e);
                 zend_throw_exception(
                     class.entry.load(Ordering::SeqCst).cast(),
                     message.as_ptr().cast(),
@@ -231,27 +404,9 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 }
 
 impl SetVal for Val {
-    fn set_val(&self, val: &mut Val) {
+    fn set_val(mut self, val: &mut Val) {
         unsafe {
-            phper_zval_copy_value(val.as_mut(), &self.inner as *const _ as *mut _);
+            phper_zval_copy_value(val.as_mut_ptr(), self.as_mut_ptr());
         }
-    }
-}
-
-impl<T: SetVal + ?Sized> SetVal for Box<T> {
-    fn set_val(&self, val: &mut Val) {
-        T::set_val(&self, val)
-    }
-}
-
-impl<T: SetVal + ?Sized> SetVal for &T {
-    fn set_val(&self, val: &mut Val) {
-        T::set_val(self, val)
-    }
-}
-
-impl<T: SetVal + ?Sized> SetVal for &mut T {
-    fn set_val(&self, val: &mut Val) {
-        T::set_val(self, val)
     }
 }

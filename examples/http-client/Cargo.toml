@@ -1,0 +1,19 @@
+[package]
+name = "mini-curl"
+version = "0.0.0"
+authors = ["jmjoy <918734043@qq.com>"]
+edition = "2018"
+publish = false
+license = "Unlicense"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+phper = { version = "0.2.0-alpha.2", path = "../../phper" }
+reqwest = { version = "0.11.3", features = ["blocking"] }
+
+[dev-dependencies]
+phper-test = { version = "0.2.0-alpha.2", path = "../../phper-test" }

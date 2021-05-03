@@ -1,6 +1,17 @@
+#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+
+/*!
+Low level PHP binding for Rust.
+
+The php-config is needed. You can set environment `PHP_CONFIG` to specify the path.
+
+## License
+
+[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
+*/
 
 use std::os::raw::c_char;
 

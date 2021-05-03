@@ -40,7 +40,7 @@ jobs:
           tools: php-config
 
       - name: PHP version
-        run: php-config --version && php-config --phpapi && php --version
+        run: php-config || true
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1

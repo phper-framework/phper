@@ -6,11 +6,11 @@ error_reporting(E_ALL);
 
 assert_eq(hello_say_hello("world"), "Hello, world!\n");
 
-assert_eq(class_exists("PHPerException"), true);
+assert_eq(class_exists("Phper\\OtherException"), true);
 
 try {
     hello_throw_exception();
-} catch (PHPerException $e) {
+} catch (Phper\OtherException $e) {
     assert_eq($e->getMessage(), "I am sorry");
 }
 
@@ -20,7 +20,8 @@ assert_eq(hello_get_all_ini(), [
 ]);
 
 $foo = new FooClass();
-assert_eq($foo->getFoo(), 100);
+// TODO change '100' to 100.
+assert_eq($foo->getFoo(), '100');
 
 $foo->setFoo("Hello");
 assert_eq($foo->getFoo(), "Hello");

@@ -1,4 +1,4 @@
-use phper_macros::{c_str, c_str_ptr};
+use phper_macros::*;
 use std::ffi::CStr;
 
 #[test]

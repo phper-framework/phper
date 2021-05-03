@@ -1,7 +1,7 @@
 use crate::{
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
-    values::{SetVal, Val},
+    utils::ensure_end_with_zero,
 };
 use once_cell::sync::OnceCell;
 use std::{
@@ -45,11 +45,7 @@ impl StdClass {
         ));
     }
 
-    pub fn add_property(
-        &mut self,
-        name: impl ToString,
-        value: impl SetVal + Send + Sync + 'static,
-    ) {
+    pub fn add_property(&mut self, name: impl ToString, value: String) {
         self.property_entities
             .push(PropertyEntity::new(name, value));
     }
@@ -80,7 +76,15 @@ pub struct ClassEntry {
 }
 
 impl ClassEntry {
-    pub fn as_mut(&mut self) -> *mut zend_class_entry {
+    pub fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
+        unsafe { (ptr as *const Self).as_ref() }.expect("ptr should not be null")
+    }
+
+    pub fn as_ptr(&self) -> *const zend_class_entry {
+        &self.inner
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
         &mut self.inner
     }
 }
@@ -134,13 +138,12 @@ impl ClassEntity {
     pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.class.properties();
         for property in properties {
-            let mut val = Val::null();
-            val.set(&property.value);
-            zend_declare_property(
+            let value = ensure_end_with_zero(property.value.clone());
+            zend_declare_property_string(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),
                 property.name.len(),
-                val.as_mut(),
+                value.as_ptr().cast(),
                 Visibility::Public as c_int,
             );
         }
@@ -161,61 +164,17 @@ impl ClassEntity {
     }
 }
 
-pub struct This {
-    val: *mut Val,
-    class: *mut ClassEntry,
-}
-
-impl This {
-    pub(crate) fn new<'a>(val: *mut Val, class: *mut ClassEntry) -> This {
-        assert!(!val.is_null());
-        assert!(!class.is_null());
-        Self { val, class }
-    }
-
-    pub fn get_property(&self, name: impl AsRef<str>) -> &mut Val {
-        let name = name.as_ref();
-
-        let prop = unsafe {
-            #[cfg(phper_major_version = "8")]
-            {
-                zend_read_property(
-                    self.class as *mut _,
-                    (*self.val).inner.value.obj,
-                    name.as_ptr().cast(),
-                    name.len(),
-                    false.into(),
-                    null_mut(),
-                )
-            }
-
-            #[cfg(phper_major_version = "7")]
-            {
-                zend_read_property(
-                    self.class as *mut _,
-                    self.val as *mut _,
-                    name.as_ptr().cast(),
-                    name.len(),
-                    false.into(),
-                    null_mut(),
-                )
-            }
-        };
-
-        unsafe { Val::from_mut(prop) }
-    }
-}
-
 pub struct PropertyEntity {
     name: String,
-    value: Box<dyn SetVal + Send + Sync>,
+    // TODO to be a SetVal
+    value: String,
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl ToString, value: impl SetVal + Send + Sync + 'static) -> Self {
+    pub fn new(name: impl ToString, value: String) -> Self {
         Self {
             name: name.to_string(),
-            value: Box::new(value),
+            value,
         }
     }
 }
@@ -226,4 +185,16 @@ pub enum Visibility {
     Public = ZEND_ACC_PUBLIC,
     Protected = ZEND_ACC_PROTECTED,
     Private = ZEND_ACC_PRIVATE,
+}
+
+pub(crate) fn get_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
+    let name = name.as_ref();
+    unsafe {
+        phper_zend_hash_str_find_ptr(
+            compiler_globals.class_table,
+            name.as_ptr().cast(),
+            name.len(),
+        )
+        .cast()
+    }
 }

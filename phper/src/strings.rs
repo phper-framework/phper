@@ -1,34 +1,24 @@
 use crate::sys::*;
 
-pub struct ZString {
-    inner: *mut zend_string,
+/// Wrapper of [crate::sys::zend_string].
+#[repr(transparent)]
+pub struct ZendString {
+    inner: zend_string,
 }
 
-impl ZString {
-    pub fn new() -> Self {
-        unsafe {
-            Self {
-                inner: phper_zend_string_alloc(0, 1),
-            }
-        }
+impl ZendString {
+    // TODO Remove dead_code tag
+    #[allow(dead_code)]
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
+        let ptr = ptr as *mut Self;
+        ptr.as_mut().expect("ptr shouldn't be null")
     }
-}
 
-impl<T: AsRef<str>> From<T> for ZString {
-    fn from(t: T) -> Self {
-        let s = t.as_ref();
-        unsafe {
-            Self {
-                inner: phper_zend_string_init(s.as_ptr().cast(), s.len(), 1),
-            }
-        }
+    pub fn as_ptr(&self) -> *const zend_string {
+        &self.inner
     }
-}
 
-impl Drop for ZString {
-    fn drop(&mut self) {
-        unsafe {
-            phper_zend_string_release(self.inner);
-        }
+    pub fn as_mut_ptr(&mut self) -> *mut zend_string {
+        &mut self.inner
     }
 }

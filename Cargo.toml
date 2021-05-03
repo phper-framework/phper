@@ -9,5 +9,7 @@ members = [
 
     # internal
     "examples/hello",
-#    "examples/mini-curl",
+    "examples/log",
+    "examples/http-client",
+    "tests/integration",
 ]
