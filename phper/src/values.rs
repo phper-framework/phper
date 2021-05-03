@@ -312,7 +312,7 @@ impl<T: SetVal> SetVal for Vec<T> {
         unsafe {
             phper_array_init(val.as_mut_ptr());
             for (k, v) in self.into_iter().enumerate() {
-                zend_hash_index_update(
+                phper_zend_hash_index_update(
                     (*val.as_mut_ptr()).value.arr,
                     k as u64,
                     Val::new(v).as_mut_ptr(),
@@ -347,7 +347,7 @@ where
         phper_array_init(val.as_mut_ptr());
         for (k, v) in iterator.into_iter() {
             let k = k.as_ref();
-            zend_hash_str_update(
+            phper_zend_hash_str_update(
                 (*val.as_mut_ptr()).value.arr,
                 k.as_ptr().cast(),
                 k.len(),

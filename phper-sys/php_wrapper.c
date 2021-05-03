@@ -82,6 +82,14 @@ void phper_array_init(zval *arg) {
     array_init(arg);
 }
 
+void *phper_zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t len) {
+    return zend_hash_str_find_ptr(ht, str, len);
+}
+
+zval* phper_zend_hash_index_update(HashTable *ht, zend_ulong h, zval *pData) {
+    return zend_hash_index_update(ht, h, pData);
+}
+
 void phper_zend_hash_merge_with_key(HashTable *target, HashTable *source) {
     uint32_t idx;
     Bucket *p;
@@ -102,4 +110,8 @@ void phper_zend_hash_merge_with_key(HashTable *target, HashTable *source) {
             zend_hash_index_update(target, p->h, s);
         }
     }
+}
+
+void phper_zval_obj(zval *z, zend_object *o) {
+    ZVAL_OBJ(z, o);
 }

@@ -1,7 +1,7 @@
 use crate::{
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
-    values::Val,
+    utils::ensure_end_with_zero,
 };
 use once_cell::sync::OnceCell;
 use std::{
@@ -138,12 +138,12 @@ impl ClassEntity {
     pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.class.properties();
         for property in properties {
-            let mut val = Val::new(&*property.value);
-            zend_declare_property(
+            let value = ensure_end_with_zero(property.value.clone());
+            zend_declare_property_string(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),
                 property.name.len(),
-                val.as_mut_ptr(),
+                value.as_ptr().cast(),
                 Visibility::Public as c_int,
             );
         }
@@ -190,7 +190,7 @@ pub enum Visibility {
 pub(crate) fn get_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     let name = name.as_ref();
     unsafe {
-        zend_hash_str_find_ptr_lc(
+        phper_zend_hash_str_find_ptr(
             compiler_globals.class_table,
             name.as_ptr().cast(),
             name.len(),

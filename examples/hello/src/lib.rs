@@ -64,7 +64,7 @@ pub fn get_module() -> Module {
 
     // register classes
     let mut foo_class = StdClass::new();
-    foo_class.add_property("foo", 100.to_string());
+    foo_class.add_property("foo", "100".to_string());
     foo_class.add_method(
         "getFoo",
         |this: &mut Object, _: &mut [Val]| -> phper::Result<Val> {

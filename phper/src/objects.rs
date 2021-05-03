@@ -4,7 +4,10 @@ use crate::{
     values::{SetVal, Val},
     ClassNotFoundError,
 };
-use std::{mem::zeroed, ptr::null_mut};
+use std::{
+    mem::{forget, zeroed},
+    ptr::null_mut,
+};
 
 /// Wrapper of [crate::sys::zend_object].
 #[repr(transparent)]
@@ -19,6 +22,7 @@ impl Object {
             let class_name = class_name.as_ref();
             let ce = get_global_class_entry_ptr(class_name);
             if ce.is_null() {
+                forget(object);
                 Err(ClassNotFoundError::new(class_name.to_string()))
             } else {
                 zend_object_std_init(object.as_mut_ptr(), ce);
@@ -29,7 +33,7 @@ impl Object {
     }
 
     pub fn new_std() -> Self {
-        Self::new("stdClass").expect("stdClass not found")
+        Self::new("stdclass").expect("stdClass not found")
     }
 
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Object {
@@ -61,12 +65,13 @@ impl Object {
                     null_mut(),
                 )
             }
-
             #[cfg(phper_major_version = "7")]
             {
+                let mut zv = zeroed::<zval>();
+                phper_zval_obj(&mut zv, self.as_ptr() as *mut _);
                 zend_read_property(
                     self.inner.ce,
-                    &self.inner as *const _ as *mut _,
+                    &mut zv,
                     name.as_ptr().cast(),
                     name.len(),
                     false.into(),
@@ -82,13 +87,28 @@ impl Object {
         let name = name.as_ref();
         let mut val = Val::new(value);
         unsafe {
-            zend_update_property(
-                self.inner.ce,
-                &mut self.inner as *mut _,
-                name.as_ptr().cast(),
-                name.len(),
-                val.as_mut_ptr(),
-            )
+            #[cfg(phper_major_version = "8")]
+            {
+                zend_update_property(
+                    self.inner.ce,
+                    &mut self.inner,
+                    name.as_ptr().cast(),
+                    name.len(),
+                    val.as_mut_ptr(),
+                )
+            }
+            #[cfg(phper_major_version = "7")]
+            {
+                let mut zv = zeroed::<zval>();
+                phper_zval_obj(&mut zv, self.as_mut_ptr());
+                zend_update_property(
+                    self.inner.ce,
+                    &mut zv,
+                    name.as_ptr().cast(),
+                    name.len(),
+                    val.as_mut_ptr(),
+                )
+            }
         }
     }
 }
