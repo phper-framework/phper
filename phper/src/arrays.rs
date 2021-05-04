@@ -1,4 +1,7 @@
+//! Apis relate to [crate::sys::zend_array].
+
 use crate::{sys::*, values::Val};
+use phper_alloc::EBox;
 use std::mem::zeroed;
 
 #[repr(transparent)]
@@ -28,14 +31,15 @@ impl Array {
         &mut self.inner
     }
 
-    pub fn insert(&mut self, key: impl AsRef<str>, mut value: Val) {
+    pub fn insert(&mut self, key: impl AsRef<str>, value: Val) {
         let key = key.as_ref();
+        let value = EBox::new(value);
         unsafe {
             phper_zend_hash_str_update(
                 &mut self.inner,
                 key.as_ptr().cast(),
                 key.len(),
-                value.as_mut_ptr(),
+                EBox::into_raw(value).cast(),
             );
         }
     }

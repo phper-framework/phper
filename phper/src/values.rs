@@ -1,3 +1,5 @@
+//! Apis relate to [crate::sys::zval].
+
 use crate::{
     alloc::EBox,
     arrays::Array,
@@ -14,6 +16,7 @@ use std::{
     sync::atomic::Ordering,
 };
 
+/// Wrapper of [crate::sys::zend_execute_data].
 #[repr(transparent)]
 pub struct ExecuteData {
     inner: zend_execute_data,
@@ -66,16 +69,21 @@ impl ExecuteData {
     }
 }
 
+/// Wrapper of [crate::sys::zval].
 #[repr(transparent)]
 pub struct Val {
-    pub(crate) inner: zval,
+    inner: zval,
 }
 
 impl Val {
     pub fn new<T: SetVal>(t: T) -> Self {
-        let mut val = Self::empty();
-        val.set(t);
+        let mut val = unsafe { zeroed::<Val>() };
+        SetVal::set_val(t, &mut val);
         val
+    }
+
+    pub fn null() -> Self {
+        Self::new(())
     }
 
     #[inline]
@@ -89,37 +97,8 @@ impl Val {
     }
 
     #[inline]
-    pub(crate) fn empty() -> Self {
-        Self {
-            inner: unsafe { zeroed::<zval>() },
-        }
-    }
-
-    pub fn null() -> Self {
-        let mut val = Self::empty();
-        val.set(());
-        val
-    }
-
-    pub fn from_bool(b: bool) -> Self {
-        let mut val = Self::empty();
-        val.set(b);
-        val
-    }
-
-    pub fn from_val(other: Val) -> Self {
-        let mut val = Self::empty();
-        val.set(other);
-        val
-    }
-
-    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zval {
         &mut self.inner
-    }
-
-    pub fn set(&mut self, v: impl SetVal) {
-        v.set_val(self);
     }
 
     pub fn get_type(&self) -> Type {
@@ -211,6 +190,10 @@ impl Val {
         }
     }
 
+    pub(crate) unsafe fn as_mut_object_unchecked(&self) -> &mut Object {
+        Object::from_mut_ptr(self.inner.value.obj)
+    }
+
     fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
         match self.get_type_name() {
             Ok(type_name) => {
@@ -223,28 +206,22 @@ impl Val {
 }
 
 impl Drop for Val {
-    // TODO Write the drop.
     fn drop(&mut self) {
-        // let t = self.get_type();
-        // unsafe {
-        //     if t.is_string() {
-        //         phper_zend_string_release(self.inner.value.str);
-        //         drop(EBox::from_raw(self.inner.value.str))
-        //     } else if t.is_array() {
-        //         zend_hash_destroy(self.inner.value.arr);
-        //         drop(EBox::from_raw(self.inner.value.arr))
-        //     } else if t.is_object() {
-        //         zend_objects_destroy_object(self.inner.value.obj);
-        //         drop(EBox::from_raw(self.inner.value.obj))
-        //     }
-        // }
+        let t = self.get_type();
+        unsafe {
+            if t.is_string() {
+                phper_zend_string_release(self.inner.value.str);
+            } else if t.is_array() {
+                zend_hash_destroy(self.inner.value.arr);
+            } else if t.is_object() {
+                zend_objects_destroy_object(self.inner.value.obj);
+            }
+        }
     }
 }
 
 /// The trait for setting the value of [Val], mainly as the return value of
 /// [crate::functions::Function] and [crate::functions::Method], and initializer of [Val].
-///
-/// TODO Fix the possibility of leak memory.
 pub trait SetVal {
     fn set_val(self, val: &mut Val);
 }
@@ -312,10 +289,11 @@ impl<T: SetVal> SetVal for Vec<T> {
         unsafe {
             phper_array_init(val.as_mut_ptr());
             for (k, v) in self.into_iter().enumerate() {
+                let v = EBox::new(Val::new(v));
                 phper_zend_hash_index_update(
                     (*val.as_mut_ptr()).value.arr,
                     k as u64,
-                    Val::new(v).as_mut_ptr(),
+                    EBox::into_raw(v).cast(),
                 );
             }
         }
@@ -347,11 +325,12 @@ where
         phper_array_init(val.as_mut_ptr());
         for (k, v) in iterator.into_iter() {
             let k = k.as_ref();
+            let v = EBox::new(Val::new(v));
             phper_zend_hash_str_update(
                 (*val.as_mut_ptr()).value.arr,
                 k.as_ptr().cast(),
                 k.len(),
-                Val::new(v).as_mut_ptr(),
+                EBox::into_raw(v).cast(),
             );
         }
     }
@@ -406,7 +385,7 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 impl SetVal for Val {
     fn set_val(mut self, val: &mut Val) {
         unsafe {
-            phper_zval_copy_value(val.as_mut_ptr(), self.as_mut_ptr());
+            phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
         }
     }
 }

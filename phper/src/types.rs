@@ -69,6 +69,11 @@ impl Type {
     pub fn is_object(self) -> bool {
         matches!(self, Type::Object | Type::ObjectEx)
     }
+
+    #[inline]
+    pub fn is_ref_counted(self) -> bool {
+        unsafe { phper_z_type_info_refcounted(self as u32) != 0 }
+    }
 }
 
 impl From<u32> for Type {

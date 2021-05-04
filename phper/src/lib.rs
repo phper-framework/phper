@@ -1,45 +1,7 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 
 /*!
-# PHPer
-
-[![crates](https://img.shields.io/crates/v/phper?style=flat-square)](https://crates.io/crates/phper)
-[![](https://img.shields.io/docsrs/phper?style=flat-square)](https://docs.rs/phper)
-
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
-
-## Requirement
-
-### Necessary
-
-**libclang** version >= 9
-
-**php** version >= 7
-
-### Tested Support
-
-**os**
-
-- linux
-
-**php**
-
-*version*
-
-- 7.0
-- 7.1
-- 7.2
-- 7.3
-- 7.4
-- 8.0
-
-*mode*
-
-- nts
-
-*sapi*
-
-- cli
 
 ## Usage
 
@@ -68,7 +30,7 @@ phper = "0.2"
 
 4. Add these code to `main.rs`.
 
-```rust,no_run
+```no_run
 use phper::cmd::make;
 
 fn main() {

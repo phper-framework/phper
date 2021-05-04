@@ -107,6 +107,11 @@ fn integrate_returns(module: &mut Module) {
         integration_values_return_result_string_err,
         vec![],
     );
+    module.add_function(
+        "integration_values_return_val",
+        integration_values_return_val,
+        vec![],
+    );
 }
 
 fn integration_values_return_null(_: &mut [Val]) {}
@@ -202,4 +207,8 @@ fn integration_values_return_result_string_ok(_: &mut [Val]) -> phper::Result<St
 
 fn integration_values_return_result_string_err(_: &mut [Val]) -> phper::Result<()> {
     Err(phper::Error::other("a zhe"))
+}
+
+fn integration_values_return_val(_: &mut [Val]) -> Val {
+    Val::new("foo")
 }

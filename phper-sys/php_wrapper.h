@@ -41,4 +41,6 @@ void phper_zend_hash_merge_with_key(HashTable *target, HashTable *source);
 
 void phper_zval_obj(zval *z, zend_object *o);
 
+int phper_z_type_info_refcounted(uint32_t t);
+
 #endif //PHPER_PHP_WRAPPER_H

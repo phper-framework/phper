@@ -163,7 +163,7 @@ pub(crate) unsafe extern "C" fn invoke(
             execute_data.common_required_num_args(),
             execute_data.num_args()
         );
-        return_value.set(());
+        SetVal::set_val((), return_value);
         return;
     }
 
@@ -178,11 +178,7 @@ pub(crate) unsafe extern "C" fn invoke(
             let this = this.as_mut().expect("this should not be null");
             // TODO Fix the object type assertion.
             // assert!(this.get_type().is_object());
-            m.call(
-                Object::from_mut_ptr(this.inner.value.obj),
-                &mut arguments,
-                return_value,
-            );
+            m.call(this.as_mut_object_unchecked(), &mut arguments, return_value);
         }
     }
 }
