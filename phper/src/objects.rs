@@ -1,5 +1,5 @@
 use crate::{
-    classes::get_global_class_entry_ptr,
+    classes::ClassEntry,
     sys::*,
     values::{SetVal, Val},
     ClassNotFoundError,
@@ -16,24 +16,22 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(class_name: impl AsRef<str>) -> Result<Self, ClassNotFoundError> {
+    pub fn new(class_entry: &ClassEntry) -> Self {
         unsafe {
             let mut object = zeroed::<Object>();
-            let class_name = class_name.as_ref();
-            let ce = get_global_class_entry_ptr(class_name);
-            if ce.is_null() {
-                forget(object);
-                Err(ClassNotFoundError::new(class_name.to_string()))
-            } else {
-                zend_object_std_init(object.as_mut_ptr(), ce);
-                object.inner.handlers = &std_object_handlers;
-                Ok(object)
-            }
+            zend_object_std_init(object.as_mut_ptr(), class_entry.as_ptr() as *mut _);
+            object.inner.handlers = &std_object_handlers;
+            object
         }
     }
 
-    pub fn new_std() -> Self {
-        Self::new("stdclass").expect("stdClass not found")
+    pub fn new_by_class_name(class_name: impl AsRef<str>) -> Result<Self, ClassNotFoundError> {
+        let class_entry = ClassEntry::from_globals(class_name)?;
+        Ok(Self::new(class_entry))
+    }
+
+    pub fn new_by_std_class() -> Self {
+        Self::new_by_class_name("stdclass").unwrap()
     }
 
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Object {

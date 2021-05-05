@@ -2,11 +2,13 @@ use std::{mem::zeroed, os::raw::c_char, sync::atomic::AtomicPtr};
 
 use crate::{
     classes::ClassEntry,
+    errors::ArgumentCountError,
     objects::Object,
     sys::*,
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
+use std::{slice::from_raw_parts, str, str::Utf8Error};
 
 pub trait Function: Send + Sync {
     fn call(&self, arguments: &mut [Val], return_value: &mut Val);
@@ -142,6 +144,38 @@ impl Argument {
     }
 }
 
+#[repr(transparent)]
+pub struct ZendFunction {
+    inner: zend_function,
+}
+
+impl ZendFunction {
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunction {
+        let ptr = ptr as *mut Self;
+        ptr.as_mut().expect("ptr shouldn't be null")
+    }
+
+    #[inline]
+    pub fn as_ptr(&self) -> *const zend_function {
+        &self.inner
+    }
+
+    #[inline]
+    pub fn as_mut_ptr(&mut self) -> *mut zend_function {
+        &mut self.inner
+    }
+
+    pub fn get_name(&self) -> Result<String, Utf8Error> {
+        unsafe {
+            let s = get_function_or_method_name(self.as_ptr());
+            let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
+            let result = str::from_utf8(buf).map(ToString::to_string);
+            phper_zend_string_release(s);
+            result
+        }
+    }
+}
+
 pub(crate) unsafe extern "C" fn invoke(
     execute_data: *mut zend_execute_data,
     return_value: *mut zval,
@@ -157,13 +191,20 @@ pub(crate) unsafe extern "C" fn invoke(
     let handler = handler.as_ref().expect("handler is null");
 
     // Check arguments count.
-    if execute_data.num_args() < execute_data.common_required_num_args() {
-        warning!(
-            "expects at least {} parameter(s), {} given\0",
-            execute_data.common_required_num_args(),
-            execute_data.num_args()
-        );
-        SetVal::set_val((), return_value);
+    let num_args = execute_data.num_args() as usize;
+    let required_num_args = execute_data.common_required_num_args() as usize;
+    if num_args < required_num_args {
+        let func_name = execute_data.func().get_name();
+        let result = func_name
+            .map(|func_name| {
+                Err::<(), _>(ArgumentCountError::new(
+                    func_name,
+                    required_num_args,
+                    num_args,
+                ))
+            })
+            .map_err(crate::Error::Utf8);
+        SetVal::set_val(result, return_value);
         return;
     }
 

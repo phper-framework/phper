@@ -1,5 +1,6 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 
+mod arguments;
 mod values;
 
 use phper::{modules::Module, php_get_module};
@@ -13,6 +14,7 @@ pub fn get_module() -> Module {
     );
 
     values::integrate(&mut module);
+    arguments::integrate(&mut module);
 
     module
 }

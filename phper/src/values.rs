@@ -4,6 +4,7 @@ use crate::{
     alloc::EBox,
     arrays::Array,
     errors::Throwable,
+    functions::ZendFunction,
     objects::Object,
     sys::*,
     types::{get_type_by_const, Type},
@@ -12,7 +13,12 @@ use crate::{
 };
 use indexmap::map::IndexMap;
 use std::{
-    collections::HashMap, mem::zeroed, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error,
+    collections::HashMap,
+    mem::{transmute, zeroed},
+    os::raw::c_char,
+    slice::from_raw_parts,
+    str,
+    str::Utf8Error,
     sync::atomic::Ordering,
 };
 
@@ -28,10 +34,12 @@ impl ExecuteData {
         Self { inner }
     }
 
+    #[inline]
     pub unsafe fn from_mut<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
         &mut *(ptr as *mut Self)
     }
 
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_execute_data {
         &mut self.inner
     }
@@ -56,6 +64,10 @@ impl ExecuteData {
         self.inner.This.u2.num_args as u16
     }
 
+    pub unsafe fn func(&self) -> &ZendFunction {
+        ZendFunction::from_mut_ptr(self.inner.func)
+    }
+
     #[inline]
     pub unsafe fn get_this(&mut self) -> *mut Val {
         phper_get_this(&mut self.inner).cast()
@@ -65,7 +77,7 @@ impl ExecuteData {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
         _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
-        arguments.into_iter().map(Val::from_inner).collect()
+        transmute(arguments)
     }
 }
 
@@ -112,6 +124,14 @@ impl Val {
 
     fn set_type(&mut self, t: Type) {
         self.inner.u1.type_info = t as u32;
+    }
+
+    pub fn as_null(&self) -> crate::Result<()> {
+        if self.get_type().is_null() {
+            Ok(())
+        } else {
+            Err(self.must_be_type_error("null").into())
+        }
     }
 
     pub fn as_bool(&self) -> crate::Result<bool> {
@@ -162,9 +182,9 @@ impl Val {
         unsafe {
             let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
             let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
-            let string = str::from_utf8(buf)?.to_string();
+            let result = str::from_utf8(buf).map(ToString::to_string);
             phper_zend_string_release(s);
-            Ok(string)
+            result
         }
     }
 
@@ -367,16 +387,14 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
         match self {
             Ok(t) => t.set_val(val),
             Err(e) => unsafe {
-                let class = e
-                    .class_entity()
-                    .as_ref()
-                    .expect("class entry is null pointer");
-                let message = ensure_end_with_zero(&e);
+                let class_entry = e.class_entry();
+                let message = ensure_end_with_zero(e.message());
                 zend_throw_exception(
-                    class.entry.load(Ordering::SeqCst).cast(),
+                    class_entry.as_ptr() as *mut _,
                     message.as_ptr().cast(),
                     e.code() as i64,
                 );
+                SetVal::set_val((), val);
             },
         }
     }

@@ -1,6 +1,25 @@
-use crate::{classes::ClassEntity, modules::read_global_module, Error::Other};
+use crate::{
+    classes::{ClassEntity, ClassEntry},
+    modules::read_global_module,
+    Error::{ClassNotFound, Other},
+};
 use anyhow::anyhow;
 use std::{error, ffi::FromBytesWithNulError, io, str::Utf8Error};
+
+pub(crate) const EXCEPTION_CLASS_NAME: &'static str = "Phper\\OtherException";
+
+/// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
+pub trait Throwable: error::Error {
+    fn class_entry(&self) -> &ClassEntry;
+
+    fn code(&self) -> u64 {
+        0
+    }
+
+    fn message(&self) -> String {
+        self.to_string()
+    }
+}
 
 /// Type of [std::result::Result]<T, [crate::Error]>.
 pub type Result<T> = std::result::Result<T, self::Error>;
@@ -24,6 +43,9 @@ pub enum Error {
     ClassNotFound(#[from] ClassNotFoundError),
 
     #[error(transparent)]
+    ArgumentCountError(#[from] ArgumentCountError),
+
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
@@ -32,6 +54,27 @@ impl Error {
     pub fn other(message: impl ToString) -> Self {
         let message = message.to_string();
         Other(anyhow!(message))
+    }
+}
+
+// TODO Add message() implement.
+impl Throwable for Error {
+    fn class_entry(&self) -> &ClassEntry {
+        match self {
+            Self::TypeError(e) => e.class_entry(),
+            Self::ClassNotFound(e) => e.class_entry(),
+            Self::ArgumentCountError(e) => e.class_entry(),
+            _ => ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap(),
+        }
+    }
+
+    fn code(&self) -> u64 {
+        match self {
+            Self::TypeError(e) => e.code(),
+            Self::ClassNotFound(e) => e.code(),
+            Self::ArgumentCountError(e) => e.code(),
+            _ => 0,
+        }
     }
 }
 
@@ -48,8 +91,14 @@ impl TypeError {
     }
 }
 
+impl Throwable for TypeError {
+    fn class_entry(&self) -> &ClassEntry {
+        ClassEntry::from_globals("TypeError").unwrap()
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
-#[error("class `{class_name}` not found")]
+#[error("Class '{class_name}' not found")]
 pub struct ClassNotFoundError {
     class_name: String,
 }
@@ -60,25 +109,32 @@ impl ClassNotFoundError {
     }
 }
 
-/// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
-pub trait Throwable: error::Error {
-    fn class_entity(&self) -> *const ClassEntity;
-    fn code(&self) -> u64;
+impl Throwable for ClassNotFoundError {
+    fn class_entry(&self) -> &ClassEntry {
+        ClassEntry::from_globals("Error").unwrap()
+    }
 }
 
-pub(crate) const EXCEPTION_CLASS_NAME: &'static str = "Phper\\OtherException";
+#[derive(thiserror::Error, Debug)]
+#[error("{function_name}(): expects at least {expect_count} parameter(s), {given_count} given")]
+pub struct ArgumentCountError {
+    function_name: String,
+    expect_count: usize,
+    given_count: usize,
+}
 
-impl Throwable for Error {
-    fn class_entity(&self) -> *const ClassEntity {
-        read_global_module(|module| {
-            module
-                .class_entities
-                .get(EXCEPTION_CLASS_NAME)
-                .expect("Must be called after module init") as *const _
-        })
+impl ArgumentCountError {
+    pub fn new(function_name: String, expect_count: usize, given_count: usize) -> Self {
+        Self {
+            function_name,
+            expect_count,
+            given_count,
+        }
     }
+}
 
-    fn code(&self) -> u64 {
-        500
+impl Throwable for ArgumentCountError {
+    fn class_entry(&self) -> &ClassEntry {
+        ClassEntry::from_globals("ArgumentCountError").unwrap()
     }
 }

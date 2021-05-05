@@ -2,6 +2,7 @@ use crate::{
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
     utils::ensure_end_with_zero,
+    ClassNotFoundError,
 };
 use once_cell::sync::OnceCell;
 use std::{
@@ -76,6 +77,15 @@ pub struct ClassEntry {
 }
 
 impl ClassEntry {
+    pub fn from_globals<'a>(class_name: impl AsRef<str>) -> Result<&'a Self, ClassNotFoundError> {
+        let name = class_name.as_ref();
+        let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
+        unsafe {
+            ptr.as_ref()
+                .ok_or_else(|| ClassNotFoundError::new(name.to_string()))
+        }
+    }
+
     pub fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
         unsafe { (ptr as *const Self).as_ref() }.expect("ptr should not be null")
     }
@@ -86,6 +96,19 @@ impl ClassEntry {
 
     pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
         &mut self.inner
+    }
+}
+
+fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
+    let name = name.as_ref();
+    let name = name.to_lowercase();
+    unsafe {
+        phper_zend_hash_str_find_ptr(
+            compiler_globals.class_table,
+            name.as_ptr().cast(),
+            name.len(),
+        )
+        .cast()
     }
 }
 
@@ -185,16 +208,4 @@ pub enum Visibility {
     Public = ZEND_ACC_PUBLIC,
     Protected = ZEND_ACC_PROTECTED,
     Private = ZEND_ACC_PRIVATE,
-}
-
-pub(crate) fn get_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
-    let name = name.as_ref();
-    unsafe {
-        phper_zend_hash_str_find_ptr(
-            compiler_globals.class_table,
-            name.as_ptr().cast(),
-            name.len(),
-        )
-        .cast()
-    }
 }

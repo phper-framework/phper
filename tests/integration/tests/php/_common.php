@@ -25,7 +25,7 @@ function assert_throw($callable, $expect_exception_class, $expect_exception_code
     try {
         $callable();
         throw new AssertionError("`{$expect_exception_message}` not throws");
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         if (get_class($e) != $expect_exception_class) {
             throw new AssertionError(sprintf("expect exception class `%s`, found `%s`", $expect_exception_class, get_class($e)));
         }

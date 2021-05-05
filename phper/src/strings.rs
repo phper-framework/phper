@@ -1,4 +1,5 @@
-use crate::sys::*;
+use crate::{alloc::EBox, sys::*};
+use std::{slice::from_raw_parts, str::Utf8Error};
 
 /// Wrapper of [crate::sys::zend_string].
 #[repr(transparent)]
@@ -9,7 +10,7 @@ pub struct ZendString {
 impl ZendString {
     // TODO Remove dead_code tag
     #[allow(dead_code)]
-    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
         let ptr = ptr as *mut Self;
         ptr.as_mut().expect("ptr shouldn't be null")
     }
@@ -20,5 +21,9 @@ impl ZendString {
 
     pub fn as_mut_ptr(&mut self) -> *mut zend_string {
         &mut self.inner
+    }
+
+    pub unsafe fn from_raw(s: *mut zend_string) -> EBox<ZendString> {
+        EBox::from_raw(s.cast())
     }
 }
