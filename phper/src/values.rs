@@ -149,7 +149,7 @@ impl Val {
         if self.get_type().is_long() {
             unsafe { Ok(self.inner.value.lval) }
         } else {
-            Err(self.must_be_type_error("long").into())
+            Err(self.must_be_type_error("int").into())
         }
     }
 

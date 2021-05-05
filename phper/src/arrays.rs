@@ -31,6 +31,7 @@ impl Array {
         &mut self.inner
     }
 
+    // TODO key should be int or string.
     pub fn insert(&mut self, key: impl AsRef<str>, value: Val) {
         let key = key.as_ref();
         let value = EBox::new(value);
@@ -62,5 +63,15 @@ impl Drop for Array {
         unsafe {
             zend_hash_destroy(&mut self.inner);
         }
+    }
+}
+
+impl Clone for Array {
+    fn clone(&self) -> Self {
+        let mut other = Self::new();
+        unsafe {
+            zend_hash_copy(other.as_mut_ptr(), self.as_ptr() as *mut _, None);
+        }
+        other
     }
 }

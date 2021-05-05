@@ -4,6 +4,7 @@ use crate::{
     values::{SetVal, Val},
     ClassNotFoundError,
 };
+use phper_alloc::EBox;
 use std::{
     mem::{forget, zeroed},
     ptr::null_mut,
@@ -107,6 +108,13 @@ impl Object {
                     val.as_mut_ptr(),
                 )
             }
+        }
+    }
+
+    pub fn clone_obj(&self) -> EBox<Self> {
+        unsafe {
+            let new_obj = zend_objects_clone_obj(self.as_ptr() as *mut _).cast();
+            EBox::from_raw(new_obj)
         }
     }
 }
