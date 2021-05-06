@@ -1,15 +1,14 @@
 //! Apis relate to [crate::sys::zval].
 
 use crate::{
-    alloc::EBox,
+    alloc::{EAllocatable, EBox},
     arrays::Array,
-    errors::Throwable,
+    errors::{Throwable, TypeError},
     functions::ZendFunction,
     objects::Object,
     sys::*,
     types::{get_type_by_const, Type},
     utils::ensure_end_with_zero,
-    TypeError,
 };
 use indexmap::map::IndexMap;
 use std::{
@@ -35,7 +34,7 @@ impl ExecuteData {
     }
 
     #[inline]
-    pub unsafe fn from_mut<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
         &mut *(ptr as *mut Self)
     }
 
@@ -96,11 +95,6 @@ impl Val {
 
     pub fn null() -> Self {
         Self::new(())
-    }
-
-    #[inline]
-    pub const fn from_inner(inner: zval) -> Self {
-        Self { inner }
     }
 
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
@@ -214,6 +208,7 @@ impl Val {
         Object::from_mut_ptr(self.inner.value.obj)
     }
 
+    // TODO Error tip, not only for function arguments, should change.
     fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
         match self.get_type_name() {
             Ok(type_name) => {
@@ -224,6 +219,8 @@ impl Val {
         }
     }
 }
+
+impl EAllocatable for Val {}
 
 impl Drop for Val {
     fn drop(&mut self) {

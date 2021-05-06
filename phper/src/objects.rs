@@ -1,10 +1,10 @@
 use crate::{
+    alloc::{EAllocatable, EBox},
     classes::ClassEntry,
+    errors::ClassNotFoundError,
     sys::*,
     values::{SetVal, Val},
-    ClassNotFoundError,
 };
-use phper_alloc::EBox;
 use std::{
     mem::{forget, zeroed},
     ptr::null_mut,
@@ -17,21 +17,21 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(class_entry: &ClassEntry) -> Self {
+    pub fn new(class_entry: &ClassEntry) -> EBox<Self> {
         unsafe {
-            let mut object = zeroed::<Object>();
-            zend_object_std_init(object.as_mut_ptr(), class_entry.as_ptr() as *mut _);
-            object.inner.handlers = &std_object_handlers;
-            object
+            let ptr = zend_objects_new(class_entry.as_ptr() as *mut _);
+            EBox::from_raw(ptr.cast())
         }
     }
 
-    pub fn new_by_class_name(class_name: impl AsRef<str>) -> Result<Self, ClassNotFoundError> {
+    pub fn new_by_class_name(
+        class_name: impl AsRef<str>,
+    ) -> Result<EBox<Self>, ClassNotFoundError> {
         let class_entry = ClassEntry::from_globals(class_name)?;
         Ok(Self::new(class_entry))
     }
 
-    pub fn new_by_std_class() -> Self {
+    pub fn new_by_std_class() -> EBox<Self> {
         Self::new_by_class_name("stdclass").unwrap()
     }
 
@@ -49,7 +49,7 @@ impl Object {
         &mut self.inner
     }
 
-    pub fn get_property(&self, name: impl AsRef<str>) -> &mut Val {
+    pub fn get_property(&self, name: impl AsRef<str>) -> &Val {
         let name = name.as_ref();
 
         let prop = unsafe {
@@ -82,9 +82,9 @@ impl Object {
         unsafe { Val::from_mut_ptr(prop) }
     }
 
-    pub fn set_property(&mut self, name: impl AsRef<str>, value: impl SetVal) {
+    pub fn set_property(&mut self, name: impl AsRef<str>, val: Val) {
         let name = name.as_ref();
-        let mut val = Val::new(value);
+        let val = EBox::new(val);
         unsafe {
             #[cfg(phper_major_version = "8")]
             {
@@ -93,7 +93,7 @@ impl Object {
                     &mut self.inner,
                     name.as_ptr().cast(),
                     name.len(),
-                    val.as_mut_ptr(),
+                    EBox::into_raw(val).cast(),
                 )
             }
             #[cfg(phper_major_version = "7")]
@@ -105,7 +105,7 @@ impl Object {
                     &mut zv,
                     name.as_ptr().cast(),
                     name.len(),
-                    val.as_mut_ptr(),
+                    EBox::into_raw(val).cast(),
                 )
             }
         }
@@ -119,10 +119,16 @@ impl Object {
     }
 }
 
+impl EAllocatable for Object {
+    fn free(ptr: *mut Self) {
+        unsafe {
+            zend_objects_destroy_object(ptr.cast());
+        }
+    }
+}
+
 impl Drop for Object {
     fn drop(&mut self) {
-        unsafe {
-            zend_objects_destroy_object(&mut self.inner);
-        }
+        unreachable!("Allocation on the stack is not allowed")
     }
 }

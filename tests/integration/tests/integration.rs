@@ -10,8 +10,10 @@ fn test_php() {
     test_php_scripts(
         env!("CARGO_BIN_EXE_integration"),
         &[
-            &tests_php_dir.join("values.php"),
             &tests_php_dir.join("arguments.php"),
+            &tests_php_dir.join("arrays.php"),
+            &tests_php_dir.join("objects.php"),
+            &tests_php_dir.join("values.php"),
         ],
     );
 }

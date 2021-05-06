@@ -1,6 +1,8 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 
 mod arguments;
+mod arrays;
+mod objects;
 mod values;
 
 use phper::{modules::Module, php_get_module};
@@ -13,8 +15,10 @@ pub fn get_module() -> Module {
         env!("CARGO_PKG_AUTHORS"),
     );
 
-    values::integrate(&mut module);
     arguments::integrate(&mut module);
+    arrays::integrate(&mut module);
+    objects::integrate(&mut module);
+    values::integrate(&mut module);
 
     module
 }

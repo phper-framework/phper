@@ -1,11 +1,11 @@
 use crate::{
     c_str_ptr,
     classes::{Class, ClassEntity, StdClass},
+    errors::EXCEPTION_CLASS_NAME,
     functions::{Argument, Callable, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
     utils::ensure_end_with_zero,
-    EXCEPTION_CLASS_NAME,
 };
 use std::{
     borrow::BorrowMut,

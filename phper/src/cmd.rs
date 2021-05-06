@@ -1,3 +1,5 @@
+//! Command tools for build, test and install extension process.
+
 use crate::sys::PHP_EXTENSION_DIR;
 use anyhow::Context;
 use clap::Clap;
@@ -23,6 +25,16 @@ enum SubCommand {
 #[derive(Clap)]
 struct InstallCommand {}
 
+/// Make.
+///
+/// # Examples
+/// ```
+/// use phper::cmd::make;
+///
+/// fn main() {
+///     make();
+/// }
+/// ```
 pub fn make() {
     try_make().expect("make failed");
 }

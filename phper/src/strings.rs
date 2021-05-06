@@ -22,8 +22,4 @@ impl ZendString {
     pub fn as_mut_ptr(&mut self) -> *mut zend_string {
         &mut self.inner
     }
-
-    pub unsafe fn from_raw(s: *mut zend_string) -> EBox<ZendString> {
-        EBox::from_raw(s.cast())
-    }
 }

@@ -13,14 +13,22 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+pub trait EAllocatable {
+    fn free(ptr: *mut Self) {
+        unsafe {
+            _efree(ptr.cast());
+        }
+    }
+}
+
 /// The Box which use php `emalloc` and `efree` to manage memory.
 ///
 /// TODO now feature `allocator_api` is still unstable, implement myself.
-pub struct EBox<T> {
+pub struct EBox<T: EAllocatable> {
     ptr: *mut T,
 }
 
-impl<T> EBox<T> {
+impl<T: EAllocatable> EBox<T> {
     pub fn new(x: T) -> Self {
         unsafe {
             let ptr: *mut T = _emalloc(size_of::<T>()).cast();
@@ -40,7 +48,7 @@ impl<T> EBox<T> {
     }
 }
 
-impl<T> Deref for EBox<T> {
+impl<T: EAllocatable> Deref for EBox<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -48,16 +56,14 @@ impl<T> Deref for EBox<T> {
     }
 }
 
-impl<T> DerefMut for EBox<T> {
+impl<T: EAllocatable> DerefMut for EBox<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.ptr.as_mut().unwrap() }
     }
 }
 
-impl<T> Drop for EBox<T> {
+impl<T: EAllocatable> Drop for EBox<T> {
     fn drop(&mut self) {
-        unsafe {
-            _efree(self.ptr.cast());
-        }
+        <T>::free(self.ptr);
     }
 }

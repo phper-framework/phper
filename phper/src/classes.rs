@@ -1,8 +1,10 @@
+//! Apis relate to [crate::sys::zend_class_entry].
+
 use crate::{
+    errors::ClassNotFoundError,
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
     sys::*,
     utils::ensure_end_with_zero,
-    ClassNotFoundError,
 };
 use once_cell::sync::OnceCell;
 use std::{

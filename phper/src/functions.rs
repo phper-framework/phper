@@ -180,7 +180,7 @@ pub(crate) unsafe extern "C" fn invoke(
     execute_data: *mut zend_execute_data,
     return_value: *mut zval,
 ) {
-    let execute_data = ExecuteData::from_mut(execute_data);
+    let execute_data = ExecuteData::from_mut_ptr(execute_data);
     let return_value = Val::from_mut_ptr(return_value);
 
     let num_args = execute_data.common_num_args();

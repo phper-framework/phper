@@ -76,7 +76,7 @@ pub fn get_module() -> Module {
     foo_class.add_method(
         "setFoo",
         |this: &mut Object, arguments: &mut [Val]| -> phper::Result<()> {
-            this.set_property("foo", arguments[0].as_string_value()?);
+            this.set_property("foo", Val::new(arguments[0].as_string_value()?));
             Ok(())
         },
         vec![Argument::by_val("foo")],

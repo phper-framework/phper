@@ -96,7 +96,7 @@ mod macros;
 pub mod arrays;
 pub mod classes;
 pub mod cmd;
-mod errors;
+pub mod errors;
 pub mod functions;
 pub mod ini;
 pub mod modules;
@@ -107,7 +107,7 @@ pub mod types;
 mod utils;
 pub mod values;
 
-pub use crate::errors::*;
+pub use crate::errors::{Error, Result};
 pub use phper_alloc as alloc;
 pub use phper_macros::*;
 pub use phper_sys as sys;
