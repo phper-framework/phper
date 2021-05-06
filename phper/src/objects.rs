@@ -60,7 +60,7 @@ impl Object {
                     &self.inner as *const _ as *mut _,
                     name.as_ptr().cast(),
                     name.len(),
-                    false.into(),
+                    true.into(),
                     null_mut(),
                 )
             }
@@ -73,7 +73,7 @@ impl Object {
                     &mut zv,
                     name.as_ptr().cast(),
                     name.len(),
-                    false.into(),
+                    true.into(),
                     null_mut(),
                 )
             }

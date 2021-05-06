@@ -3,6 +3,7 @@
 mod arguments;
 mod arrays;
 mod objects;
+mod strings;
 mod values;
 
 use phper::{modules::Module, php_get_module};
@@ -19,6 +20,7 @@ pub fn get_module() -> Module {
     arrays::integrate(&mut module);
     objects::integrate(&mut module);
     values::integrate(&mut module);
+    strings::integrate(&mut module);
 
     module
 }

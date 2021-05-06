@@ -6,6 +6,7 @@ use crate::{
     errors::{Throwable, TypeError},
     functions::ZendFunction,
     objects::Object,
+    strings::ZendString,
     sys::*,
     types::{get_type_by_const, Type},
     utils::ensure_end_with_zero,
@@ -162,10 +163,8 @@ impl Val {
     pub fn as_string(&self) -> crate::Result<String> {
         if self.get_type().is_string() {
             unsafe {
-                let s = self.inner.value.str;
-                let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
-                let string = str::from_utf8(buf)?.to_string();
-                Ok(string)
+                let zs = ZendString::from_ptr(self.inner.value.str);
+                Ok(zs.as_string()?)
             }
         } else {
             Err(self.must_be_type_error("string").into())
@@ -175,10 +174,8 @@ impl Val {
     pub fn as_string_value(&self) -> Result<String, Utf8Error> {
         unsafe {
             let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
-            let buf = from_raw_parts(&(*s).val as *const c_char as *const u8, (*s).len);
-            let result = str::from_utf8(buf).map(ToString::to_string);
-            phper_zend_string_release(s);
-            result
+            let zs = EBox::from_raw(s as *mut ZendString);
+            zs.as_string()
         }
     }
 
@@ -218,12 +215,8 @@ impl Val {
             Err(e) => e.into(),
         }
     }
-}
 
-impl EAllocatable for Val {}
-
-impl Drop for Val {
-    fn drop(&mut self) {
+    fn drop_me(&mut self) {
         let t = self.get_type();
         unsafe {
             if t.is_string() {
@@ -234,6 +227,21 @@ impl Drop for Val {
                 zend_objects_destroy_object(self.inner.value.obj);
             }
         }
+    }
+}
+
+impl EAllocatable for Val {
+    fn free(ptr: *mut Self) {
+        unsafe {
+            ptr.as_mut().unwrap().drop_me();
+            _efree(ptr.cast());
+        }
+    }
+}
+
+impl Drop for Val {
+    fn drop(&mut self) {
+        self.drop_me();
     }
 }
 

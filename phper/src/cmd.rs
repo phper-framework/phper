@@ -28,7 +28,8 @@ struct InstallCommand {}
 /// Make.
 ///
 /// # Examples
-/// ```
+///
+/// ```no_run
 /// use phper::cmd::make;
 ///
 /// fn main() {

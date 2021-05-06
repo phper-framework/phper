@@ -13,6 +13,7 @@ fn test_php() {
             &tests_php_dir.join("arguments.php"),
             &tests_php_dir.join("arrays.php"),
             &tests_php_dir.join("objects.php"),
+            &tests_php_dir.join("strings.php"),
             &tests_php_dir.join("values.php"),
         ],
     );
