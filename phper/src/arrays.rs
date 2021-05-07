@@ -32,7 +32,7 @@ pub struct Array {
 }
 
 impl Array {
-    // TODO Change to EBox<Self>.
+    // New array in the stack.
     pub fn new() -> Self {
         unsafe {
             let mut array = zeroed::<Array>();
@@ -54,6 +54,7 @@ impl Array {
         &mut self.inner
     }
 
+    // Add or update item by key.
     pub fn insert<'a>(&mut self, key: impl Into<Key<'a>>, value: Val) {
         let key = key.into();
         let value = EBox::new(value);
@@ -74,6 +75,7 @@ impl Array {
         }
     }
 
+    // Get item by key.
     pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&Val> {
         let key = key.into();
         unsafe {
@@ -89,6 +91,7 @@ impl Array {
         }
     }
 
+    // Get items length.
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(&mut self.inner) as usize }
     }

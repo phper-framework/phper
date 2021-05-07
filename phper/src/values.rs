@@ -30,11 +30,6 @@ pub struct ExecuteData {
 
 impl ExecuteData {
     #[inline]
-    pub const fn new(inner: zend_execute_data) -> Self {
-        Self { inner }
-    }
-
-    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
         &mut *(ptr as *mut Self)
     }
@@ -216,16 +211,14 @@ impl Val {
         }
     }
 
-    fn drop_me(&mut self) {
+    unsafe fn drop_me(&mut self) {
         let t = self.get_type();
-        unsafe {
-            if t.is_string() {
-                phper_zend_string_release(self.inner.value.str);
-            } else if t.is_array() {
-                zend_hash_destroy(self.inner.value.arr);
-            } else if t.is_object() {
-                zend_objects_destroy_object(self.inner.value.obj);
-            }
+        if t.is_string() {
+            phper_zend_string_release(self.inner.value.str);
+        } else if t.is_array() {
+            zend_hash_destroy(self.inner.value.arr);
+        } else if t.is_object() {
+            zend_objects_destroy_object(self.inner.value.obj);
         }
     }
 }
@@ -241,7 +234,9 @@ impl EAllocatable for Val {
 
 impl Drop for Val {
     fn drop(&mut self) {
-        self.drop_me();
+        unsafe {
+            self.drop_me();
+        }
     }
 }
 
