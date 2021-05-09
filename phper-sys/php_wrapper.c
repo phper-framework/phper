@@ -116,6 +116,7 @@ void phper_zval_obj(zval *z, zend_object *o) {
     ZVAL_OBJ(z, o);
 }
 
+#if PHP_VERSION_ID < 80000
 static zend_string *phper_zend_string_concat3(
         const char *str1, size_t str1_len,
         const char *str2, size_t str2_len,
@@ -131,6 +132,7 @@ static zend_string *phper_zend_string_concat3(
 
     return res;
 }
+#endif
 
 zend_string *phper_get_function_or_method_name(const zend_function *func) {
     #if PHP_VERSION_ID >= 80000

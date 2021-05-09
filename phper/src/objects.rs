@@ -7,7 +7,7 @@ use crate::{
     sys::*,
     values::Val,
 };
-use std::{marker::PhantomData, mem::zeroed, ptr::null_mut};
+use std::{marker::PhantomData, ptr::null_mut};
 
 /// Wrapper of [crate::sys::zend_object].
 #[repr(transparent)]
@@ -60,7 +60,7 @@ impl<T> Object<T> {
             }
             #[cfg(phper_major_version = "7")]
             {
-                let mut zv = zeroed::<zval>();
+                let mut zv = std::mem::zeroed::<zval>();
                 phper_zval_obj(&mut zv, self.as_ptr() as *mut _);
                 zend_read_property(
                     self.inner.ce,
@@ -92,7 +92,7 @@ impl<T> Object<T> {
             }
             #[cfg(phper_major_version = "7")]
             {
-                let mut zv = zeroed::<zval>();
+                let mut zv = std::mem::zeroed::<zval>();
                 phper_zval_obj(&mut zv, self.as_mut_ptr());
                 zend_update_property(
                     self.inner.ce,
@@ -107,7 +107,19 @@ impl<T> Object<T> {
 
     pub fn clone_obj(&self) -> EBox<Self> {
         unsafe {
-            let new_obj = zend_objects_clone_obj(self.as_ptr() as *mut _).cast();
+            let new_obj = {
+                #[cfg(phper_major_version = "8")]
+                {
+                    zend_objects_clone_obj(self.as_ptr() as *mut _).cast()
+                }
+                #[cfg(phper_major_version = "7")]
+                {
+                    let mut zv = std::mem::zeroed::<zval>();
+                    phper_zval_obj(&mut zv, self.as_ptr() as *mut _);
+                    zend_objects_clone_obj(&mut zv).cast()
+                }
+            };
+
             EBox::from_raw(new_obj)
         }
     }

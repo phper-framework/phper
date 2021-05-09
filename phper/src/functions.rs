@@ -1,10 +1,8 @@
 //! Apis relate to [crate::sys::zend_function_entry].
 
-use std::{mem::zeroed, os::raw::c_char, sync::atomic::AtomicPtr};
+use std::{mem::zeroed, os::raw::c_char};
 
 use crate::{
-    alloc::EBox,
-    classes::ClassEntry,
     errors::ArgumentCountError,
     objects::Object,
     strings::ZendString,
@@ -12,7 +10,7 @@ use crate::{
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
-use std::{marker::PhantomData, mem::transmute, slice::from_raw_parts, str, str::Utf8Error};
+use std::{marker::PhantomData, str::Utf8Error};
 
 pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
@@ -122,7 +120,7 @@ impl FunctionEntity {
         let translator = CallableTranslator {
             callable: self.handler.as_ref(),
         };
-        let mut last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
+        let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
         infos.push(last_arg_info);
 
         zend_function_entry {

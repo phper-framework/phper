@@ -2,7 +2,7 @@
 
 use crate::{
     errors::ClassNotFoundError,
-    functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
+    functions::{Argument, FunctionEntity, FunctionEntry, Method},
     objects::Object,
     sys::*,
     utils::ensure_end_with_zero,

@@ -3,7 +3,7 @@
 use crate::{
     c_str_ptr,
     classes::{ClassEntity, Classifiable},
-    functions::{Argument, Callable, Function, FunctionEntity},
+    functions::{Argument, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
     utils::ensure_end_with_zero,
