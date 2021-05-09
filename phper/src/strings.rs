@@ -1,8 +1,10 @@
+//! Apis relate to [crate::sys::zend_string].
+
 use crate::{
     alloc::{EAllocatable, EBox},
     sys::*,
 };
-use std::{ffi::CString, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error};
+use std::{os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error};
 
 /// Wrapper of [crate::sys::zend_string].
 #[repr(transparent)]
@@ -16,6 +18,10 @@ impl ZendString {
             let ptr = phper_zend_string_init(s.as_ptr().cast(), s.len(), false.into()).cast();
             EBox::from_raw(ptr)
         }
+    }
+
+    pub unsafe fn from_raw(ptr: *mut zend_string) -> EBox<Self> {
+        EBox::from_raw(ptr as *mut ZendString)
     }
 
     pub(crate) fn from_ptr<'a>(ptr: *mut zend_string) -> &'a Self {
@@ -33,7 +39,7 @@ impl ZendString {
         &mut self.inner
     }
 
-    pub fn as_string(&self) -> Result<String, Utf8Error> {
+    pub fn to_string(&self) -> Result<String, Utf8Error> {
         unsafe {
             let buf = from_raw_parts(
                 &self.inner.val as *const c_char as *const u8,

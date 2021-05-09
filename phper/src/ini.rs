@@ -1,3 +1,5 @@
+//! Apis relate to [crate::sys::zend_ini_entry_def].
+
 use crate::sys::{
     phper_zend_ini_mh, zend_ini_entry_def, OnUpdateBool, OnUpdateLong, OnUpdateReal,
     OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,

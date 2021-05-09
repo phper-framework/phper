@@ -1,12 +1,8 @@
-use crate::{
-    classes::{ClassEntity, ClassEntry},
-    modules::read_global_module,
-    Error::{ClassNotFound, Other},
-};
+//! The errors for crate and php.
+
+use crate::{classes::ClassEntry, Error::Other};
 use anyhow::anyhow;
 use std::{error, ffi::FromBytesWithNulError, io, str::Utf8Error};
-
-pub(crate) const EXCEPTION_CLASS_NAME: &'static str = "Phper\\OtherException";
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
 pub trait Throwable: error::Error {
@@ -25,6 +21,8 @@ pub trait Throwable: error::Error {
 pub type Result<T> = std::result::Result<T, self::Error>;
 
 /// Crate level Error, which also can become an exception in php.
+///
+/// As a php exception, will throw `ErrorException` when the item not implement [Throwable].
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -37,20 +35,20 @@ pub enum Error {
     FromBytesWithNul(#[from] FromBytesWithNulError),
 
     #[error(transparent)]
-    TypeError(#[from] TypeError),
+    Type(#[from] TypeError),
 
     #[error(transparent)]
     ClassNotFound(#[from] ClassNotFoundError),
 
     #[error(transparent)]
-    ArgumentCountError(#[from] ArgumentCountError),
+    ArgumentCount(#[from] ArgumentCountError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
 impl Error {
-    /// An essy way to cause an anyhow::Error.
+    /// An essy way to cause an [anyhow::Error].
     pub fn other(message: impl ToString) -> Self {
         let message = message.to_string();
         Other(anyhow!(message))
@@ -61,24 +59,23 @@ impl Error {
 impl Throwable for Error {
     fn class_entry(&self) -> &ClassEntry {
         match self {
-            Self::TypeError(e) => e.class_entry(),
+            Self::Type(e) => e.class_entry(),
             Self::ClassNotFound(e) => e.class_entry(),
-            Self::ArgumentCountError(e) => e.class_entry(),
-            _ => ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap(),
+            Self::ArgumentCount(e) => e.class_entry(),
+            _ => ClassEntry::from_globals("ErrorException").unwrap(),
         }
     }
 
     fn code(&self) -> u64 {
         match self {
-            Self::TypeError(e) => e.code(),
+            Self::Type(e) => e.code(),
             Self::ClassNotFound(e) => e.code(),
-            Self::ArgumentCountError(e) => e.code(),
+            Self::ArgumentCount(e) => e.code(),
             _ => 0,
         }
     }
 }
 
-/// PHP type error.
 #[derive(thiserror::Error, Debug)]
 #[error("type error: {message}")]
 pub struct TypeError {

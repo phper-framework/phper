@@ -1,22 +1,22 @@
+//! Apis relate to [crate::sys::zend_object].
+
 use crate::{
     alloc::{EAllocatable, EBox},
     classes::ClassEntry,
     errors::ClassNotFoundError,
     sys::*,
-    values::{SetVal, Val},
+    values::Val,
 };
-use std::{
-    mem::{forget, zeroed},
-    ptr::null_mut,
-};
+use std::{marker::PhantomData, mem::zeroed, ptr::null_mut};
 
 /// Wrapper of [crate::sys::zend_object].
 #[repr(transparent)]
-pub struct Object {
+pub struct Object<T> {
     inner: zend_object,
+    _p: PhantomData<T>,
 }
 
-impl Object {
+impl<T> Object<T> {
     pub fn new(class_entry: &ClassEntry) -> EBox<Self> {
         unsafe {
             let ptr = zend_objects_new(class_entry.as_ptr() as *mut _);
@@ -31,14 +31,8 @@ impl Object {
         Ok(Self::new(class_entry))
     }
 
-    pub fn new_by_std_class() -> EBox<Self> {
-        Self::new_by_class_name("stdclass").unwrap()
-    }
-
-    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Object {
-        (ptr as *mut Object)
-            .as_mut()
-            .expect("ptr should not be null")
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
+        (ptr as *mut Self).as_mut().expect("ptr should not be null")
     }
 
     pub fn as_ptr(&self) -> *const zend_object {
@@ -119,7 +113,13 @@ impl Object {
     }
 }
 
-impl EAllocatable for Object {
+impl Object<()> {
+    pub fn new_by_std_class() -> EBox<Self> {
+        Self::new_by_class_name("stdclass").unwrap()
+    }
+}
+
+impl<T> EAllocatable for Object<T> {
     fn free(ptr: *mut Self) {
         unsafe {
             zend_objects_destroy_object(ptr.cast());
@@ -127,7 +127,7 @@ impl EAllocatable for Object {
     }
 }
 
-impl Drop for Object {
+impl<T> Drop for Object<T> {
     fn drop(&mut self) {
         unreachable!("Allocation on the stack is not allowed")
     }

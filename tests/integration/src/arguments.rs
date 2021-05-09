@@ -52,7 +52,7 @@ fn integrate_arguments(module: &mut Module) {
 
     module.add_function(
         "integrate_arguments_object",
-        |arguments: &mut [Val]| -> phper::Result<EBox<Object>> {
+        |arguments: &mut [Val]| -> phper::Result<EBox<Object<()>>> {
             let a = arguments[0].as_object()?;
             let mut a = a.clone_obj();
             a.set_property("foo", Val::new("bar"));

@@ -1,3 +1,5 @@
+//! Logs and echo facilities.
+
 use crate::{sys::*, utils::ensure_end_with_zero};
 use std::ptr::null;
 

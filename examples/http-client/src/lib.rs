@@ -1,4 +1,4 @@
-use phper::{classes::StdClass, modules::Module, php_get_module};
+use phper::{classes::DynamicClass, modules::Module, php_get_module};
 
 pub mod http_client;
 
@@ -11,7 +11,7 @@ pub fn get_module() -> Module {
     );
 
     // let client = HttpClient::new();
-    let client_class = StdClass::new();
+    let client_class: DynamicClass<()> = DynamicClass::new();
     module.add_class("HttpClient", client_class);
 
     module

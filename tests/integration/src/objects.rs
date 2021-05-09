@@ -3,7 +3,7 @@ use phper::{modules::Module, objects::Object, values::Val};
 pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_new_drop",
-        |arguments: &mut [Val]| -> phper::Result<()> {
+        |_: &mut [Val]| -> phper::Result<()> {
             let o = Object::new_by_std_class();
             drop(o);
             Ok(())
@@ -13,7 +13,7 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_objects_get_set",
-        |arguments: &mut [Val]| -> phper::Result<()> {
+        |_: &mut [Val]| -> phper::Result<()> {
             let mut o = Object::new_by_std_class();
 
             o.set_property("foo", Val::new("bar"));

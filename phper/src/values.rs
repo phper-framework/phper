@@ -15,11 +15,8 @@ use indexmap::map::IndexMap;
 use std::{
     collections::HashMap,
     mem::{transmute, zeroed},
-    os::raw::c_char,
-    slice::from_raw_parts,
     str,
     str::Utf8Error,
-    sync::atomic::Ordering,
 };
 
 /// Wrapper of [crate::sys::zend_execute_data].
@@ -63,9 +60,9 @@ impl ExecuteData {
         ZendFunction::from_mut_ptr(self.inner.func)
     }
 
-    #[inline]
-    pub unsafe fn get_this(&mut self) -> *mut Val {
-        phper_get_this(&mut self.inner).cast()
+    pub unsafe fn get_this<T>(&mut self) -> Option<&mut Object<T>> {
+        let ptr = phper_get_this(&mut self.inner) as *mut Val;
+        ptr.as_ref().map(|val| val.as_mut_object_unchecked())
     }
 
     pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
@@ -159,7 +156,7 @@ impl Val {
         if self.get_type().is_string() {
             unsafe {
                 let zs = ZendString::from_ptr(self.inner.value.str);
-                Ok(zs.as_string()?)
+                Ok(zs.to_string()?)
             }
         } else {
             Err(self.must_be_type_error("string").into())
@@ -169,8 +166,7 @@ impl Val {
     pub fn as_string_value(&self) -> Result<String, Utf8Error> {
         unsafe {
             let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
-            let zs = EBox::from_raw(s as *mut ZendString);
-            zs.as_string()
+            ZendString::from_raw(s).to_string()
         }
     }
 
@@ -185,7 +181,7 @@ impl Val {
         }
     }
 
-    pub fn as_object(&self) -> crate::Result<&Object> {
+    pub fn as_object<T>(&self) -> crate::Result<&Object<T>> {
         if self.get_type().is_object() {
             unsafe {
                 let ptr = self.inner.value.obj;
@@ -196,7 +192,7 @@ impl Val {
         }
     }
 
-    pub(crate) unsafe fn as_mut_object_unchecked(&self) -> &mut Object {
+    pub(crate) unsafe fn as_mut_object_unchecked<T>(&self) -> &mut Object<T> {
         Object::from_mut_ptr(self.inner.value.obj)
     }
 
@@ -365,7 +361,7 @@ impl SetVal for EBox<Array> {
     }
 }
 
-impl SetVal for EBox<Object> {
+impl<T> SetVal for EBox<Object<T>> {
     fn set_val(self, val: &mut Val) {
         let object = EBox::into_raw(self);
         val.inner.value.obj = object.cast();

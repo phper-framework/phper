@@ -3,47 +3,51 @@
 use crate::{
     errors::ClassNotFoundError,
     functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
+    objects::Object,
     sys::*,
     utils::ensure_end_with_zero,
+    values::{SetVal, Val},
 };
 use once_cell::sync::OnceCell;
 use std::{
+    marker::PhantomData,
     mem::zeroed,
     os::raw::c_int,
     ptr::null_mut,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
-pub trait Class: Send + Sync {
+pub trait Classifiable {
     fn methods(&mut self) -> &mut [FunctionEntity];
     fn properties(&mut self) -> &mut [PropertyEntity];
     fn parent(&self) -> Option<&str>;
 }
 
-pub struct StdClass {
+pub struct DynamicClass<T: Send + Sync + 'static> {
     pub(crate) method_entities: Vec<FunctionEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
     pub(crate) parent: Option<String>,
+    _p: PhantomData<T>,
 }
 
-impl StdClass {
+impl<T: Send + Sync + 'static> DynamicClass<T> {
     pub fn new() -> Self {
         Self {
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
+            _p: Default::default(),
         }
     }
 
-    pub fn add_method(
-        &mut self,
-        name: impl ToString,
-        handler: impl Method + 'static,
-        arguments: Vec<Argument>,
-    ) {
+    pub fn add_method<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
+    where
+        F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync + 'static,
+        R: SetVal + 'static,
+    {
         self.method_entities.push(FunctionEntity::new(
             name,
-            Callable::Method(Box::new(handler), AtomicPtr::new(null_mut())),
+            Box::new(Method::new(handler)),
             arguments,
         ));
     }
@@ -59,7 +63,7 @@ impl StdClass {
     }
 }
 
-impl Class for StdClass {
+impl<T: Send + Sync> Classifiable for DynamicClass<T> {
     fn methods(&mut self) -> &mut [FunctionEntity] {
         &mut self.method_entities
     }
@@ -117,12 +121,12 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 pub struct ClassEntity {
     pub(crate) name: String,
     pub(crate) entry: AtomicPtr<ClassEntry>,
-    pub(crate) class: Box<dyn Class>,
+    pub(crate) class: Box<dyn Classifiable>,
     pub(crate) function_entries: OnceCell<AtomicPtr<FunctionEntry>>,
 }
 
 impl ClassEntity {
-    pub(crate) unsafe fn new(name: impl ToString, class: impl Class + 'static) -> Self {
+    pub(crate) unsafe fn new(name: impl ToString, class: impl Classifiable + 'static) -> Self {
         Self {
             name: name.to_string(),
             entry: AtomicPtr::new(null_mut()),
@@ -138,26 +142,28 @@ impl ClassEntity {
             self.function_entries().load(Ordering::SeqCst).cast(),
         );
 
-        let parent = self.class.parent().map(|s| match s {
-            "Exception" | "\\Exception" => zend_ce_exception,
-            _ => todo!(),
-        });
+        let parent = self
+            .class
+            .parent()
+            .map(|s| ClassEntry::from_globals(s).unwrap());
 
         let ptr = match parent {
-            Some(parent) => zend_register_internal_class_ex(&mut class_ce, parent).cast(),
+            Some(parent) => {
+                zend_register_internal_class_ex(&mut class_ce, parent.as_ptr() as *mut _).cast()
+            }
             None => zend_register_internal_class(&mut class_ce).cast(),
         };
         self.entry.store(ptr, Ordering::SeqCst);
 
-        let methods = self.class.methods();
-        for method in methods {
-            match &method.handler {
-                Callable::Method(_, class) => {
-                    class.store(ptr, Ordering::SeqCst);
-                }
-                _ => unreachable!(),
-            }
-        }
+        // let methods = self.class.methods();
+        // for method in methods {
+        //     match &method.handler {
+        //         Callable::Method(_, class) => {
+        //             class.store(ptr, Ordering::SeqCst);
+        //         }
+        //         _ => unreachable!(),
+        //     }
+        // }
     }
 
     pub(crate) unsafe fn declare_properties(&mut self) {

@@ -1,16 +1,9 @@
-use phper::{
-    alloc::EBox,
-    arrays::Array,
-    functions::Argument,
-    modules::Module,
-    objects::Object,
-    values::{SetVal, Val},
-};
+use phper::{alloc::EBox, arrays::Array, modules::Module, objects::Object, values::Val};
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_arrays_new_drop",
-        |arguments: &mut [Val]| -> phper::Result<String> {
+        |_: &mut [Val]| -> phper::Result<String> {
             let mut a1 = Array::new();
             a1.insert("foo", Val::new("FOO"));
             let foo = a1.get("foo").unwrap();
@@ -28,7 +21,7 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_arrays_types",
-        |arguments: &mut [Val]| -> phper::Result<()> {
+        |_: &mut [Val]| -> phper::Result<()> {
             let mut a = Array::new();
 
             a.insert(0, Val::new(0));
@@ -46,7 +39,7 @@ pub fn integrate(module: &mut Module) {
             a.insert(
                 "obj",
                 Val::new({
-                    let mut o = Object::new_by_std_class();
+                    let mut o: EBox<Object<()>> = Object::new_by_std_class();
                     o.set_property("foo", Val::new("bar"));
                     o
                 }),
@@ -60,7 +53,7 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(arr.get(0).unwrap().as_long()?, 0);
             assert_eq!(arr.get(1).unwrap().as_long()?, 1);
 
-            let obj = a.get("obj").unwrap().as_object()?;
+            let obj: &Object<()> = a.get("obj").unwrap().as_object()?;
             let foo = obj.get_property("foo");
             assert_eq!(foo.as_string()?, "bar");
 

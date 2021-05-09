@@ -10,7 +10,7 @@ Add this crate in your `[build-dependencies]` and using in `build.rs`.
 [Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
 */
 
-use phper_sys::{PHP_DEBUG, PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION, USING_ZTS};
+use phper_sys::*;
 
 /// Register useful rust cfg for project using phper.
 pub fn register_configures() {

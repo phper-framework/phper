@@ -1,11 +1,13 @@
+//! Apis relate to [crate::sys::zend_module_entry].
+
 use crate::{
     c_str_ptr,
-    classes::{Class, ClassEntity, StdClass},
-    errors::EXCEPTION_CLASS_NAME,
+    classes::{ClassEntity, Classifiable},
     functions::{Argument, Callable, Function, FunctionEntity},
     ini::{IniEntity, IniValue, Policy, StrPtrBox},
     sys::*,
     utils::ensure_end_with_zero,
+    values::{SetVal, Val},
 };
 use std::{
     borrow::BorrowMut,
@@ -202,29 +204,26 @@ impl Module {
         })
     }
 
-    pub fn add_function(
-        &mut self,
-        name: impl ToString,
-        handler: impl Function + 'static,
-        arguments: Vec<Argument>,
-    ) {
+    pub fn add_function<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
+    where
+        F: Fn(&mut [Val]) -> R + Send + Sync + 'static,
+        R: SetVal + 'static,
+    {
         self.function_entities.push(FunctionEntity::new(
             name,
-            Callable::Function(Box::new(handler)),
+            Box::new(Function(handler)),
             arguments,
         ));
     }
 
-    pub fn add_class(&mut self, name: impl ToString, class: impl Class + 'static) {
+    pub fn add_class(&mut self, name: impl ToString, class: impl Classifiable + 'static) {
         self.class_entities
             .insert(name.to_string(), unsafe { ClassEntity::new(name, class) });
     }
 
-    pub unsafe fn module_entry(mut self) -> *const zend_module_entry {
+    pub unsafe fn module_entry(self) -> *const zend_module_entry {
         assert!(!self.name.is_empty(), "module name must be set");
         assert!(!self.version.is_empty(), "module version must be set");
-
-        self.add_error_exception_class();
 
         let entry: Box<zend_module_entry> = Box::new(zend_module_entry {
             size: size_of::<zend_module_entry>() as c_ushort,
@@ -299,12 +298,6 @@ impl Module {
         for (_, entry) in &mut *entities.borrow_mut() {
             entries.push(entry.ini_entry_def());
         }
-    }
-
-    fn add_error_exception_class(&mut self) {
-        let mut class = StdClass::new();
-        class.extends("\\Exception");
-        self.add_class(EXCEPTION_CLASS_NAME, class);
     }
 }
 

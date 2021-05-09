@@ -187,7 +187,7 @@ fn integration_values_return_array(_: &mut [Val]) -> EBox<Array> {
     EBox::new(arr)
 }
 
-fn integration_values_return_object(_: &mut [Val]) -> EBox<Object> {
+fn integration_values_return_object(_: &mut [Val]) -> EBox<Object<()>> {
     let mut object = Object::new_by_std_class();
     object.set_property("foo", Val::new("bar"));
     object

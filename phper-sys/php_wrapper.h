@@ -32,15 +32,15 @@ zend_string *phper_zend_string_init(const char *str, size_t len, int persistent)
 zend_string *phper_zend_string_alloc(size_t len, int persistent);
 void phper_zend_string_release(zend_string *s);
 
-void phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData);
+zval *phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData);
+zval* phper_zend_hash_index_update(HashTable *ht, zend_ulong h, zval *pData);
 
 void phper_array_init(zval *arg);
 void *phper_zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t len);
-zval* phper_zend_hash_index_update(HashTable *ht, zend_ulong h, zval *pData);
 void phper_zend_hash_merge_with_key(HashTable *target, HashTable *source);
 
 void phper_zval_obj(zval *z, zend_object *o);
 
-int phper_z_type_info_refcounted(uint32_t t);
+zend_string *phper_get_function_or_method_name(const zend_function *func);
 
 #endif //PHPER_PHP_WRAPPER_H

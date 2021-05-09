@@ -61,7 +61,7 @@ impl Array {
         unsafe {
             match key {
                 Key::Index(i) => {
-                    zend_hash_index_update(&mut self.inner, i, EBox::into_raw(value).cast());
+                    phper_zend_hash_index_update(&mut self.inner, i, EBox::into_raw(value).cast());
                 }
                 Key::Str(s) => {
                     phper_zend_hash_str_update(

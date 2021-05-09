@@ -6,11 +6,9 @@ error_reporting(E_ALL);
 
 assert_eq(hello_say_hello("world"), "Hello, world!\n");
 
-assert_eq(class_exists("Phper\\OtherException"), true);
-
 try {
     hello_throw_exception();
-} catch (Phper\OtherException $e) {
+} catch (ErrorException $e) {
     assert_eq($e->getMessage(), "I am sorry");
 }
 
