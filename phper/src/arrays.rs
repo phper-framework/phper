@@ -36,7 +36,7 @@ impl Array {
     pub fn new() -> Self {
         unsafe {
             let mut array = zeroed::<Array>();
-            _zend_hash_init(array.as_mut_ptr(), 0, None, false.into());
+            _zend_hash_init(array.as_mut_ptr(), 0, Some(_zval_ptr_dtor), false.into());
             array
         }
     }

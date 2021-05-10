@@ -44,6 +44,7 @@ fn integrate_arguments(module: &mut Module) {
         |arguments: &mut [Val]| -> phper::Result<EBox<Array>> {
             let a = arguments[0].as_array()?;
             let mut a = a.clone();
+            a.insert("a", Val::new(1));
             a.insert("foo", Val::new("bar"));
             Ok(EBox::new(a))
         },

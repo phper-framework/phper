@@ -37,7 +37,6 @@ zval* phper_zend_hash_index_update(HashTable *ht, zend_ulong h, zval *pData);
 
 void phper_array_init(zval *arg);
 void *phper_zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t len);
-void phper_zend_hash_merge_with_key(HashTable *target, HashTable *source);
 
 void phper_zval_obj(zval *z, zend_object *o);
 

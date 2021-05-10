@@ -4,6 +4,11 @@ ini_set("display_errors", "On");
 ini_set("display_startup_errors", "On");
 error_reporting(E_ALL);
 
+if (!defined('PHP_VERSION_ID')) {
+    $version = explode('.', PHP_VERSION);
+    define('PHP_VERSION_ID', ($version[0] * 10000 + $version[1] * 100 + $version[2]));
+}
+
 function assert_eq($left, $right) {
     if ($left !== $right) {
         throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));

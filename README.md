@@ -25,7 +25,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 *version*
 
-- [x] 7.0
+- [ ] 7.0
 - [x] 7.1
 - [x] 7.2
 - [x] 7.3

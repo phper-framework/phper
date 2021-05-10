@@ -1,6 +1,6 @@
 //! The errors for crate and php.
 
-use crate::{classes::ClassEntry, Error::Other};
+use crate::{classes::ClassEntry, Error::Other, sys::*};
 use anyhow::anyhow;
 use std::{error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
@@ -132,6 +132,11 @@ impl ArgumentCountError {
 
 impl Throwable for ArgumentCountError {
     fn class_entry(&self) -> &ClassEntry {
-        ClassEntry::from_globals("ArgumentCountError").unwrap()
+        let class_name = if PHP_VERSION_ID >= 70100 {
+            "ArgumentCountError"
+        } else {
+            "TypeError"
+        };
+        ClassEntry::from_globals(class_name).unwrap()
     }
 }

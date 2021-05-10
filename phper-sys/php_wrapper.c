@@ -90,28 +90,6 @@ void *phper_zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t 
     return zend_hash_str_find_ptr(ht, str, len);
 }
 
-void phper_zend_hash_merge_with_key(HashTable *target, HashTable *source) {
-    uint32_t idx;
-    Bucket *p;
-    zval *s;
-
-    for (idx = 0; idx < source->nNumUsed; idx++) {
-        p = source->arData + idx;
-        s = &p->val;
-        if (UNEXPECTED(Z_TYPE_P(s) == IS_INDIRECT)) {
-            s = Z_INDIRECT_P(s);
-        }
-        if (UNEXPECTED(Z_TYPE_P(s) == IS_UNDEF)) {
-            continue;
-        }
-        if (p->key) {
-            zend_hash_str_update(target, ZSTR_VAL(p->key), ZSTR_LEN(p->key), s);
-        } else {
-            zend_hash_index_update(target, p->h, s);
-        }
-    }
-}
-
 void phper_zval_obj(zval *z, zend_object *o) {
     ZVAL_OBJ(z, o);
 }
