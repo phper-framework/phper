@@ -1,5 +1,4 @@
 use phper::{
-    alloc::EBox,
     arrays::Array,
     classes::DynamicClass,
     functions::Argument,
@@ -57,7 +56,7 @@ pub fn get_module() -> Module {
             let hello_description = Val::new(Module::get_str_ini("hello.description"));
             arr.insert("hello.description", hello_description);
 
-            EBox::new(arr)
+            arr
         },
         vec![],
     );

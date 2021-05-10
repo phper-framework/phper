@@ -184,7 +184,7 @@ fn integration_values_return_array(_: &mut [Val]) -> EBox<Array> {
     let mut arr = Array::new();
     arr.insert("a", Val::new(1));
     arr.insert("b", Val::new("foo"));
-    EBox::new(arr)
+    arr
 }
 
 fn integration_values_return_object(_: &mut [Val]) -> EBox<Object<()>> {

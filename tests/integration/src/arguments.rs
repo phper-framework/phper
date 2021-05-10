@@ -46,7 +46,7 @@ fn integrate_arguments(module: &mut Module) {
             let mut a = a.clone();
             a.insert("a", Val::new(1));
             a.insert("foo", Val::new("bar"));
-            Ok(EBox::new(a))
+            Ok(a)
         },
         vec![Argument::by_val("a")],
     );

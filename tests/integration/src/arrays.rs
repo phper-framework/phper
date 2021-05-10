@@ -9,7 +9,7 @@ pub fn integrate(module: &mut Module) {
             let foo = a1.get("foo").unwrap();
             let foo = foo.as_string()?;
 
-            let mut a2 = EBox::new(Array::new());
+            let mut a2 = Array::new();
             a2.insert("bar", Val::new("BAR"));
             let bar = a2.get("bar").unwrap();
             let bar = bar.as_string()?;
@@ -33,7 +33,7 @@ pub fn integrate(module: &mut Module) {
                     let mut arr = Array::new();
                     arr.insert(0, Val::new(0));
                     arr.insert(1, Val::new(1));
-                    EBox::new(arr)
+                    arr
                 }),
             );
             a.insert(

@@ -32,21 +32,15 @@ pub struct Array {
 }
 
 impl Array {
-    // New array in the stack.
-    pub fn new() -> Self {
+    pub fn new() -> EBox<Self> {
         unsafe {
-            let mut array = zeroed::<Array>();
-            let dtor = {
-                #[cfg(phper_major_version = "8")]
-                {
-                    zval_ptr_dtor
-                }
-                #[cfg(phper_major_version = "7")]
-                {
-                    _zval_ptr_dtor
-                }
-            };
-            _zend_hash_init(array.as_mut_ptr(), 0, Some(dtor), false.into());
+            let mut array = EBox::new(zeroed::<Array>());
+            _zend_hash_init(
+                array.as_mut_ptr(),
+                0,
+                Some(phper_zval_ptr_dtor),
+                false.into(),
+            );
             array
         }
     }
@@ -105,6 +99,14 @@ impl Array {
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(&mut self.inner) as usize }
     }
+
+    pub fn clone(&self) -> EBox<Self> {
+        let mut other = Self::new();
+        unsafe {
+            zend_hash_copy(other.as_mut_ptr(), self.as_ptr() as *mut _, None);
+        }
+        other
+    }
 }
 
 impl EAllocatable for Array {
@@ -117,18 +119,6 @@ impl EAllocatable for Array {
 
 impl Drop for Array {
     fn drop(&mut self) {
-        unsafe {
-            zend_hash_destroy(&mut self.inner);
-        }
-    }
-}
-
-impl Clone for Array {
-    fn clone(&self) -> Self {
-        let mut other = Self::new();
-        unsafe {
-            zend_hash_copy(other.as_mut_ptr(), self.as_ptr() as *mut _, None);
-        }
-        other
+        unreachable!("Allocation on the stack is not allowed")
     }
 }

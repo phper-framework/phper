@@ -42,4 +42,6 @@ void phper_zval_obj(zval *z, zend_object *o);
 
 zend_string *phper_get_function_or_method_name(const zend_function *func);
 
+void phper_zval_ptr_dtor(zval *pDest);
+
 #endif //PHPER_PHP_WRAPPER_H
