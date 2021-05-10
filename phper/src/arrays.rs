@@ -36,7 +36,17 @@ impl Array {
     pub fn new() -> Self {
         unsafe {
             let mut array = zeroed::<Array>();
-            _zend_hash_init(array.as_mut_ptr(), 0, Some(_zval_ptr_dtor), false.into());
+            let dtor = {
+                #[cfg(phper_major_version = "8")]
+                {
+                    zval_ptr_dtor
+                }
+                #[cfg(phper_major_version = "7")]
+                {
+                    _zval_ptr_dtor
+                }
+            };
+            _zend_hash_init(array.as_mut_ptr(), 0, Some(dtor), false.into());
             array
         }
     }

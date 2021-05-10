@@ -1,6 +1,6 @@
 //! The errors for crate and php.
 
-use crate::{classes::ClassEntry, Error::Other, sys::*};
+use crate::{classes::ClassEntry, sys::*, Error::Other};
 use anyhow::anyhow;
 use std::{error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
