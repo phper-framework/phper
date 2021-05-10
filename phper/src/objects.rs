@@ -1,45 +1,38 @@
+//! Apis relate to [crate::sys::zend_object].
+
 use crate::{
-    classes::get_global_class_entry_ptr,
+    alloc::{EAllocatable, EBox},
+    classes::ClassEntry,
+    errors::ClassNotFoundError,
     sys::*,
-    values::{SetVal, Val},
-    ClassNotFoundError,
+    values::Val,
 };
-use std::{
-    mem::{forget, zeroed},
-    ptr::null_mut,
-};
+use std::{marker::PhantomData, ptr::null_mut};
 
 /// Wrapper of [crate::sys::zend_object].
 #[repr(transparent)]
-pub struct Object {
+pub struct Object<T> {
     inner: zend_object,
+    _p: PhantomData<T>,
 }
 
-impl Object {
-    pub fn new(class_name: impl AsRef<str>) -> Result<Self, ClassNotFoundError> {
+impl<T> Object<T> {
+    pub fn new(class_entry: &ClassEntry) -> EBox<Self> {
         unsafe {
-            let mut object = zeroed::<Object>();
-            let class_name = class_name.as_ref();
-            let ce = get_global_class_entry_ptr(class_name);
-            if ce.is_null() {
-                forget(object);
-                Err(ClassNotFoundError::new(class_name.to_string()))
-            } else {
-                zend_object_std_init(object.as_mut_ptr(), ce);
-                object.inner.handlers = &std_object_handlers;
-                Ok(object)
-            }
+            let ptr = zend_objects_new(class_entry.as_ptr() as *mut _);
+            EBox::from_raw(ptr.cast())
         }
     }
 
-    pub fn new_std() -> Self {
-        Self::new("stdclass").expect("stdClass not found")
+    pub fn new_by_class_name(
+        class_name: impl AsRef<str>,
+    ) -> Result<EBox<Self>, ClassNotFoundError> {
+        let class_entry = ClassEntry::from_globals(class_name)?;
+        Ok(Self::new(class_entry))
     }
 
-    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Object {
-        (ptr as *mut Object)
-            .as_mut()
-            .expect("ptr should not be null")
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
+        (ptr as *mut Self).as_mut().expect("ptr should not be null")
     }
 
     pub fn as_ptr(&self) -> *const zend_object {
@@ -50,7 +43,7 @@ impl Object {
         &mut self.inner
     }
 
-    pub fn get_property(&self, name: impl AsRef<str>) -> &mut Val {
+    pub fn get_property(&self, name: impl AsRef<str>) -> &Val {
         let name = name.as_ref();
 
         let prop = unsafe {
@@ -61,20 +54,20 @@ impl Object {
                     &self.inner as *const _ as *mut _,
                     name.as_ptr().cast(),
                     name.len(),
-                    false.into(),
+                    true.into(),
                     null_mut(),
                 )
             }
             #[cfg(phper_major_version = "7")]
             {
-                let mut zv = zeroed::<zval>();
+                let mut zv = std::mem::zeroed::<zval>();
                 phper_zval_obj(&mut zv, self.as_ptr() as *mut _);
                 zend_read_property(
                     self.inner.ce,
                     &mut zv,
                     name.as_ptr().cast(),
                     name.len(),
-                    false.into(),
+                    true.into(),
                     null_mut(),
                 )
             }
@@ -83,9 +76,9 @@ impl Object {
         unsafe { Val::from_mut_ptr(prop) }
     }
 
-    pub fn set_property(&mut self, name: impl AsRef<str>, value: impl SetVal) {
+    pub fn set_property(&mut self, name: impl AsRef<str>, val: Val) {
         let name = name.as_ref();
-        let mut val = Val::new(value);
+        let val = EBox::new(val);
         unsafe {
             #[cfg(phper_major_version = "8")]
             {
@@ -94,29 +87,60 @@ impl Object {
                     &mut self.inner,
                     name.as_ptr().cast(),
                     name.len(),
-                    val.as_mut_ptr(),
+                    EBox::into_raw(val).cast(),
                 )
             }
             #[cfg(phper_major_version = "7")]
             {
-                let mut zv = zeroed::<zval>();
+                let mut zv = std::mem::zeroed::<zval>();
                 phper_zval_obj(&mut zv, self.as_mut_ptr());
                 zend_update_property(
                     self.inner.ce,
                     &mut zv,
                     name.as_ptr().cast(),
                     name.len(),
-                    val.as_mut_ptr(),
+                    EBox::into_raw(val).cast(),
                 )
             }
         }
     }
+
+    pub fn clone_obj(&self) -> EBox<Self> {
+        unsafe {
+            let new_obj = {
+                #[cfg(phper_major_version = "8")]
+                {
+                    zend_objects_clone_obj(self.as_ptr() as *mut _).cast()
+                }
+                #[cfg(phper_major_version = "7")]
+                {
+                    let mut zv = std::mem::zeroed::<zval>();
+                    phper_zval_obj(&mut zv, self.as_ptr() as *mut _);
+                    zend_objects_clone_obj(&mut zv).cast()
+                }
+            };
+
+            EBox::from_raw(new_obj)
+        }
+    }
 }
 
-impl Drop for Object {
-    fn drop(&mut self) {
+impl Object<()> {
+    pub fn new_by_std_class() -> EBox<Self> {
+        Self::new_by_class_name("stdclass").unwrap()
+    }
+}
+
+impl<T> EAllocatable for Object<T> {
+    fn free(ptr: *mut Self) {
         unsafe {
-            zend_objects_destroy_object(&mut self.inner);
+            zend_objects_destroy_object(ptr.cast());
         }
+    }
+}
+
+impl<T> Drop for Object<T> {
+    fn drop(&mut self) {
+        unreachable!("Allocation on the stack is not allowed")
     }
 }

@@ -74,8 +74,12 @@ void phper_zend_string_release(zend_string *s) {
     return zend_string_release(s);
 }
 
-void phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData) {
-    zend_hash_str_update(ht, key, len, pData);
+zval *phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData) {
+    return zend_hash_str_update(ht, key, len, pData);
+}
+
+zval* phper_zend_hash_index_update(HashTable *ht, zend_ulong h, zval *pData) {
+    return zend_hash_index_update(ht, h, pData);
 }
 
 void phper_array_init(zval *arg) {
@@ -86,32 +90,42 @@ void *phper_zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t 
     return zend_hash_str_find_ptr(ht, str, len);
 }
 
-zval* phper_zend_hash_index_update(HashTable *ht, zend_ulong h, zval *pData) {
-    return zend_hash_index_update(ht, h, pData);
-}
-
-void phper_zend_hash_merge_with_key(HashTable *target, HashTable *source) {
-    uint32_t idx;
-    Bucket *p;
-    zval *s;
-
-    for (idx = 0; idx < source->nNumUsed; idx++) {
-        p = source->arData + idx;
-        s = &p->val;
-        if (UNEXPECTED(Z_TYPE_P(s) == IS_INDIRECT)) {
-            s = Z_INDIRECT_P(s);
-        }
-        if (UNEXPECTED(Z_TYPE_P(s) == IS_UNDEF)) {
-            continue;
-        }
-        if (p->key) {
-            zend_hash_str_update(target, ZSTR_VAL(p->key), ZSTR_LEN(p->key), s);
-        } else {
-            zend_hash_index_update(target, p->h, s);
-        }
-    }
-}
-
 void phper_zval_obj(zval *z, zend_object *o) {
     ZVAL_OBJ(z, o);
+}
+
+#if PHP_VERSION_ID < 80000
+static zend_string *phper_zend_string_concat3(
+        const char *str1, size_t str1_len,
+        const char *str2, size_t str2_len,
+        const char *str3, size_t str3_len)
+{
+    size_t len = str1_len + str2_len + str3_len;
+    zend_string *res = zend_string_alloc(len, 0);
+
+    memcpy(ZSTR_VAL(res), str1, str1_len);
+    memcpy(ZSTR_VAL(res) + str1_len, str2, str2_len);
+    memcpy(ZSTR_VAL(res) + str1_len + str2_len, str3, str3_len);
+    ZSTR_VAL(res)[len] = '\0';
+
+    return res;
+}
+#endif
+
+zend_string *phper_get_function_or_method_name(const zend_function *func) {
+    #if PHP_VERSION_ID >= 80000
+    return get_function_or_method_name(func);
+    #else
+    if (func->common.scope) {
+        return phper_zend_string_concat3(
+                ZSTR_VAL(func->common.scope->name), ZSTR_LEN(func->common.scope->name),
+                "::", sizeof("::") - 1,
+                ZSTR_VAL(func->common.function_name), ZSTR_LEN(func->common.function_name));
+    }
+    return func->common.function_name ? zend_string_copy(func->common.function_name) : zend_string_init("main", sizeof("main") - 1, 0);
+    #endif
+}
+
+void phper_zval_ptr_dtor(zval *pDest) {
+    ZVAL_PTR_DTOR(pDest);
 }

@@ -12,7 +12,7 @@ macro_rules! echo {
     })
 }
 
-/// PHP error log, will exit the request.
+/// PHP error logging, will exit the request.
 ///
 /// # Examples
 ///
@@ -26,7 +26,7 @@ macro_rules! error {
     })
 }
 
-/// PHP warning log.
+/// PHP warning logging.
 ///
 /// # Examples
 ///
@@ -40,7 +40,7 @@ macro_rules! warning {
     })
 }
 
-/// PHP notice log.
+/// PHP notice logging.
 ///
 /// # Examples
 ///
@@ -54,7 +54,7 @@ macro_rules! notice {
     })
 }
 
-/// PHP deprecated log.
+/// PHP deprecated logging.
 ///
 /// # Examples
 ///

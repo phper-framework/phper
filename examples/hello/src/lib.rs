@@ -1,7 +1,6 @@
 use phper::{
-    alloc::EBox,
     arrays::Array,
-    classes::StdClass,
+    classes::DynamicClass,
     functions::Argument,
     ini::Policy,
     modules::{Module, ModuleArgs},
@@ -57,17 +56,17 @@ pub fn get_module() -> Module {
             let hello_description = Val::new(Module::get_str_ini("hello.description"));
             arr.insert("hello.description", hello_description);
 
-            EBox::new(arr)
+            arr
         },
         vec![],
     );
 
     // register classes
-    let mut foo_class = StdClass::new();
+    let mut foo_class = DynamicClass::new();
     foo_class.add_property("foo", "100".to_string());
     foo_class.add_method(
         "getFoo",
-        |this: &mut Object, _: &mut [Val]| -> phper::Result<Val> {
+        |this: &mut Object<()>, _: &mut [Val]| -> phper::Result<Val> {
             let prop = this.get_property("foo");
             Ok(Val::new(prop.as_string_value()?))
         },
@@ -75,8 +74,8 @@ pub fn get_module() -> Module {
     );
     foo_class.add_method(
         "setFoo",
-        |this: &mut Object, arguments: &mut [Val]| -> phper::Result<()> {
-            this.set_property("foo", arguments[0].as_string_value()?);
+        |this: &mut Object<()>, arguments: &mut [Val]| -> phper::Result<()> {
+            this.set_property("foo", Val::new(arguments[0].as_string_value()?));
             Ok(())
         },
         vec![Argument::by_val("foo")],

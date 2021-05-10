@@ -1,7 +1,7 @@
 # PHPer
 
 [![crates](https://img.shields.io/crates/v/phper?style=flat-square)](https://crates.io/crates/phper)
-[![](https://img.shields.io/docsrs/phper?style=flat-square)](https://docs.rs/phper)
+[![docs](https://img.shields.io/docsrs/phper?style=flat-square)](https://docs.rs/phper)
 
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
 
@@ -17,35 +17,35 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 **os**
 
--[x] linux
--[ ] macos
--[ ] windows
+- [x] linux
+- [ ] macos
+- [ ] windows
 
 **php**
 
 *version*
 
--[x] 7.0
--[x] 7.1
--[x] 7.2
--[x] 7.3
--[x] 7.4
--[x] 8.0
+- [ ] 7.0
+- [x] 7.1
+- [x] 7.2
+- [x] 7.3
+- [x] 7.4
+- [x] 8.0
 
 *mode*
 
--[x] nts
--[ ] zts
+- [x] nts
+- [ ] zts
 
 *sapi*
 
--[x] cli
--[ ] fpm
+- [x] cli
+- [ ] fpm
 
 *debug*
 
--[x] disable
--[ ] enable
+- [x] disable
+- [ ] enable
 
 ## Usage
 

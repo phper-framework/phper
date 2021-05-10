@@ -1,3 +1,5 @@
+//! Apis relate to PHP types.
+
 use crate::sys::*;
 use num_traits::cast::FromPrimitive;
 use std::{ffi::CStr, os::raw::c_int};
@@ -83,7 +85,15 @@ impl From<u32> for Type {
 pub(crate) fn get_type_by_const(t: u32) -> crate::Result<String> {
     unsafe {
         let s = zend_get_type_by_const(t as c_int);
-        let s = CStr::from_ptr(s).to_str()?.to_string();
+        let mut s = CStr::from_ptr(s).to_str()?.to_string();
+
+        // Compact with PHP7.
+        if s == "boolean" {
+            s = "bool".to_string();
+        } else if s == "integer" {
+            s = "int".to_string();
+        }
+
         Ok(s)
     }
 }

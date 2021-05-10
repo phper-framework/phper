@@ -8,7 +8,7 @@ fn test_php() {
         .join("php");
 
     test_php_scripts_with_condition(
-        env!("CARGO_BIN_EXE_log"),
+        env!("CARGO_BIN_EXE_logging"),
         &[
             (&base_dir.join("test_php_say.php"), &|output| {
                 let stdout = str::from_utf8(&output.stdout).unwrap();

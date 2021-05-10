@@ -46,7 +46,7 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]
 ///
 /// - `scripts` is the slice of the tuple, format is `(path of your php test script, checker function or closure)`.
 ///
-/// See [example log integration test](https://github.com/jmjoy/phper/blob/master/examples/log/tests/integration.rs).
+/// See [example logging integration test](https://github.com/jmjoy/phper/blob/master/examples/logging/tests/integration.rs).
 pub fn test_php_scripts_with_condition(
     exe_path: impl AsRef<Path>,
     scripts: &[(&dyn AsRef<Path>, &dyn Fn(Output) -> bool)],

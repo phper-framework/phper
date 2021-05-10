@@ -1,46 +1,75 @@
-use std::{mem::zeroed, os::raw::c_char, sync::atomic::AtomicPtr};
+//! Apis relate to [crate::sys::zend_function_entry].
+
+use std::{mem::zeroed, os::raw::c_char};
 
 use crate::{
-    classes::ClassEntry,
+    errors::ArgumentCountError,
     objects::Object,
+    strings::ZendString,
     sys::*,
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
+use std::{marker::PhantomData, str::Utf8Error};
 
-pub trait Function: Send + Sync {
-    fn call(&self, arguments: &mut [Val], return_value: &mut Val);
+pub(crate) trait Callable {
+    fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
 }
 
-impl<F, R> Function for F
+pub(crate) struct Function<F, R>(pub(crate) F)
+where
+    F: Fn(&mut [Val]) -> R + Send + Sync,
+    R: SetVal;
+
+impl<F, R> Callable for Function<F, R>
 where
     F: Fn(&mut [Val]) -> R + Send + Sync,
     R: SetVal,
 {
-    fn call(&self, arguments: &mut [Val], return_value: &mut Val) {
-        let r = self(arguments);
+    fn call(&self, _: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
+        let r = (self.0)(arguments);
         r.set_val(return_value);
     }
 }
 
-pub trait Method: Send + Sync {
-    fn call(&self, this: &mut Object, arguments: &mut [Val], return_value: &mut Val);
-}
-
-impl<F, R> Method for F
+pub(crate) struct Method<F, R, T>
 where
-    F: Fn(&mut Object, &mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync,
     R: SetVal,
 {
-    fn call(&self, this: &mut Object, arguments: &mut [Val], return_value: &mut Val) {
-        let r = self(this, arguments);
-        r.set_val(return_value);
+    f: F,
+    _p0: PhantomData<R>,
+    _p1: PhantomData<T>,
+}
+
+impl<F, R, T> Method<F, R, T>
+where
+    F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync,
+    R: SetVal,
+{
+    pub(crate) fn new(f: F) -> Self {
+        Self {
+            f,
+            _p0: Default::default(),
+            _p1: Default::default(),
+        }
     }
 }
 
-pub(crate) enum Callable {
-    Function(Box<dyn Function>),
-    Method(Box<dyn Method>, AtomicPtr<ClassEntry>),
+impl<F, R, T> Callable for Method<F, R, T>
+where
+    F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync,
+    R: SetVal,
+{
+    fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
+        unsafe {
+            let this = execute_data.get_this::<T>().unwrap();
+            // TODO Fix the object type assertion.
+            // assert!(this.get_type().is_object());
+            let r = (self.f)(this, arguments);
+            r.set_val(return_value);
+        }
+    }
 }
 
 #[repr(transparent)]
@@ -51,12 +80,16 @@ pub struct FunctionEntry {
 
 pub struct FunctionEntity {
     pub(crate) name: String,
-    pub(crate) handler: Callable,
+    pub(crate) handler: Box<dyn Callable>,
     pub(crate) arguments: Vec<Argument>,
 }
 
 impl FunctionEntity {
-    pub(crate) fn new(name: impl ToString, handler: Callable, arguments: Vec<Argument>) -> Self {
+    pub(crate) fn new(
+        name: impl ToString,
+        handler: Box<dyn Callable>,
+        arguments: Vec<Argument>,
+    ) -> Self {
         let name = ensure_end_with_zero(name);
         FunctionEntity {
             name,
@@ -84,8 +117,10 @@ impl FunctionEntity {
 
         infos.push(zeroed::<zend_internal_arg_info>());
 
-        let mut last_arg_info = zeroed::<zend_internal_arg_info>();
-        last_arg_info.name = ((&self.handler) as *const _ as *mut i8).cast();
+        let translator = CallableTranslator {
+            callable: self.handler.as_ref(),
+        };
+        let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
         infos.push(last_arg_info);
 
         zend_function_entry {
@@ -142,49 +177,79 @@ impl Argument {
     }
 }
 
-pub(crate) unsafe extern "C" fn invoke(
-    execute_data: *mut zend_execute_data,
-    return_value: *mut zval,
-) {
-    let execute_data = ExecuteData::from_mut(execute_data);
+#[repr(transparent)]
+pub struct ZendFunction {
+    inner: zend_function,
+}
+
+impl ZendFunction {
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunction {
+        let ptr = ptr as *mut Self;
+        ptr.as_mut().expect("ptr shouldn't be null")
+    }
+
+    #[inline]
+    pub fn as_ptr(&self) -> *const zend_function {
+        &self.inner
+    }
+
+    #[inline]
+    pub fn as_mut_ptr(&mut self) -> *mut zend_function {
+        &mut self.inner
+    }
+
+    pub fn get_name(&self) -> Result<String, Utf8Error> {
+        unsafe {
+            let s = phper_get_function_or_method_name(self.as_ptr());
+            ZendString::from_raw(s).to_string()
+        }
+    }
+}
+
+/// Just for type transmutation.
+pub(crate) union CallableTranslator {
+    pub(crate) callable: *const dyn Callable,
+    pub(crate) internal_arg_info: zend_internal_arg_info,
+    pub(crate) arg_info: zend_arg_info,
+}
+
+/// The entry for all registered PHP functions.
+unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: *mut zval) {
+    let execute_data = ExecuteData::from_mut_ptr(execute_data);
     let return_value = Val::from_mut_ptr(return_value);
 
     let num_args = execute_data.common_num_args();
     let arg_info = execute_data.common_arg_info();
 
     let last_arg_info = arg_info.offset((num_args + 1) as isize);
-    let handler = (*last_arg_info).name as *const Callable;
+    let translator = CallableTranslator {
+        arg_info: *last_arg_info,
+    };
+    let handler = translator.callable;
     let handler = handler.as_ref().expect("handler is null");
 
     // Check arguments count.
-    if execute_data.num_args() < execute_data.common_required_num_args() {
-        warning!(
-            "expects at least {} parameter(s), {} given\0",
-            execute_data.common_required_num_args(),
-            execute_data.num_args()
-        );
-        return_value.set(());
+    let num_args = execute_data.num_args() as usize;
+    let required_num_args = execute_data.common_required_num_args() as usize;
+    if num_args < required_num_args {
+        let func_name = execute_data.func().get_name();
+        let result = func_name
+            .map(|func_name| {
+                Err::<(), _>(ArgumentCountError::new(
+                    func_name,
+                    required_num_args,
+                    num_args,
+                ))
+            })
+            .map_err(crate::Error::Utf8);
+        SetVal::set_val(result, return_value);
         return;
     }
 
     let mut arguments = execute_data.get_parameters_array();
 
-    match handler {
-        Callable::Function(f) => {
-            f.call(&mut arguments, return_value);
-        }
-        Callable::Method(m, _class) => {
-            let this = execute_data.get_this();
-            let this = this.as_mut().expect("this should not be null");
-            // TODO Fix the object type assertion.
-            // assert!(this.get_type().is_object());
-            m.call(
-                Object::from_mut_ptr(this.inner.value.obj),
-                &mut arguments,
-                return_value,
-            );
-        }
-    }
+    // TODO catch_unwind for call, translate some panic to throwing Error.
+    handler.call(execute_data, &mut arguments, return_value);
 }
 
 pub const fn create_zend_arg_info(

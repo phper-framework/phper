@@ -107,6 +107,11 @@ fn integrate_returns(module: &mut Module) {
         integration_values_return_result_string_err,
         vec![],
     );
+    module.add_function(
+        "integration_values_return_val",
+        integration_values_return_val,
+        vec![],
+    );
 }
 
 fn integration_values_return_null(_: &mut [Val]) {}
@@ -179,12 +184,12 @@ fn integration_values_return_array(_: &mut [Val]) -> EBox<Array> {
     let mut arr = Array::new();
     arr.insert("a", Val::new(1));
     arr.insert("b", Val::new("foo"));
-    EBox::new(arr)
+    arr
 }
 
-fn integration_values_return_object(_: &mut [Val]) -> EBox<Object> {
-    let mut object = EBox::new(Object::new_std());
-    object.set_property("foo", "bar");
+fn integration_values_return_object(_: &mut [Val]) -> EBox<Object<()>> {
+    let mut object = Object::new_by_std_class();
+    object.set_property("foo", Val::new("bar"));
     object
 }
 
@@ -202,4 +207,8 @@ fn integration_values_return_result_string_ok(_: &mut [Val]) -> phper::Result<St
 
 fn integration_values_return_result_string_err(_: &mut [Val]) -> phper::Result<()> {
     Err(phper::Error::other("a zhe"))
+}
+
+fn integration_values_return_val(_: &mut [Val]) -> Val {
+    Val::new("foo")
 }

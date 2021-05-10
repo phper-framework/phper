@@ -21,4 +21,5 @@ assert_object(integration_values_return_object(), "stdClass", ["foo" => "bar"]);
 assert_eq(integration_values_return_option_i64_some(), 64);
 assert_eq(integration_values_return_option_i64_none(), null);
 assert_eq(integration_values_return_result_string_ok(), "foo");
-assert_throw("integration_values_return_result_string_err", "Phper\\OtherException", 500, "a zhe");
+assert_throw("integration_values_return_result_string_err", "ErrorException", 0, "a zhe");
+assert_eq(integration_values_return_val(), "foo");

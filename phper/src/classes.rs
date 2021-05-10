@@ -1,46 +1,53 @@
+//! Apis relate to [crate::sys::zend_class_entry].
+
 use crate::{
-    functions::{Argument, Callable, FunctionEntity, FunctionEntry, Method},
+    errors::ClassNotFoundError,
+    functions::{Argument, FunctionEntity, FunctionEntry, Method},
+    objects::Object,
     sys::*,
     utils::ensure_end_with_zero,
+    values::{SetVal, Val},
 };
 use once_cell::sync::OnceCell;
 use std::{
+    marker::PhantomData,
     mem::zeroed,
     os::raw::c_int,
     ptr::null_mut,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
-pub trait Class: Send + Sync {
+pub trait Classifiable {
     fn methods(&mut self) -> &mut [FunctionEntity];
     fn properties(&mut self) -> &mut [PropertyEntity];
     fn parent(&self) -> Option<&str>;
 }
 
-pub struct StdClass {
+pub struct DynamicClass<T: Send + Sync + 'static> {
     pub(crate) method_entities: Vec<FunctionEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
     pub(crate) parent: Option<String>,
+    _p: PhantomData<T>,
 }
 
-impl StdClass {
+impl<T: Send + Sync + 'static> DynamicClass<T> {
     pub fn new() -> Self {
         Self {
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
+            _p: Default::default(),
         }
     }
 
-    pub fn add_method(
-        &mut self,
-        name: impl ToString,
-        handler: impl Method + 'static,
-        arguments: Vec<Argument>,
-    ) {
+    pub fn add_method<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
+    where
+        F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync + 'static,
+        R: SetVal + 'static,
+    {
         self.method_entities.push(FunctionEntity::new(
             name,
-            Callable::Method(Box::new(handler), AtomicPtr::new(null_mut())),
+            Box::new(Method::new(handler)),
             arguments,
         ));
     }
@@ -56,7 +63,7 @@ impl StdClass {
     }
 }
 
-impl Class for StdClass {
+impl<T: Send + Sync> Classifiable for DynamicClass<T> {
     fn methods(&mut self) -> &mut [FunctionEntity] {
         &mut self.method_entities
     }
@@ -76,6 +83,15 @@ pub struct ClassEntry {
 }
 
 impl ClassEntry {
+    pub fn from_globals<'a>(class_name: impl AsRef<str>) -> Result<&'a Self, ClassNotFoundError> {
+        let name = class_name.as_ref();
+        let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
+        unsafe {
+            ptr.as_ref()
+                .ok_or_else(|| ClassNotFoundError::new(name.to_string()))
+        }
+    }
+
     pub fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
         unsafe { (ptr as *const Self).as_ref() }.expect("ptr should not be null")
     }
@@ -89,15 +105,28 @@ impl ClassEntry {
     }
 }
 
+fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
+    let name = name.as_ref();
+    let name = name.to_lowercase();
+    unsafe {
+        phper_zend_hash_str_find_ptr(
+            compiler_globals.class_table,
+            name.as_ptr().cast(),
+            name.len(),
+        )
+        .cast()
+    }
+}
+
 pub struct ClassEntity {
     pub(crate) name: String,
     pub(crate) entry: AtomicPtr<ClassEntry>,
-    pub(crate) class: Box<dyn Class>,
+    pub(crate) class: Box<dyn Classifiable>,
     pub(crate) function_entries: OnceCell<AtomicPtr<FunctionEntry>>,
 }
 
 impl ClassEntity {
-    pub(crate) unsafe fn new(name: impl ToString, class: impl Class + 'static) -> Self {
+    pub(crate) unsafe fn new(name: impl ToString, class: impl Classifiable + 'static) -> Self {
         Self {
             name: name.to_string(),
             entry: AtomicPtr::new(null_mut()),
@@ -113,26 +142,28 @@ impl ClassEntity {
             self.function_entries().load(Ordering::SeqCst).cast(),
         );
 
-        let parent = self.class.parent().map(|s| match s {
-            "Exception" | "\\Exception" => zend_ce_exception,
-            _ => todo!(),
-        });
+        let parent = self
+            .class
+            .parent()
+            .map(|s| ClassEntry::from_globals(s).unwrap());
 
         let ptr = match parent {
-            Some(parent) => zend_register_internal_class_ex(&mut class_ce, parent).cast(),
+            Some(parent) => {
+                zend_register_internal_class_ex(&mut class_ce, parent.as_ptr() as *mut _).cast()
+            }
             None => zend_register_internal_class(&mut class_ce).cast(),
         };
         self.entry.store(ptr, Ordering::SeqCst);
 
-        let methods = self.class.methods();
-        for method in methods {
-            match &method.handler {
-                Callable::Method(_, class) => {
-                    class.store(ptr, Ordering::SeqCst);
-                }
-                _ => unreachable!(),
-            }
-        }
+        // let methods = self.class.methods();
+        // for method in methods {
+        //     match &method.handler {
+        //         Callable::Method(_, class) => {
+        //             class.store(ptr, Ordering::SeqCst);
+        //         }
+        //         _ => unreachable!(),
+        //     }
+        // }
     }
 
     pub(crate) unsafe fn declare_properties(&mut self) {
@@ -185,16 +216,4 @@ pub enum Visibility {
     Public = ZEND_ACC_PUBLIC,
     Protected = ZEND_ACC_PROTECTED,
     Private = ZEND_ACC_PRIVATE,
-}
-
-pub(crate) fn get_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
-    let name = name.as_ref();
-    unsafe {
-        phper_zend_hash_str_find_ptr(
-            compiler_globals.class_table,
-            name.as_ptr().cast(),
-            name.len(),
-        )
-        .cast()
-    }
 }

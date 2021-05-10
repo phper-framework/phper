@@ -4,6 +4,11 @@ ini_set("display_errors", "On");
 ini_set("display_startup_errors", "On");
 error_reporting(E_ALL);
 
+if (!defined('PHP_VERSION_ID')) {
+    $version = explode('.', PHP_VERSION);
+    define('PHP_VERSION_ID', ($version[0] * 10000 + $version[1] * 100 + $version[2]));
+}
+
 function assert_eq($left, $right) {
     if ($left !== $right) {
         throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));
@@ -25,7 +30,7 @@ function assert_throw($callable, $expect_exception_class, $expect_exception_code
     try {
         $callable();
         throw new AssertionError("`{$expect_exception_message}` not throws");
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         if (get_class($e) != $expect_exception_class) {
             throw new AssertionError(sprintf("expect exception class `%s`, found `%s`", $expect_exception_class, get_class($e)));
         }
