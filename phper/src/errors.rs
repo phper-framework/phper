@@ -2,7 +2,7 @@
 
 use crate::{classes::ClassEntry, sys::*, Error::Other};
 use anyhow::anyhow;
-use std::{error, ffi::FromBytesWithNulError, io, str::Utf8Error};
+use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
 pub trait Throwable: error::Error {
@@ -14,6 +14,12 @@ pub trait Throwable: error::Error {
 
     fn message(&self) -> String {
         self.to_string()
+    }
+}
+
+impl Throwable for Infallible {
+    fn class_entry(&self) -> &ClassEntry {
+        unreachable!()
     }
 }
 

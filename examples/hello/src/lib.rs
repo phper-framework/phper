@@ -62,7 +62,7 @@ pub fn get_module() -> Module {
     );
 
     // register classes
-    let mut foo_class = DynamicClass::new();
+    let mut foo_class = DynamicClass::new("FooClass");
     foo_class.add_property("foo", "100".to_string());
     foo_class.add_method(
         "getFoo",
@@ -80,7 +80,7 @@ pub fn get_module() -> Module {
         },
         vec![Argument::by_val("foo")],
     );
-    module.add_class("FooClass", foo_class);
+    module.add_class(foo_class);
 
     module
 }

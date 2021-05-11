@@ -35,7 +35,7 @@ unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_in
     let args = ModuleArgs::new(r#type, module_number);
     write_global_module(|module| {
         args.register_ini_entries(module.ini_entries());
-        for (_, class_entity) in &mut module.class_entities {
+        for class_entity in &mut module.class_entities {
             class_entity.init();
             class_entity.declare_properties();
         }
@@ -92,7 +92,7 @@ pub struct Module {
     request_init: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
     request_shutdown: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
     function_entities: Vec<FunctionEntity>,
-    pub(crate) class_entities: HashMap<String, ClassEntity>,
+    class_entities: Vec<ClassEntity>,
 }
 
 impl Module {
@@ -216,9 +216,8 @@ impl Module {
         ));
     }
 
-    pub fn add_class(&mut self, name: impl ToString, class: impl Classifiable + 'static) {
-        self.class_entities
-            .insert(name.to_string(), unsafe { ClassEntity::new(name, class) });
+    pub fn add_class(&mut self, class: impl Classifiable + 'static) {
+        self.class_entities.push(unsafe { ClassEntity::new(class) });
     }
 
     pub unsafe fn module_entry(self) -> *const zend_module_entry {

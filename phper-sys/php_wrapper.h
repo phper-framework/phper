@@ -44,4 +44,6 @@ zend_string *phper_get_function_or_method_name(const zend_function *func);
 
 void phper_zval_ptr_dtor(zval *pDest);
 
+size_t phper_zend_object_properties_size(zend_class_entry *ce);
+
 #endif //PHPER_PHP_WRAPPER_H

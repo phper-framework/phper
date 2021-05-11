@@ -12,8 +12,10 @@ license = "Unlicense"
 crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0.40"
 phper = { version = "0.2.0-alpha.2", path = "../../phper" }
 reqwest = { version = "0.11.3", features = ["blocking"] }
+thiserror = "1.0.24"
 
 [dev-dependencies]
 phper-test = { version = "0.2.0-alpha.2", path = "../../phper-test" }

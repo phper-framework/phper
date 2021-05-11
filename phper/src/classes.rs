@@ -1,7 +1,7 @@
 //! Apis relate to [crate::sys::zend_class_entry].
 
 use crate::{
-    errors::ClassNotFoundError,
+    errors::{ClassNotFoundError, Throwable},
     functions::{Argument, FunctionEntity, FunctionEntry, Method},
     objects::Object,
     sys::*,
@@ -10,6 +10,7 @@ use crate::{
 };
 use once_cell::sync::OnceCell;
 use std::{
+    convert::Infallible,
     marker::PhantomData,
     mem::zeroed,
     os::raw::c_int,
@@ -18,21 +19,42 @@ use std::{
 };
 
 pub trait Classifiable {
+    fn class_name(&self) -> &str;
     fn methods(&mut self) -> &mut [FunctionEntity];
     fn properties(&mut self) -> &mut [PropertyEntity];
     fn parent(&self) -> Option<&str>;
 }
 
 pub struct DynamicClass<T: Send + Sync + 'static> {
+    class_name: String,
+    data_constructor: Box<dyn FnOnce(&mut Object<T>) -> Result<T, Box<dyn Throwable>>>,
     pub(crate) method_entities: Vec<FunctionEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
     pub(crate) parent: Option<String>,
     _p: PhantomData<T>,
 }
 
+impl DynamicClass<()> {
+    pub fn new(class_name: impl ToString) -> Self {
+        Self::new_with_constructor(class_name, |_| Ok::<_, Infallible>(()))
+    }
+}
+
+impl<T: Default + Send + Sync + 'static> DynamicClass<T> {
+    pub fn new_with_default(class_name: impl ToString) -> Self {
+        Self::new_with_constructor(class_name, |_| Ok::<_, Infallible>(Default::default()))
+    }
+}
+
 impl<T: Send + Sync + 'static> DynamicClass<T> {
-    pub fn new() -> Self {
+    pub fn new_with_constructor<F, E>(class_name: impl ToString, data_constructor: F) -> Self
+    where
+        F: FnOnce(&mut Object<T>) -> Result<T, E> + 'static,
+        E: Throwable + 'static,
+    {
         Self {
+            class_name: class_name.to_string(),
+            data_constructor: Box::new(|o| data_constructor(o).map_err(|e| Box::new(e) as _)),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
@@ -64,6 +86,10 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
 }
 
 impl<T: Send + Sync> Classifiable for DynamicClass<T> {
+    fn class_name(&self) -> &str {
+        &self.class_name
+    }
+
     fn methods(&mut self) -> &mut [FunctionEntity] {
         &mut self.method_entities
     }
@@ -126,9 +152,9 @@ pub struct ClassEntity {
 }
 
 impl ClassEntity {
-    pub(crate) unsafe fn new(name: impl ToString, class: impl Classifiable + 'static) -> Self {
+    pub(crate) unsafe fn new(class: impl Classifiable + 'static) -> Self {
         Self {
-            name: name.to_string(),
+            name: class.class_name().to_string(),
             entry: AtomicPtr::new(null_mut()),
             class: Box::new(class),
             function_entries: Default::default(),
