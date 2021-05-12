@@ -161,14 +161,16 @@ fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
     let exe_path = exe_path.as_ref();
     let exe_stem = exe_path
         .file_stem()
-        .expect("failed to get current exe stem");
+        .expect("failed to get current exe stem")
+        .to_str()
+        .expect("failed to convert to utf-8 str");
     let target_dir = exe_path
         .parent()
         .expect("failed to get current exe directory");
 
     let mut ext_name = OsString::new();
     ext_name.push("lib");
-    ext_name.push(exe_stem);
+    ext_name.push(exe_stem.replace('-', "_"));
     ext_name.push(".so");
 
     target_dir.join(ext_name)

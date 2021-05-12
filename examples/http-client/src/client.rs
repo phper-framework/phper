@@ -8,7 +8,7 @@ use phper::functions::Argument;
 const HTTP_CLIENT_CLASS_NAME: &'static str = "HttpClient\\HttpClient";
 
 pub fn make_client_class() -> DynamicClass<Client> {
-    let mut http_client_class = DynamicClass::new_with_constructor(HTTP_CLIENT_CLASS_NAME, |_| {
+    let mut http_client_class = DynamicClass::new_with_constructor(HTTP_CLIENT_CLASS_NAME, || {
         let client = ClientBuilder::new()
             .timeout(Duration::from_secs(15))
             .build()?;
