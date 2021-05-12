@@ -1,6 +1,6 @@
+use crate::client::make_client_class;
 use anyhow::Context;
 use phper::{classes::DynamicClass, modules::Module, php_get_module};
-use crate::client::make_client_class;
 
 pub mod client;
 pub mod errors;

@@ -181,7 +181,7 @@ impl Val {
         }
     }
 
-    pub fn as_object<T>(&self) -> crate::Result<&Object<T>> {
+    pub fn as_object(&self) -> crate::Result<&Object<()>> {
         if self.get_type().is_object() {
             unsafe {
                 let ptr = self.inner.value.obj;

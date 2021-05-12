@@ -1,17 +1,18 @@
 //! Apis relate to [crate::sys::zend_class_entry].
 
 use std::{
+    any::Any,
+    collections::HashMap,
     convert::Infallible,
     marker::PhantomData,
-    mem::zeroed,
+    mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
-    sync::atomic::{AtomicPtr, Ordering},
+    sync::{
+        atomic::{AtomicPtr, Ordering},
+        Arc,
+    },
 };
-use std::any::Any;
-use std::collections::HashMap;
-use std::mem::{ManuallyDrop, size_of};
-use std::sync::Arc;
 
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
@@ -21,12 +22,12 @@ use phper_alloc::EBox;
 use crate::{
     errors::{ClassNotFoundError, Throwable},
     functions::{Argument, FunctionEntity, FunctionEntry, Method},
-    objects::Object,
+    objects::{ExtendObject, Object},
     sys::*,
     utils::ensure_end_with_zero,
     values::{SetVal, Val},
 };
-use crate::objects::ExtendObject;
+use std::rc::Rc;
 
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>>;
@@ -36,15 +37,11 @@ pub trait Classifiable {
     fn parent(&self) -> Option<&str>;
 }
 
-// TODO Let pointer address as a field of Object isn't safe, will choose another plan later.
-pub(crate) const DATA_CONSTRUCTOR_PROPERTY_NAME: &'static str = "__very_important_do_not_modify_data_constructor__";
-pub(crate) const DATA_PROPERTY_NAME: &'static str = "__very_important_do_not_modify_data__";
-
 pub type StateConstructor<T> = dyn Fn() -> Result<T, Box<dyn Throwable>> + Send + Sync;
 
 pub struct DynamicClass<T: Send + Sync + 'static> {
     class_name: String,
-    // data_constructor: Box<DataConstructor<T>>,
+    state_constructor: Arc<StateConstructor<T>>,
     pub(crate) method_entities: Vec<FunctionEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
     pub(crate) parent: Option<String>,
@@ -64,14 +61,14 @@ impl<T: Default + Send + Sync + 'static> DynamicClass<T> {
 }
 
 impl<T: Send + Sync + 'static> DynamicClass<T> {
-    pub fn new_with_constructor<F, E>(class_name: impl ToString, data_constructor: F) -> Self
+    pub fn new_with_constructor<F, E>(class_name: impl ToString, state_constructor: F) -> Self
     where
         F: Fn() -> Result<T, E> + Send + Sync + 'static,
         E: Throwable + 'static,
     {
         let mut dyn_class = Self {
             class_name: class_name.to_string(),
-            // data_constructor: Box::new(|| data_constructor().map_err(|e| Box::new(e) as _)),
+            state_constructor: Arc::new(move || state_constructor().map_err(|e| Box::new(e) as _)),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
@@ -109,7 +106,8 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
 
 impl<T: Send + Sync> Classifiable for DynamicClass<T> {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>> {
-        Box::new(|| Ok(Box::new(())))
+        let sc = self.state_constructor.clone();
+        Box::new(move || sc().map(|x| Box::new(x) as _))
     }
 
     fn class_name(&self) -> &str {
@@ -294,17 +292,18 @@ fn get_object_handlers() -> &'static zend_object_handlers {
     OBJECT_HANDLERS.get_or_init(|| unsafe {
         let mut handlers = std_object_handlers;
         handlers.offset = ExtendObject::offset() as c_int;
-        handlers.free_obj = Some(destroy_object);
+        handlers.free_obj = Some(free_object);
         handlers
     })
 }
 
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
-    let extend_object: *mut ExtendObject = phper_zend_object_alloc(size_of::<ExtendObject>(), ce).cast();
+    let extend_object: *mut ExtendObject =
+        phper_zend_object_alloc(size_of::<ExtendObject>(), ce).cast();
 
     // Common initialize process.
-    let object = &mut (*extend_object).object;
+    let object = ExtendObject::as_mut_object(extend_object);
     zend_object_std_init(object, ce);
     object_properties_init(object, ce);
     rebuild_object_properties(object);
@@ -322,12 +321,16 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
     // Call the state constructor.
     // TODO Throw an exception rather than unwrap.
     let data: Box<dyn Any> = state_constructor().unwrap();
-    (*extend_object).state = ManuallyDrop::new(data);
+    *ExtendObject::as_mut_state(extend_object) = ManuallyDrop::new(data);
 
     object
 }
 
-unsafe extern "C" fn destroy_object(object: *mut zend_object) {
+unsafe extern "C" fn free_object(object: *mut zend_object) {
+    // Drop the state.
+    let extend_object = ExtendObject::fetch_ptr(object);
+    ExtendObject::drop_state(extend_object);
+
     // Original destroy call.
     zend_object_std_dtor(object);
 }

@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<F, R, T> Callable for Method<F, R, T>
+impl<F, R, T: 'static> Callable for Method<F, R, T>
 where
     F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync,
     R: SetVal,
@@ -229,6 +229,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     let handler = handler.as_ref().expect("handler is null");
 
     // Check arguments count.
+    // TODO Use `zend_argument_count_error` rather than just throw an exception.
     let num_args = execute_data.num_args() as usize;
     let required_num_args = execute_data.common_required_num_args() as usize;
     if num_args < required_num_args {

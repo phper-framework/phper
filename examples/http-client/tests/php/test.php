@@ -7,4 +7,5 @@ ini_set("display_startup_errors", "On");
 error_reporting(E_ALL);
 
 $client = new HttpClient();
-var_dump($client);
+$ip = $client->get("http://httpbin.org/ip");
+var_dump($ip);

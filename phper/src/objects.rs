@@ -1,12 +1,15 @@
 //! Apis relate to [crate::sys::zend_object].
 
-use std::{marker::PhantomData, ptr::null_mut};
-use std::any::Any;
-use std::ffi::c_void;
-use std::hash::Hasher;
-use std::io::Write;
-use std::mem::{size_of, ManuallyDrop};
-use std::slice::{from_raw_parts, from_raw_parts_mut};
+use std::{
+    any::Any,
+    ffi::c_void,
+    hash::Hasher,
+    io::Write,
+    marker::PhantomData,
+    mem::{size_of, ManuallyDrop},
+    ptr::null_mut,
+    slice::{from_raw_parts, from_raw_parts_mut},
+};
 
 use crate::{
     alloc::{EAllocatable, EBox},
@@ -15,15 +18,16 @@ use crate::{
     sys::*,
     values::Val,
 };
+use std::ops::Deref;
 
 /// Wrapper of [crate::sys::zend_object].
 #[repr(transparent)]
-pub struct Object<T> {
+pub struct Object<T: 'static> {
     inner: zend_object,
     _p: PhantomData<T>,
 }
 
-impl<T> Object<T> {
+impl<T: 'static> Object<T> {
     pub fn new(class_entry: &ClassEntry) -> EBox<Self> {
         unsafe {
             let ptr = zend_objects_new(class_entry.as_ptr() as *mut _);
@@ -48,6 +52,16 @@ impl<T> Object<T> {
 
     pub fn as_mut_ptr(&mut self) -> *mut zend_object {
         &mut self.inner
+    }
+
+    pub fn as_state(&self) -> &T {
+        let eo = ExtendObject::fetch(&self.inner);
+        eo.state.downcast_ref().unwrap()
+    }
+
+    pub fn as_mut_state(&mut self) -> &mut T {
+        let eo = ExtendObject::fetch_mut(&mut self.inner);
+        eo.state.downcast_mut().unwrap()
     }
 
     pub fn get_property(&self, name: impl AsRef<str>) -> &Val {
@@ -152,16 +166,50 @@ impl<T> Drop for Object<T> {
     }
 }
 
+pub(crate) type ManuallyDropState = ManuallyDrop<Box<dyn Any>>;
+
 /// The Object contains `zend_object` and the user defined state data.
 #[repr(C)]
-pub struct ExtendObject {
-    pub(crate) state: ManuallyDrop<Box<dyn Any>>,
-    pub(crate) object: zend_object,
+pub(crate) struct ExtendObject {
+    state: ManuallyDropState,
+    object: zend_object,
 }
 
 impl ExtendObject {
     pub(crate) const fn offset() -> usize {
-       size_of::<ManuallyDrop<Box<dyn Any>>>()
+        size_of::<ManuallyDropState>()
+    }
+
+    pub(crate) fn fetch(object: &zend_object) -> &Self {
+        unsafe {
+            (((object as *const _ as usize) - ExtendObject::offset()) as *const Self)
+                .as_ref()
+                .unwrap()
+        }
+    }
+
+    pub(crate) fn fetch_mut(object: &mut zend_object) -> &mut Self {
+        unsafe {
+            (((object as *mut _ as usize) - ExtendObject::offset()) as *mut Self)
+                .as_mut()
+                .unwrap()
+        }
+    }
+
+    pub(crate) fn fetch_ptr(object: *mut zend_object) -> *mut Self {
+        (object as usize - ExtendObject::offset()) as *mut Self
+    }
+
+    pub(crate) unsafe fn drop_state(this: *mut Self) {
+        let state = &mut (*this).state;
+        ManuallyDrop::drop(state);
+    }
+
+    pub(crate) unsafe fn as_mut_state<'a>(this: *mut Self) -> &'a mut ManuallyDropState {
+        &mut (*this).state
+    }
+
+    pub(crate) unsafe fn as_mut_object<'a>(this: *mut Self) -> &'a mut zend_object {
+        &mut (*this).object
     }
 }
-

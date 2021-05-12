@@ -1,6 +1,7 @@
-use phper::errors::Throwable;
-use phper::classes::{ClassEntry, DynamicClass};
-use phper::errors::Error::ClassNotFound;
+use phper::{
+    classes::{ClassEntry, DynamicClass},
+    errors::{Error::ClassNotFound, Throwable},
+};
 
 const EXCEPTION_CLASS_NAME: &'static str = "HttpClient\\HttpClientException";
 
