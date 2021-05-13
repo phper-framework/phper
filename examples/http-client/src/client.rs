@@ -35,8 +35,7 @@ pub fn make_client_class() -> DynamicClass<Client> {
             };
 
             let mut response_object =
-                Object::<Option<ReadiedResponse>>::new_by_class_name(RESPONSE_CLASS_NAME)
-                    .map_err(phper::Error::ClassNotFound)?;
+                Object::<Option<ReadiedResponse>>::new_by_class_name(RESPONSE_CLASS_NAME)?;
             *response_object.as_mut_state() = Some(readied_response);
 
             Ok::<_, HttpClientError>(response_object)

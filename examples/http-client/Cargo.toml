@@ -14,6 +14,7 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1.0.40"
 bytes = "1.0.1"
+indexmap = "1.6.2"
 phper = { version = "0.2.0-alpha.2", path = "../../phper" }
 reqwest = { version = "0.11.3", features = ["blocking"] }
 thiserror = "1.0.24"

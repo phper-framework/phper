@@ -13,7 +13,7 @@ use crate::{
 };
 use indexmap::map::IndexMap;
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     mem::{transmute, zeroed},
     str,
     str::Utf8Error,
@@ -345,6 +345,12 @@ impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
 
 /// Setting the val to an array, which preserves item order.
 impl<K: AsRef<str>, V: SetVal> SetVal for IndexMap<K, V> {
+    fn set_val(self, val: &mut Val) {
+        map_set_val(self, val);
+    }
+}
+
+impl<K: AsRef<str>, V: SetVal> SetVal for BTreeMap<K, V> {
     fn set_val(self, val: &mut Val) {
         map_set_val(self, val);
     }

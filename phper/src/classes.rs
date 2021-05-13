@@ -1,8 +1,8 @@
 //! Apis relate to [crate::sys::zend_class_entry].
 
+use once_cell::sync::OnceCell;
 use std::{
     any::Any,
-    collections::HashMap,
     convert::Infallible,
     marker::PhantomData,
     mem::{size_of, zeroed, ManuallyDrop},
@@ -14,23 +14,22 @@ use std::{
     },
 };
 
-use dashmap::DashMap;
-use once_cell::sync::OnceCell;
-
 use phper_alloc::EBox;
 
 use crate::{
-    errors::{ClassNotFoundError, Throwable},
+    errors::{ClassNotFoundError, StateTypeError, Throwable},
     functions::{Argument, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
     sys::*,
     utils::ensure_end_with_zero,
     values::{SetVal, Val},
 };
-use std::rc::Rc;
+use dashmap::DashMap;
+use std::{any::TypeId, iter::Once};
 
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>>;
+    fn state_type_id(&self) -> TypeId;
     fn class_name(&self) -> &str;
     fn methods(&mut self) -> &mut [FunctionEntity];
     fn properties(&mut self) -> &mut [PropertyEntity];
@@ -116,6 +115,10 @@ impl<T: Send + Sync> Classifiable for DynamicClass<T> {
         Box::new(move || sc().map(|x| Box::new(x) as _))
     }
 
+    fn state_type_id(&self) -> TypeId {
+        TypeId::of::<T>()
+    }
+
     fn class_name(&self) -> &str {
         &self.class_name
     }
@@ -133,22 +136,42 @@ impl<T: Send + Sync> Classifiable for DynamicClass<T> {
     }
 }
 
+/// Used to represent classes not registered by this framework,
+/// or classes that do not have or do not want to process state.
+pub type StatelessClassEntry = ClassEntry<()>;
+
 /// Wrapper of [crate::sys::zend_class_entry].
-///
-/// TODO Add generic type.
 #[repr(transparent)]
-pub struct ClassEntry {
+pub struct ClassEntry<T: 'static> {
     inner: zend_class_entry,
+    _p: PhantomData<T>,
 }
 
-impl ClassEntry {
-    // TODO After added generic type, Check generic type is relate to class_name, otherwise return error.
-    pub fn from_globals<'a>(class_name: impl AsRef<str>) -> Result<&'a Self, ClassNotFoundError> {
+impl<T: 'static> ClassEntry<T> {
+    pub fn from_globals<'a>(class_name: impl AsRef<str>) -> crate::Result<&'a Self> {
         let name = class_name.as_ref();
         let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
-        unsafe {
-            ptr.as_ref()
-                .ok_or_else(|| ClassNotFoundError::new(name.to_string()))
+        let r = unsafe {
+            ptr.as_ref().ok_or_else(|| {
+                crate::Error::ClassNotFound(ClassNotFoundError::new(name.to_string()))
+            })
+        };
+        Self::check_type_id(ptr);
+        r
+    }
+
+    fn check_type_id(this: *mut Self) -> Result<(), StateTypeError> {
+        if TypeId::of::<T>() == TypeId::of::<()>() {
+            return Ok(());
+        }
+        let is = get_registered_class_type_map()
+            .get(&(this as usize))
+            .map(|t| *t == TypeId::of::<T>())
+            .unwrap_or_default();
+        if is {
+            Ok(())
+        } else {
+            Err(StateTypeError)
         }
     }
 
@@ -164,7 +187,7 @@ impl ClassEntry {
         &mut self.inner
     }
 
-    pub(crate) fn create_object<T>(&self) -> EBox<Object<T>> {
+    pub fn create_object(&self) -> EBox<Object<T>> {
         unsafe {
             let f = self.inner.__bindgen_anon_2.create_object.unwrap();
             let object = f(self.as_ptr() as *mut _);
@@ -188,7 +211,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 
 pub struct ClassEntity {
     pub(crate) name: String,
-    pub(crate) entry: AtomicPtr<ClassEntry>,
+    pub(crate) entry: AtomicPtr<ClassEntry<Box<dyn Any>>>,
     pub(crate) classifiable: Box<dyn Classifiable>,
     pub(crate) function_entries: OnceCell<AtomicPtr<FunctionEntry>>,
 }
@@ -210,20 +233,22 @@ impl ClassEntity {
             self.function_entries().load(Ordering::SeqCst).cast(),
         );
 
-        let parent = self
+        let parent: Option<&StatelessClassEntry> = self
             .classifiable
             .parent()
             .map(|s| ClassEntry::from_globals(s).unwrap());
 
-        let class: *mut ClassEntry = match parent {
+        let class: *mut ClassEntry<()> = match parent {
             Some(parent) => {
                 zend_register_internal_class_ex(&mut class_ce, parent.as_ptr() as *mut _).cast()
             }
             None => zend_register_internal_class(&mut class_ce).cast(),
         };
-        self.entry.store(class, Ordering::SeqCst);
+        // self.entry.store(class, Ordering::SeqCst);
 
         (*class).inner.__bindgen_anon_2.create_object = Some(create_object);
+
+        get_registered_class_type_map().insert(class as usize, self.classifiable.state_type_id());
 
         // let classifiable = self.classifiable.clone();
         // get_class_constructor_map().insert(class as usize, Box::new(move || classifiable.state_constructor()));
@@ -275,7 +300,7 @@ impl ClassEntity {
 
     unsafe fn take_classifiable_into_function_entry(&self) -> zend_function_entry {
         let mut entry = zeroed::<zend_function_entry>();
-        let ptr = &mut entry as *mut _ as *mut ManuallyDrop<Box<StateConstructor<Box<Any>>>>;
+        let ptr = &mut entry as *mut _ as *mut ManuallyDrop<Box<StateConstructor<Box<dyn Any>>>>;
         let state_constructor = ManuallyDrop::new(self.classifiable.state_constructor());
         ptr.write(state_constructor);
         entry
@@ -305,9 +330,14 @@ pub enum Visibility {
     Private = ZEND_ACC_PRIVATE,
 }
 
+fn get_registered_class_type_map() -> &'static DashMap<usize, TypeId> {
+    static MAP: OnceCell<DashMap<usize, TypeId>> = OnceCell::new();
+    MAP.get_or_init(DashMap::new)
+}
+
 fn get_object_handlers() -> &'static zend_object_handlers {
-    static OBJECT_HANDLERS: OnceCell<zend_object_handlers> = OnceCell::new();
-    OBJECT_HANDLERS.get_or_init(|| unsafe {
+    static HANDLERS: OnceCell<zend_object_handlers> = OnceCell::new();
+    HANDLERS.get_or_init(|| unsafe {
         let mut handlers = std_object_handlers;
         handlers.offset = ExtendObject::offset() as c_int;
         handlers.free_obj = Some(free_object);
@@ -333,7 +363,7 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
         func_ptr = func_ptr.offset(1);
     }
     func_ptr = func_ptr.offset(1);
-    let state_constructor = func_ptr as *const ManuallyDrop<Box<StateConstructor<Box<Any>>>>;
+    let state_constructor = func_ptr as *const ManuallyDrop<Box<StateConstructor<Box<dyn Any>>>>;
     let state_constructor = state_constructor.read();
 
     // Call the state constructor.

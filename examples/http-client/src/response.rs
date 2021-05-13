@@ -1,7 +1,9 @@
 use bytes::Bytes;
-use phper::classes::DynamicClass;
+use indexmap::map::IndexMap;
+use phper::{arrays::Array, classes::DynamicClass};
 use reqwest::{blocking::Response, header::HeaderMap, StatusCode};
 use std::{
+    collections::BTreeMap,
     convert::Infallible,
     mem::{zeroed, MaybeUninit},
     net::SocketAddr,
@@ -36,6 +38,25 @@ pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
         |this, arguments| {
             let readied_response = this.as_state().as_ref().unwrap();
             readied_response.status.as_u16() as i64
+        },
+        vec![],
+    );
+
+    class.add_method(
+        "headers",
+        |this, arguments| {
+            let readied_response = this.as_state().as_ref().unwrap();
+            let headers_map =
+                readied_response
+                    .headers
+                    .iter()
+                    .fold(IndexMap::new(), |mut acc, (key, value)| {
+                        acc.entry(key.as_str().to_owned())
+                            .or_insert(vec![])
+                            .push(value.as_bytes().to_owned());
+                        acc
+                    });
+            headers_map
         },
         vec![],
     );

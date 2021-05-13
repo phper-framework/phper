@@ -1,12 +1,18 @@
 //! The errors for crate and php.
 
-use crate::{classes::ClassEntry, sys::*, Error::Other};
+use crate::{
+    classes::{ClassEntry, StatelessClassEntry},
+    sys::*,
+    Error::Other,
+};
 use anyhow::anyhow;
-use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
+use std::{
+    any::TypeId, convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error,
+};
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
 pub trait Throwable: error::Error {
-    fn class_entry(&self) -> &ClassEntry;
+    fn class_entry(&self) -> &StatelessClassEntry;
 
     fn code(&self) -> u64 {
         0
@@ -18,7 +24,7 @@ pub trait Throwable: error::Error {
 }
 
 impl Throwable for Infallible {
-    fn class_entry(&self) -> &ClassEntry {
+    fn class_entry(&self) -> &StatelessClassEntry {
         unreachable!()
     }
 }
@@ -63,7 +69,7 @@ impl Error {
 
 // TODO Add message() implement.
 impl Throwable for Error {
-    fn class_entry(&self) -> &ClassEntry {
+    fn class_entry(&self) -> &StatelessClassEntry {
         match self {
             Self::Type(e) => e.class_entry(),
             Self::ClassNotFound(e) => e.class_entry(),
@@ -95,7 +101,7 @@ impl TypeError {
 }
 
 impl Throwable for TypeError {
-    fn class_entry(&self) -> &ClassEntry {
+    fn class_entry(&self) -> &ClassEntry<()> {
         ClassEntry::from_globals("TypeError").unwrap()
     }
 }
@@ -113,7 +119,20 @@ impl ClassNotFoundError {
 }
 
 impl Throwable for ClassNotFoundError {
-    fn class_entry(&self) -> &ClassEntry {
+    fn class_entry(&self) -> &StatelessClassEntry {
+        ClassEntry::from_globals("Error").unwrap()
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error(
+    "Actual State type in generic type parameter isn't the state type registered in the class, \
+please confirm the real state type, or use StatelessClassEntry"
+)]
+pub struct StateTypeError;
+
+impl Throwable for StateTypeError {
+    fn class_entry(&self) -> &StatelessClassEntry {
         ClassEntry::from_globals("Error").unwrap()
     }
 }
@@ -137,7 +156,7 @@ impl ArgumentCountError {
 }
 
 impl Throwable for ArgumentCountError {
-    fn class_entry(&self) -> &ClassEntry {
+    fn class_entry(&self) -> &StatelessClassEntry {
         let class_name = if PHP_VERSION_ID >= 70100 {
             "ArgumentCountError"
         } else {

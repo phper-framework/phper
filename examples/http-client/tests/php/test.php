@@ -12,6 +12,7 @@ $client = new HttpClient();
 $resp = $client->get("https://httpbin.org/ip");
 var_dump([
     "status" => $resp->status(),
+    "headers" => $resp->headers(),
     "body" => $resp->body(),
 ]);
 

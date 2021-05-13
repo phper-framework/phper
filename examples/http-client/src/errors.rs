@@ -1,5 +1,5 @@
 use phper::{
-    classes::{ClassEntry, DynamicClass},
+    classes::{ClassEntry, DynamicClass, StatelessClassEntry},
     errors::{Error::ClassNotFound, Throwable},
 };
 
@@ -15,7 +15,7 @@ pub enum HttpClientError {
 }
 
 impl Throwable for HttpClientError {
-    fn class_entry(&self) -> &ClassEntry {
+    fn class_entry(&self) -> &StatelessClassEntry {
         ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap()
     }
 }
