@@ -8,6 +8,9 @@ const EXCEPTION_CLASS_NAME: &'static str = "HttpClient\\HttpClientException";
 #[derive(thiserror::Error, Debug)]
 pub enum HttpClientError {
     #[error(transparent)]
+    Phper(#[from] phper::Error),
+
+    #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
 }
 
@@ -18,6 +21,7 @@ impl Throwable for HttpClientError {
 }
 
 pub fn make_exception_class() -> DynamicClass<()> {
-    let exception_class = DynamicClass::new(EXCEPTION_CLASS_NAME);
+    let mut exception_class = DynamicClass::new(EXCEPTION_CLASS_NAME);
+    exception_class.extends("Exception");
     exception_class
 }

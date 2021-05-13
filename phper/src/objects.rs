@@ -29,10 +29,7 @@ pub struct Object<T: 'static> {
 
 impl<T: 'static> Object<T> {
     pub fn new(class_entry: &ClassEntry) -> EBox<Self> {
-        unsafe {
-            let ptr = zend_objects_new(class_entry.as_ptr() as *mut _);
-            EBox::from_raw(ptr.cast())
-        }
+        class_entry.create_object()
     }
 
     pub fn new_by_class_name(
@@ -155,7 +152,8 @@ impl Object<()> {
 impl<T> EAllocatable for Object<T> {
     fn free(ptr: *mut Self) {
         unsafe {
-            zend_objects_destroy_object(ptr.cast());
+            // TODO call the handler `free_obj` and `dtor_obj` in `zend_entry_class`.
+            // zend_objects_destroy_object(ptr.cast());
         }
     }
 }

@@ -1,10 +1,11 @@
-use crate::client::make_client_class;
+use crate::{
+    client::make_client_class, errors::make_exception_class, response::make_response_class,
+};
 use anyhow::Context;
 use phper::{classes::DynamicClass, modules::Module, php_get_module};
 
 pub mod client;
 pub mod errors;
-pub mod request;
 pub mod response;
 
 #[php_get_module]
@@ -16,6 +17,8 @@ pub fn get_module() -> Module {
     );
 
     module.add_class(make_client_class());
+    module.add_class(make_exception_class());
+    module.add_class(make_response_class());
 
     module
 }

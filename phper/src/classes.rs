@@ -60,6 +60,12 @@ impl<T: Default + Send + Sync + 'static> DynamicClass<T> {
     }
 }
 
+impl<T: Send + Sync + 'static> DynamicClass<Option<T>> {
+    pub fn new_with_none(class_name: impl ToString) -> Self {
+        Self::new_with_constructor(class_name, || Ok::<_, Infallible>(None))
+    }
+}
+
 impl<T: Send + Sync + 'static> DynamicClass<T> {
     pub fn new_with_constructor<F, E>(class_name: impl ToString, state_constructor: F) -> Self
     where
@@ -127,12 +133,16 @@ impl<T: Send + Sync> Classifiable for DynamicClass<T> {
     }
 }
 
+/// Wrapper of [crate::sys::zend_class_entry].
+///
+/// TODO Add generic type.
 #[repr(transparent)]
 pub struct ClassEntry {
     inner: zend_class_entry,
 }
 
 impl ClassEntry {
+    // TODO After added generic type, Check generic type is relate to class_name, otherwise return error.
     pub fn from_globals<'a>(class_name: impl AsRef<str>) -> Result<&'a Self, ClassNotFoundError> {
         let name = class_name.as_ref();
         let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
@@ -152,6 +162,14 @@ impl ClassEntry {
 
     pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
         &mut self.inner
+    }
+
+    pub(crate) fn create_object<T>(&self) -> EBox<Object<T>> {
+        unsafe {
+            let f = self.inner.__bindgen_anon_2.create_object.unwrap();
+            let object = f(self.as_ptr() as *mut _);
+            EBox::from_raw(object.cast())
+        }
     }
 }
 

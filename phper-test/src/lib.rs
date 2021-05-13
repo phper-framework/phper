@@ -89,7 +89,7 @@ pub fn test_php_scripts_with_condition(
         }
 
         println!(
-            "command: {} {}\nstdout: {}\nstderr: {}",
+            "===== command =====\n{} {}\n\n===== stdout =====\n{}\n\n===== stderr =====\n{}\n",
             &context.php_bin,
             args.join(" "),
             stdout,

@@ -295,7 +295,26 @@ impl SetVal for &str {
 impl SetVal for String {
     fn set_val(self, val: &mut Val) {
         unsafe {
+            let s: &str = &self;
+            SetVal::set_val(s, val)
+        }
+    }
+}
+
+impl SetVal for &[u8] {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            // Because php string is binary safe, so can set `&[u8]` to php string.
             phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
+        }
+    }
+}
+
+impl SetVal for Vec<u8> {
+    fn set_val(self, val: &mut Val) {
+        unsafe {
+            let v: &[u8] = &self;
+            SetVal::set_val(v, val)
         }
     }
 }
