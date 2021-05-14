@@ -6,9 +6,7 @@ use crate::{
     Error::Other,
 };
 use anyhow::anyhow;
-use std::{
-    convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error,
-};
+use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
 pub trait Throwable: error::Error {

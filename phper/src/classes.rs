@@ -24,7 +24,7 @@ use crate::{
     values::{SetVal, Val},
 };
 use dashmap::DashMap;
-use std::{any::TypeId};
+use std::any::TypeId;
 
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>>;

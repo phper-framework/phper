@@ -1,11 +1,8 @@
 use bytes::Bytes;
 use indexmap::map::IndexMap;
-use phper::{classes::DynamicClass};
+use phper::classes::DynamicClass;
 use reqwest::{header::HeaderMap, StatusCode};
-use std::{
-    convert::Infallible,
-    net::SocketAddr,
-};
+use std::{convert::Infallible, net::SocketAddr};
 
 pub const RESPONSE_CLASS_NAME: &'static str = "HttpClient\\Response";
 

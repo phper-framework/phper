@@ -1,6 +1,6 @@
 use phper::{
     classes::{ClassEntry, DynamicClass, StatelessClassEntry},
-    errors::{Throwable},
+    errors::Throwable,
 };
 
 const EXCEPTION_CLASS_NAME: &'static str = "HttpClient\\HttpClientException";

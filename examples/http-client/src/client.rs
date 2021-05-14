@@ -4,10 +4,8 @@ use crate::{
 };
 
 use phper::{classes::DynamicClass, functions::Argument, objects::Object};
-use reqwest::{
-    blocking::{Client, ClientBuilder},
-};
-use std::{time::Duration};
+use reqwest::blocking::{Client, ClientBuilder};
+use std::time::Duration;
 
 const HTTP_CLIENT_CLASS_NAME: &'static str = "HttpClient\\HttpClient";
 
