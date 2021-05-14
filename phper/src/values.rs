@@ -237,7 +237,7 @@ impl Drop for Val {
 }
 
 /// The trait for setting the value of [Val], mainly as the return value of
-/// [crate::functions::Function] and [crate::functions::Method], and initializer of [Val].
+/// functions and methods, and initializer of [Val].
 pub trait SetVal {
     fn set_val(self, val: &mut Val);
 }
