@@ -1,8 +1,7 @@
 use crate::{
     client::make_client_class, errors::make_exception_class, response::make_response_class,
 };
-use anyhow::Context;
-use phper::{classes::DynamicClass, modules::Module, php_get_module};
+use phper::{modules::Module, php_get_module};
 
 pub mod client;
 pub mod errors;

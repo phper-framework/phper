@@ -1,5 +1,6 @@
 //! Apis relate to [crate::sys::zend_class_entry].
 
+use crate::alloc::EBox;
 use once_cell::sync::OnceCell;
 use std::{
     any::Any,
@@ -14,8 +15,6 @@ use std::{
     },
 };
 
-use phper_alloc::EBox;
-
 use crate::{
     errors::{ClassNotFoundError, StateTypeError, Throwable},
     functions::{Argument, FunctionEntity, FunctionEntry, Method},
@@ -25,7 +24,7 @@ use crate::{
     values::{SetVal, Val},
 };
 use dashmap::DashMap;
-use std::{any::TypeId, iter::Once};
+use std::{any::TypeId};
 
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>>;
@@ -71,7 +70,7 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
         F: Fn() -> Result<T, E> + Send + Sync + 'static,
         E: Throwable + 'static,
     {
-        let mut dyn_class = Self {
+        let dyn_class = Self {
             class_name: class_name.to_string(),
             state_constructor: Arc::new(move || state_constructor().map_err(|e| Box::new(e) as _)),
             method_entities: Vec::new(),
@@ -156,7 +155,7 @@ impl<T: 'static> ClassEntry<T> {
                 crate::Error::ClassNotFound(ClassNotFoundError::new(name.to_string()))
             })
         };
-        Self::check_type_id(ptr);
+        Self::check_type_id(ptr)?;
         r
     }
 
@@ -189,7 +188,11 @@ impl<T: 'static> ClassEntry<T> {
 
     pub fn create_object(&self) -> EBox<Object<T>> {
         unsafe {
-            let f = self.inner.__bindgen_anon_2.create_object.unwrap();
+            let f = self
+                .inner
+                .__bindgen_anon_2
+                .create_object
+                .unwrap_or(zend_objects_new);
             let object = f(self.as_ptr() as *mut _);
             EBox::from_raw(object.cast())
         }
@@ -244,7 +247,7 @@ impl ClassEntity {
             }
             None => zend_register_internal_class(&mut class_ce).cast(),
         };
-        // self.entry.store(class, Ordering::SeqCst);
+        self.entry.store(class.cast(), Ordering::SeqCst);
 
         (*class).inner.__bindgen_anon_2.create_object = Some(create_object);
 

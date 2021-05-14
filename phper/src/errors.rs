@@ -7,7 +7,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use std::{
-    any::TypeId, convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error,
+    convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error,
 };
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
@@ -54,6 +54,9 @@ pub enum Error {
 
     #[error(transparent)]
     ArgumentCount(#[from] ArgumentCountError),
+
+    #[error(transparent)]
+    StateType(#[from] StateTypeError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),

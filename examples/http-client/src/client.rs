@@ -2,13 +2,12 @@ use crate::{
     errors::HttpClientError,
     response::{ReadiedResponse, RESPONSE_CLASS_NAME},
 };
-use anyhow::Context;
+
 use phper::{classes::DynamicClass, functions::Argument, objects::Object};
 use reqwest::{
     blocking::{Client, ClientBuilder},
-    Response,
 };
-use std::{mem::MaybeUninit, time::Duration};
+use std::{time::Duration};
 
 const HTTP_CLIENT_CLASS_NAME: &'static str = "HttpClient\\HttpClient";
 
