@@ -135,5 +135,15 @@ size_t phper_zend_object_properties_size(zend_class_entry *ce) {
 }
 
 void *phper_zend_object_alloc(size_t obj_size, zend_class_entry *ce) {
+    #if PHP_VERSION_ID >= 70300
     return zend_object_alloc(obj_size, ce);
+    #else
+    void *obj = emalloc(obj_size + zend_object_properties_size(ce));
+    memset(obj, 0, obj_size - sizeof(zval));
+    return obj;
+    #endif
+}
+
+zend_object* (**phper_get_create_object(zend_class_entry *ce))(zend_class_entry *class_type) {
+    return &ce->create_object;
 }

@@ -186,14 +186,11 @@ impl<T: 'static> ClassEntry<T> {
         &mut self.inner
     }
 
-    pub fn create_object(&self) -> EBox<Object<T>> {
+    pub fn new_object(&self) -> EBox<Object<T>> {
         unsafe {
-            let f = self
-                .inner
-                .__bindgen_anon_2
-                .create_object
-                .unwrap_or(zend_objects_new);
-            let object = f(self.as_ptr() as *mut _);
+            let ptr = self.as_ptr() as *mut _;
+            let f = (*phper_get_create_object(ptr)).unwrap_or(zend_objects_new);
+            let object = f(ptr);
             EBox::from_raw(object.cast())
         }
     }
@@ -249,7 +246,7 @@ impl ClassEntity {
         };
         self.entry.store(class.cast(), Ordering::SeqCst);
 
-        (*class).inner.__bindgen_anon_2.create_object = Some(create_object);
+        *phper_get_create_object(class.cast()) = Some(create_object);
 
         get_registered_class_type_map().insert(class as usize, self.classifiable.state_type_id());
 

@@ -48,4 +48,6 @@ size_t phper_zend_object_properties_size(zend_class_entry *ce);
 
 void *phper_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 
+zend_object* (**phper_get_create_object(zend_class_entry *ce))(zend_class_entry *class_type);
+
 #endif //PHPER_PHP_WRAPPER_H

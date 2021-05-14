@@ -26,7 +26,7 @@ pub struct Object<T: 'static> {
 
 impl<T: 'static> Object<T> {
     pub fn new(class_entry: &ClassEntry<T>) -> EBox<Self> {
-        class_entry.create_object()
+        class_entry.new_object()
     }
 
     pub fn new_by_class_name(class_name: impl AsRef<str>) -> crate::Result<EBox<Self>> {
