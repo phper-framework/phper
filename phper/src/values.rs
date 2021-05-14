@@ -13,7 +13,7 @@ use crate::{
 };
 use indexmap::map::IndexMap;
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     mem::{transmute, zeroed},
     str,
     str::Utf8Error,
@@ -181,7 +181,7 @@ impl Val {
         }
     }
 
-    pub fn as_object<T>(&self) -> crate::Result<&Object<T>> {
+    pub fn as_object(&self) -> crate::Result<&Object<()>> {
         if self.get_type().is_object() {
             unsafe {
                 let ptr = self.inner.value.obj;
@@ -294,9 +294,24 @@ impl SetVal for &str {
 
 impl SetVal for String {
     fn set_val(self, val: &mut Val) {
+        let s: &str = &self;
+        SetVal::set_val(s, val)
+    }
+}
+
+impl SetVal for &[u8] {
+    fn set_val(self, val: &mut Val) {
         unsafe {
+            // Because php string is binary safe, so can set `&[u8]` to php string.
             phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
         }
+    }
+}
+
+impl SetVal for Vec<u8> {
+    fn set_val(self, val: &mut Val) {
+        let v: &[u8] = &self;
+        SetVal::set_val(v, val)
     }
 }
 
@@ -326,6 +341,12 @@ impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
 
 /// Setting the val to an array, which preserves item order.
 impl<K: AsRef<str>, V: SetVal> SetVal for IndexMap<K, V> {
+    fn set_val(self, val: &mut Val) {
+        map_set_val(self, val);
+    }
+}
+
+impl<K: AsRef<str>, V: SetVal> SetVal for BTreeMap<K, V> {
     fn set_val(self, val: &mut Val) {
         map_set_val(self, val);
     }

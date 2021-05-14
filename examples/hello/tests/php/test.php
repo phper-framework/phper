@@ -26,6 +26,6 @@ assert_eq($foo->getFoo(), "Hello");
 
 function assert_eq($left, $right) {
     if ($left !== $right) {
-        throw new Exception(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));
+        throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));
     }
 }
