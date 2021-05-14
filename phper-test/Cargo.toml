@@ -1,6 +1,6 @@
 [package]
 name = "phper-test"
-version = "0.2.0-alpha.2"
+version = "0.2.0-alpha.3"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"
 description = "PHPer testing utilities."
