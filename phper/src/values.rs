@@ -5,7 +5,7 @@ use crate::{
     arrays::Array,
     errors::{Throwable, TypeError},
     functions::ZendFunction,
-    objects::Object,
+    objects::{Object, StatelessObject},
     strings::ZendString,
     sys::*,
     types::{get_type_by_const, Type},
@@ -80,14 +80,23 @@ pub struct Val {
 }
 
 impl Val {
-    pub fn new<T: SetVal>(t: T) -> Self {
+    pub fn new(t: impl SetVal) -> Self {
         let mut val = unsafe { zeroed::<Val>() };
-        SetVal::set_val(t, &mut val);
+        unsafe {
+            SetVal::set_val(t, &mut val);
+        }
         val
     }
 
     pub fn null() -> Self {
         Self::new(())
+    }
+
+    pub fn set(&mut self, t: impl SetVal) {
+        unsafe {
+            self.drop_value();
+            SetVal::set_val(t, self);
+        }
     }
 
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
@@ -207,14 +216,14 @@ impl Val {
         }
     }
 
-    unsafe fn drop_me(&mut self) {
+    unsafe fn drop_value(&mut self) {
         let t = self.get_type();
         if t.is_string() {
-            phper_zend_string_release(self.inner.value.str);
+            ZendString::free(self.inner.value.str as *mut ZendString);
         } else if t.is_array() {
-            zend_hash_destroy(self.inner.value.arr);
+            Array::free(self.inner.value.arr as *mut Array);
         } else if t.is_object() {
-            zend_objects_destroy_object(self.inner.value.obj);
+            Object::free(self.inner.value.obj as *mut StatelessObject);
         }
     }
 }
@@ -222,7 +231,7 @@ impl Val {
 impl EAllocatable for Val {
     fn free(ptr: *mut Self) {
         unsafe {
-            ptr.as_mut().unwrap().drop_me();
+            ptr.as_mut().unwrap().drop_value();
             _efree(ptr.cast());
         }
     }
@@ -231,7 +240,7 @@ impl EAllocatable for Val {
 impl Drop for Val {
     fn drop(&mut self) {
         unsafe {
-            self.drop_me();
+            self.drop_value();
         }
     }
 }
@@ -239,94 +248,84 @@ impl Drop for Val {
 /// The trait for setting the value of [Val], mainly as the return value of
 /// functions and methods, and initializer of [Val].
 pub trait SetVal {
-    fn set_val(self, val: &mut Val);
+    unsafe fn set_val(self, val: &mut Val);
 }
 
 impl SetVal for () {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         val.set_type(Type::Null);
     }
 }
 
 impl SetVal for bool {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         val.set_type(if self { Type::True } else { Type::False });
     }
 }
 
 impl SetVal for i32 {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         SetVal::set_val(self as i64, val)
     }
 }
 
 impl SetVal for u32 {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         SetVal::set_val(self as i64, val)
     }
 }
 
 impl SetVal for i64 {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         val.set_type(Type::Long);
-        unsafe {
-            (*val.as_mut_ptr()).value.lval = self;
-        }
+        (*val.as_mut_ptr()).value.lval = self;
     }
 }
 
 impl SetVal for f64 {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         val.set_type(Type::Double);
-        unsafe {
-            (*val.as_mut_ptr()).value.dval = self;
-        }
+        (*val.as_mut_ptr()).value.dval = self;
     }
 }
 
 impl SetVal for &str {
-    fn set_val(self, val: &mut Val) {
-        unsafe {
-            phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
-        }
+    unsafe fn set_val(self, val: &mut Val) {
+        phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
     }
 }
 
 impl SetVal for String {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         let s: &str = &self;
         SetVal::set_val(s, val)
     }
 }
 
 impl SetVal for &[u8] {
-    fn set_val(self, val: &mut Val) {
-        unsafe {
-            // Because php string is binary safe, so can set `&[u8]` to php string.
-            phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
-        }
+    unsafe fn set_val(self, val: &mut Val) {
+        // Because php string is binary safe, so can set `&[u8]` to php string.
+        phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
     }
 }
 
 impl SetVal for Vec<u8> {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         let v: &[u8] = &self;
         SetVal::set_val(v, val)
     }
 }
 
 impl<T: SetVal> SetVal for Vec<T> {
-    fn set_val(self, val: &mut Val) {
-        unsafe {
-            phper_array_init(val.as_mut_ptr());
-            for (k, v) in self.into_iter().enumerate() {
-                let v = EBox::new(Val::new(v));
-                phper_zend_hash_index_update(
-                    (*val.as_mut_ptr()).value.arr,
-                    k as u64,
-                    EBox::into_raw(v).cast(),
-                );
-            }
+    unsafe fn set_val(self, val: &mut Val) {
+        phper_array_init(val.as_mut_ptr());
+        for (k, v) in self.into_iter().enumerate() {
+            let v = EBox::new(Val::new(v));
+            phper_zend_hash_index_update(
+                (*val.as_mut_ptr()).value.arr,
+                k as u64,
+                EBox::into_raw(v).cast(),
+            );
         }
     }
 }
@@ -334,56 +333,52 @@ impl<T: SetVal> SetVal for Vec<T> {
 /// Setting the val to an array, Because of the feature of [std::collections::HashMap], the item
 /// order of array is not guarantee.
 impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         map_set_val(self, val);
     }
 }
 
 /// Setting the val to an array, which preserves item order.
 impl<K: AsRef<str>, V: SetVal> SetVal for IndexMap<K, V> {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         map_set_val(self, val);
     }
 }
 
 impl<K: AsRef<str>, V: SetVal> SetVal for BTreeMap<K, V> {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         map_set_val(self, val);
     }
 }
 
-fn map_set_val<K, V, I>(iterator: I, val: &mut Val)
+unsafe fn map_set_val<K, V, I>(iterator: I, val: &mut Val)
 where
     I: IntoIterator<Item = (K, V)>,
     K: AsRef<str>,
     V: SetVal,
 {
-    unsafe {
-        phper_array_init(val.as_mut_ptr());
-        for (k, v) in iterator.into_iter() {
-            let k = k.as_ref();
-            let v = EBox::new(Val::new(v));
-            phper_zend_hash_str_update(
-                (*val.as_mut_ptr()).value.arr,
-                k.as_ptr().cast(),
-                k.len(),
-                EBox::into_raw(v).cast(),
-            );
-        }
+    phper_array_init(val.as_mut_ptr());
+    for (k, v) in iterator.into_iter() {
+        let k = k.as_ref();
+        let v = EBox::new(Val::new(v));
+        phper_zend_hash_str_update(
+            (*val.as_mut_ptr()).value.arr,
+            k.as_ptr().cast(),
+            k.len(),
+            EBox::into_raw(v).cast(),
+        );
     }
 }
 
 impl SetVal for EBox<Array> {
-    fn set_val(self, val: &mut Val) {
-        unsafe {
-            let arr = EBox::into_raw(self);
-            phper_zval_arr(val.as_mut_ptr(), arr.cast());
-        }
+    unsafe fn set_val(self, val: &mut Val) {
+        let arr = EBox::into_raw(self);
+        phper_zval_arr(val.as_mut_ptr(), arr.cast());
     }
 }
 
 impl<T> SetVal for EBox<Object<T>> {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         let object = EBox::into_raw(self);
         val.inner.value.obj = object.cast();
         val.set_type(Type::ObjectEx);
@@ -391,7 +386,7 @@ impl<T> SetVal for EBox<Object<T>> {
 }
 
 impl<T: SetVal> SetVal for Option<T> {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         match self {
             Some(t) => SetVal::set_val(t, val),
             None => SetVal::set_val((), val),
@@ -400,10 +395,10 @@ impl<T: SetVal> SetVal for Option<T> {
 }
 
 impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
-    fn set_val(self, val: &mut Val) {
+    unsafe fn set_val(self, val: &mut Val) {
         match self {
             Ok(t) => t.set_val(val),
-            Err(e) => unsafe {
+            Err(e) => {
                 let class_entry = e.class_entry();
                 let message = ensure_end_with_zero(e.message());
                 zend_throw_exception(
@@ -412,15 +407,13 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
                     e.code() as i64,
                 );
                 SetVal::set_val((), val);
-            },
+            }
         }
     }
 }
 
 impl SetVal for Val {
-    fn set_val(mut self, val: &mut Val) {
-        unsafe {
-            phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
-        }
+    unsafe fn set_val(mut self, val: &mut Val) {
+        phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
     }
 }

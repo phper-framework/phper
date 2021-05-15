@@ -28,7 +28,9 @@ where
 {
     fn call(&self, _: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
         let r = (self.0)(arguments);
-        r.set_val(return_value);
+        unsafe {
+            r.set_val(return_value);
+        }
     }
 }
 
