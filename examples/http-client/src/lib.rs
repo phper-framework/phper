@@ -5,7 +5,7 @@ use crate::{
     response::make_response_class,
 };
 use phper::{modules::Module, php_get_module};
-use std::mem::{replace, swap};
+use std::mem::replace;
 
 pub mod client;
 pub mod errors;
@@ -29,11 +29,11 @@ pub fn get_module() -> Module {
     module
 }
 
-fn replace_and_set<T>(t: &mut T, mut init: T, f: impl FnOnce(T) -> T) {
+fn replace_and_set<T>(t: &mut T, init: T, f: impl FnOnce(T) -> T) {
     let x = f(replace(t, init));
     let _ = replace(t, x);
 }
 
-fn replace_and_get<T, R>(t: &mut T, mut init: T, f: impl FnOnce(T) -> R) -> R {
+fn replace_and_get<T, R>(t: &mut T, init: T, f: impl FnOnce(T) -> R) -> R {
     f(replace(t, init))
 }

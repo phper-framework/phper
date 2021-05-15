@@ -2,7 +2,7 @@
 
 use crate::{
     alloc::EBox,
-    errors::{ClassNotFoundError, StateTypeError, Throwable},
+    errors::{ClassNotFoundError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
     sys::*,
@@ -13,7 +13,6 @@ use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use std::{
     any::{Any, TypeId},
-    convert::Infallible,
     marker::PhantomData,
     mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,

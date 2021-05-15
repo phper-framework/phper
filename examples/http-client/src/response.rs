@@ -1,12 +1,10 @@
 use crate::{errors::HttpClientError, replace_and_get};
-use bytes::Bytes;
 use indexmap::map::IndexMap;
 use phper::{
     classes::{DynamicClass, Visibility},
     objects::Object,
 };
-use reqwest::{blocking::Response, header::HeaderMap, StatusCode};
-use std::{convert::Infallible, net::SocketAddr};
+use reqwest::blocking::Response;
 
 pub const RESPONSE_CLASS_NAME: &'static str = "HttpClient\\Response";
 

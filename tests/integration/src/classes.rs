@@ -1,9 +1,10 @@
-use phper::{classes::DynamicClass, modules::Module};
+use phper::modules::Module;
 
 pub fn integrate(module: &mut Module) {
     integrate_a(module);
 }
 
-fn integrate_a(module: &mut Module) {
+// TODO Write class tests.
+fn integrate_a(_module: &mut Module) {
     // let class = DynamicClass::new_with_constructor("IntegrationTest\\A", ||);
 }

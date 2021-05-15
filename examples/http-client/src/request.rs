@@ -3,7 +3,7 @@ use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},
     objects::Object,
 };
-use reqwest::blocking::{Request, RequestBuilder, Response};
+use reqwest::blocking::{RequestBuilder, Response};
 
 pub const REQUEST_BUILDER_CLASS_NAME: &'static str = "HttpClient\\RequestBuilder";
 
@@ -20,7 +20,7 @@ pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
     class.add_method(
         "send",
         Visibility::Public,
-        |this, arguments| {
+        |this, _arguments| {
             let state = this.as_mut_state();
             let response = replace_and_get(state, None, |builder| builder.unwrap().send())?;
             let mut object =

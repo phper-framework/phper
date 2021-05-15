@@ -1,6 +1,5 @@
 use crate::{
     errors::HttpClientError, replace_and_get, replace_and_set, request::REQUEST_BUILDER_CLASS_NAME,
-    response::RESPONSE_CLASS_NAME,
 };
 use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},
@@ -8,7 +7,7 @@ use phper::{
     objects::Object,
 };
 use reqwest::blocking::{Client, ClientBuilder, RequestBuilder};
-use std::{convert::TryInto, mem::swap, time::Duration};
+use std::time::Duration;
 
 const HTTP_CLIENT_BUILDER_CLASS_NAME: &'static str = "HttpClient\\HttpClientBuilder";
 const HTTP_CLIENT_CLASS_NAME: &'static str = "HttpClient\\HttpClient";
@@ -47,7 +46,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
     class.add_method(
         "build",
         Visibility::Public,
-        |this, arguments| {
+        |this, _arguments| {
             let state = this.as_mut_state();
             let client = replace_and_get(state, ClientBuilder::new(), ClientBuilder::build)?;
             let mut object =
