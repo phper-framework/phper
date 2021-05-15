@@ -1,6 +1,6 @@
 use phper::{
     arrays::Array,
-    classes::DynamicClass,
+    classes::{DynamicClass, Visibility},
     functions::Argument,
     ini::Policy,
     modules::{Module, ModuleArgs},
@@ -66,6 +66,7 @@ pub fn get_module() -> Module {
     foo_class.add_property("foo", "100".to_string());
     foo_class.add_method(
         "getFoo",
+        Visibility::Public,
         |this: &mut Object<()>, _: &mut [Val]| -> phper::Result<Val> {
             let prop = this.get_property("foo");
             Ok(Val::new(prop.as_string_value()?))
@@ -74,6 +75,7 @@ pub fn get_module() -> Module {
     );
     foo_class.add_method(
         "setFoo",
+        Visibility::Public,
         |this: &mut Object<()>, arguments: &mut [Val]| -> phper::Result<()> {
             this.set_property("foo", Val::new(arguments[0].as_string_value()?));
             Ok(())

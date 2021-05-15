@@ -3,7 +3,11 @@ use crate::{
     response::{ReadiedResponse, RESPONSE_CLASS_NAME},
 };
 
-use phper::{classes::DynamicClass, functions::Argument, objects::Object};
+use phper::{
+    classes::{DynamicClass, Visibility},
+    functions::Argument,
+    objects::Object,
+};
 use reqwest::blocking::{Client, ClientBuilder};
 use std::time::Duration;
 
@@ -19,6 +23,7 @@ pub fn make_client_class() -> DynamicClass<Client> {
 
     class.add_method(
         "get",
+        Visibility::Public,
         |this, arguments| {
             let url = arguments[0].as_string()?;
             let client = this.as_state();

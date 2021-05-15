@@ -1,9 +1,18 @@
 //! Apis relate to [crate::sys::zend_class_entry].
 
-use crate::alloc::EBox;
+use crate::{
+    alloc::EBox,
+    errors::{ClassNotFoundError, StateTypeError, Throwable},
+    functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
+    objects::{ExtendObject, Object},
+    sys::*,
+    utils::ensure_end_with_zero,
+    values::{SetVal, Val},
+};
+use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use std::{
-    any::Any,
+    any::{Any, TypeId},
     convert::Infallible,
     marker::PhantomData,
     mem::{size_of, zeroed, ManuallyDrop},
@@ -14,17 +23,6 @@ use std::{
         Arc,
     },
 };
-
-use crate::{
-    errors::{ClassNotFoundError, StateTypeError, Throwable},
-    functions::{Argument, FunctionEntity, FunctionEntry, Method},
-    objects::{ExtendObject, Object},
-    sys::*,
-    utils::ensure_end_with_zero,
-    values::{SetVal, Val},
-};
-use dashmap::DashMap;
-use std::any::TypeId;
 
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>>;
@@ -37,7 +35,7 @@ pub trait Classifiable {
 
 pub type StateConstructor<T> = dyn Fn() -> Result<T, Box<dyn Throwable>> + Send + Sync;
 
-pub struct DynamicClass<T: Send + Sync + 'static> {
+pub struct DynamicClass<T: Send + 'static> {
     class_name: String,
     state_constructor: Arc<StateConstructor<T>>,
     pub(crate) method_entities: Vec<FunctionEntity>,
@@ -52,19 +50,19 @@ impl DynamicClass<()> {
     }
 }
 
-impl<T: Default + Send + Sync + 'static> DynamicClass<T> {
+impl<T: Default + Send + 'static> DynamicClass<T> {
     pub fn new_with_default(class_name: impl ToString) -> Self {
         Self::new_with_constructor(class_name, || Ok::<_, Infallible>(Default::default()))
     }
 }
 
-impl<T: Send + Sync + 'static> DynamicClass<Option<T>> {
+impl<T: Send + 'static> DynamicClass<Option<T>> {
     pub fn new_with_none(class_name: impl ToString) -> Self {
         Self::new_with_constructor(class_name, || Ok::<_, Infallible>(None))
     }
 }
 
-impl<T: Send + Sync + 'static> DynamicClass<T> {
+impl<T: Send + 'static> DynamicClass<T> {
     pub fn new_with_constructor<F, E>(class_name: impl ToString, state_constructor: F) -> Self
     where
         F: Fn() -> Result<T, E> + Send + Sync + 'static,
@@ -85,8 +83,13 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
         dyn_class
     }
 
-    pub fn add_method<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
-    where
+    pub fn add_method<F, R>(
+        &mut self,
+        name: impl ToString,
+        vis: Visibility,
+        handler: F,
+        arguments: Vec<Argument>,
+    ) where
         F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync + 'static,
         R: SetVal + 'static,
     {
@@ -94,6 +97,27 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
             name,
             Box::new(Method::new(handler)),
             arguments,
+            Some(vis),
+            Some(false),
+        ));
+    }
+
+    pub fn add_static_method<F, R>(
+        &mut self,
+        name: impl ToString,
+        vis: Visibility,
+        handler: F,
+        arguments: Vec<Argument>,
+    ) where
+        F: Fn(&mut [Val]) -> R + Send + Sync + 'static,
+        R: SetVal + 'static,
+    {
+        self.method_entities.push(FunctionEntity::new(
+            name,
+            Box::new(Function::new(handler)),
+            arguments,
+            Some(vis),
+            Some(true),
         ));
     }
 
@@ -108,7 +132,7 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
     }
 }
 
-impl<T: Send + Sync> Classifiable for DynamicClass<T> {
+impl<T: Send> Classifiable for DynamicClass<T> {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>> {
         let sc = self.state_constructor.clone();
         Box::new(move || sc().map(|x| Box::new(x) as _))

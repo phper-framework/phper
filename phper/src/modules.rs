@@ -211,8 +211,10 @@ impl Module {
     {
         self.function_entities.push(FunctionEntity::new(
             name,
-            Box::new(Function(handler)),
+            Box::new(Function::new(handler)),
             arguments,
+            None,
+            None,
         ));
     }
 

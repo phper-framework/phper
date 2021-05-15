@@ -5,6 +5,7 @@ use phper::{modules::Module, php_get_module};
 
 pub mod client;
 pub mod errors;
+pub mod request;
 pub mod response;
 
 #[php_get_module]

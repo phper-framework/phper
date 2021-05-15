@@ -1,6 +1,9 @@
 use bytes::Bytes;
 use indexmap::map::IndexMap;
-use phper::classes::DynamicClass;
+use phper::{
+    classes::{DynamicClass, Visibility},
+    objects::Object,
+};
 use reqwest::{header::HeaderMap, StatusCode};
 use std::{convert::Infallible, net::SocketAddr};
 
@@ -14,13 +17,12 @@ pub struct ReadiedResponse {
 }
 
 pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
-    let mut class = DynamicClass::new_with_constructor(RESPONSE_CLASS_NAME, || {
-        Ok::<Option<ReadiedResponse>, Infallible>(None)
-    });
+    let mut class = DynamicClass::new_with_none(RESPONSE_CLASS_NAME);
 
     class.add_method(
         "body",
-        |this, _arguments| {
+        Visibility::Public,
+        |this: &mut Object<Option<ReadiedResponse>>, _arguments| {
             let readied_response = this.as_state().as_ref().unwrap();
             let body: &[u8] = readied_response.body.as_ref();
             body.to_vec()
@@ -30,6 +32,7 @@ pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
 
     class.add_method(
         "status",
+        Visibility::Public,
         |this, _arguments| {
             let readied_response = this.as_state().as_ref().unwrap();
             readied_response.status.as_u16() as i64
@@ -39,6 +42,7 @@ pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
 
     class.add_method(
         "headers",
+        Visibility::Public,
         |this, _arguments| {
             let readied_response = this.as_state().as_ref().unwrap();
             let headers_map =
