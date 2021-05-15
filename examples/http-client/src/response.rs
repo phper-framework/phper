@@ -1,31 +1,29 @@
+use crate::{errors::HttpClientError, replace_and_get};
 use bytes::Bytes;
 use indexmap::map::IndexMap;
 use phper::{
     classes::{DynamicClass, Visibility},
     objects::Object,
 };
-use reqwest::{header::HeaderMap, StatusCode};
+use reqwest::{blocking::Response, header::HeaderMap, StatusCode};
 use std::{convert::Infallible, net::SocketAddr};
 
 pub const RESPONSE_CLASS_NAME: &'static str = "HttpClient\\Response";
 
-pub struct ReadiedResponse {
-    pub status: StatusCode,
-    pub remote_addr: Option<SocketAddr>,
-    pub headers: HeaderMap,
-    pub body: Bytes,
-}
-
-pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
+pub fn make_response_class() -> DynamicClass<Option<Response>> {
     let mut class = DynamicClass::new_with_none(RESPONSE_CLASS_NAME);
 
     class.add_method(
         "body",
         Visibility::Public,
-        |this: &mut Object<Option<ReadiedResponse>>, _arguments| {
-            let readied_response = this.as_state().as_ref().unwrap();
-            let body: &[u8] = readied_response.body.as_ref();
-            body.to_vec()
+        |this: &mut Object<Option<Response>>, _arguments| {
+            let response = this.as_mut_state();
+            let body = replace_and_get(response, None, |response| {
+                response
+                    .ok_or(HttpClientError::ResponseHadRead)
+                    .and_then(|response| response.bytes().map_err(Into::into))
+            })?;
+            Ok::<_, HttpClientError>((&body).to_vec())
         },
         vec![],
     );
@@ -34,8 +32,13 @@ pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
         "status",
         Visibility::Public,
         |this, _arguments| {
-            let readied_response = this.as_state().as_ref().unwrap();
-            readied_response.status.as_u16() as i64
+            let response =
+                this.as_state()
+                    .as_ref()
+                    .ok_or_else(|| HttpClientError::ResponseAfterRead {
+                        method_name: "status".to_owned(),
+                    })?;
+            Ok::<_, HttpClientError>(response.status().as_u16() as i64)
         },
         vec![],
     );
@@ -44,10 +47,15 @@ pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
         "headers",
         Visibility::Public,
         |this, _arguments| {
-            let readied_response = this.as_state().as_ref().unwrap();
+            let response =
+                this.as_state()
+                    .as_ref()
+                    .ok_or_else(|| HttpClientError::ResponseAfterRead {
+                        method_name: "headers".to_owned(),
+                    })?;
             let headers_map =
-                readied_response
-                    .headers
+                response
+                    .headers()
                     .iter()
                     .fold(IndexMap::new(), |mut acc, (key, value)| {
                         acc.entry(key.as_str().to_owned())
@@ -55,7 +63,7 @@ pub fn make_response_class() -> DynamicClass<Option<ReadiedResponse>> {
                             .push(value.as_bytes().to_owned());
                         acc
                     });
-            headers_map
+            Ok::<_, HttpClientError>(headers_map)
         },
         vec![],
     );

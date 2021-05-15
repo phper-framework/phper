@@ -377,6 +377,8 @@ impl SetVal for EBox<Array> {
     }
 }
 
+// TODO Because the type of method argument `this` is mut ref, can't become a return value,
+// TODO Support chain call for PHP object later.
 impl<T> SetVal for EBox<Object<T>> {
     unsafe fn set_val(self, val: &mut Val) {
         let object = EBox::into_raw(self);

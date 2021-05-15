@@ -9,6 +9,7 @@ use anyhow::anyhow;
 use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
+/// TODO Write a derive macro for auto extends the item implements for enum.
 pub trait Throwable: error::Error {
     fn class_entry(&self) -> &StatelessClassEntry;
 

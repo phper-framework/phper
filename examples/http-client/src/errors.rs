@@ -12,11 +12,20 @@ pub enum HttpClientError {
 
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
+
+    #[error("should call '{method_name}()' before call 'body()'")]
+    ResponseAfterRead { method_name: String },
+
+    #[error("should not call 'body()' multi time")]
+    ResponseHadRead,
 }
 
 impl Throwable for HttpClientError {
     fn class_entry(&self) -> &StatelessClassEntry {
-        ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap()
+        match self {
+            HttpClientError::Phper(e) => e.class_entry(),
+            _ => ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap(),
+        }
     }
 }
 

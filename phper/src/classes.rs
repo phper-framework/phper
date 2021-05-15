@@ -33,7 +33,7 @@ pub trait Classifiable {
     fn parent(&self) -> Option<&str>;
 }
 
-pub type StateConstructor<T> = dyn Fn() -> Result<T, Box<dyn Throwable>> + Send + Sync;
+pub type StateConstructor<T> = dyn Fn() -> T + Send + Sync;
 
 pub struct DynamicClass<T: Send + 'static> {
     class_name: String,
@@ -46,31 +46,30 @@ pub struct DynamicClass<T: Send + 'static> {
 
 impl DynamicClass<()> {
     pub fn new(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || Ok::<_, Infallible>(()))
+        Self::new_with_constructor(class_name, || ())
     }
 }
 
 impl<T: Default + Send + 'static> DynamicClass<T> {
     pub fn new_with_default(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || Ok::<_, Infallible>(Default::default()))
+        Self::new_with_constructor(class_name, Default::default)
     }
 }
 
 impl<T: Send + 'static> DynamicClass<Option<T>> {
     pub fn new_with_none(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || Ok::<_, Infallible>(None))
+        Self::new_with_constructor(class_name, || None)
     }
 }
 
 impl<T: Send + 'static> DynamicClass<T> {
-    pub fn new_with_constructor<F, E>(class_name: impl ToString, state_constructor: F) -> Self
-    where
-        F: Fn() -> Result<T, E> + Send + Sync + 'static,
-        E: Throwable + 'static,
-    {
+    pub fn new_with_constructor(
+        class_name: impl ToString,
+        state_constructor: impl Fn() -> T + Send + Sync + 'static,
+    ) -> Self {
         let dyn_class = Self {
             class_name: class_name.to_string(),
-            state_constructor: Arc::new(move || state_constructor().map_err(|e| Box::new(e) as _)),
+            state_constructor: Arc::new(state_constructor),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
@@ -135,7 +134,7 @@ impl<T: Send + 'static> DynamicClass<T> {
 impl<T: Send> Classifiable for DynamicClass<T> {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>> {
         let sc = self.state_constructor.clone();
-        Box::new(move || sc().map(|x| Box::new(x) as _))
+        Box::new(move || Box::new(sc()))
     }
 
     fn state_type_id(&self) -> TypeId {
@@ -391,8 +390,7 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
     let state_constructor = state_constructor.read();
 
     // Call the state constructor.
-    // TODO Throw an exception rather than unwrap.
-    let data: Box<dyn Any> = state_constructor().unwrap();
+    let data: Box<dyn Any> = state_constructor();
     *ExtendObject::as_mut_state(extend_object) = ManuallyDrop::new(data);
 
     object

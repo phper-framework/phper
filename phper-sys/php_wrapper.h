@@ -39,6 +39,7 @@ void phper_array_init(zval *arg);
 void *phper_zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t len);
 
 void phper_zval_obj(zval *z, zend_object *o);
+void phper_zval_obj_copy(zval *z, zend_object *o);
 
 zend_string *phper_get_function_or_method_name(const zend_function *func);
 
