@@ -9,6 +9,14 @@ if (!defined('PHP_VERSION_ID')) {
     define('PHP_VERSION_ID', ($version[0] * 10000 + $version[1] * 100 + $version[2]));
 }
 
+function assert_true($value) {
+    assert_eq($value, true);
+}
+
+function assert_false($value) {
+    assert_eq($value, false);
+}
+
 function assert_eq($left, $right) {
     if ($left !== $right) {
         throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));

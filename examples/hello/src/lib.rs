@@ -63,7 +63,7 @@ pub fn get_module() -> Module {
 
     // register classes
     let mut foo_class = DynamicClass::new("FooClass");
-    foo_class.add_property("foo", "100".to_string());
+    foo_class.add_property("foo", Visibility::Public, "100".to_string());
     foo_class.add_method(
         "getFoo",
         Visibility::Public,

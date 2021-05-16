@@ -6,7 +6,6 @@ use crate::{
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
     sys::*,
-    utils::ensure_end_with_zero,
     values::{SetVal, Val},
 };
 use dashmap::DashMap;
@@ -14,7 +13,7 @@ use once_cell::sync::OnceCell;
 use std::{
     any::{Any, TypeId},
     marker::PhantomData,
-    mem::{size_of, zeroed, ManuallyDrop},
+    mem::{replace, size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     sync::{
@@ -119,9 +118,14 @@ impl<T: Send + 'static> DynamicClass<T> {
         ));
     }
 
-    pub fn add_property(&mut self, name: impl ToString, value: String) {
+    pub fn add_property(
+        &mut self,
+        name: impl ToString,
+        vis: Visibility,
+        value: impl SetVal + Clone,
+    ) {
         self.property_entities
-            .push(PropertyEntity::new(name, value));
+            .push(PropertyEntity::new(name, vis, value));
     }
 
     pub fn extends(&mut self, name: impl ToString) {
@@ -271,31 +275,18 @@ impl ClassEntity {
         *phper_get_create_object(class.cast()) = Some(create_object);
 
         get_registered_class_type_map().insert(class as usize, self.classifiable.state_type_id());
-
-        // let classifiable = self.classifiable.clone();
-        // get_class_constructor_map().insert(class as usize, Box::new(move || classifiable.state_constructor()));
-
-        // let methods = self.class.methods();
-        // for method in methods {
-        //     match &method.handler {
-        //         Callable::Method(_, class) => {
-        //             class.store(ptr, Ordering::SeqCst);
-        //         }
-        //         _ => unreachable!(),
-        //     }
-        // }
     }
 
     pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.classifiable.properties();
         for property in properties {
-            let value = ensure_end_with_zero(property.value.clone());
+            let val = replace(&mut property.value, None).unwrap();
             zend_declare_property_string(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),
                 property.name.len(),
-                value.as_ptr().cast(),
-                Visibility::Public as c_int,
+                EBox::into_raw(val).cast(),
+                property.visibility as c_int,
             );
         }
     }
@@ -331,15 +322,16 @@ impl ClassEntity {
 
 pub struct PropertyEntity {
     name: String,
-    // TODO to be a SetVal
-    value: String,
+    visibility: Visibility,
+    value: Option<EBox<Val>>,
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl ToString, value: String) -> Self {
+    pub fn new(name: impl ToString, visibility: Visibility, value: impl SetVal) -> Self {
         Self {
             name: name.to_string(),
-            value,
+            visibility,
+            value: Some(EBox::new(Val::new(value))),
         }
     }
 }

@@ -1,4 +1,6 @@
 //! Apis relate to [crate::sys::zend_function_entry].
+//!
+//! TODO Add php function call.
 
 use std::{mem::zeroed, os::raw::c_char};
 
