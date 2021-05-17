@@ -6,6 +6,7 @@ use crate::{
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
     sys::*,
+    types::Scalar,
     values::{SetVal, Val},
 };
 use dashmap::DashMap;
@@ -118,11 +119,15 @@ impl<T: Send + 'static> DynamicClass<T> {
         ));
     }
 
-    pub fn add_property(
+    /// Declare property.
+    ///
+    /// The argument `value` should be `Copy` because 'zend_declare_property' receive only scalar
+    /// zval , otherwise will report fatal error: "Internal zvals cannot be refcounted".
+    pub fn add_property<'a>(
         &mut self,
         name: impl ToString,
         vis: Visibility,
-        value: impl SetVal + Clone,
+        value: impl Into<Scalar<'a>>,
     ) {
         self.property_entities
             .push(PropertyEntity::new(name, vis, value));
@@ -281,7 +286,7 @@ impl ClassEntity {
         let properties = self.classifiable.properties();
         for property in properties {
             let val = replace(&mut property.value, None).unwrap();
-            zend_declare_property_string(
+            zend_declare_property(
                 self.entry.load(Ordering::SeqCst).cast(),
                 property.name.as_ptr().cast(),
                 property.name.len(),
@@ -327,11 +332,15 @@ pub struct PropertyEntity {
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl ToString, visibility: Visibility, value: impl SetVal) -> Self {
+    pub fn new<'a>(
+        name: impl ToString,
+        visibility: Visibility,
+        value: impl Into<Scalar<'a>>,
+    ) -> Self {
         Self {
             name: name.to_string(),
             visibility,
-            value: Some(EBox::new(Val::new(value))),
+            value: Some(EBox::new(Val::new(value.into()))),
         }
     }
 }

@@ -1,17 +1,65 @@
 //! Apis relate to [crate::sys::zend_ini_entry_def].
 
-use crate::sys::{
-    phper_zend_ini_mh, zend_ini_entry_def, OnUpdateBool, OnUpdateLong, OnUpdateReal,
-    OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
+use crate::{
+    errors::Error::Type,
+    sys::{
+        phper_zend_ini_mh, zend_ini_entry_def, OnUpdateBool, OnUpdateLong, OnUpdateReal,
+        OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
+    },
 };
+use dashmap::DashMap;
+use derive_more::{From, TryInto};
 use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+    convert::TryFrom,
     ffi::CStr,
+    mem::{size_of, transmute, transmute_copy, zeroed},
     os::raw::{c_char, c_void},
     ptr::null_mut,
     str,
 };
 
-type OnModify = phper_zend_ini_mh;
+pub struct Ini;
+
+impl Ini {
+    thread_local! {
+        static INI_ENTITIES: DashMap<String, IniEntity> = DashMap::new();
+    }
+
+    pub fn add(name: impl ToString, default_value: impl TransformIniValue, policy: Policy) {
+        Self::INI_ENTITIES.with(|ini_entities| {
+            ini_entities.insert(
+                name.to_string(),
+                IniEntity::new(name, default_value, policy),
+            );
+        });
+    }
+
+    fn get<T: TransformIniValue>(name: &str) -> Option<T> {
+        Self::INI_ENTITIES.with(|ini_entities| {
+            ini_entities
+                .get(name)
+                .and_then(|entity| entity.value().value())
+        })
+    }
+
+    pub(crate) unsafe fn entries() -> *const zend_ini_entry_def {
+        let mut entries = Vec::new();
+
+        Self::INI_ENTITIES.with(|ini_entities| {
+            for entity in ini_entities {
+                entries.push(entity.value().entry());
+            }
+        });
+
+        entries.push(zeroed::<zend_ini_entry_def>());
+
+        Box::into_raw(entries.into_boxed_slice()).cast()
+    }
+}
+
+pub type OnModify = phper_zend_ini_mh;
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -22,89 +70,147 @@ pub enum Policy {
     System = PHP_INI_SYSTEM,
 }
 
-pub(crate) struct StrPtrBox {
-    inner: Box<*mut c_char>,
-}
+pub trait TransformIniValue: ToString + 'static {
+    fn on_modify(&self) -> OnModify;
 
-impl StrPtrBox {
-    pub(crate) unsafe fn to_string(&self) -> Result<String, str::Utf8Error> {
-        Ok(CStr::from_ptr(*self.inner).to_str()?.to_string())
+    unsafe fn transform(&self, data: usize) -> Option<*mut c_void>;
+
+    fn arg2_type(&self) -> TypeId;
+
+    fn arg2_size(&self) -> usize;
+
+    fn to_text(&self) -> String {
+        self.to_string()
     }
 }
 
-impl Default for StrPtrBox {
-    fn default() -> Self {
-        Self {
-            inner: Box::new(null_mut()),
-        }
-    }
-}
-
-pub trait IniValue: Default {
-    fn on_modify() -> OnModify;
-
-    fn arg2(&mut self) -> *mut c_void {
-        &mut *self as *mut _ as *mut c_void
-    }
-}
-
-impl IniValue for bool {
-    fn on_modify() -> OnModify {
+impl TransformIniValue for bool {
+    fn on_modify(&self) -> OnModify {
         Some(OnUpdateBool)
     }
+
+    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
+        let b = data != 0;
+        Some(Box::into_raw(Box::new(b)).cast())
+    }
+
+    fn arg2_type(&self) -> TypeId {
+        TypeId::of::<bool>()
+    }
+
+    fn arg2_size(&self) -> usize {
+        size_of::<bool>()
+    }
 }
 
-impl IniValue for i64 {
-    fn on_modify() -> OnModify {
+impl TransformIniValue for i64 {
+    fn on_modify(&self) -> OnModify {
         Some(OnUpdateLong)
     }
-}
 
-impl IniValue for f64 {
-    fn on_modify() -> OnModify {
-        Some(OnUpdateReal)
+    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
+        let i = data as i64;
+        Some(Box::into_raw(Box::new(i)).cast())
+    }
+
+    fn arg2_type(&self) -> TypeId {
+        TypeId::of::<i64>()
+    }
+
+    fn arg2_size(&self) -> usize {
+        size_of::<i64>()
     }
 }
 
-impl IniValue for StrPtrBox {
-    fn on_modify() -> OnModify {
+impl TransformIniValue for f64 {
+    fn on_modify(&self) -> OnModify {
+        Some(OnUpdateReal)
+    }
+
+    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
+        let f = data as f64;
+        Some(Box::into_raw(Box::new(f)).cast())
+    }
+
+    fn arg2_type(&self) -> TypeId {
+        TypeId::of::<i64>()
+    }
+
+    fn arg2_size(&self) -> usize {
+        size_of::<i64>()
+    }
+}
+
+impl TransformIniValue for String {
+    fn on_modify(&self) -> OnModify {
         Some(OnUpdateString)
     }
 
-    fn arg2(&mut self) -> *mut c_void {
-        Box::as_mut(&mut self.inner) as *mut _ as *mut c_void
+    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
+        let ptr = data as *mut c_char;
+        CStr::from_ptr(ptr)
+            .to_str()
+            .ok()
+            .map(|s| Box::into_raw(Box::new(s.to_owned())).cast())
+    }
+
+    fn arg2_type(&self) -> TypeId {
+        TypeId::of::<*mut c_char>()
+    }
+
+    fn arg2_size(&self) -> usize {
+        size_of::<*mut c_char>()
     }
 }
 
-pub(crate) struct IniEntity<T: IniValue> {
+pub(crate) struct IniEntity {
     name: String,
-    value: T,
+    value: usize,
     default_value: String,
+    transform: Box<dyn TransformIniValue>,
     policy: Policy,
 }
 
-impl<T: IniValue> IniEntity<T> {
-    pub(crate) fn new(name: impl ToString, default_value: impl ToString, policy: Policy) -> Self {
+impl IniEntity {
+    pub(crate) fn new<T: TransformIniValue>(
+        name: impl ToString,
+        default_value: T,
+        policy: Policy,
+    ) -> Self {
+        assert!(default_value.arg2_size() <= size_of::<usize>());
         Self {
             name: name.to_string(),
-            value: Default::default(),
-            default_value: default_value.to_string(),
+            value: 0,
+            default_value: default_value.to_text(),
+            transform: Box::new(default_value),
             policy,
         }
     }
 
-    pub(crate) fn value(&self) -> &T {
-        &self.value
+    pub(crate) fn value<T: TransformIniValue>(&self) -> Option<T> {
+        if self.transform.arg2_type() != TypeId::of::<T>() {
+            None
+        } else {
+            unsafe {
+                let ptr = self.transform.transform(self.value);
+                ptr.map(|ptr| {
+                    let b = Box::from_raw(ptr as *mut T);
+                    *b
+                })
+            }
+        }
     }
 
-    pub(crate) unsafe fn ini_entry_def(&mut self) -> zend_ini_entry_def {
-        create_ini_entry_ex(
-            &self.name,
-            &self.default_value,
-            <T>::on_modify(),
-            self.policy as u32,
-            self.value.arg2(),
-        )
+    pub(crate) fn entry(&mut self) -> zend_ini_entry_def {
+        unsafe {
+            create_ini_entry_ex(
+                &self.name,
+                &self.default_value,
+                self.transform.on_modify(),
+                self.policy as u32,
+                &mut self.value as *mut _ as *mut c_void,
+            )
+        }
     }
 }
 

@@ -31,10 +31,10 @@ pub fn get_module() -> Module {
     );
 
     // register module ini
-    module.add_bool_ini("hello.enable", false, Policy::All);
-    module.add_long_ini("hello.num", 100, Policy::All);
-    module.add_real_ini("hello.ratio", 1.5, Policy::All);
-    module.add_str_ini("hello.description", "hello world.", Policy::All);
+    module.add_ini("hello.enable", false, Policy::All);
+    module.add_ini("hello.num", 100, Policy::All);
+    module.add_ini("hello.ratio", 1.5, Policy::All);
+    module.add_ini("hello.description", "hello world.".to_owned(), Policy::All);
 
     // register hook functions
     module.on_module_init(module_init);
@@ -50,10 +50,10 @@ pub fn get_module() -> Module {
         |_: &mut [Val]| {
             let mut arr = Array::new();
 
-            let hello_enable = Val::new(Module::get_bool_ini("hello.enable"));
+            let hello_enable = Val::new(Module::get_ini::<bool>("hello.enable"));
             arr.insert("hello.enable", hello_enable);
 
-            let hello_description = Val::new(Module::get_str_ini("hello.description"));
+            let hello_description = Val::new(Module::get_ini::<String>("hello.description"));
             arr.insert("hello.description", hello_description);
 
             arr
@@ -63,7 +63,8 @@ pub fn get_module() -> Module {
 
     // register classes
     let mut foo_class = DynamicClass::new("FooClass");
-    foo_class.add_property("foo", Visibility::Public, "100".to_string());
+    // foo_class.add_property("foo", Visibility::Public, 100);
+    foo_class.add_property("foo", Visibility::Public, 100);
     foo_class.add_method(
         "getFoo",
         Visibility::Public,

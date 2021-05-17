@@ -1,6 +1,7 @@
 //! Apis relate to PHP types.
 
 use crate::sys::*;
+use derive_more::From;
 use num_traits::cast::FromPrimitive;
 use std::{ffi::CStr, os::raw::c_int};
 
@@ -96,4 +97,18 @@ pub(crate) fn get_type_by_const(t: u32) -> crate::Result<String> {
 
         Ok(s)
     }
+}
+
+#[derive(From)]
+pub enum Scalar<'a> {
+    Null(()),
+    Bool(bool),
+    I32(i32),
+    U32(u32),
+    I64(i64),
+    F64(f64),
+    Str(&'a str),
+    String(String),
+    Byte(&'a [u8]),
+    Bytes(Vec<u8>),
 }

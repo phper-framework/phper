@@ -8,7 +8,7 @@ use crate::{
     objects::{Object, StatelessObject},
     strings::ZendString,
     sys::*,
-    types::{get_type_by_const, Type},
+    types::{get_type_by_const, Scalar, Type},
     utils::ensure_end_with_zero,
 };
 use indexmap::map::IndexMap;
@@ -309,6 +309,13 @@ impl SetVal for &[u8] {
     }
 }
 
+impl<const N: usize> SetVal for &[u8; N] {
+    unsafe fn set_val(self, val: &mut Val) {
+        // Because php string is binary safe, so can set `&[u8; N]` to php string.
+        phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
+    }
+}
+
 impl SetVal for Vec<u8> {
     unsafe fn set_val(self, val: &mut Val) {
         let v: &[u8] = &self;
@@ -417,5 +424,22 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 impl SetVal for Val {
     unsafe fn set_val(mut self, val: &mut Val) {
         phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
+    }
+}
+
+impl SetVal for Scalar<'_> {
+    unsafe fn set_val(self, val: &mut Val) {
+        match self {
+            Scalar::Null(_) => SetVal::set_val((), val),
+            Scalar::Bool(b) => SetVal::set_val(b, val),
+            Scalar::I32(i) => SetVal::set_val(i, val),
+            Scalar::U32(u) => SetVal::set_val(u, val),
+            Scalar::I64(i) => SetVal::set_val(i, val),
+            Scalar::F64(f) => SetVal::set_val(f, val),
+            Scalar::Str(s) => SetVal::set_val(s, val),
+            Scalar::String(s) => SetVal::set_val(s, val),
+            Scalar::Byte(b) => SetVal::set_val(b, val),
+            Scalar::Bytes(b) => SetVal::set_val(b, val),
+        }
     }
 }
