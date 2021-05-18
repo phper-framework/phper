@@ -14,7 +14,7 @@ use once_cell::sync::OnceCell;
 use std::{
     any::{Any, TypeId},
     marker::PhantomData,
-    mem::{replace, size_of, zeroed, ManuallyDrop},
+    mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     sync::{
@@ -126,11 +126,11 @@ impl<T: Send + 'static> DynamicClass<T> {
     pub fn add_property<'a>(
         &mut self,
         name: impl ToString,
-        vis: Visibility,
-        value: impl Into<Scalar<'a>>,
+        visibility: Visibility,
+        value: impl Into<Scalar>,
     ) {
         self.property_entities
-            .push(PropertyEntity::new(name, vis, value));
+            .push(PropertyEntity::new(name, visibility, value));
     }
 
     pub fn extends(&mut self, name: impl ToString) {
@@ -285,14 +285,7 @@ impl ClassEntity {
     pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.classifiable.properties();
         for property in properties {
-            let val = replace(&mut property.value, None).unwrap();
-            zend_declare_property(
-                self.entry.load(Ordering::SeqCst).cast(),
-                property.name.as_ptr().cast(),
-                property.name.len(),
-                EBox::into_raw(val).cast(),
-                property.visibility as c_int,
-            );
+            property.declare(self.entry.load(Ordering::SeqCst).cast());
         }
     }
 
@@ -328,19 +321,60 @@ impl ClassEntity {
 pub struct PropertyEntity {
     name: String,
     visibility: Visibility,
-    value: Option<EBox<Val>>,
+    value: Scalar,
 }
 
 impl PropertyEntity {
-    pub fn new<'a>(
-        name: impl ToString,
-        visibility: Visibility,
-        value: impl Into<Scalar<'a>>,
-    ) -> Self {
+    pub fn new(name: impl ToString, visibility: Visibility, value: impl Into<Scalar>) -> Self {
         Self {
             name: name.to_string(),
             visibility,
-            value: Some(EBox::new(Val::new(value.into()))),
+            value: value.into(),
+        }
+    }
+
+    pub(crate) fn declare(&self, ce: *mut zend_class_entry) {
+        let name = self.name.as_ptr().cast();
+        let name_length = self.name.len();
+        let access_type = self.visibility as u32 as i32;
+
+        unsafe {
+            match &self.value {
+                Scalar::Null => {
+                    zend_declare_property_null(ce, name, name_length, access_type);
+                }
+                Scalar::Bool(b) => {
+                    zend_declare_property_bool(ce, name, name_length, *b as zend_long, access_type);
+                }
+                Scalar::I64(i) => {
+                    zend_declare_property_bool(ce, name, name_length, *i, access_type);
+                }
+                Scalar::F64(f) => {
+                    zend_declare_property_double(ce, name, name_length, *f, access_type);
+                }
+                Scalar::String(s) => {
+                    // If the `ce` is `ZEND_INTERNAL_CLASS`, then the `zend_string` is allocated
+                    // as persistent.
+                    zend_declare_property_stringl(
+                        ce,
+                        name,
+                        name_length,
+                        s.as_ptr().cast(),
+                        s.len(),
+                        access_type,
+                    );
+                }
+                Scalar::Bytes(b) => {
+                    zend_declare_property_stringl(
+                        ce,
+                        name,
+                        name_length,
+                        b.as_ptr().cast(),
+                        b.len(),
+                        access_type,
+                    );
+                }
+            }
         }
     }
 }

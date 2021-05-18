@@ -1,36 +1,36 @@
 //! Apis relate to [crate::sys::zend_ini_entry_def].
 
-use crate::{
-    errors::Error::Type,
-    sys::{
-        phper_zend_ini_mh, zend_ini_entry_def, OnUpdateBool, OnUpdateLong, OnUpdateReal,
-        OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
-    },
+use crate::sys::{
+    phper_zend_ini_mh, zend_ini_entry_def, OnUpdateBool, OnUpdateLong, OnUpdateReal,
+    OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
 };
 use dashmap::DashMap;
-use derive_more::{From, TryInto};
 use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-    convert::TryFrom,
+    any::TypeId,
     ffi::CStr,
-    mem::{forget, size_of, transmute, transmute_copy, zeroed},
+    mem::{size_of, zeroed},
     os::raw::{c_char, c_void},
     ptr::null_mut,
     str,
+    sync::atomic::{AtomicBool, Ordering},
 };
+
+static REGISTERED: AtomicBool = AtomicBool::new(false);
+
+thread_local! {
+    static INI_ENTITIES: DashMap<String, IniEntity> = DashMap::new();
+}
 
 pub struct Ini;
 
 impl Ini {
-    // TODO Remove thread_local.
-    thread_local! {
-        static REGISTERED: bool = false;
-        static INI_ENTITIES: DashMap<String, IniEntity> = DashMap::new();
-    }
-
     pub fn add(name: impl ToString, default_value: impl TransformIniValue, policy: Policy) {
-        Self::INI_ENTITIES.with(|ini_entities| {
+        assert!(
+            !REGISTERED.load(Ordering::SeqCst),
+            "shouldn't add ini after registered"
+        );
+
+        INI_ENTITIES.with(|ini_entities| {
             ini_entities.insert(
                 name.to_string(),
                 IniEntity::new(name, default_value, policy),
@@ -39,7 +39,12 @@ impl Ini {
     }
 
     pub fn get<T: TransformIniValue>(name: &str) -> Option<T> {
-        Self::INI_ENTITIES.with(|ini_entities| {
+        assert!(
+            REGISTERED.load(Ordering::SeqCst),
+            "shouldn't get ini before registered"
+        );
+
+        INI_ENTITIES.with(|ini_entities| {
             ini_entities
                 .get(name)
                 .and_then(|entity| entity.value().value())
@@ -47,9 +52,11 @@ impl Ini {
     }
 
     pub(crate) unsafe fn entries() -> *const zend_ini_entry_def {
+        REGISTERED.store(true, Ordering::SeqCst);
+
         let mut entries = Vec::new();
 
-        Self::INI_ENTITIES.with(|ini_entities| {
+        INI_ENTITIES.with(|ini_entities| {
             for mut entity in ini_entities.iter_mut() {
                 entries.push(entity.value_mut().entry());
             }
@@ -204,15 +211,13 @@ impl IniEntity {
     }
 
     pub(crate) fn entry(&mut self) -> zend_ini_entry_def {
-        unsafe {
-            create_ini_entry_ex(
-                &self.name,
-                &self.default_value,
-                self.transform.on_modify(),
-                self.policy as u32,
-                &mut self.value as *mut _ as *mut c_void,
-            )
-        }
+        create_ini_entry_ex(
+            &self.name,
+            &self.default_value,
+            self.transform.on_modify(),
+            self.policy as u32,
+            &mut self.value as *mut _ as *mut c_void,
+        )
     }
 }
 
@@ -236,14 +241,8 @@ pub(crate) fn create_ini_entry_ex(
     ))]
     let (modifiable, name_length) = (modifiable as std::os::raw::c_int, name.len() as u32);
 
-    let name = name.to_string();
-    let boxed_name = name.into_boxed_str();
-    let name = boxed_name.as_ptr().cast();
-    forget(boxed_name);
-
     zend_ini_entry_def {
-        // name: name.as_ptr().cast(),
-        name,
+        name: name.as_ptr().cast(),
         on_modify,
         mh_arg1: null_mut(),
         mh_arg2: arg2,

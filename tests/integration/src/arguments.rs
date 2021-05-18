@@ -1,11 +1,5 @@
 use phper::{
-    alloc::EBox,
-    arrays::Array,
-    functions::Argument,
-    ini::{Ini, Policy},
-    modules::Module,
-    objects::Object,
-    values::Val,
+    alloc::EBox, arrays::Array, functions::Argument, modules::Module, objects::Object, values::Val,
 };
 
 pub fn integrate(module: &mut Module) {

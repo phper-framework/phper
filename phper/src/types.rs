@@ -100,15 +100,29 @@ pub(crate) fn get_type_by_const(t: u32) -> crate::Result<String> {
 }
 
 #[derive(From)]
-pub enum Scalar<'a> {
-    Null(()),
+pub enum Scalar {
+    Null,
     Bool(bool),
-    I32(i32),
-    U32(u32),
     I64(i64),
     F64(f64),
-    Str(&'a str),
     String(String),
-    Byte(&'a [u8]),
     Bytes(Vec<u8>),
+}
+
+impl From<i32> for Scalar {
+    fn from(i: i32) -> Self {
+        Self::I64(i.into())
+    }
+}
+
+impl From<&str> for Scalar {
+    fn from(s: &str) -> Self {
+        Self::String(s.to_owned())
+    }
+}
+
+impl From<&[u8]> for Scalar {
+    fn from(b: &[u8]) -> Self {
+        Self::Bytes(b.to_owned())
+    }
 }

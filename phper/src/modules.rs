@@ -4,16 +4,12 @@ use crate::{
     c_str_ptr,
     classes::{ClassEntity, Classifiable},
     functions::{Argument, Function, FunctionEntity},
-    ini::{Ini, IniEntity, Policy, TransformIniValue},
+    ini::Ini,
     sys::*,
     utils::ensure_end_with_zero,
     values::{SetVal, Val},
 };
 use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
-    collections::HashMap,
-    convert::TryFrom,
     mem::{size_of, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
@@ -221,13 +217,13 @@ impl ModuleArgs {
 
     pub(crate) fn register_ini_entries(&self, ini_entries: *const zend_ini_entry_def) {
         unsafe {
-            // zend_register_ini_entries(ini_entries, self.module_number);
+            zend_register_ini_entries(ini_entries, self.module_number);
         }
     }
 
     pub(crate) fn unregister_ini_entries(&self) {
         unsafe {
-            // zend_unregister_ini_entries(self.module_number);
+            zend_unregister_ini_entries(self.module_number);
         }
     }
 }
