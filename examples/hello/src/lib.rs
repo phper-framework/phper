@@ -2,7 +2,7 @@ use phper::{
     arrays::Array,
     classes::{DynamicClass, Visibility},
     functions::Argument,
-    ini::Policy,
+    ini::{Ini, Policy},
     modules::{Module, ModuleArgs},
     objects::Object,
     php_get_module,
@@ -31,10 +31,10 @@ pub fn get_module() -> Module {
     );
 
     // register module ini
-    module.add_ini("hello.enable", false, Policy::All);
-    module.add_ini("hello.num", 100, Policy::All);
-    module.add_ini("hello.ratio", 1.5, Policy::All);
-    module.add_ini("hello.description", "hello world.".to_owned(), Policy::All);
+    Ini::add("hello.enable", false, Policy::All);
+    Ini::add("hello.num", 100, Policy::All);
+    Ini::add("hello.ratio", 1.5, Policy::All);
+    Ini::add("hello.description", "hello world.".to_owned(), Policy::All);
 
     // register hook functions
     module.on_module_init(module_init);
@@ -50,10 +50,10 @@ pub fn get_module() -> Module {
         |_: &mut [Val]| {
             let mut arr = Array::new();
 
-            let hello_enable = Val::new(Module::get_ini::<bool>("hello.enable"));
+            let hello_enable = Val::new(Ini::get::<bool>("hello.enable"));
             arr.insert("hello.enable", hello_enable);
 
-            let hello_description = Val::new(Module::get_ini::<String>("hello.description"));
+            let hello_description = Val::new(Ini::get::<String>("hello.description"));
             arr.insert("hello.description", hello_description);
 
             arr

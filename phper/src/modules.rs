@@ -221,13 +221,13 @@ impl ModuleArgs {
 
     pub(crate) fn register_ini_entries(&self, ini_entries: *const zend_ini_entry_def) {
         unsafe {
-            zend_register_ini_entries(ini_entries, self.module_number);
+            // zend_register_ini_entries(ini_entries, self.module_number);
         }
     }
 
     pub(crate) fn unregister_ini_entries(&self) {
         unsafe {
-            zend_unregister_ini_entries(self.module_number);
+            // zend_unregister_ini_entries(self.module_number);
         }
     }
 }

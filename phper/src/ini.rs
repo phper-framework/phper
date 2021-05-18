@@ -14,7 +14,7 @@ use std::{
     collections::HashMap,
     convert::TryFrom,
     ffi::CStr,
-    mem::{size_of, transmute, transmute_copy, zeroed},
+    mem::{forget, size_of, transmute, transmute_copy, zeroed},
     os::raw::{c_char, c_void},
     ptr::null_mut,
     str,
@@ -23,7 +23,9 @@ use std::{
 pub struct Ini;
 
 impl Ini {
+    // TODO Remove thread_local.
     thread_local! {
+        static REGISTERED: bool = false;
         static INI_ENTITIES: DashMap<String, IniEntity> = DashMap::new();
     }
 
@@ -36,7 +38,7 @@ impl Ini {
         });
     }
 
-    fn get<T: TransformIniValue>(name: &str) -> Option<T> {
+    pub fn get<T: TransformIniValue>(name: &str) -> Option<T> {
         Self::INI_ENTITIES.with(|ini_entities| {
             ini_entities
                 .get(name)
@@ -48,8 +50,8 @@ impl Ini {
         let mut entries = Vec::new();
 
         Self::INI_ENTITIES.with(|ini_entities| {
-            for entity in ini_entities {
-                entries.push(entity.value().entry());
+            for mut entity in ini_entities.iter_mut() {
+                entries.push(entity.value_mut().entry());
             }
         });
 
@@ -234,8 +236,14 @@ pub(crate) fn create_ini_entry_ex(
     ))]
     let (modifiable, name_length) = (modifiable as std::os::raw::c_int, name.len() as u32);
 
+    let name = name.to_string();
+    let boxed_name = name.into_boxed_str();
+    let name = boxed_name.as_ptr().cast();
+    forget(boxed_name);
+
     zend_ini_entry_def {
-        name: name.as_ptr().cast(),
+        // name: name.as_ptr().cast(),
+        name,
         on_modify,
         mh_arg1: null_mut(),
         mh_arg2: arg2,
