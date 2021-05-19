@@ -79,14 +79,19 @@ pub enum Policy {
     System = PHP_INI_SYSTEM,
 }
 
-pub trait TransformIniValue: ToString + 'static {
-    fn on_modify(&self) -> OnModify;
+/// The Type which can transform to an ini value.
+///
+/// Be careful that the size of `arg2` must litter than size of `usize`.
+///
+/// TODO Add a size compare with usize trait bound, after const generic supports.
+pub trait TransformIniValue: Sized + ToString + 'static {
+    fn on_modify() -> OnModify;
 
-    unsafe fn transform(&self, data: usize) -> Option<*mut c_void>;
+    unsafe fn transform(data: usize) -> Option<Self>;
 
-    fn arg2_type(&self) -> TypeId;
+    fn arg2_type() -> TypeId;
 
-    fn arg2_size(&self) -> usize;
+    fn arg2_size() -> usize;
 
     fn to_text(&self) -> String {
         self.to_string()
@@ -94,80 +99,74 @@ pub trait TransformIniValue: ToString + 'static {
 }
 
 impl TransformIniValue for bool {
-    fn on_modify(&self) -> OnModify {
+    fn on_modify() -> OnModify {
         Some(OnUpdateBool)
     }
 
-    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
-        let b = data != 0;
-        Some(Box::into_raw(Box::new(b)).cast())
+    unsafe fn transform(data: usize) -> Option<Self> {
+        Some(data != 0)
     }
 
-    fn arg2_type(&self) -> TypeId {
+    fn arg2_type() -> TypeId {
         TypeId::of::<bool>()
     }
 
-    fn arg2_size(&self) -> usize {
+    fn arg2_size() -> usize {
         size_of::<bool>()
     }
 }
 
 impl TransformIniValue for i64 {
-    fn on_modify(&self) -> OnModify {
+    fn on_modify() -> OnModify {
         Some(OnUpdateLong)
     }
 
-    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
-        let i = data as i64;
-        Some(Box::into_raw(Box::new(i)).cast())
+    unsafe fn transform(data: usize) -> Option<Self> {
+        Some(data as i64)
     }
 
-    fn arg2_type(&self) -> TypeId {
+    fn arg2_type() -> TypeId {
         TypeId::of::<i64>()
     }
 
-    fn arg2_size(&self) -> usize {
+    fn arg2_size() -> usize {
         size_of::<i64>()
     }
 }
 
 impl TransformIniValue for f64 {
-    fn on_modify(&self) -> OnModify {
+    fn on_modify() -> OnModify {
         Some(OnUpdateReal)
     }
 
-    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
-        let f = data as f64;
-        Some(Box::into_raw(Box::new(f)).cast())
+    unsafe fn transform(data: usize) -> Option<Self> {
+        Some(data as f64)
     }
 
-    fn arg2_type(&self) -> TypeId {
+    fn arg2_type() -> TypeId {
         TypeId::of::<i64>()
     }
 
-    fn arg2_size(&self) -> usize {
+    fn arg2_size() -> usize {
         size_of::<i64>()
     }
 }
 
 impl TransformIniValue for String {
-    fn on_modify(&self) -> OnModify {
+    fn on_modify() -> OnModify {
         Some(OnUpdateString)
     }
 
-    unsafe fn transform(&self, data: usize) -> Option<*mut c_void> {
+    unsafe fn transform(data: usize) -> Option<Self> {
         let ptr = data as *mut c_char;
-        CStr::from_ptr(ptr)
-            .to_str()
-            .ok()
-            .map(|s| Box::into_raw(Box::new(s.to_owned())).cast())
+        CStr::from_ptr(ptr).to_str().ok().map(|s| s.to_owned())
     }
 
-    fn arg2_type(&self) -> TypeId {
+    fn arg2_type() -> TypeId {
         TypeId::of::<*mut c_char>()
     }
 
-    fn arg2_size(&self) -> usize {
+    fn arg2_size() -> usize {
         size_of::<*mut c_char>()
     }
 }
@@ -175,8 +174,9 @@ impl TransformIniValue for String {
 pub(crate) struct IniEntity {
     name: String,
     value: usize,
+    value_type_id: TypeId,
     default_value: String,
-    transform: Box<dyn TransformIniValue>,
+    on_modify: OnModify,
     policy: Policy,
 }
 
@@ -186,27 +186,22 @@ impl IniEntity {
         default_value: T,
         policy: Policy,
     ) -> Self {
-        assert!(default_value.arg2_size() <= size_of::<usize>());
+        assert!(<T>::arg2_size() <= size_of::<usize>());
         Self {
             name: name.to_string(),
             value: 0,
+            value_type_id: <T>::arg2_type(),
             default_value: default_value.to_text(),
-            transform: Box::new(default_value),
+            on_modify: <T>::on_modify(),
             policy,
         }
     }
 
     pub(crate) fn value<T: TransformIniValue>(&self) -> Option<T> {
-        if self.transform.arg2_type() != TypeId::of::<T>() {
+        if self.value_type_id != <T>::arg2_type() {
             None
         } else {
-            unsafe {
-                let ptr = self.transform.transform(self.value);
-                ptr.map(|ptr| {
-                    let b = Box::from_raw(ptr as *mut T);
-                    *b
-                })
-            }
+            unsafe { <T>::transform(self.value) }
         }
     }
 
@@ -214,7 +209,7 @@ impl IniEntity {
         create_ini_entry_ex(
             &self.name,
             &self.default_value,
-            self.transform.on_modify(),
+            self.on_modify,
             self.policy as u32,
             &mut self.value as *mut _ as *mut c_void,
         )

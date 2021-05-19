@@ -347,7 +347,7 @@ impl PropertyEntity {
                     zend_declare_property_bool(ce, name, name_length, *b as zend_long, access_type);
                 }
                 Scalar::I64(i) => {
-                    zend_declare_property_bool(ce, name, name_length, *i, access_type);
+                    zend_declare_property_long(ce, name, name_length, *i, access_type);
                 }
                 Scalar::F64(f) => {
                     zend_declare_property_double(ce, name, name_length, *f, access_type);

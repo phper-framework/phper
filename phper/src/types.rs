@@ -5,6 +5,7 @@ use derive_more::From;
 use num_traits::cast::FromPrimitive;
 use std::{ffi::CStr, os::raw::c_int};
 
+/// TODO Refactor to a struct rather than enum, because it's so complex than the type have bit flag.
 #[derive(FromPrimitive, PartialEq, Clone, Copy)]
 #[repr(u32)]
 #[non_exhaustive]
@@ -83,8 +84,9 @@ impl From<u32> for Type {
     }
 }
 
-pub(crate) fn get_type_by_const(t: u32) -> crate::Result<String> {
+pub(crate) fn get_type_by_const(mut t: u32) -> crate::Result<String> {
     unsafe {
+        t &= !(IS_TYPE_REFCOUNTED << Z_TYPE_FLAGS_SHIFT);
         let s = zend_get_type_by_const(t as c_int);
         let mut s = CStr::from_ptr(s).to_str()?.to_string();
 

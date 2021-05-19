@@ -63,14 +63,13 @@ pub fn get_module() -> Module {
 
     // register classes
     let mut foo_class = DynamicClass::new("FooClass");
-    // foo_class.add_property("foo", Visibility::Public, 100);
-    foo_class.add_property("foo", Visibility::Public, 100);
+    foo_class.add_property("foo", Visibility::Private, 100);
     foo_class.add_method(
         "getFoo",
         Visibility::Public,
-        |this: &mut Object<()>, _: &mut [Val]| -> phper::Result<Val> {
+        |this: &mut Object<()>, _: &mut [Val]| {
             let prop = this.get_property("foo");
-            Ok(Val::new(prop.as_string_value()?))
+            Ok::<_, phper::Error>(prop.as_string_value()?)
         },
         vec![],
     );
