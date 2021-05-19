@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install libclang
-        run: sudo apt-get install -y libclang-10-dev
+        run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
