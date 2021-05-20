@@ -112,7 +112,10 @@ impl Array {
 impl EAllocatable for Array {
     fn free(ptr: *mut Self) {
         unsafe {
-            zend_hash_destroy(ptr.cast());
+            if (*ptr).inner.gc.refcount == 0 {
+                zend_hash_destroy(ptr.cast());
+                _efree(ptr.cast());
+            }
         }
     }
 }

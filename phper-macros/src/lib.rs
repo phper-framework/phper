@@ -8,7 +8,7 @@ The proc-macros for [phper](https://crates.io/crates/phper).
 [Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
 */
 
-// TODO Write a bridge macro for easy usage about register functions and classes.
+// TODO Write a bridge macro for easy usage about register functions and classes, like `cxx`.
 
 mod alloc;
 mod inner;

@@ -95,6 +95,14 @@ pub fn test_php_scripts_with_condition(
             stdout,
             stderr,
         );
+        #[cfg(target_os = "linux")]
+        if output.status.code().is_none() {
+            use std::os::unix::process::ExitStatusExt;
+            println!(
+                "===== signal ======\nExitStatusExt is None, the signal is: {:?}",
+                output.status.signal()
+            );
+        }
         if !condition(output) {
             panic!("test php file `{}` failed", path);
         }
