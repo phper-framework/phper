@@ -3,13 +3,13 @@ use phper::{
     classes::{DynamicClass, Visibility},
     functions::Argument,
     ini::{Ini, Policy},
-    modules::{Module, ModuleArgs},
+    modules::{Module, ModuleContext},
     objects::Object,
     php_get_module,
     values::Val,
 };
 
-fn module_init(_args: ModuleArgs) -> bool {
+fn module_init(_args: ModuleContext) -> bool {
     true
 }
 

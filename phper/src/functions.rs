@@ -280,7 +280,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     handler.call(execute_data, &mut arguments, return_value);
 }
 
-pub const fn create_zend_arg_info(
+pub(crate) const fn create_zend_arg_info(
     name: *const c_char,
     _pass_by_ref: bool,
 ) -> zend_internal_arg_info {

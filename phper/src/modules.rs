@@ -29,7 +29,7 @@ pub(crate) fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
 }
 
 unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_int {
-    let args = ModuleArgs::new(r#type, module_number);
+    let args = ModuleContext::new(r#type, module_number);
     write_global_module(|module| {
         args.register_ini_entries(Ini::entries());
         for class_entity in &mut module.class_entities {
@@ -44,7 +44,7 @@ unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_in
 }
 
 unsafe extern "C" fn module_shutdown(r#type: c_int, module_number: c_int) -> c_int {
-    let args = ModuleArgs::new(r#type, module_number);
+    let args = ModuleContext::new(r#type, module_number);
     args.unregister_ini_entries();
     read_global_module(|module| match &module.module_shutdown {
         Some(f) => f(args) as c_int,
@@ -54,14 +54,14 @@ unsafe extern "C" fn module_shutdown(r#type: c_int, module_number: c_int) -> c_i
 
 unsafe extern "C" fn request_startup(r#type: c_int, request_number: c_int) -> c_int {
     read_global_module(|module| match &module.request_init {
-        Some(f) => f(ModuleArgs::new(r#type, request_number)) as c_int,
+        Some(f) => f(ModuleContext::new(r#type, request_number)) as c_int,
         None => 1,
     })
 }
 
 unsafe extern "C" fn request_shutdown(r#type: c_int, request_number: c_int) -> c_int {
     read_global_module(|module| match &module.request_shutdown {
-        Some(f) => f(ModuleArgs::new(r#type, request_number)) as c_int,
+        Some(f) => f(ModuleContext::new(r#type, request_number)) as c_int,
         None => 1,
     })
 }
@@ -84,10 +84,10 @@ pub struct Module {
     name: String,
     version: String,
     author: String,
-    module_init: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
-    module_shutdown: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
-    request_init: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
-    request_shutdown: Option<Box<dyn Fn(ModuleArgs) -> bool + Send + Sync>>,
+    module_init: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
+    module_shutdown: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
+    request_init: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
+    request_shutdown: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity>,
 }
@@ -107,24 +107,24 @@ impl Module {
         }
     }
 
-    pub fn on_module_init(&mut self, func: impl Fn(ModuleArgs) -> bool + Send + Sync + 'static) {
+    pub fn on_module_init(&mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static) {
         self.module_init = Some(Box::new(func));
     }
 
     pub fn on_module_shutdown(
         &mut self,
-        func: impl Fn(ModuleArgs) -> bool + Send + Sync + 'static,
+        func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.module_shutdown = Some(Box::new(func));
     }
 
-    pub fn on_request_init(&mut self, func: impl Fn(ModuleArgs) -> bool + Send + Sync + 'static) {
+    pub fn on_request_init(&mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static) {
         self.request_init = Some(Box::new(func));
     }
 
     pub fn on_request_shutdown(
         &mut self,
-        func: impl Fn(ModuleArgs) -> bool + Send + Sync + 'static,
+        func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.request_shutdown = Some(Box::new(func));
     }
@@ -201,13 +201,13 @@ impl Module {
     }
 }
 
-pub struct ModuleArgs {
+pub struct ModuleContext {
     #[allow(dead_code)]
     r#type: c_int,
     module_number: c_int,
 }
 
-impl ModuleArgs {
+impl ModuleContext {
     pub const fn new(r#type: c_int, module_number: c_int) -> Self {
         Self {
             r#type,
