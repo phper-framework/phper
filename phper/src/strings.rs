@@ -7,7 +7,6 @@ use crate::{
 use std::{os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error};
 
 /// Wrapper of [crate::sys::zend_string].
-/// TODO Refactor to ZendString(EBox<zend_string>).
 #[repr(transparent)]
 pub struct ZendString {
     inner: zend_string,

@@ -3,4 +3,4 @@
 Cargo.lock
 /.cargo
 /vendor
-/core
+core

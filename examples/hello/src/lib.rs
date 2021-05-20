@@ -1,8 +1,8 @@
 use phper::{
     arrays::Array,
-    classes::DynamicClass,
+    classes::{DynamicClass, Visibility},
     functions::Argument,
-    ini::Policy,
+    ini::{Ini, Policy},
     modules::{Module, ModuleArgs},
     objects::Object,
     php_get_module,
@@ -31,10 +31,10 @@ pub fn get_module() -> Module {
     );
 
     // register module ini
-    module.add_bool_ini("hello.enable", false, Policy::All);
-    module.add_long_ini("hello.num", 100, Policy::All);
-    module.add_real_ini("hello.ratio", 1.5, Policy::All);
-    module.add_str_ini("hello.description", "hello world.", Policy::All);
+    Ini::add("hello.enable", false, Policy::All);
+    Ini::add("hello.num", 100, Policy::All);
+    Ini::add("hello.ratio", 1.5, Policy::All);
+    Ini::add("hello.description", "hello world.".to_owned(), Policy::All);
 
     // register hook functions
     module.on_module_init(module_init);
@@ -50,10 +50,10 @@ pub fn get_module() -> Module {
         |_: &mut [Val]| {
             let mut arr = Array::new();
 
-            let hello_enable = Val::new(Module::get_bool_ini("hello.enable"));
+            let hello_enable = Val::new(Ini::get::<bool>("hello.enable"));
             arr.insert("hello.enable", hello_enable);
 
-            let hello_description = Val::new(Module::get_str_ini("hello.description"));
+            let hello_description = Val::new(Ini::get::<String>("hello.description"));
             arr.insert("hello.description", hello_description);
 
             arr
@@ -63,17 +63,19 @@ pub fn get_module() -> Module {
 
     // register classes
     let mut foo_class = DynamicClass::new("FooClass");
-    foo_class.add_property("foo", "100".to_string());
+    foo_class.add_property("foo", Visibility::Private, 100);
     foo_class.add_method(
         "getFoo",
-        |this: &mut Object<()>, _: &mut [Val]| -> phper::Result<Val> {
+        Visibility::Public,
+        |this: &mut Object<()>, _: &mut [Val]| {
             let prop = this.get_property("foo");
-            Ok(Val::new(prop.as_string_value()?))
+            Ok::<_, phper::Error>(prop.as_string_value()?)
         },
         vec![],
     );
     foo_class.add_method(
         "setFoo",
+        Visibility::Public,
         |this: &mut Object<()>, arguments: &mut [Val]| -> phper::Result<()> {
             this.set_property("foo", Val::new(arguments[0].as_string_value()?));
             Ok(())

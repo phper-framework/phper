@@ -95,6 +95,14 @@ pub fn test_php_scripts_with_condition(
             stdout,
             stderr,
         );
+        #[cfg(target_os = "linux")]
+        if output.status.code().is_none() {
+            use std::os::unix::process::ExitStatusExt;
+            println!(
+                "===== signal ======\nExitStatusExt is None, the signal is: {:?}",
+                output.status.signal()
+            );
+        }
         if !condition(output) {
             panic!("test php file `{}` failed", path);
         }
@@ -171,7 +179,12 @@ fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
     let mut ext_name = OsString::new();
     ext_name.push("lib");
     ext_name.push(exe_stem.replace('-', "_"));
+    #[cfg(target_os = "linux")]
     ext_name.push(".so");
+    #[cfg(target_os = "macos")]
+    ext_name.push(".dylib");
+    #[cfg(target_os = "windows")]
+    ext_name.push(".dll");
 
     target_dir.join(ext_name)
 }

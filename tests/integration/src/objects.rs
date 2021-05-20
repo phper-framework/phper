@@ -27,4 +27,15 @@ pub fn integrate(module: &mut Module) {
         },
         vec![],
     );
+
+    module.add_function(
+        "integrate_objects_set_val",
+        |_: &mut [Val]| -> phper::Result<()> {
+            let o = Object::new_by_std_class();
+            let mut v = Val::null();
+            v.set(o);
+            Ok(())
+        },
+        vec![],
+    );
 }

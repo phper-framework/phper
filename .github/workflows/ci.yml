@@ -7,10 +7,11 @@ on:
     branches: [ "**" ]
 
 env:
-  #  RUST_LOG: debug
+  RUST_LOG: debug
   CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
+  RUST_BACKTRACE: "1"
   RUSTFLAGS: "-D warnings"
+  LLVM_CONFIG_PATH: llvm-config-10
 
 jobs:
   ci:
@@ -32,6 +33,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Install libclang
+        run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

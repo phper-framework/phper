@@ -1,10 +1,18 @@
 //! Apis relate to [crate::sys::zend_class_entry].
 
-use crate::alloc::EBox;
+use crate::{
+    alloc::EBox,
+    errors::{ClassNotFoundError, StateTypeError},
+    functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
+    objects::{ExtendObject, Object},
+    sys::*,
+    types::Scalar,
+    values::{SetVal, Val},
+};
+use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use std::{
-    any::Any,
-    convert::Infallible,
+    any::{Any, TypeId},
     marker::PhantomData,
     mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
@@ -15,17 +23,6 @@ use std::{
     },
 };
 
-use crate::{
-    errors::{ClassNotFoundError, StateTypeError, Throwable},
-    functions::{Argument, FunctionEntity, FunctionEntry, Method},
-    objects::{ExtendObject, Object},
-    sys::*,
-    utils::ensure_end_with_zero,
-    values::{SetVal, Val},
-};
-use dashmap::DashMap;
-use std::any::TypeId;
-
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>>;
     fn state_type_id(&self) -> TypeId;
@@ -35,9 +32,9 @@ pub trait Classifiable {
     fn parent(&self) -> Option<&str>;
 }
 
-pub type StateConstructor<T> = dyn Fn() -> Result<T, Box<dyn Throwable>> + Send + Sync;
+pub type StateConstructor<T> = dyn Fn() -> T + Send + Sync;
 
-pub struct DynamicClass<T: Send + Sync + 'static> {
+pub struct DynamicClass<T: Send + 'static> {
     class_name: String,
     state_constructor: Arc<StateConstructor<T>>,
     pub(crate) method_entities: Vec<FunctionEntity>,
@@ -48,31 +45,30 @@ pub struct DynamicClass<T: Send + Sync + 'static> {
 
 impl DynamicClass<()> {
     pub fn new(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || Ok::<_, Infallible>(()))
+        Self::new_with_constructor(class_name, || ())
     }
 }
 
-impl<T: Default + Send + Sync + 'static> DynamicClass<T> {
+impl<T: Default + Send + 'static> DynamicClass<T> {
     pub fn new_with_default(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || Ok::<_, Infallible>(Default::default()))
+        Self::new_with_constructor(class_name, Default::default)
     }
 }
 
-impl<T: Send + Sync + 'static> DynamicClass<Option<T>> {
+impl<T: Send + 'static> DynamicClass<Option<T>> {
     pub fn new_with_none(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || Ok::<_, Infallible>(None))
+        Self::new_with_constructor(class_name, || None)
     }
 }
 
-impl<T: Send + Sync + 'static> DynamicClass<T> {
-    pub fn new_with_constructor<F, E>(class_name: impl ToString, state_constructor: F) -> Self
-    where
-        F: Fn() -> Result<T, E> + Send + Sync + 'static,
-        E: Throwable + 'static,
-    {
+impl<T: Send + 'static> DynamicClass<T> {
+    pub fn new_with_constructor(
+        class_name: impl ToString,
+        state_constructor: impl Fn() -> T + Send + Sync + 'static,
+    ) -> Self {
         let dyn_class = Self {
             class_name: class_name.to_string(),
-            state_constructor: Arc::new(move || state_constructor().map_err(|e| Box::new(e) as _)),
+            state_constructor: Arc::new(state_constructor),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
@@ -85,8 +81,13 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
         dyn_class
     }
 
-    pub fn add_method<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
-    where
+    pub fn add_method<F, R>(
+        &mut self,
+        name: impl ToString,
+        vis: Visibility,
+        handler: F,
+        arguments: Vec<Argument>,
+    ) where
         F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync + 'static,
         R: SetVal + 'static,
     {
@@ -94,12 +95,42 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
             name,
             Box::new(Method::new(handler)),
             arguments,
+            Some(vis),
+            Some(false),
         ));
     }
 
-    pub fn add_property(&mut self, name: impl ToString, value: String) {
+    pub fn add_static_method<F, R>(
+        &mut self,
+        name: impl ToString,
+        vis: Visibility,
+        handler: F,
+        arguments: Vec<Argument>,
+    ) where
+        F: Fn(&mut [Val]) -> R + Send + Sync + 'static,
+        R: SetVal + 'static,
+    {
+        self.method_entities.push(FunctionEntity::new(
+            name,
+            Box::new(Function::new(handler)),
+            arguments,
+            Some(vis),
+            Some(true),
+        ));
+    }
+
+    /// Declare property.
+    ///
+    /// The argument `value` should be `Copy` because 'zend_declare_property' receive only scalar
+    /// zval , otherwise will report fatal error: "Internal zvals cannot be refcounted".
+    pub fn add_property<'a>(
+        &mut self,
+        name: impl ToString,
+        visibility: Visibility,
+        value: impl Into<Scalar>,
+    ) {
         self.property_entities
-            .push(PropertyEntity::new(name, value));
+            .push(PropertyEntity::new(name, visibility, value));
     }
 
     pub fn extends(&mut self, name: impl ToString) {
@@ -108,10 +139,10 @@ impl<T: Send + Sync + 'static> DynamicClass<T> {
     }
 }
 
-impl<T: Send + Sync> Classifiable for DynamicClass<T> {
+impl<T: Send> Classifiable for DynamicClass<T> {
     fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>> {
         let sc = self.state_constructor.clone();
-        Box::new(move || sc().map(|x| Box::new(x) as _))
+        Box::new(move || Box::new(sc()))
     }
 
     fn state_type_id(&self) -> TypeId {
@@ -249,32 +280,12 @@ impl ClassEntity {
         *phper_get_create_object(class.cast()) = Some(create_object);
 
         get_registered_class_type_map().insert(class as usize, self.classifiable.state_type_id());
-
-        // let classifiable = self.classifiable.clone();
-        // get_class_constructor_map().insert(class as usize, Box::new(move || classifiable.state_constructor()));
-
-        // let methods = self.class.methods();
-        // for method in methods {
-        //     match &method.handler {
-        //         Callable::Method(_, class) => {
-        //             class.store(ptr, Ordering::SeqCst);
-        //         }
-        //         _ => unreachable!(),
-        //     }
-        // }
     }
 
     pub(crate) unsafe fn declare_properties(&mut self) {
         let properties = self.classifiable.properties();
         for property in properties {
-            let value = ensure_end_with_zero(property.value.clone());
-            zend_declare_property_string(
-                self.entry.load(Ordering::SeqCst).cast(),
-                property.name.as_ptr().cast(),
-                property.name.len(),
-                value.as_ptr().cast(),
-                Visibility::Public as c_int,
-            );
+            property.declare(self.entry.load(Ordering::SeqCst).cast());
         }
     }
 
@@ -309,15 +320,61 @@ impl ClassEntity {
 
 pub struct PropertyEntity {
     name: String,
-    // TODO to be a SetVal
-    value: String,
+    visibility: Visibility,
+    value: Scalar,
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl ToString, value: String) -> Self {
+    pub fn new(name: impl ToString, visibility: Visibility, value: impl Into<Scalar>) -> Self {
         Self {
             name: name.to_string(),
-            value,
+            visibility,
+            value: value.into(),
+        }
+    }
+
+    pub(crate) fn declare(&self, ce: *mut zend_class_entry) {
+        let name = self.name.as_ptr().cast();
+        let name_length = self.name.len();
+        let access_type = self.visibility as u32 as i32;
+
+        unsafe {
+            match &self.value {
+                Scalar::Null => {
+                    zend_declare_property_null(ce, name, name_length, access_type);
+                }
+                Scalar::Bool(b) => {
+                    zend_declare_property_bool(ce, name, name_length, *b as zend_long, access_type);
+                }
+                Scalar::I64(i) => {
+                    zend_declare_property_long(ce, name, name_length, *i, access_type);
+                }
+                Scalar::F64(f) => {
+                    zend_declare_property_double(ce, name, name_length, *f, access_type);
+                }
+                Scalar::String(s) => {
+                    // If the `ce` is `ZEND_INTERNAL_CLASS`, then the `zend_string` is allocated
+                    // as persistent.
+                    zend_declare_property_stringl(
+                        ce,
+                        name,
+                        name_length,
+                        s.as_ptr().cast(),
+                        s.len(),
+                        access_type,
+                    );
+                }
+                Scalar::Bytes(b) => {
+                    zend_declare_property_stringl(
+                        ce,
+                        name,
+                        name_length,
+                        b.as_ptr().cast(),
+                        b.len(),
+                        access_type,
+                    );
+                }
+            }
         }
     }
 }
@@ -367,8 +424,7 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
     let state_constructor = state_constructor.read();
 
     // Call the state constructor.
-    // TODO Throw an exception rather than unwrap.
-    let data: Box<dyn Any> = state_constructor().unwrap();
+    let data: Box<dyn Any> = state_constructor();
     *ExtendObject::as_mut_state(extend_object) = ManuallyDrop::new(data);
 
     object

@@ -1,9 +1,11 @@
 //! Apis relate to PHP types.
 
 use crate::sys::*;
+use derive_more::From;
 use num_traits::cast::FromPrimitive;
 use std::{ffi::CStr, os::raw::c_int};
 
+/// TODO Refactor to a struct rather than enum, because it's so complex than the type have bit flag.
 #[derive(FromPrimitive, PartialEq, Clone, Copy)]
 #[repr(u32)]
 #[non_exhaustive]
@@ -82,8 +84,9 @@ impl From<u32> for Type {
     }
 }
 
-pub(crate) fn get_type_by_const(t: u32) -> crate::Result<String> {
+pub(crate) fn get_type_by_const(mut t: u32) -> crate::Result<String> {
     unsafe {
+        t &= !(IS_TYPE_REFCOUNTED << Z_TYPE_FLAGS_SHIFT);
         let s = zend_get_type_by_const(t as c_int);
         let mut s = CStr::from_ptr(s).to_str()?.to_string();
 
@@ -95,5 +98,33 @@ pub(crate) fn get_type_by_const(t: u32) -> crate::Result<String> {
         }
 
         Ok(s)
+    }
+}
+
+#[derive(From)]
+pub enum Scalar {
+    Null,
+    Bool(bool),
+    I64(i64),
+    F64(f64),
+    String(String),
+    Bytes(Vec<u8>),
+}
+
+impl From<i32> for Scalar {
+    fn from(i: i32) -> Self {
+        Self::I64(i.into())
+    }
+}
+
+impl From<&str> for Scalar {
+    fn from(s: &str) -> Self {
+        Self::String(s.to_owned())
+    }
+}
+
+impl From<&[u8]> for Scalar {
+    fn from(b: &[u8]) -> Self {
+        Self::Bytes(b.to_owned())
     }
 }

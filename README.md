@@ -53,7 +53,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 ```bash
 # If you are using debian like linux system:
-sudo apt install libclang-10-dev php-cli
+sudo apt install llvm-10-dev libclang-10-dev php-cli
 ```
 
 2. Create you cargo project, suppose your application is called myapp.

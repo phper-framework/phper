@@ -1,8 +1,11 @@
 //! Apis relate to [crate::sys::zend_function_entry].
+//!
+//! TODO Add php function call.
 
 use std::{mem::zeroed, os::raw::c_char};
 
 use crate::{
+    classes::Visibility,
     errors::ArgumentCountError,
     objects::Object,
     strings::ZendString,
@@ -16,10 +19,20 @@ pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
 }
 
-pub(crate) struct Function<F, R>(pub(crate) F)
+pub(crate) struct Function<F, R>(F)
 where
     F: Fn(&mut [Val]) -> R + Send + Sync,
     R: SetVal;
+
+impl<F, R> Function<F, R>
+where
+    F: Fn(&mut [Val]) -> R + Send + Sync,
+    R: SetVal,
+{
+    pub fn new(f: F) -> Self {
+        Self(f)
+    }
+}
 
 impl<F, R> Callable for Function<F, R>
 where
@@ -28,7 +41,9 @@ where
 {
     fn call(&self, _: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
         let r = (self.0)(arguments);
-        r.set_val(return_value);
+        unsafe {
+            r.set_val(return_value);
+        }
     }
 }
 
@@ -82,6 +97,8 @@ pub struct FunctionEntity {
     pub(crate) name: String,
     pub(crate) handler: Box<dyn Callable>,
     pub(crate) arguments: Vec<Argument>,
+    pub(crate) visibility: Option<Visibility>,
+    pub(crate) r#static: Option<bool>,
 }
 
 impl FunctionEntity {
@@ -89,16 +106,20 @@ impl FunctionEntity {
         name: impl ToString,
         handler: Box<dyn Callable>,
         arguments: Vec<Argument>,
+        visibility: Option<Visibility>,
+        r#static: Option<bool>,
     ) -> Self {
         let name = ensure_end_with_zero(name);
         FunctionEntity {
             name,
             handler,
             arguments,
+            visibility,
+            r#static,
         }
     }
 
-    // Leak memory
+    /// Will leak memory
     pub(crate) unsafe fn entry(&self) -> zend_function_entry {
         let mut infos = Vec::new();
 
@@ -123,12 +144,18 @@ impl FunctionEntity {
         let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
         infos.push(last_arg_info);
 
+        let flags = self.visibility.map(|v| v as u32).unwrap_or_default()
+            | self
+                .r#static
+                .and_then(|v| if v { Some(ZEND_ACC_STATIC) } else { None })
+                .unwrap_or_default();
+
         zend_function_entry {
             fname: self.name.as_ptr().cast(),
             handler: Some(invoke),
             arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
             num_args: self.arguments.len() as u32,
-            flags: 0,
+            flags,
         }
     }
 }

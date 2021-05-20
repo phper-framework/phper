@@ -4,15 +4,12 @@ use crate::{
     c_str_ptr,
     classes::{ClassEntity, Classifiable},
     functions::{Argument, Function, FunctionEntity},
-    ini::{IniEntity, IniValue, Policy, StrPtrBox},
+    ini::Ini,
     sys::*,
     utils::ensure_end_with_zero,
     values::{SetVal, Val},
 };
 use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
-    collections::HashMap,
     mem::{size_of, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
@@ -34,7 +31,7 @@ pub(crate) fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
 unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_int {
     let args = ModuleArgs::new(r#type, module_number);
     write_global_module(|module| {
-        args.register_ini_entries(module.ini_entries());
+        args.register_ini_entries(Ini::entries());
         for class_entity in &mut module.class_entities {
             class_entity.init();
             class_entity.declare_properties();
@@ -96,13 +93,6 @@ pub struct Module {
 }
 
 impl Module {
-    thread_local! {
-        static BOOL_INI_ENTITIES: RefCell<HashMap<String, IniEntity<bool>>> = Default::default();
-        static LONG_INI_ENTITIES: RefCell<HashMap<String, IniEntity<i64>>> = Default::default();
-        static REAL_INI_ENTITIES: RefCell<HashMap<String, IniEntity<f64>>> = Default::default();
-        static STR_INI_ENTITIES: RefCell<HashMap<String, IniEntity<StrPtrBox>>> = Default::default();
-    }
-
     pub fn new(name: impl ToString, version: impl ToString, author: impl ToString) -> Self {
         Self {
             name: ensure_end_with_zero(name),
@@ -139,71 +129,6 @@ impl Module {
         self.request_shutdown = Some(Box::new(func));
     }
 
-    pub fn add_bool_ini(&mut self, name: impl ToString, default_value: bool, policy: Policy) {
-        Self::BOOL_INI_ENTITIES.with(|entities| {
-            entities.borrow_mut().insert(
-                name.to_string(),
-                IniEntity::new(name, default_value, policy),
-            );
-        })
-    }
-
-    pub fn get_bool_ini(name: &str) -> Option<bool> {
-        Self::BOOL_INI_ENTITIES
-            .with(|entities| entities.borrow().get(name).map(|entity| *entity.value()))
-    }
-
-    pub fn add_long_ini(&mut self, name: impl ToString, default_value: i64, policy: Policy) {
-        Self::LONG_INI_ENTITIES.with(|entities| {
-            entities.borrow_mut().insert(
-                name.to_string(),
-                IniEntity::new(name, default_value, policy),
-            );
-        })
-    }
-
-    pub fn get_long_ini(name: &str) -> Option<i64> {
-        Self::LONG_INI_ENTITIES
-            .with(|entities| entities.borrow().get(name).map(|entity| *entity.value()))
-    }
-
-    pub fn add_real_ini(&mut self, name: impl ToString, default_value: f64, policy: Policy) {
-        Self::REAL_INI_ENTITIES.with(|entities| {
-            entities.borrow_mut().insert(
-                name.to_string(),
-                IniEntity::new(name, default_value, policy),
-            );
-        })
-    }
-
-    pub fn get_real_ini(name: &str) -> Option<f64> {
-        Self::REAL_INI_ENTITIES
-            .with(|entities| entities.borrow().get(name).map(|entity| *entity.value()))
-    }
-
-    pub fn add_str_ini(
-        &mut self,
-        name: impl ToString,
-        default_value: impl ToString,
-        policy: Policy,
-    ) {
-        Self::STR_INI_ENTITIES.with(|entities| {
-            entities.borrow_mut().insert(
-                name.to_string(),
-                IniEntity::new(name, default_value, policy),
-            );
-        })
-    }
-
-    pub fn get_str_ini(name: &str) -> Option<String> {
-        Self::STR_INI_ENTITIES.with(|entities| {
-            entities
-                .borrow()
-                .get(name)
-                .and_then(|entity| unsafe { entity.value().to_string() }.ok())
-        })
-    }
-
     pub fn add_function<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
     where
         F: Fn(&mut [Val]) -> R + Send + Sync + 'static,
@@ -211,8 +136,10 @@ impl Module {
     {
         self.function_entities.push(FunctionEntity::new(
             name,
-            Box::new(Function(handler)),
+            Box::new(Function::new(handler)),
             arguments,
+            None,
+            None,
         ));
     }
 
@@ -271,32 +198,6 @@ impl Module {
         entries.push(unsafe { zeroed::<zend_function_entry>() });
 
         Box::into_raw(entries.into_boxed_slice()).cast()
-    }
-
-    unsafe fn ini_entries(&self) -> *const zend_ini_entry_def {
-        let mut entries = Vec::new();
-
-        Self::BOOL_INI_ENTITIES
-            .with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
-        Self::LONG_INI_ENTITIES
-            .with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
-        Self::REAL_INI_ENTITIES
-            .with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
-        Self::STR_INI_ENTITIES
-            .with(|entities| Self::push_ini_entry(&mut entries, &mut *entities.borrow_mut()));
-
-        entries.push(zeroed::<zend_ini_entry_def>());
-
-        Box::into_raw(entries.into_boxed_slice()).cast()
-    }
-
-    unsafe fn push_ini_entry<T: IniValue>(
-        entries: &mut Vec<zend_ini_entry_def>,
-        entities: &mut HashMap<String, IniEntity<T>>,
-    ) {
-        for (_, entry) in &mut *entities.borrow_mut() {
-            entries.push(entry.ini_entry_def());
-        }
     }
 }
 

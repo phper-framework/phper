@@ -13,6 +13,8 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+// TODO Add ERc, for refcounted type.
+
 /// The item which can be placed into container [EBox].
 pub trait EAllocatable {
     /// The method to free the heap allocated by `emalloc`, should call `efree` at the end.
