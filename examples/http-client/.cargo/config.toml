@@ -1,0 +1,2 @@
+[target.x86_64-apple-darwin]
+rustflags = ["-Clink-args=-Wl,-undefined,dynamic_lookup"]
