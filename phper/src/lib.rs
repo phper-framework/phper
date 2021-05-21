@@ -28,6 +28,13 @@ crate-type = ["cdylib"]
 phper = "0.2"
 ```
 
+In addition, if you are using `macos`, you should add these rust flags to your `.cargo/config.toml`.
+
+```toml
+[target.x86_64-apple-darwin]
+rustflags = ["-Clink-args=-Wl,-undefined,dynamic_lookup"]
+```
+
 4. Add these code to `main.rs`.
 
 ```no_run
