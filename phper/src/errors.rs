@@ -52,6 +52,7 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 
     #[error(transparent)]
+    #[throwable(transparent)]
     Type(#[from] TypeError),
 
     #[error(transparent)]
