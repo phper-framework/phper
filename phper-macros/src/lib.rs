@@ -11,11 +11,13 @@ The proc-macros for [phper](https://crates.io/crates/phper).
 // TODO Write a bridge macro for easy usage about register functions and classes, like `cxx`.
 
 mod alloc;
+mod derives;
 mod inner;
 mod log;
 mod utils;
 
 use proc_macro::TokenStream;
+use syn::{parse_macro_input, DeriveInput};
 
 /// C style string end with '\0'.
 ///
@@ -69,4 +71,28 @@ pub fn c_str_ptr(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn php_get_module(attr: TokenStream, input: TokenStream) -> TokenStream {
     inner::php_get_module(attr, input)
+}
+
+/// Auto derive for [phper::errors::Throwable].
+///
+/// # Examples
+///
+/// ```no_test
+/// #[derive(thiserror::Error, crate::Throwable, Debug)]
+/// #[throwable(class = "Exception")]
+/// pub enum Error {
+///     #[error(transparent)]
+///     Io(#[from] std::io::Error),
+///
+///     #[error(transparent)]
+///     #[throwable(transparent)]
+///     My(#[from] MyError),
+/// }
+/// ```
+///
+/// TODO Support struct, attbiute `throwable` with `code` and `message`.
+#[proc_macro_derive(Throwable, attributes(throwable, throwable_crate))]
+pub fn derive_throwable(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    derives::derive_throwable(input).unwrap_or_else(|e| e.into_compile_error().into())
 }

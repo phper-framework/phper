@@ -118,7 +118,10 @@ impl Module {
         self.module_shutdown = Some(Box::new(func));
     }
 
-    pub fn on_request_init(&mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static) {
+    pub fn on_request_init(
+        &mut self,
+        func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
+    ) {
         self.request_init = Some(Box::new(func));
     }
 
