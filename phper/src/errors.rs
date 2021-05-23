@@ -35,7 +35,9 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 /// Crate level Error, which also can become an exception in php.
 ///
 /// As a php exception, will throw `ErrorException` when the item not implement [Throwable].
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, crate::Throwable, Debug)]
+#[throwable(class = "ErrorException")]
+#[throwable_crate]
 pub enum Error {
     #[error(transparent)]
     Io(#[from] io::Error),
@@ -47,19 +49,23 @@ pub enum Error {
     FromBytesWithNul(#[from] FromBytesWithNulError),
 
     #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+    #[error(transparent)]
+    #[throwable(transparent)]
     Type(#[from] TypeError),
 
     #[error(transparent)]
+    #[throwable(transparent)]
     ClassNotFound(#[from] ClassNotFoundError),
 
     #[error(transparent)]
+    #[throwable(transparent)]
     ArgumentCount(#[from] ArgumentCountError),
 
     #[error(transparent)]
+    #[throwable(transparent)]
     StateType(#[from] StateTypeError),
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
 }
 
 impl Error {
@@ -67,27 +73,6 @@ impl Error {
     pub fn other(message: impl ToString) -> Self {
         let message = message.to_string();
         Other(anyhow!(message))
-    }
-}
-
-// TODO Add message() implement.
-impl Throwable for Error {
-    fn class_entry(&self) -> &StatelessClassEntry {
-        match self {
-            Self::Type(e) => e.class_entry(),
-            Self::ClassNotFound(e) => e.class_entry(),
-            Self::ArgumentCount(e) => e.class_entry(),
-            _ => ClassEntry::from_globals("ErrorException").unwrap(),
-        }
-    }
-
-    fn code(&self) -> u64 {
-        match self {
-            Self::Type(e) => e.code(),
-            Self::ClassNotFound(e) => e.code(),
-            Self::ArgumentCount(e) => e.code(),
-            _ => 0,
-        }
     }
 }
 

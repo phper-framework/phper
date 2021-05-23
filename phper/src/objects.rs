@@ -147,12 +147,14 @@ impl Object<()> {
 impl<T> EAllocatable for Object<T> {
     fn free(ptr: *mut Self) {
         unsafe {
-            let handlers = (*ptr).inner.handlers;
-            (*handlers).dtor_obj.unwrap()(ptr.cast());
-            (*handlers).free_obj.unwrap()(ptr.cast());
+            if (*ptr).inner.gc.refcount == 0 {
+                let handlers = (*ptr).inner.handlers;
+                (*handlers).dtor_obj.unwrap()(ptr.cast());
+                (*handlers).free_obj.unwrap()(ptr.cast());
 
-            // zend_objects_store_call_destructors(ptr.cast());
-            // zend_objects_store_free_object_storage(ptr.cast(), true.into());
+                // zend_objects_store_call_destructors(ptr.cast());
+                // zend_objects_store_free_object_storage(ptr.cast(), true.into());
+            }
         }
     }
 }
