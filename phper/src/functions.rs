@@ -79,8 +79,6 @@ where
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
         unsafe {
             let this = execute_data.get_this::<T>().unwrap();
-            // TODO Fix the object type assertion.
-            // assert!(this.get_type().is_object());
             let r = (self.f)(this, arguments);
             r.set_val(return_value);
         }

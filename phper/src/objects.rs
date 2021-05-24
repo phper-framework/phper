@@ -136,6 +136,10 @@ impl<T: 'static> Object<T> {
             EBox::from_raw(new_obj)
         }
     }
+
+    pub fn get_class(&self) -> &ClassEntry<T> {
+        ClassEntry::from_ptr(self.inner.ce)
+    }
 }
 
 impl Object<()> {

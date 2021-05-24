@@ -73,7 +73,7 @@ pub fn php_get_module(attr: TokenStream, input: TokenStream) -> TokenStream {
     inner::php_get_module(attr, input)
 }
 
-/// Auto derive for [phper::errors::Throwable].
+/// Auto derive for `phper::errors::Throwable`.
 ///
 /// # Examples
 ///

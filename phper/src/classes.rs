@@ -190,7 +190,7 @@ impl<T: 'static> ClassEntry<T> {
         r
     }
 
-    fn check_type_id(this: *mut Self) -> Result<(), StateTypeError> {
+    pub(crate) fn check_type_id(this: *const Self) -> Result<(), StateTypeError> {
         if TypeId::of::<T>() == TypeId::of::<()>() {
             return Ok(());
         }
