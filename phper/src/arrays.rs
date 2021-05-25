@@ -130,6 +130,8 @@ impl EAllocatable for Array {
             if (*ptr).inner.gc.refcount == 0 {
                 zend_hash_destroy(ptr.cast());
                 _efree(ptr.cast());
+            } else {
+                (*ptr).inner.gc.refcount -= 1;
             }
         }
     }

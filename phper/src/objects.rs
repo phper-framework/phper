@@ -158,6 +158,8 @@ impl<T> EAllocatable for Object<T> {
 
                 // zend_objects_store_call_destructors(ptr.cast());
                 // zend_objects_store_free_object_storage(ptr.cast(), true.into());
+            } else {
+                (*ptr).inner.gc.refcount -= 1;
             }
         }
     }

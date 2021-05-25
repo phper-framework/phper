@@ -129,7 +129,7 @@ impl From<u32> for Type {
     }
 }
 
-pub(crate) fn get_type_by_const(mut t: u32) -> crate::Result<String> {
+fn get_type_by_const(mut t: u32) -> crate::Result<String> {
     unsafe {
         t = get_base_type_by_raw(t);
         let s = zend_get_type_by_const(t as c_int);
@@ -147,18 +147,8 @@ pub(crate) fn get_type_by_const(mut t: u32) -> crate::Result<String> {
 }
 
 #[inline]
-pub fn get_base_type_by_raw(mut t: u32) -> u32 {
-    t &= !(IS_TYPE_REFCOUNTED << Z_TYPE_FLAGS_SHIFT);
-
-    #[cfg(any(
-        phper_major_version = "8",
-        all(phper_major_version = "7", phper_minor_version = "4")
-    ))]
-    {
-        t &= !(IS_TYPE_COLLECTABLE << Z_TYPE_FLAGS_SHIFT);
-    }
-
-    t
+fn get_base_type_by_raw(t: u32) -> u32 {
+    t & !(!0 << Z_TYPE_FLAGS_SHIFT)
 }
 
 #[derive(From)]

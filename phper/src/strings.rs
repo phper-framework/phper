@@ -54,7 +54,11 @@ impl ZendString {
 impl EAllocatable for ZendString {
     fn free(ptr: *mut Self) {
         unsafe {
-            phper_zend_string_release(ptr.cast());
+            if (*ptr).inner.gc.refcount == 0 {
+                phper_zend_string_release(ptr.cast());
+            } else {
+                (*ptr).inner.gc.refcount -= 1;
+            }
         }
     }
 }
