@@ -5,6 +5,7 @@ use crate::{
     errors::{ClassNotFoundError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
+    strings::ZendString,
     sys::*,
     types::Scalar,
     values::{SetVal, Val},
@@ -232,6 +233,10 @@ impl<T: 'static> ClassEntry<T> {
             let object = f(ptr);
             EBox::from_raw(object.cast())
         }
+    }
+
+    pub fn get_name(&self) -> &ZendString {
+        ZendString::from_ptr(self.inner.name)
     }
 }
 

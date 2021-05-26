@@ -90,7 +90,7 @@ pub fn php_get_module(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// TODO Support struct, attbiute `throwable` with `code` and `message`.
+/// TODO Support attribute `throwable` with `code` and `message`, integration tests.
 #[proc_macro_derive(Throwable, attributes(throwable, throwable_crate))]
 pub fn derive_throwable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

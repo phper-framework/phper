@@ -3,6 +3,7 @@
 use crate::{
     alloc::{EAllocatable, EBox},
     classes::ClassEntry,
+    errors::CallMethodError,
     sys::*,
     values::Val,
 };
@@ -139,6 +140,30 @@ impl<T: 'static> Object<T> {
 
     pub fn get_class(&self) -> &ClassEntry<T> {
         ClassEntry::from_ptr(self.inner.ce)
+    }
+
+    pub fn call(&self, method_name: &str, arguments: &[Val]) -> crate::Result<EBox<Val>> {
+        let mut method = Val::new(method_name);
+        let mut ret = EBox::new(Val::null());
+
+        unsafe {
+            let mut object = std::mem::zeroed::<zval>();
+            phper_zval_obj(&mut object, self.as_ptr() as *mut _);
+
+            if phper_call_user_function(
+                null_mut(),
+                &mut object,
+                method.as_mut_ptr(),
+                ret.as_mut_ptr(),
+                arguments.len() as u32,
+                arguments.as_ptr() as *const Val as *mut Val as *mut zval,
+            ) {
+                Ok(ret)
+            } else {
+                let class_name = self.get_class().get_name().to_string()?;
+                Err(CallMethodError::new(class_name, method_name.to_owned()).into())
+            }
+        }
     }
 }
 

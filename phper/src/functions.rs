@@ -1,19 +1,21 @@
 //! Apis relate to [crate::sys::zend_function_entry].
 //!
 //! TODO Add php function call.
+//! TODO Add lambda.
 
 use std::{mem::zeroed, os::raw::c_char};
 
 use crate::{
+    alloc::EBox,
     classes::Visibility,
-    errors::ArgumentCountError,
+    errors::{ArgumentCountError, CallFunctionError},
     objects::Object,
     strings::ZendString,
     sys::*,
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
-use std::{marker::PhantomData, str::Utf8Error};
+use std::{marker::PhantomData, ptr::null_mut, str::Utf8Error};
 
 pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
@@ -284,7 +286,6 @@ pub(crate) const fn create_zend_arg_info(
 ) -> zend_internal_arg_info {
     #[cfg(phper_php_version = "8.0")]
     {
-        use std::ptr::null_mut;
         zend_internal_arg_info {
             name,
             type_: zend_type {
@@ -318,6 +319,25 @@ pub(crate) const fn create_zend_arg_info(
             allow_null: 0,
             pass_by_reference: _pass_by_ref as zend_uchar,
             is_variadic: 0,
+        }
+    }
+}
+
+pub fn call(fn_name: &str, arguments: &[Val]) -> Result<EBox<Val>, CallFunctionError> {
+    let mut func = Val::new(fn_name);
+    let mut ret = EBox::new(Val::null());
+    unsafe {
+        if phper_call_user_function(
+            compiler_globals.function_table,
+            null_mut(),
+            func.as_mut_ptr(),
+            ret.as_mut_ptr(),
+            arguments.len() as u32,
+            arguments.as_ptr() as *const Val as *mut Val as *mut zval,
+        ) {
+            Ok(ret)
+        } else {
+            Err(CallFunctionError::new(fn_name.to_owned()))
         }
     }
 }

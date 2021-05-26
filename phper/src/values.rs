@@ -224,6 +224,7 @@ impl Val {
     }
 
     unsafe fn drop_value(&mut self) {
+        // TODO Use zval_dtor.
         let t = self.get_type();
         if t.is_string() {
             ZendString::free(self.inner.value.str as *mut ZendString);

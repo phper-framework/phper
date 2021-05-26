@@ -6,6 +6,7 @@ use crate::{
     Error::Other,
 };
 use anyhow::anyhow;
+use derive_more::Constructor;
 use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
@@ -64,6 +65,14 @@ pub enum Error {
     #[error(transparent)]
     #[throwable(transparent)]
     StateType(#[from] StateTypeError),
+
+    #[error(transparent)]
+    #[throwable(transparent)]
+    CallFunction(#[from] CallFunctionError),
+
+    #[error(transparent)]
+    #[throwable(transparent)]
+    CallMethod(#[from] CallMethodError),
 }
 
 impl Error {
@@ -74,71 +83,37 @@ impl Error {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("type error: {message}")]
+#[throwable(class = "TypeError")]
+#[throwable_crate]
 pub struct TypeError {
     message: String,
 }
 
-impl TypeError {
-    pub fn new(message: String) -> Self {
-        Self { message }
-    }
-}
-
-impl Throwable for TypeError {
-    fn class_entry(&self) -> &ClassEntry<()> {
-        ClassEntry::from_globals("TypeError").unwrap()
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Class '{class_name}' not found")]
+#[throwable(class = "Error")]
+#[throwable_crate]
 pub struct ClassNotFoundError {
     class_name: String,
 }
 
-impl ClassNotFoundError {
-    pub fn new(class_name: String) -> Self {
-        Self { class_name }
-    }
-}
-
-impl Throwable for ClassNotFoundError {
-    fn class_entry(&self) -> &StatelessClassEntry {
-        ClassEntry::from_globals("Error").unwrap()
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error, crate::Throwable)]
 #[error(
     "Actual State type in generic type parameter isn't the state type registered in the class, \
 please confirm the real state type, or use StatelessClassEntry"
 )]
+#[throwable(class = "Error")]
+#[throwable_crate]
 pub struct StateTypeError;
 
-impl Throwable for StateTypeError {
-    fn class_entry(&self) -> &StatelessClassEntry {
-        ClassEntry::from_globals("Error").unwrap()
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Constructor)]
 #[error("{function_name}(): expects at least {expect_count} parameter(s), {given_count} given")]
 pub struct ArgumentCountError {
     function_name: String,
     expect_count: usize,
     given_count: usize,
-}
-
-impl ArgumentCountError {
-    pub fn new(function_name: String, expect_count: usize, given_count: usize) -> Self {
-        Self {
-            function_name,
-            expect_count,
-            given_count,
-        }
-    }
 }
 
 impl Throwable for ArgumentCountError {
@@ -150,4 +125,21 @@ impl Throwable for ArgumentCountError {
         };
         ClassEntry::from_globals(class_name).unwrap()
     }
+}
+
+#[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
+#[error("Invalid call to {fn_name}")]
+#[throwable(class = "BadFunctionCallException")]
+#[throwable_crate]
+pub struct CallFunctionError {
+    fn_name: String,
+}
+
+#[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
+#[error("Invalid call to {class_name}::{method_name}")]
+#[throwable(class = "BadMethodCallException")]
+#[throwable_crate]
+pub struct CallMethodError {
+    class_name: String,
+    method_name: String,
 }

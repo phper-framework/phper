@@ -127,10 +127,14 @@ fn parse_throwable_input(
             })
             .into())
         }
-        Data::Struct(_) => Err(syn::Error::new_spanned(
-            &input,
-            "struct auto derive Throwable is not supported",
-        )),
+        Data::Struct(_) => Ok((quote! {
+            impl #crate_ident::errors::Throwable for #input_ident {
+                fn class_entry(&self) -> &#crate_ident::classes::StatelessClassEntry {
+                    ClassEntry::from_globals(#exception).unwrap()
+                }
+            }
+        })
+        .into()),
         Data::Union(_) => Err(syn::Error::new_spanned(
             &input,
             "union auto derive Throwable is not supported",

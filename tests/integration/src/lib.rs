@@ -3,6 +3,7 @@
 mod arguments;
 mod arrays;
 mod classes;
+mod functions;
 mod objects;
 mod strings;
 mod values;
@@ -20,9 +21,10 @@ pub fn get_module() -> Module {
     arguments::integrate(&mut module);
     arrays::integrate(&mut module);
     classes::integrate(&mut module);
+    functions::integrate(&mut module);
     objects::integrate(&mut module);
-    values::integrate(&mut module);
     strings::integrate(&mut module);
+    values::integrate(&mut module);
 
     module
 }
