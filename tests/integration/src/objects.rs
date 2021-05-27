@@ -42,9 +42,10 @@ pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_call",
         |_: &mut [Val]| -> phper::Result<()> {
-            let o = StatelessClassEntry::from_globals("Exception")?.new_object();
-            let message = o.call("getMessage", &[])?;
-            dbg!(message.as_string()?);
+            let mut o = StatelessClassEntry::from_globals("Exception")?
+                .new_object(&mut [Val::new("What's happen?")])?;
+            let message = o.call("getMessage", &mut [])?;
+            assert_eq!(message.as_string()?, "What's happen?");
             Ok(())
         },
         vec![],

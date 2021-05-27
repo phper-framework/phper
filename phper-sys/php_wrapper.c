@@ -152,3 +152,11 @@ bool phper_call_user_function(HashTable *function_table, zval *object, zval *fun
     function_table = function_table;
     return call_user_function(function_table, object, function_name, retval_ptr, param_count, params) == SUCCESS;
 }
+
+bool phper_zend_hash_str_exists(const HashTable *ht, const char *str, size_t len) {
+    return zend_hash_str_exists(ht, str, len) != 0;
+}
+
+bool phper_zend_hash_index_exists(const HashTable *ht, zend_ulong h) {
+    return zend_hash_index_exists(ht, h) != 0;
+}

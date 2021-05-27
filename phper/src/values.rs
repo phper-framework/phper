@@ -4,7 +4,7 @@ use crate::{
     alloc::{EAllocatable, EBox},
     arrays::Array,
     classes::ClassEntry,
-    errors::{Throwable, TypeError},
+    errors::{CallFunctionError, Throwable, TypeError},
     functions::ZendFunction,
     objects::{Object, StatelessObject},
     strings::ZendString,
@@ -16,6 +16,7 @@ use indexmap::map::IndexMap;
 use std::{
     collections::{BTreeMap, HashMap},
     mem::{transmute, zeroed},
+    ptr::null_mut,
     str,
     str::Utf8Error,
 };
@@ -89,6 +90,12 @@ impl Val {
         val
     }
 
+    pub fn undef() -> Self {
+        let mut val = unsafe { zeroed::<Val>() };
+        val.set_type(Type::undef());
+        val
+    }
+
     pub fn null() -> Self {
         Self::new(())
     }
@@ -106,6 +113,11 @@ impl Val {
     }
 
     #[inline]
+    pub fn as_ptr(&self) -> *const zval {
+        &self.inner
+    }
+
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zval {
         &mut self.inner
     }
@@ -113,6 +125,10 @@ impl Val {
     pub fn get_type(&self) -> Type {
         let t = unsafe { self.inner.u1.type_info };
         t.into()
+    }
+
+    pub fn into_inner(self) -> zval {
+        self.inner
     }
 
     fn get_type_name(&self) -> crate::Result<String> {
@@ -220,6 +236,30 @@ impl Val {
                 TypeError::new(message).into()
             }
             Err(e) => e.into(),
+        }
+    }
+
+    /// Call only when self is a callable.
+    ///
+    /// # Errors
+    ///
+    /// Return Err when self is not callable.
+    pub fn call(&self, arguments: &[Val]) -> Result<EBox<Val>, CallFunctionError> {
+        let mut ret = EBox::new(Val::null());
+        unsafe {
+            if phper_call_user_function(
+                null_mut(),
+                null_mut(),
+                self.as_ptr() as *mut _,
+                ret.as_mut_ptr(),
+                arguments.len() as u32,
+                arguments.as_ptr() as *const Val as *mut Val as *mut zval,
+            ) && !ret.get_type().is_undef()
+            {
+                Ok(ret)
+            } else {
+                Err(CallFunctionError::new("{closure}".to_owned()))
+            }
         }
     }
 
@@ -431,5 +471,11 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 impl SetVal for Val {
     unsafe fn set_val(mut self, val: &mut Val) {
         phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
+    }
+}
+
+impl SetVal for EBox<Val> {
+    unsafe fn set_val(self, val: &mut Val) {
+        phper_zval_zval(val.as_mut_ptr(), EBox::into_raw(self).cast(), 0, 1);
     }
 }

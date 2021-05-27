@@ -19,102 +19,87 @@ impl Type {
         self.t
     }
 
-    #[inline]
-    pub fn null() -> Type {
+    pub const fn undef() -> Type {
+        Self::from_raw(IS_UNDEF)
+    }
+
+    pub const fn null() -> Type {
         Self::from_raw(IS_NULL)
     }
 
-    #[inline]
-    pub fn bool(b: bool) -> Type {
+    pub const fn bool(b: bool) -> Type {
         Self::from_raw(if b { IS_TRUE } else { IS_FALSE })
     }
 
-    #[inline]
-    pub fn long() -> Type {
+    pub const fn long() -> Type {
         Self::from_raw(IS_LONG)
     }
 
-    #[inline]
-    pub fn double() -> Type {
+    pub const fn double() -> Type {
         Self::from_raw(IS_DOUBLE)
     }
 
-    #[inline]
-    pub fn array() -> Type {
+    pub const fn array() -> Type {
         Self::from_raw(IS_ARRAY)
     }
 
-    #[inline]
-    pub fn array_ex() -> Type {
+    pub const fn array_ex() -> Type {
         Self::from_raw(IS_ARRAY_EX)
     }
 
-    #[inline]
-    pub fn object() -> Type {
+    pub const fn object() -> Type {
         Self::from_raw(IS_OBJECT)
     }
 
-    #[inline]
-    pub fn object_ex() -> Type {
+    pub const fn object_ex() -> Type {
         Self::from_raw(IS_OBJECT_EX)
     }
 
-    #[inline]
-    pub fn is_undef(self) -> bool {
+    pub const fn is_undef(self) -> bool {
         self.t == IS_UNDEF
     }
 
-    #[inline]
-    pub fn is_null(self) -> bool {
+    pub const fn is_null(self) -> bool {
         self.t == IS_NULL
     }
 
-    #[inline]
-    pub fn is_bool(self) -> bool {
+    pub const fn is_bool(self) -> bool {
         self.is_true() || self.is_false()
     }
 
-    #[inline]
-    pub fn is_true(self) -> bool {
+    pub const fn is_true(self) -> bool {
         get_base_type_by_raw(self.t) == IS_TRUE
     }
 
-    #[inline]
-    pub fn is_false(self) -> bool {
+    pub const fn is_false(self) -> bool {
         get_base_type_by_raw(self.t) == IS_FALSE
     }
 
-    #[inline]
-    pub fn is_long(self) -> bool {
+    pub const fn is_long(self) -> bool {
         get_base_type_by_raw(self.t) == IS_LONG
     }
 
-    #[inline]
-    pub fn is_double(self) -> bool {
+    pub const fn is_double(self) -> bool {
         get_base_type_by_raw(self.t) == IS_DOUBLE
     }
 
-    #[inline]
-    pub fn is_string(self) -> bool {
+    pub const fn is_string(self) -> bool {
         get_base_type_by_raw(self.t) == IS_STRING
     }
 
-    #[inline]
-    pub fn is_array(self) -> bool {
+    pub const fn is_array(self) -> bool {
         get_base_type_by_raw(self.t) == IS_ARRAY
     }
 
-    #[inline]
-    pub fn is_object(self) -> bool {
+    pub const fn is_object(self) -> bool {
         get_base_type_by_raw(self.t) == IS_OBJECT
     }
 
-    #[inline]
-    pub fn is_indirect(self) -> bool {
+    pub const fn is_indirect(self) -> bool {
         self.t == IS_INDIRECT
     }
 
-    pub fn get_base_type(self) -> Type {
+    pub const fn get_base_type(self) -> Type {
         Self::from_raw(get_base_type_by_raw(self.t))
     }
 
@@ -146,8 +131,7 @@ fn get_type_by_const(mut t: u32) -> crate::Result<String> {
     }
 }
 
-#[inline]
-fn get_base_type_by_raw(t: u32) -> u32 {
+const fn get_base_type_by_raw(t: u32) -> u32 {
     t & !(!0 << Z_TYPE_FLAGS_SHIFT)
 }
 

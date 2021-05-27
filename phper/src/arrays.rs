@@ -53,7 +53,12 @@ impl Array {
         }
     }
 
-    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Array {
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Array {
+        let ptr = ptr as *const Array;
+        ptr.as_ref().expect("ptr shouldn't be null")
+    }
+
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Array {
         let ptr = ptr as *mut Array;
         ptr.as_mut().expect("ptr shouldn't be null")
     }
@@ -106,6 +111,20 @@ impl Array {
     // Get items length.
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(&mut self.inner) as usize }
+    }
+
+    pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
+        let key = key.into();
+        unsafe {
+            match key {
+                Key::Index(i) => phper_zend_hash_index_exists(&self.inner, i),
+                Key::Str(s) => phper_zend_hash_str_exists(
+                    &self.inner,
+                    s.as_ref().as_ptr().cast(),
+                    s.as_ref().len(),
+                ),
+            }
+        }
     }
 
     pub fn clone(&self) -> EBox<Self> {
