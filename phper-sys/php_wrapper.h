@@ -1,6 +1,7 @@
 #ifndef PHPER_PHP_WRAPPER_H
 #define PHPER_PHP_WRAPPER_H
 
+#include <stdbool.h>
 #include <php.h>
 #include <php_ini.h>
 #include <ext/standard/info.h>
@@ -49,5 +50,10 @@ size_t phper_zend_object_properties_size(zend_class_entry *ce);
 void *phper_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 
 zend_object* (**phper_get_create_object(zend_class_entry *ce))(zend_class_entry *class_type);
+
+bool phper_call_user_function(HashTable *function_table, zval *object, zval *function_name, zval *retval_ptr, uint32_t param_count, zval params[]);
+
+bool phper_zend_hash_str_exists(const HashTable *ht, const char *str, size_t len);
+bool phper_zend_hash_index_exists(const HashTable *ht, zend_ulong h);
 
 #endif //PHPER_PHP_WRAPPER_H

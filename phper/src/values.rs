@@ -3,18 +3,20 @@
 use crate::{
     alloc::{EAllocatable, EBox},
     arrays::Array,
-    errors::{Throwable, TypeError},
+    classes::ClassEntry,
+    errors::{CallFunctionError, Throwable, TypeError},
     functions::ZendFunction,
     objects::{Object, StatelessObject},
     strings::ZendString,
     sys::*,
-    types::{get_type_by_const, Type},
+    types::Type,
     utils::ensure_end_with_zero,
 };
 use indexmap::map::IndexMap;
 use std::{
     collections::{BTreeMap, HashMap},
     mem::{transmute, zeroed},
+    ptr::null_mut,
     str,
     str::Utf8Error,
 };
@@ -88,6 +90,12 @@ impl Val {
         val
     }
 
+    pub fn undef() -> Self {
+        let mut val = unsafe { zeroed::<Val>() };
+        val.set_type(Type::undef());
+        val
+    }
+
     pub fn null() -> Self {
         Self::new(())
     }
@@ -105,6 +113,11 @@ impl Val {
     }
 
     #[inline]
+    pub fn as_ptr(&self) -> *const zval {
+        &self.inner
+    }
+
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zval {
         &mut self.inner
     }
@@ -114,12 +127,16 @@ impl Val {
         t.into()
     }
 
+    pub fn into_inner(self) -> zval {
+        self.inner
+    }
+
     fn get_type_name(&self) -> crate::Result<String> {
-        get_type_by_const(self.get_type() as u32)
+        self.get_type().get_base_type_name()
     }
 
     fn set_type(&mut self, t: Type) {
-        self.inner.u1.type_info = t as u32;
+        self.inner.u1.type_info = t.into_raw();
     }
 
     pub fn as_null(&self) -> crate::Result<()> {
@@ -202,7 +219,13 @@ impl Val {
     }
 
     pub(crate) unsafe fn as_mut_object_unchecked<T>(&self) -> &mut Object<T> {
-        Object::from_mut_ptr(self.inner.value.obj)
+        // TODO Fix the object type assertion.
+        // assert!(dbg!(val.get_type()).is_object());
+
+        let object = Object::from_mut_ptr(self.inner.value.obj);
+        let class = object.get_class();
+        ClassEntry::check_type_id(class).unwrap();
+        object
     }
 
     // TODO Error tip, not only for function arguments, should change.
@@ -216,7 +239,32 @@ impl Val {
         }
     }
 
+    /// Call only when self is a callable.
+    ///
+    /// # Errors
+    ///
+    /// Return Err when self is not callable.
+    pub fn call(&self, arguments: &[Val]) -> Result<EBox<Val>, CallFunctionError> {
+        let mut ret = EBox::new(Val::null());
+        unsafe {
+            if phper_call_user_function(
+                null_mut(),
+                null_mut(),
+                self.as_ptr() as *mut _,
+                ret.as_mut_ptr(),
+                arguments.len() as u32,
+                arguments.as_ptr() as *const Val as *mut Val as *mut zval,
+            ) && !ret.get_type().is_undef()
+            {
+                Ok(ret)
+            } else {
+                Err(CallFunctionError::new("{closure}".to_owned()))
+            }
+        }
+    }
+
     unsafe fn drop_value(&mut self) {
+        // TODO Use zval_dtor.
         let t = self.get_type();
         if t.is_string() {
             ZendString::free(self.inner.value.str as *mut ZendString);
@@ -253,13 +301,13 @@ pub trait SetVal {
 
 impl SetVal for () {
     unsafe fn set_val(self, val: &mut Val) {
-        val.set_type(Type::Null);
+        val.set_type(Type::null());
     }
 }
 
 impl SetVal for bool {
     unsafe fn set_val(self, val: &mut Val) {
-        val.set_type(if self { Type::True } else { Type::False });
+        val.set_type(Type::bool(self));
     }
 }
 
@@ -277,14 +325,14 @@ impl SetVal for u32 {
 
 impl SetVal for i64 {
     unsafe fn set_val(self, val: &mut Val) {
-        val.set_type(Type::Long);
+        val.set_type(Type::long());
         (*val.as_mut_ptr()).value.lval = self;
     }
 }
 
 impl SetVal for f64 {
     unsafe fn set_val(self, val: &mut Val) {
-        val.set_type(Type::Double);
+        val.set_type(Type::double());
         (*val.as_mut_ptr()).value.dval = self;
     }
 }
@@ -384,13 +432,12 @@ impl SetVal for EBox<Array> {
     }
 }
 
-// TODO Because the type of method argument `this` is mut ref, can't become a return value,
-// TODO Support chain call for PHP object later.
+// TODO Support chain call for PHP object later, now only support return owned object.
 impl<T> SetVal for EBox<Object<T>> {
     unsafe fn set_val(self, val: &mut Val) {
         let object = EBox::into_raw(self);
         val.inner.value.obj = object.cast();
-        val.set_type(Type::ObjectEx);
+        val.set_type(Type::object_ex());
     }
 }
 
@@ -424,5 +471,11 @@ impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
 impl SetVal for Val {
     unsafe fn set_val(mut self, val: &mut Val) {
         phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
+    }
+}
+
+impl SetVal for EBox<Val> {
+    unsafe fn set_val(self, val: &mut Val) {
+        phper_zval_zval(val.as_mut_ptr(), EBox::into_raw(self).cast(), 0, 1);
     }
 }

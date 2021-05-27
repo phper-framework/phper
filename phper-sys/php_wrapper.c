@@ -147,3 +147,16 @@ void *phper_zend_object_alloc(size_t obj_size, zend_class_entry *ce) {
 zend_object* (**phper_get_create_object(zend_class_entry *ce))(zend_class_entry *class_type) {
     return &ce->create_object;
 }
+
+bool phper_call_user_function(HashTable *function_table, zval *object, zval *function_name, zval *retval_ptr, uint32_t param_count, zval params[]) {
+    function_table = function_table;
+    return call_user_function(function_table, object, function_name, retval_ptr, param_count, params) == SUCCESS;
+}
+
+bool phper_zend_hash_str_exists(const HashTable *ht, const char *str, size_t len) {
+    return zend_hash_str_exists(ht, str, len) != 0;
+}
+
+bool phper_zend_hash_index_exists(const HashTable *ht, zend_ulong h) {
+    return zend_hash_index_exists(ht, h) != 0;
+}

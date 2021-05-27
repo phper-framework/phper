@@ -3,6 +3,8 @@
 use crate::{
     alloc::{EAllocatable, EBox},
     classes::ClassEntry,
+    errors::CallMethodError,
+    functions::ZendFunction,
     sys::*,
     values::Val,
 };
@@ -25,13 +27,17 @@ pub struct Object<T: 'static> {
 }
 
 impl<T: 'static> Object<T> {
-    pub fn new(class_entry: &ClassEntry<T>) -> EBox<Self> {
-        class_entry.new_object()
+    /// Another way to new object like [crate::classes::ClassEntry::new_object].
+    pub fn new(class_entry: &ClassEntry<T>, arguments: &mut [Val]) -> crate::Result<EBox<Self>> {
+        class_entry.new_object(arguments)
     }
 
-    pub fn new_by_class_name(class_name: impl AsRef<str>) -> crate::Result<EBox<Self>> {
+    pub fn new_by_class_name(
+        class_name: impl AsRef<str>,
+        arguments: &mut [Val],
+    ) -> crate::Result<EBox<Self>> {
         let class_entry = ClassEntry::from_globals(class_name)?;
-        Ok(Self::new(class_entry))
+        Self::new(class_entry, arguments)
     }
 
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
@@ -136,11 +142,69 @@ impl<T: 'static> Object<T> {
             EBox::from_raw(new_obj)
         }
     }
+
+    pub fn get_class(&self) -> &ClassEntry<T> {
+        ClassEntry::from_ptr(self.inner.ce)
+    }
+
+    /// Call the object method byn name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phper::{alloc::EBox, classes::StatelessClassEntry, values::Val};
+    ///
+    /// fn example() -> phper::Result<EBox<Val>> {
+    ///     let mut memcached = StatelessClassEntry::from_globals("Memcached")?.new_object(&mut [])?;
+    ///     memcached.call("addServer", &mut [Val::new("127.0.0.1"), Val::new(11211)])?;
+    ///     memcached.call("get", &mut [Val::new("hello")])
+    /// }
+    /// ```
+    pub fn call(&mut self, method_name: &str, arguments: &mut [Val]) -> crate::Result<EBox<Val>> {
+        let mut method = Val::new(method_name);
+        let mut ret = EBox::new(Val::null());
+
+        unsafe {
+            let mut object = std::mem::zeroed::<zval>();
+            phper_zval_obj(&mut object, self.as_mut_ptr());
+
+            if phper_call_user_function(
+                null_mut(),
+                &mut object,
+                method.as_mut_ptr(),
+                ret.as_mut_ptr(),
+                arguments.len() as u32,
+                arguments.as_mut_ptr().cast(),
+            ) {
+                Ok(ret)
+            } else {
+                let class_name = self.get_class().get_name().to_string()?;
+                Err(CallMethodError::new(class_name, method_name.to_owned()).into())
+            }
+        }
+    }
+
+    pub(crate) fn call_construct(&mut self, arguments: &mut [Val]) -> crate::Result<Option<()>> {
+        unsafe {
+            (*self.inner.handlers)
+                .get_constructor
+                .and_then(|get_constructor| {
+                    let f = get_constructor(self.as_ptr() as *mut _);
+                    if f.is_null() {
+                        None
+                    } else {
+                        let zend_fn = ZendFunction::from_mut_ptr(f);
+                        Some(zend_fn.call_method(self, arguments).map(|_| ()))
+                    }
+                })
+                .transpose()
+        }
+    }
 }
 
 impl Object<()> {
     pub fn new_by_std_class() -> EBox<Self> {
-        Self::new_by_class_name("stdclass").unwrap()
+        Self::new_by_class_name("stdclass", &mut []).unwrap()
     }
 }
 
@@ -154,6 +218,8 @@ impl<T> EAllocatable for Object<T> {
 
                 // zend_objects_store_call_destructors(ptr.cast());
                 // zend_objects_store_free_object_storage(ptr.cast(), true.into());
+            } else {
+                (*ptr).inner.gc.refcount -= 1;
             }
         }
     }

@@ -1,19 +1,20 @@
 //! Apis relate to [crate::sys::zend_function_entry].
 //!
-//! TODO Add php function call.
+//! TODO Add lambda.
 
 use std::{mem::zeroed, os::raw::c_char};
 
 use crate::{
+    alloc::EBox,
     classes::Visibility,
-    errors::ArgumentCountError,
+    errors::{ArgumentCountError, CallFunctionError, CallMethodError},
     objects::Object,
     strings::ZendString,
     sys::*,
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
-use std::{marker::PhantomData, str::Utf8Error};
+use std::{marker::PhantomData, mem::size_of, ptr::null_mut};
 
 pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
@@ -79,8 +80,6 @@ where
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
         unsafe {
             let this = execute_data.get_this::<T>().unwrap();
-            // TODO Fix the object type assertion.
-            // assert!(this.get_type().is_object());
             let r = (self.f)(this, arguments);
             r.set_val(return_value);
         }
@@ -225,10 +224,73 @@ impl ZendFunction {
         &mut self.inner
     }
 
-    pub fn get_name(&self) -> Result<String, Utf8Error> {
+    pub fn get_name(&self) -> EBox<ZendString> {
         unsafe {
             let s = phper_get_function_or_method_name(self.as_ptr());
-            ZendString::from_raw(s).to_string()
+            ZendString::from_raw(s)
+        }
+    }
+
+    pub(crate) fn call_method<T: 'static>(
+        &mut self,
+        object: &mut Object<T>,
+        arguments: &mut [Val],
+    ) -> crate::Result<EBox<Val>> {
+        let mut ret_val = EBox::new(Val::undef());
+
+        let mut fci = zend_fcall_info {
+            size: size_of::<zend_fcall_info>(),
+            function_name: Val::undef().into_inner(),
+            retval: ret_val.as_mut_ptr(),
+            params: arguments.as_mut_ptr().cast(),
+            object: object.as_mut_ptr(),
+            param_count: arguments.len() as u32,
+            #[cfg(phper_major_version = "8")]
+            named_params: null_mut(),
+            #[cfg(phper_major_version = "7")]
+            no_separation: 1,
+            #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
+            function_table: null_mut(),
+            #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
+            symbol_table: null_mut(),
+        };
+
+        let called_scope = unsafe {
+            let mut called_scope = object.get_class().as_ptr() as *mut zend_class_entry;
+            if called_scope.is_null() {
+                called_scope = self.inner.common.scope;
+            }
+            called_scope
+        };
+
+        let mut fcc = zend_fcall_info_cache {
+            function_handler: self.as_mut_ptr(),
+            calling_scope: null_mut(),
+            called_scope,
+            object: object.as_mut_ptr(),
+            #[cfg(all(
+                phper_major_version = "7",
+                any(
+                    phper_minor_version = "0",
+                    phper_minor_version = "1",
+                    phper_minor_version = "2",
+                )
+            ))]
+            initialized: 1,
+        };
+
+        unsafe {
+            if zend_call_function(&mut fci, &mut fcc) != ZEND_RESULT_CODE_SUCCESS
+                || ret_val.get_type().is_undef()
+            {
+                Err(CallMethodError::new(
+                    object.get_class().get_name().to_string()?,
+                    self.get_name().to_string()?,
+                )
+                .into())
+            } else {
+                Ok(ret_val)
+            }
         }
     }
 }
@@ -262,6 +324,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     if num_args < required_num_args {
         let func_name = execute_data.func().get_name();
         let result = func_name
+            .to_string()
             .map(|func_name| {
                 Err::<(), _>(ArgumentCountError::new(
                     func_name,
@@ -286,7 +349,6 @@ pub(crate) const fn create_zend_arg_info(
 ) -> zend_internal_arg_info {
     #[cfg(phper_php_version = "8.0")]
     {
-        use std::ptr::null_mut;
         zend_internal_arg_info {
             name,
             type_: zend_type {
@@ -320,6 +382,42 @@ pub(crate) const fn create_zend_arg_info(
             allow_null: 0,
             pass_by_reference: _pass_by_ref as zend_uchar,
             is_variadic: 0,
+        }
+    }
+}
+
+/// Call user function by name.
+///
+/// # Examples
+///
+/// ```
+/// use phper::{arrays::Array, functions::call, values::Val};
+///
+/// fn example() -> phper::Result<()> {
+///     let mut arr = Array::new();
+///     arr.insert("a", Val::new(1));
+///     arr.insert("b", Val::new(2));
+///     let ret = call("json_encode", &mut [Val::new(arr)])?;
+///     assert_eq!(ret.as_string()?, r#"{"a":1,"b":2}"#);
+///     Ok(())
+/// }
+/// ```
+pub fn call(fn_name: &str, arguments: &mut [Val]) -> Result<EBox<Val>, CallFunctionError> {
+    let mut func = Val::new(fn_name);
+    let mut ret = EBox::new(Val::null());
+    unsafe {
+        if phper_call_user_function(
+            compiler_globals.function_table,
+            null_mut(),
+            func.as_mut_ptr(),
+            ret.as_mut_ptr(),
+            arguments.len() as u32,
+            arguments.as_mut_ptr().cast(),
+        ) && !ret.get_type().is_undef()
+        {
+            Ok(ret)
+        } else {
+            Err(CallFunctionError::new(fn_name.to_owned()))
         }
     }
 }

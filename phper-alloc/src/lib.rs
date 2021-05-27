@@ -27,7 +27,7 @@ pub trait EAllocatable {
 
 /// The Box which use php `emalloc` and `efree` to manage memory.
 ///
-/// TODO now feature `allocator_api` is still unstable, implement myself.
+/// TODO now feature `allocator_api` is still unstable, implement myself, use Box<T, Alloc> later.
 pub struct EBox<T: EAllocatable> {
     ptr: *mut T,
 }

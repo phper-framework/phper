@@ -150,6 +150,8 @@ impl Module {
         self.class_entities.push(unsafe { ClassEntity::new(class) });
     }
 
+    /// Leak memory to generate `zend_module_entry` pointer.
+    #[doc(hidden)]
     pub unsafe fn module_entry(self) -> *const zend_module_entry {
         assert!(!self.name.is_empty(), "module name must be set");
         assert!(!self.version.is_empty(), "module version must be set");

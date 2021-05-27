@@ -2,9 +2,11 @@
 
 use crate::{
     alloc::EBox,
+    arrays::Array,
     errors::{ClassNotFoundError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
+    strings::ZendString,
     sys::*,
     types::Scalar,
     values::{SetVal, Val},
@@ -171,6 +173,14 @@ impl<T: Send> Classifiable for DynamicClass<T> {
 pub type StatelessClassEntry = ClassEntry<()>;
 
 /// Wrapper of [crate::sys::zend_class_entry].
+///
+/// # Generic
+///
+/// 1. Any `zend_class_entry` can be make into `ClassEntry<()>`, alias as [StatelessClassEntry].
+///
+/// 2. Only the `zend_class_entry` created by [crate::modules::Module::add_class] can be make into
+/// `ClassEntry<T>`, where `T` is the type defined by [Classifiable::state_type_id], as the inner
+/// state of `ClassEntry<T>` and `Object<T>`.
 #[repr(transparent)]
 pub struct ClassEntry<T: 'static> {
     inner: zend_class_entry,
@@ -190,7 +200,7 @@ impl<T: 'static> ClassEntry<T> {
         r
     }
 
-    fn check_type_id(this: *mut Self) -> Result<(), StateTypeError> {
+    pub(crate) fn check_type_id(this: *const Self) -> Result<(), StateTypeError> {
         if TypeId::of::<T>() == TypeId::of::<()>() {
             return Ok(());
         }
@@ -217,12 +227,38 @@ impl<T: 'static> ClassEntry<T> {
         &mut self.inner
     }
 
-    pub fn new_object(&self) -> EBox<Object<T>> {
+    /// Create the object from class and call `__construct` with arguments.
+    pub fn new_object(&self, arguments: &mut [Val]) -> crate::Result<EBox<Object<T>>> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
             let f = (*phper_get_create_object(ptr)).unwrap_or(zend_objects_new);
             let object = f(ptr);
-            EBox::from_raw(object.cast())
+            let mut object: EBox<Object<T>> = EBox::from_raw(object.cast());
+            let _ = object.call_construct(arguments)?;
+            Ok(object)
+        }
+    }
+
+    /// Create the object from class, without calling `__construct`, be careful when `__construct`
+    /// is necessary.
+    pub fn new_object_without_construct(&self) -> EBox<Object<T>> {
+        unsafe {
+            let ptr = self.as_ptr() as *mut _;
+            let f = (*phper_get_create_object(ptr)).unwrap_or(zend_objects_new);
+            let object = f(ptr);
+            let object: EBox<Object<T>> = EBox::from_raw(object.cast());
+            object
+        }
+    }
+
+    pub fn get_name(&self) -> &ZendString {
+        ZendString::from_ptr(self.inner.name)
+    }
+
+    pub fn has_method(&self, method_name: &str) -> bool {
+        unsafe {
+            let function_table = Array::from_ptr(&self.inner.function_table);
+            function_table.exists(method_name)
         }
     }
 }

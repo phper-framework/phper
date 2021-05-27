@@ -64,4 +64,36 @@ pub fn integrate(module: &mut Module) {
         },
         vec![],
     );
+
+    module.add_function(
+        "integrate_arrays_iter",
+        |_: &mut [Val]| -> phper::Result<()> {
+            let mut a = Array::new();
+
+            a.insert(0, Val::new(0));
+            a.insert(1, Val::new(1));
+            a.insert("foo", Val::new("bar"));
+
+            for (i, (k, v)) in a.iter().enumerate() {
+                match i {
+                    0 => {
+                        assert_eq!(k, 0.into());
+                        assert_eq!(v.as_long()?, 0);
+                    }
+                    1 => {
+                        assert_eq!(k, 1.into());
+                        assert_eq!(v.as_long()?, 1);
+                    }
+                    2 => {
+                        assert_eq!(k, "foo".into());
+                        assert_eq!(v.as_string()?, "bar");
+                    }
+                    _ => unreachable!(),
+                }
+            }
+
+            Ok(())
+        },
+        vec![],
+    );
 }

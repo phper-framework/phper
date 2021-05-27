@@ -49,8 +49,8 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         |this, _arguments| {
             let state = this.as_mut_state();
             let client = replace_and_get(state, ClientBuilder::new(), ClientBuilder::build)?;
-            let mut object =
-                ClassEntry::<Option<Client>>::from_globals(HTTP_CLIENT_CLASS_NAME)?.new_object();
+            let mut object = ClassEntry::<Option<Client>>::from_globals(HTTP_CLIENT_CLASS_NAME)?
+                .new_object_without_construct();
             *object.as_mut_state() = Some(client);
             Ok::<_, HttpClientError>(object)
         },
@@ -79,7 +79,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
             let request_builder = client.get(url);
             let mut object =
                 ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
-                    .new_object();
+                    .new_object_without_construct();
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, HttpClientError>(object)
         },
@@ -95,7 +95,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
             let request_builder = client.post(url);
             let mut object =
                 ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
-                    .new_object();
+                    .new_object_without_construct();
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, HttpClientError>(object)
         },

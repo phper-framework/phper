@@ -2,15 +2,17 @@
 
 use crate::{
     alloc::{EAllocatable, EBox},
+    strings::ZendString,
     sys::*,
     values::Val,
 };
-use std::mem::zeroed;
+use std::{borrow::Cow, mem::zeroed};
 
 /// Key for [Array].
+#[derive(Debug, Clone, PartialEq)]
 pub enum Key<'a> {
     Index(u64),
-    Str(&'a str),
+    Str(Cow<'a, str>),
 }
 
 impl From<u64> for Key<'_> {
@@ -21,7 +23,13 @@ impl From<u64> for Key<'_> {
 
 impl<'a> From<&'a str> for Key<'a> {
     fn from(s: &'a str) -> Self {
-        Key::Str(s)
+        Key::Str(Cow::Borrowed(s))
+    }
+}
+
+impl From<String> for Key<'_> {
+    fn from(s: String) -> Self {
+        Key::Str(Cow::Owned(s))
     }
 }
 
@@ -45,7 +53,12 @@ impl Array {
         }
     }
 
-    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Array {
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Array {
+        let ptr = ptr as *const Array;
+        ptr.as_ref().expect("ptr shouldn't be null")
+    }
+
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Array {
         let ptr = ptr as *mut Array;
         ptr.as_mut().expect("ptr shouldn't be null")
     }
@@ -100,12 +113,33 @@ impl Array {
         unsafe { zend_array_count(&mut self.inner) as usize }
     }
 
+    pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
+        let key = key.into();
+        unsafe {
+            match key {
+                Key::Index(i) => phper_zend_hash_index_exists(&self.inner, i),
+                Key::Str(s) => phper_zend_hash_str_exists(
+                    &self.inner,
+                    s.as_ref().as_ptr().cast(),
+                    s.as_ref().len(),
+                ),
+            }
+        }
+    }
+
     pub fn clone(&self) -> EBox<Self> {
         let mut other = Self::new();
         unsafe {
             zend_hash_copy(other.as_mut_ptr(), self.as_ptr() as *mut _, None);
         }
         other
+    }
+
+    pub fn iter(&self) -> Iter<'_> {
+        Iter {
+            index: 0,
+            array: &self,
+        }
     }
 }
 
@@ -115,6 +149,8 @@ impl EAllocatable for Array {
             if (*ptr).inner.gc.refcount == 0 {
                 zend_hash_destroy(ptr.cast());
                 _efree(ptr.cast());
+            } else {
+                (*ptr).inner.gc.refcount -= 1;
             }
         }
     }
@@ -123,5 +159,47 @@ impl EAllocatable for Array {
 impl Drop for Array {
     fn drop(&mut self) {
         unreachable!("Allocation on the stack is not allowed")
+    }
+}
+
+pub struct Iter<'a> {
+    index: isize,
+    array: &'a Array,
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = (Key<'a>, &'a Val);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.index >= self.array.inner.nNumUsed as isize {
+                break None;
+            }
+
+            unsafe {
+                let bucket = self.array.inner.arData.offset(self.index);
+
+                let key = if (*bucket).key.is_null() {
+                    Key::Index((*bucket).h)
+                } else {
+                    let s = ZendString::from_ptr((*bucket).key);
+                    let s = s.to_string().unwrap();
+                    Key::Str(Cow::Owned(s))
+                };
+
+                let val = &mut (*bucket).val;
+                let mut val = Val::from_mut_ptr(val);
+                if val.get_type().is_indirect() {
+                    val = Val::from_mut_ptr((*val.as_mut_ptr()).value.zv);
+                }
+
+                self.index += 1;
+
+                if val.get_type().is_undef() {
+                    continue;
+                }
+                break Some((key, val));
+            }
+        }
     }
 }

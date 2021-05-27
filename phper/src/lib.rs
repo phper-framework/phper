@@ -88,9 +88,6 @@ See [examples](https://github.com/jmjoy/phper/tree/master/examples).
 */
 
 #[macro_use]
-extern crate num_derive;
-
-#[macro_use]
 mod macros;
 
 pub mod arrays;
