@@ -1,4 +1,4 @@
-use crate::{errors::HttpClientError, replace_and_get};
+use crate::{errors::HttpClientError, utils::replace_and_get};
 use indexmap::map::IndexMap;
 use phper::{
     classes::{DynamicClass, Visibility},

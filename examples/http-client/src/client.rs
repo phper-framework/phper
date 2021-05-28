@@ -1,5 +1,7 @@
 use crate::{
-    errors::HttpClientError, replace_and_get, replace_and_set, request::REQUEST_BUILDER_CLASS_NAME,
+    errors::HttpClientError,
+    request::REQUEST_BUILDER_CLASS_NAME,
+    utils::{replace_and_get, replace_and_set},
 };
 use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},

@@ -160,3 +160,7 @@ bool phper_zend_hash_str_exists(const HashTable *ht, const char *str, size_t len
 bool phper_zend_hash_index_exists(const HashTable *ht, zend_ulong h) {
     return zend_hash_index_exists(ht, h) != 0;
 }
+
+void phper_zval_dtor(zval *zval_ptr) {
+    return zval_dtor(zval_ptr);
+}

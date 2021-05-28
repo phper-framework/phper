@@ -35,7 +35,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 ///
 /// As a php exception, will throw `ErrorException` when the item not implement [Throwable].
 #[derive(thiserror::Error, crate::Throwable, Debug)]
-#[throwable(class = "ErrorException")]
+#[throwable_class("ErrorException")]
 #[throwable_crate]
 pub enum Error {
     #[error(transparent)]
@@ -85,7 +85,7 @@ impl Error {
 
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("type error: {message}")]
-#[throwable(class = "TypeError")]
+#[throwable_class("TypeError")]
 #[throwable_crate]
 pub struct TypeError {
     message: String,
@@ -93,7 +93,7 @@ pub struct TypeError {
 
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Class '{class_name}' not found")]
-#[throwable(class = "Error")]
+#[throwable_class("Error")]
 #[throwable_crate]
 pub struct ClassNotFoundError {
     class_name: String,
@@ -104,32 +104,23 @@ pub struct ClassNotFoundError {
     "Actual State type in generic type parameter isn't the state type registered in the class, \
 please confirm the real state type, or use StatelessClassEntry"
 )]
-#[throwable(class = "Error")]
+#[throwable_class("Error")]
 #[throwable_crate]
 pub struct StateTypeError;
 
-#[derive(thiserror::Error, Debug, Constructor)]
+#[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("{function_name}(): expects at least {expect_count} parameter(s), {given_count} given")]
+#[throwable_class(if PHP_VERSION_ID >= 70100 { "ArgumentCountError" } else { "TypeError" })]
+#[throwable_crate]
 pub struct ArgumentCountError {
     function_name: String,
     expect_count: usize,
     given_count: usize,
 }
 
-impl Throwable for ArgumentCountError {
-    fn class_entry(&self) -> &StatelessClassEntry {
-        let class_name = if PHP_VERSION_ID >= 70100 {
-            "ArgumentCountError"
-        } else {
-            "TypeError"
-        };
-        ClassEntry::from_globals(class_name).unwrap()
-    }
-}
-
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Invalid call to {fn_name}")]
-#[throwable(class = "BadFunctionCallException")]
+#[throwable_class("BadFunctionCallException")]
 #[throwable_crate]
 pub struct CallFunctionError {
     fn_name: String,
@@ -137,7 +128,7 @@ pub struct CallFunctionError {
 
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Invalid call to {class_name}::{method_name}")]
-#[throwable(class = "BadMethodCallException")]
+#[throwable_class("BadMethodCallException")]
 #[throwable_crate]
 pub struct CallMethodError {
     class_name: String,

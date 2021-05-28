@@ -264,15 +264,7 @@ impl Val {
     }
 
     unsafe fn drop_value(&mut self) {
-        // TODO Use zval_dtor.
-        let t = self.get_type();
-        if t.is_string() {
-            ZendString::free(self.inner.value.str as *mut ZendString);
-        } else if t.is_array() {
-            Array::free(self.inner.value.arr as *mut Array);
-        } else if t.is_object() {
-            Object::free(self.inner.value.obj as *mut StatelessObject);
-        }
+        phper_zval_dtor(self.as_mut_ptr());
     }
 }
 
@@ -295,6 +287,8 @@ impl Drop for Val {
 
 /// The trait for setting the value of [Val], mainly as the return value of
 /// functions and methods, and initializer of [Val].
+///
+/// TODO Better name, distinguish between non-referenced and referenced cases.
 pub trait SetVal {
     unsafe fn set_val(self, val: &mut Val);
 }

@@ -5,9 +5,11 @@ use phper::{
 
 const EXCEPTION_CLASS_NAME: &'static str = "HttpClient\\HttpClientException";
 
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error, phper::Throwable)]
+#[throwable_class(EXCEPTION_CLASS_NAME)]
 pub enum HttpClientError {
     #[error(transparent)]
+    #[throwable(transparent)]
     Phper(#[from] phper::Error),
 
     #[error(transparent)]
@@ -18,15 +20,6 @@ pub enum HttpClientError {
 
     #[error("should not call 'body()' multi time")]
     ResponseHadRead,
-}
-
-impl Throwable for HttpClientError {
-    fn class_entry(&self) -> &StatelessClassEntry {
-        match self {
-            HttpClientError::Phper(e) => e.class_entry(),
-            _ => ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap(),
-        }
-    }
 }
 
 pub fn make_exception_class() -> DynamicClass<()> {

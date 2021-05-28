@@ -1,4 +1,4 @@
-use crate::{errors::HttpClientError, replace_and_get, response::RESPONSE_CLASS_NAME};
+use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME, utils::replace_and_get};
 use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},
     objects::Object,
