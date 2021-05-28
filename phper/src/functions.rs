@@ -231,7 +231,7 @@ impl ZendFunction {
         }
     }
 
-    pub(crate) fn call_method<T: 'static>(
+    pub fn call_method<T: 'static>(
         &mut self,
         object: &mut Object<T>,
         arguments: &mut [Val],
