@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Attribute, Data, DeriveInput, Expr, Fields, Meta, MetaNameValue};
+use syn::{Attribute, Data, DeriveInput, Expr, Fields};
 
 pub(crate) fn derive_throwable(input: DeriveInput) -> syn::Result<TokenStream> {
     let crate_ident = parse_throwable_crate_ident(&input);

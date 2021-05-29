@@ -6,7 +6,7 @@ use crate::{
     classes::ClassEntry,
     errors::{CallFunctionError, Throwable, TypeError},
     functions::ZendFunction,
-    objects::{Object, StatelessObject},
+    objects::Object,
     strings::ZendString,
     sys::*,
     types::Type,
@@ -181,8 +181,8 @@ impl Val {
     pub fn as_string(&self) -> crate::Result<String> {
         if self.get_type().is_string() {
             unsafe {
-                let zs = ZendString::from_ptr(self.inner.value.str);
-                Ok(zs.to_string()?)
+                let zs = ZendString::from_ptr(self.inner.value.str).unwrap();
+                Ok(zs.as_str()?.to_owned())
             }
         } else {
             Err(self.must_be_type_error("string").into())
@@ -192,7 +192,7 @@ impl Val {
     pub fn as_string_value(&self) -> Result<String, Utf8Error> {
         unsafe {
             let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
-            ZendString::from_raw(s).to_string()
+            ZendString::from_raw(s).as_str().map(ToOwned::to_owned)
         }
     }
 
@@ -200,7 +200,7 @@ impl Val {
         if self.get_type().is_array() {
             unsafe {
                 let ptr = self.inner.value.arr;
-                Ok(Array::from_mut_ptr(ptr))
+                Ok(Array::from_mut_ptr(ptr).unwrap())
             }
         } else {
             Err(self.must_be_type_error("array").into())
@@ -264,7 +264,7 @@ impl Val {
     }
 
     unsafe fn drop_value(&mut self) {
-        phper_zval_dtor(self.as_mut_ptr());
+        phper_zval_ptr_dtor_nogc(self.as_mut_ptr());
     }
 }
 

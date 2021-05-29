@@ -252,12 +252,12 @@ impl<T: 'static> ClassEntry<T> {
     }
 
     pub fn get_name(&self) -> &ZendString {
-        ZendString::from_ptr(self.inner.name)
+        unsafe { ZendString::from_ptr(self.inner.name).unwrap() }
     }
 
     pub fn has_method(&self, method_name: &str) -> bool {
         unsafe {
-            let function_table = Array::from_ptr(&self.inner.function_table);
+            let function_table = Array::from_ptr(&self.inner.function_table).unwrap();
             function_table.exists(method_name)
         }
     }

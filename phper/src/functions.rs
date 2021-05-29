@@ -284,8 +284,8 @@ impl ZendFunction {
                 || ret_val.get_type().is_undef()
             {
                 Err(CallMethodError::new(
-                    object.get_class().get_name().to_string()?,
-                    self.get_name().to_string()?,
+                    object.get_class().get_name().as_str()?.to_owned(),
+                    self.get_name().as_str()?.to_owned(),
                 )
                 .into())
             } else {
@@ -324,10 +324,10 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     if num_args < required_num_args {
         let func_name = execute_data.func().get_name();
         let result = func_name
-            .to_string()
+            .as_str()
             .map(|func_name| {
                 Err::<(), _>(ArgumentCountError::new(
-                    func_name,
+                    func_name.to_owned(),
                     required_num_args,
                     num_args,
                 ))

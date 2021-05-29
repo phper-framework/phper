@@ -178,7 +178,7 @@ impl<T: 'static> Object<T> {
             ) {
                 Ok(ret)
             } else {
-                let class_name = self.get_class().get_name().to_string()?;
+                let class_name = self.get_class().get_name().as_str()?.to_owned();
                 Err(CallMethodError::new(class_name, method_name.to_owned()).into())
             }
         }
@@ -211,6 +211,7 @@ impl Object<()> {
 impl<T> EAllocatable for Object<T> {
     fn free(ptr: *mut Self) {
         unsafe {
+            (*ptr).inner.gc.refcount -= 1;
             if (*ptr).inner.gc.refcount == 0 {
                 let handlers = (*ptr).inner.handlers;
                 (*handlers).dtor_obj.unwrap()(ptr.cast());
@@ -218,8 +219,6 @@ impl<T> EAllocatable for Object<T> {
 
                 // zend_objects_store_call_destructors(ptr.cast());
                 // zend_objects_store_free_object_storage(ptr.cast(), true.into());
-            } else {
-                (*ptr).inner.gc.refcount -= 1;
             }
         }
     }
