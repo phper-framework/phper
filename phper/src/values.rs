@@ -67,10 +67,13 @@ impl ExecuteData {
         ptr.as_ref().map(|val| val.as_mut_object_unchecked())
     }
 
+    /// TODO Do not return owned object, because usually Val should not be drop.
     pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<Val> {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
-        _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
+        if num_args > 0 {
+            _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
+        }
         transmute(arguments)
     }
 }

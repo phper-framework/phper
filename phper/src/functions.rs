@@ -14,7 +14,11 @@ use crate::{
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
-use std::{marker::PhantomData, mem::size_of, ptr::null_mut};
+use std::{
+    marker::PhantomData,
+    mem::{forget, size_of},
+    ptr::null_mut,
+};
 
 pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
@@ -341,6 +345,12 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 
     // TODO catch_unwind for call, translate some panic to throwing Error.
     handler.call(execute_data, &mut arguments, return_value);
+
+    // Do not call the drop method, because there is the `zend_vm_stack_free_args` call after
+    // executing function.
+    for argument in arguments {
+        forget(argument);
+    }
 }
 
 pub(crate) const fn create_zend_arg_info(
