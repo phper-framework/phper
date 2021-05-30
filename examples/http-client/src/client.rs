@@ -1,5 +1,7 @@
 use crate::{
-    errors::HttpClientError, replace_and_get, replace_and_set, request::REQUEST_BUILDER_CLASS_NAME,
+    errors::HttpClientError,
+    request::REQUEST_BUILDER_CLASS_NAME,
+    utils::{replace_and_get, replace_and_set},
 };
 use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},
@@ -50,7 +52,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
             let state = this.as_mut_state();
             let client = replace_and_get(state, ClientBuilder::new(), ClientBuilder::build)?;
             let mut object = ClassEntry::<Option<Client>>::from_globals(HTTP_CLIENT_CLASS_NAME)?
-                .new_object_without_construct();
+                .init_object()?;
             *object.as_mut_state() = Some(client);
             Ok::<_, HttpClientError>(object)
         },
@@ -79,7 +81,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
             let request_builder = client.get(url);
             let mut object =
                 ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
-                    .new_object_without_construct();
+                    .init_object()?;
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, HttpClientError>(object)
         },
@@ -95,7 +97,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
             let request_builder = client.post(url);
             let mut object =
                 ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
-                    .new_object_without_construct();
+                    .init_object()?;
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, HttpClientError>(object)
         },

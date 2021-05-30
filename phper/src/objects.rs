@@ -178,26 +178,27 @@ impl<T: 'static> Object<T> {
             ) {
                 Ok(ret)
             } else {
-                let class_name = self.get_class().get_name().to_string()?;
+                let class_name = self.get_class().get_name().as_str()?.to_owned();
                 Err(CallMethodError::new(class_name, method_name.to_owned()).into())
             }
         }
     }
 
-    pub(crate) fn call_construct(&mut self, arguments: &mut [Val]) -> crate::Result<Option<()>> {
+    pub(crate) fn call_construct(&mut self, arguments: &mut [Val]) -> crate::Result<bool> {
         unsafe {
-            (*self.inner.handlers)
-                .get_constructor
-                .and_then(|get_constructor| {
+            match (*self.inner.handlers).get_constructor {
+                Some(get_constructor) => {
                     let f = get_constructor(self.as_ptr() as *mut _);
                     if f.is_null() {
-                        None
+                        Ok(false)
                     } else {
                         let zend_fn = ZendFunction::from_mut_ptr(f);
-                        Some(zend_fn.call_method(self, arguments).map(|_| ()))
+                        zend_fn.call_method(self, arguments)?;
+                        Ok(true)
                     }
-                })
-                .transpose()
+                }
+                None => Ok(false),
+            }
         }
     }
 }
@@ -211,15 +212,9 @@ impl Object<()> {
 impl<T> EAllocatable for Object<T> {
     fn free(ptr: *mut Self) {
         unsafe {
+            (*ptr).inner.gc.refcount -= 1;
             if (*ptr).inner.gc.refcount == 0 {
-                let handlers = (*ptr).inner.handlers;
-                (*handlers).dtor_obj.unwrap()(ptr.cast());
-                (*handlers).free_obj.unwrap()(ptr.cast());
-
-                // zend_objects_store_call_destructors(ptr.cast());
-                // zend_objects_store_free_object_storage(ptr.cast(), true.into());
-            } else {
-                (*ptr).inner.gc.refcount -= 1;
+                zend_objects_store_del(ptr.cast());
             }
         }
     }

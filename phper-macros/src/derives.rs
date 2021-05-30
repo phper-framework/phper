@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Attribute, Data, DeriveInput, Fields, Meta};
+use syn::{Attribute, Data, DeriveInput, Expr, Fields};
 
 pub(crate) fn derive_throwable(input: DeriveInput) -> syn::Result<TokenStream> {
     let crate_ident = parse_throwable_crate_ident(&input);
@@ -20,27 +20,9 @@ fn parse_throwable_crate_ident(input: &DeriveInput) -> TokenStream2 {
 }
 
 fn parse_throwable_attrs(input: &DeriveInput) -> syn::Result<TokenStream2> {
-    let attr = attributes_find_ident(&input.attrs, "throwable");
-    attr.map(|attr| {
-        attr.parse_args::<Meta>().and_then(|meta| match meta {
-            Meta::NameValue(name_value) => {
-                if !name_value.path.is_ident("class") {
-                    Err(syn::Error::new_spanned(
-                        &attr,
-                        "now only support #[throwable(error = ?)] for enum",
-                    ))
-                } else {
-                    let lit = name_value.lit;
-                    Ok(quote! { #lit })
-                }
-            }
-            _ => Err(syn::Error::new_spanned(
-                &attr,
-                "now only support #[throwable(error = ?)] for enum",
-            )),
-        })
-    })
-    .unwrap_or_else(|| Ok(quote! { "Exception" }))
+    let attr = attributes_find_ident(&input.attrs, "throwable_class");
+    attr.map(|attr| attr.parse_args::<Expr>().map(|expr| quote! { #expr }))
+        .unwrap_or_else(|| Ok(quote! { "Exception" }))
 }
 
 fn parse_throwable_input(

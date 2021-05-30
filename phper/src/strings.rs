@@ -13,8 +13,9 @@ pub struct ZendString {
 }
 
 impl ZendString {
-    pub fn new(s: &str) -> EBox<Self> {
+    pub fn new(s: impl AsRef<[u8]>) -> EBox<Self> {
         unsafe {
+            let s = s.as_ref();
             let ptr = phper_zend_string_init(s.as_ptr().cast(), s.len(), false.into()).cast();
             EBox::from_raw(ptr)
         }
@@ -24,11 +25,9 @@ impl ZendString {
         EBox::from_raw(ptr as *mut ZendString)
     }
 
-    pub(crate) fn from_ptr<'a>(ptr: *mut zend_string) -> &'a Self {
-        unsafe {
-            let ptr = ptr as *mut Self;
-            ptr.as_ref().unwrap()
-        }
+    pub unsafe fn from_ptr<'a>(ptr: *mut zend_string) -> Option<&'a Self> {
+        let ptr = ptr as *mut Self;
+        ptr.as_ref()
     }
 
     pub fn as_ptr(&self) -> *const zend_string {
@@ -39,26 +38,33 @@ impl ZendString {
         &mut self.inner
     }
 
-    pub fn to_string(&self) -> Result<String, Utf8Error> {
+    pub fn as_str(&self) -> Result<&str, Utf8Error> {
+        str::from_utf8(self.as_ref())
+    }
+}
+
+impl AsRef<[u8]> for ZendString {
+    fn as_ref(&self) -> &[u8] {
         unsafe {
-            let buf = from_raw_parts(
+            from_raw_parts(
                 &self.inner.val as *const c_char as *const u8,
                 self.inner.len,
-            );
-            let string = str::from_utf8(buf)?.to_string();
-            Ok(string)
+            )
         }
+    }
+}
+
+impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZendString {
+    fn eq(&self, other: &Rhs) -> bool {
+        self.as_ref() == other.as_ref()
     }
 }
 
 impl EAllocatable for ZendString {
     fn free(ptr: *mut Self) {
         unsafe {
-            if (*ptr).inner.gc.refcount == 0 {
-                phper_zend_string_release(ptr.cast());
-            } else {
-                (*ptr).inner.gc.refcount -= 1;
-            }
+            // Already has `GC_DELREF(s) == 0` detection.
+            phper_zend_string_release(ptr.cast());
         }
     }
 }

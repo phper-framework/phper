@@ -33,8 +33,9 @@ zend_string *phper_zend_string_init(const char *str, size_t len, int persistent)
 zend_string *phper_zend_string_alloc(size_t len, int persistent);
 void phper_zend_string_release(zend_string *s);
 
-zval *phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData);
+zval* phper_zend_hash_str_update(HashTable *ht, const char *key, size_t len, zval *pData);
 zval* phper_zend_hash_index_update(HashTable *ht, zend_ulong h, zval *pData);
+zval* phper_zend_hash_next_index_insert(HashTable *ht, zval *pData);
 
 void phper_array_init(zval *arg);
 void *phper_zend_hash_str_find_ptr(const HashTable *ht, const char *str, size_t len);
@@ -50,10 +51,13 @@ size_t phper_zend_object_properties_size(zend_class_entry *ce);
 void *phper_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 
 zend_object* (**phper_get_create_object(zend_class_entry *ce))(zend_class_entry *class_type);
+bool phper_object_init_ex(zval *arg, zend_class_entry *class_type);
 
 bool phper_call_user_function(HashTable *function_table, zval *object, zval *function_name, zval *retval_ptr, uint32_t param_count, zval params[]);
 
 bool phper_zend_hash_str_exists(const HashTable *ht, const char *str, size_t len);
 bool phper_zend_hash_index_exists(const HashTable *ht, zend_ulong h);
+
+void phper_zval_ptr_dtor_nogc(zval *zval_ptr);
 
 #endif //PHPER_PHP_WRAPPER_H

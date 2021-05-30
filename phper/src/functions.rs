@@ -14,7 +14,11 @@ use crate::{
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
 };
-use std::{marker::PhantomData, mem::size_of, ptr::null_mut};
+use std::{
+    marker::PhantomData,
+    mem::{forget, size_of},
+    ptr::null_mut,
+};
 
 pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
@@ -231,7 +235,7 @@ impl ZendFunction {
         }
     }
 
-    pub(crate) fn call_method<T: 'static>(
+    pub fn call_method<T: 'static>(
         &mut self,
         object: &mut Object<T>,
         arguments: &mut [Val],
@@ -284,8 +288,8 @@ impl ZendFunction {
                 || ret_val.get_type().is_undef()
             {
                 Err(CallMethodError::new(
-                    object.get_class().get_name().to_string()?,
-                    self.get_name().to_string()?,
+                    object.get_class().get_name().as_str()?.to_owned(),
+                    self.get_name().as_str()?.to_owned(),
                 )
                 .into())
             } else {
@@ -324,10 +328,10 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     if num_args < required_num_args {
         let func_name = execute_data.func().get_name();
         let result = func_name
-            .to_string()
+            .as_str()
             .map(|func_name| {
                 Err::<(), _>(ArgumentCountError::new(
-                    func_name,
+                    func_name.to_owned(),
                     required_num_args,
                     num_args,
                 ))
@@ -341,6 +345,12 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 
     // TODO catch_unwind for call, translate some panic to throwing Error.
     handler.call(execute_data, &mut arguments, return_value);
+
+    // Do not call the drop method, because there is the `zend_vm_stack_free_args` call after
+    // executing function.
+    for argument in arguments {
+        forget(argument);
+    }
 }
 
 pub(crate) const fn create_zend_arg_info(

@@ -1,4 +1,4 @@
-use crate::{errors::HttpClientError, replace_and_get, response::RESPONSE_CLASS_NAME};
+use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME, utils::replace_and_get};
 use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},
     objects::Object,
@@ -23,8 +23,8 @@ pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
         |this, _arguments| {
             let state = this.as_mut_state();
             let response = replace_and_get(state, None, |builder| builder.unwrap().send())?;
-            let mut object = ClassEntry::<Option<Response>>::from_globals(RESPONSE_CLASS_NAME)?
-                .new_object_without_construct();
+            let mut object =
+                ClassEntry::<Option<Response>>::from_globals(RESPONSE_CLASS_NAME)?.init_object()?;
             *object.as_mut_state() = Some(response);
             Ok::<_, HttpClientError>(object)
         },

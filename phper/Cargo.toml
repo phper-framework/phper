@@ -1,6 +1,6 @@
 [package]
 name = "phper"
-version = "0.2.0-alpha.3"
+version = "0.2.0"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2018"
 description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
@@ -18,14 +18,12 @@ clap = "3.0.0-beta.2"
 dashmap = "4.0.2"
 derive_more = "0.99.13"
 indexmap = "1.6.2"
-#num-derive = "0.3"
-#num-traits = "0.2"
 once_cell = "1.7.2"
-phper-alloc = { version = "0.2.0-alpha.3", path = "../phper-alloc" }
-phper-macros = { version = "0.2.0-alpha.3", path = "../phper-macros" }
-phper-sys = { version = "0.2.0-alpha.3", path = "../phper-sys" }
+phper-alloc = { version = "0.2.0", path = "../phper-alloc" }
+phper-macros = { version = "0.2.0", path = "../phper-macros" }
+phper-sys = { version = "0.2.0", path = "../phper-sys" }
 thiserror = "1.0.10"
 
 [build-dependencies]
-phper-build = { version = "0.2.0-alpha.3", path = "../phper-build" }
-phper-sys = { version = "0.2.0-alpha.3", path = "../phper-sys" }
+phper-build = { version = "0.2.0", path = "../phper-build" }
+phper-sys = { version = "0.2.0", path = "../phper-sys" }

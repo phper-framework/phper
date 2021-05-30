@@ -6,31 +6,22 @@ use crate::{
     sys::*,
     values::Val,
 };
-use std::{borrow::Cow, mem::zeroed};
+use derive_more::From;
+use std::mem::zeroed;
 
 /// Key for [Array].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, From)]
 pub enum Key<'a> {
     Index(u64),
-    Str(Cow<'a, str>),
+    Str(&'a str),
 }
 
-impl From<u64> for Key<'_> {
-    fn from(i: u64) -> Self {
-        Key::Index(i)
-    }
-}
-
-impl<'a> From<&'a str> for Key<'a> {
-    fn from(s: &'a str) -> Self {
-        Key::Str(Cow::Borrowed(s))
-    }
-}
-
-impl From<String> for Key<'_> {
-    fn from(s: String) -> Self {
-        Key::Str(Cow::Owned(s))
-    }
+/// Insert key for [Array].
+#[derive(Debug, Clone, PartialEq, From)]
+pub enum InsertKey<'a> {
+    NextIndex,
+    Index(u64),
+    Str(&'a str),
 }
 
 /// Wrapper of [crate::sys::zend_array].
@@ -53,14 +44,14 @@ impl Array {
         }
     }
 
-    pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Array {
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> Option<&'a Array> {
         let ptr = ptr as *const Array;
-        ptr.as_ref().expect("ptr shouldn't be null")
+        ptr.as_ref()
     }
 
-    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Array {
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> Option<&'a mut Array> {
         let ptr = ptr as *mut Array;
-        ptr.as_mut().expect("ptr shouldn't be null")
+        ptr.as_mut()
     }
 
     pub fn as_ptr(&self) -> *const zend_array {
@@ -72,15 +63,21 @@ impl Array {
     }
 
     // Add or update item by key.
-    pub fn insert<'a>(&mut self, key: impl Into<Key<'a>>, value: Val) {
+    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: Val) {
         let key = key.into();
         let value = EBox::new(value);
         unsafe {
             match key {
-                Key::Index(i) => {
+                InsertKey::NextIndex => {
+                    phper_zend_hash_next_index_insert(
+                        &mut self.inner,
+                        EBox::into_raw(value).cast(),
+                    );
+                }
+                InsertKey::Index(i) => {
                     phper_zend_hash_index_update(&mut self.inner, i, EBox::into_raw(value).cast());
                 }
-                Key::Str(s) => {
+                InsertKey::Str(s) => {
                     phper_zend_hash_str_update(
                         &mut self.inner,
                         s.as_ptr().cast(),
@@ -118,16 +115,22 @@ impl Array {
         unsafe {
             match key {
                 Key::Index(i) => phper_zend_hash_index_exists(&self.inner, i),
-                Key::Str(s) => phper_zend_hash_str_exists(
-                    &self.inner,
-                    s.as_ref().as_ptr().cast(),
-                    s.as_ref().len(),
-                ),
+                Key::Str(s) => phper_zend_hash_str_exists(&self.inner, s.as_ptr().cast(), s.len()),
             }
         }
     }
 
-    pub fn clone(&self) -> EBox<Self> {
+    pub fn remove<'a>(&mut self, key: impl Into<Key<'a>>) -> bool {
+        let key = key.into();
+        unsafe {
+            (match key {
+                Key::Index(i) => zend_hash_index_del(&mut self.inner, i),
+                Key::Str(s) => zend_hash_str_del(&mut self.inner, s.as_ptr().cast(), s.len()),
+            }) == ZEND_RESULT_CODE_SUCCESS
+        }
+    }
+
+    pub fn clone_arr(&self) -> EBox<Self> {
         let mut other = Self::new();
         unsafe {
             zend_hash_copy(other.as_mut_ptr(), self.as_ptr() as *mut _, None);
@@ -146,11 +149,9 @@ impl Array {
 impl EAllocatable for Array {
     fn free(ptr: *mut Self) {
         unsafe {
+            (*ptr).inner.gc.refcount -= 1;
             if (*ptr).inner.gc.refcount == 0 {
-                zend_hash_destroy(ptr.cast());
-                _efree(ptr.cast());
-            } else {
-                (*ptr).inner.gc.refcount -= 1;
+                zend_array_destroy(ptr.cast());
             }
         }
     }
@@ -162,6 +163,7 @@ impl Drop for Array {
     }
 }
 
+/// Iter created by [Array::iter].
 pub struct Iter<'a> {
     index: isize,
     array: &'a Array,
@@ -182,9 +184,9 @@ impl<'a> Iterator for Iter<'a> {
                 let key = if (*bucket).key.is_null() {
                     Key::Index((*bucket).h)
                 } else {
-                    let s = ZendString::from_ptr((*bucket).key);
-                    let s = s.to_string().unwrap();
-                    Key::Str(Cow::Owned(s))
+                    let s = ZendString::from_ptr((*bucket).key).unwrap();
+                    let s = s.as_str().unwrap();
+                    Key::Str(s)
                 };
 
                 let val = &mut (*bucket).val;
