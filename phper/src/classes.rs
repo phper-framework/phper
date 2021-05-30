@@ -3,7 +3,7 @@
 use crate::{
     alloc::EBox,
     arrays::Array,
-    errors::{ClassNotFoundError, StateTypeError},
+    errors::{ClassNotFoundError, InitializeObjectError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
     strings::ZendString,
@@ -16,7 +16,7 @@ use once_cell::sync::OnceCell;
 use std::{
     any::{Any, TypeId},
     marker::PhantomData,
-    mem::{size_of, zeroed, ManuallyDrop},
+    mem::{forget, size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     sync::{
@@ -229,25 +229,25 @@ impl<T: 'static> ClassEntry<T> {
 
     /// Create the object from class and call `__construct` with arguments.
     pub fn new_object(&self, arguments: &mut [Val]) -> crate::Result<EBox<Object<T>>> {
-        unsafe {
-            let ptr = self.as_ptr() as *mut _;
-            let f = (*phper_get_create_object(ptr)).unwrap_or(zend_objects_new);
-            let object = f(ptr);
-            let mut object: EBox<Object<T>> = EBox::from_raw(object.cast());
-            let _ = object.call_construct(arguments)?;
-            Ok(object)
-        }
+        let mut object = self.init_object()?;
+        object.call_construct(arguments)?;
+        Ok(object)
     }
 
     /// Create the object from class, without calling `__construct`, be careful when `__construct`
     /// is necessary.
-    pub fn new_object_without_construct(&self) -> EBox<Object<T>> {
+    pub fn init_object(&self) -> crate::Result<EBox<Object<T>>> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
-            let f = (*phper_get_create_object(ptr)).unwrap_or(zend_objects_new);
-            let object = f(ptr);
-            let object: EBox<Object<T>> = EBox::from_raw(object.cast());
-            object
+            let mut val = Val::undef();
+            if !phper_object_init_ex(val.as_mut_ptr(), ptr) {
+                Err(InitializeObjectError::new(self.get_name().as_str()?.to_owned()).into())
+            } else {
+                let object = (*val.as_mut_ptr()).value.obj;
+                forget(val);
+                let object: EBox<Object<T>> = EBox::from_raw(object.cast());
+                Ok(object)
+            }
         }
     }
 

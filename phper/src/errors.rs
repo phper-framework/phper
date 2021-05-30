@@ -73,6 +73,10 @@ pub enum Error {
     #[error(transparent)]
     #[throwable(transparent)]
     CallMethod(#[from] CallMethodError),
+
+    #[error(transparent)]
+    #[throwable(transparent)]
+    InitializeObject(#[from] InitializeObjectError),
 }
 
 impl Error {
@@ -133,4 +137,12 @@ pub struct CallFunctionError {
 pub struct CallMethodError {
     class_name: String,
     method_name: String,
+}
+
+#[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
+#[error("Cannot instantiate class {class_name}")]
+#[throwable_class("Error")]
+#[throwable_crate]
+pub struct InitializeObjectError {
+    class_name: String,
 }

@@ -51,6 +51,7 @@ size_t phper_zend_object_properties_size(zend_class_entry *ce);
 void *phper_zend_object_alloc(size_t obj_size, zend_class_entry *ce);
 
 zend_object* (**phper_get_create_object(zend_class_entry *ce))(zend_class_entry *class_type);
+bool phper_object_init_ex(zval *arg, zend_class_entry *class_type);
 
 bool phper_call_user_function(HashTable *function_table, zval *object, zval *function_name, zval *retval_ptr, uint32_t param_count, zval params[]);
 

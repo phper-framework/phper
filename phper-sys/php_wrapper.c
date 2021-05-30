@@ -152,6 +152,10 @@ zend_object* (**phper_get_create_object(zend_class_entry *ce))(zend_class_entry 
     return &ce->create_object;
 }
 
+bool phper_object_init_ex(zval *arg, zend_class_entry *class_type) {
+    return object_init_ex(arg, class_type) == SUCCESS;
+}
+
 bool phper_call_user_function(HashTable *function_table, zval *object, zval *function_name, zval *retval_ptr, uint32_t param_count, zval params[]) {
     function_table = function_table;
     return call_user_function(function_table, object, function_name, retval_ptr, param_count, params) == SUCCESS;
