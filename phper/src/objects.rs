@@ -62,6 +62,10 @@ impl<T: 'static> Object<T> {
         eo.state.downcast_mut().unwrap()
     }
 
+    pub fn get_class(&self) -> &ClassEntry<T> {
+        ClassEntry::from_ptr(self.inner.ce)
+    }
+
     pub fn get_property(&self, name: impl AsRef<str>) -> &Val {
         let name = name.as_ref();
 
@@ -143,8 +147,14 @@ impl<T: 'static> Object<T> {
         }
     }
 
-    pub fn get_class(&self) -> &ClassEntry<T> {
-        ClassEntry::from_ptr(self.inner.ce)
+    /// Only add refcount.
+    ///
+    /// TODO Make a reference type to wrap self.
+    pub fn duplicate(&mut self) -> EBox<Self> {
+        unsafe {
+            self.inner.gc.refcount += 1;
+            EBox::from_raw(self.as_mut_ptr().cast())
+        }
     }
 
     /// Call the object method byn name.

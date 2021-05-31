@@ -9,14 +9,14 @@ use reqwest::blocking::Response;
 pub const RESPONSE_CLASS_NAME: &'static str = "HttpClient\\Response";
 
 pub fn make_response_class() -> DynamicClass<Option<Response>> {
-    let mut class = DynamicClass::new_with_none(RESPONSE_CLASS_NAME);
+    let mut class = DynamicClass::new_with_default(RESPONSE_CLASS_NAME);
 
     class.add_method(
         "body",
         Visibility::Public,
         |this: &mut Object<Option<Response>>, _arguments| {
             let response = this.as_mut_state();
-            let body = replace_and_get(response, None, |response| {
+            let body = replace_and_get(response, |response| {
                 response
                     .ok_or(HttpClientError::ResponseHadRead)
                     .and_then(|response| response.bytes().map_err(Into::into))

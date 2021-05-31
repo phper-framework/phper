@@ -9,7 +9,7 @@ use phper::{
     objects::Object,
 };
 use reqwest::blocking::{Client, ClientBuilder, RequestBuilder};
-use std::time::Duration;
+use std::{time::Duration};
 
 const HTTP_CLIENT_BUILDER_CLASS_NAME: &'static str = "HttpClient\\HttpClientBuilder";
 const HTTP_CLIENT_CLASS_NAME: &'static str = "HttpClient\\HttpClient";
@@ -22,11 +22,11 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         Visibility::Public,
         |this, arguments| {
             let ms = arguments[0].as_long()?;
-            let state = this.as_mut_state();
-            replace_and_set(state, ClientBuilder::new(), |builder| {
+            let state: &mut ClientBuilder = this.as_mut_state();
+            replace_and_set(state, |builder| {
                 builder.timeout(Duration::from_millis(ms as u64))
             });
-            Ok::<_, HttpClientError>(())
+            Ok::<_, HttpClientError>(this.duplicate())
         },
         vec![Argument::by_val("ms")],
     );
@@ -37,10 +37,8 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         |this, arguments| {
             let enable = arguments[0].as_bool()?;
             let state = this.as_mut_state();
-            replace_and_set(state, ClientBuilder::new(), |builder| {
-                builder.cookie_store(enable)
-            });
-            Ok::<_, HttpClientError>(())
+            replace_and_set(state, |builder| builder.cookie_store(enable));
+            Ok::<_, HttpClientError>(this.duplicate())
         },
         vec![Argument::by_val("enable")],
     );
@@ -50,7 +48,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         Visibility::Public,
         |this, _arguments| {
             let state = this.as_mut_state();
-            let client = replace_and_get(state, ClientBuilder::new(), ClientBuilder::build)?;
+            let client = replace_and_get(state, ClientBuilder::build)?;
             let mut object = ClassEntry::<Option<Client>>::from_globals(HTTP_CLIENT_CLASS_NAME)?
                 .init_object()?;
             *object.as_mut_state() = Some(client);
@@ -63,7 +61,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
 }
 
 pub fn make_client_class() -> DynamicClass<Option<Client>> {
-    let mut class = DynamicClass::new_with_none(HTTP_CLIENT_CLASS_NAME);
+    let mut class = DynamicClass::new_with_default(HTTP_CLIENT_CLASS_NAME);
 
     class.add_method(
         "__construct",

@@ -1,6 +1,6 @@
-# logging
+# http-server
 
-Log example.
+Http server example.
 
 ## Environment
 
