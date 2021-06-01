@@ -10,7 +10,7 @@ use phper::{
     values::Val,
 };
 use std::{convert::Infallible, mem::replace, net::SocketAddr};
-use tokio::{runtime::Handle};
+use tokio::runtime::Handle;
 
 const HTTP_SERVER_CLASS_NAME: &'static str = "HttpServer\\HttpServer";
 
@@ -19,6 +19,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
 
     class.add_property("host", Visibility::Private, "127.0.0.1");
     class.add_property("port", Visibility::Private, 8080);
+    class.add_property("onRequestHandle", Visibility::Private, ());
 
     class.add_method(
         "__construct",
@@ -34,6 +35,16 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
             Ok::<_, HttpServerError>(())
         },
         vec![Argument::by_val("host"), Argument::by_val("port")],
+    );
+
+    class.add_method(
+        "onRequest",
+        Visibility::Public,
+        |this, arguments| {
+            this.set_property("onRequestHandle", Val::new(arguments[0].duplicate()?));
+            Ok::<_, phper::Error>(())
+        },
+        vec![Argument::by_val("handle")],
     );
 
     class.add_method(

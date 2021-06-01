@@ -4,7 +4,7 @@ use crate::{
     alloc::{EAllocatable, EBox},
     arrays::Array,
     classes::ClassEntry,
-    errors::{CallFunctionError, Throwable, TypeError},
+    errors::{CallFunctionError, NotRefCountedTypeError, Throwable, TypeError},
     functions::ZendFunction,
     objects::Object,
     strings::ZendString,
@@ -239,6 +239,21 @@ impl Val {
                 TypeError::new(message).into()
             }
             Err(e) => e.into(),
+        }
+    }
+
+    /// Only add refcount.
+    ///
+    /// TODO Make a reference type to wrap self.
+    pub fn duplicate(&mut self) -> Result<EBox<Self>, NotRefCountedTypeError> {
+        unsafe {
+            if !phper_z_refcounted_p(self.as_mut_ptr()) {
+                Err(NotRefCountedTypeError)
+            } else {
+                (*self.inner.value.counted).gc.refcount += 1;
+                let val = EBox::from_raw(self.as_mut_ptr().cast());
+                Ok(val)
+            }
         }
     }
 

@@ -1,10 +1,7 @@
 use crate::{errors::make_exception_class, server::make_server_class};
 use phper::{modules::Module, php_get_module};
-use std::{
-    mem::{forget},
-    sync::{Arc},
-};
-use tokio::{runtime};
+use std::{mem::forget, sync::Arc};
+use tokio::runtime;
 
 pub mod errors;
 pub mod server;
@@ -31,7 +28,7 @@ pub fn get_module() -> Module {
         true
     });
 
-    module.on_module_shutdown(move |_| false);
+    module.on_module_shutdown(move |_| true);
 
     module.add_class(make_exception_class());
     module.add_class(make_server_class());

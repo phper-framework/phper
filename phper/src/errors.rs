@@ -77,6 +77,10 @@ pub enum Error {
     #[error(transparent)]
     #[throwable(transparent)]
     InitializeObject(#[from] InitializeObjectError),
+
+    #[error(transparent)]
+    #[throwable(transparent)]
+    NotRefCountedType(#[from] NotRefCountedTypeError),
 }
 
 impl Error {
@@ -146,3 +150,9 @@ pub struct CallMethodError {
 pub struct InitializeObjectError {
     class_name: String,
 }
+
+#[derive(Debug, thiserror::Error, crate::Throwable)]
+#[error("the type is not refcounted")]
+#[throwable_class("TypeError")]
+#[throwable_crate]
+pub struct NotRefCountedTypeError;
