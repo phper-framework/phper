@@ -4,7 +4,7 @@ use crate::{
     alloc::{EAllocatable, EBox},
     arrays::Array,
     classes::ClassEntry,
-    errors::{CallFunctionError, Throwable, TypeError},
+    errors::{CallFunctionError, NotRefCountedTypeError, Throwable, TypeError},
     functions::ZendFunction,
     objects::Object,
     strings::ZendString,
@@ -242,12 +242,28 @@ impl Val {
         }
     }
 
+    /// Only add refcount.
+    ///
+    /// TODO Make a reference type to wrap self.
+    pub fn duplicate(&mut self) -> Result<EBox<Self>, NotRefCountedTypeError> {
+        unsafe {
+            if !phper_z_refcounted_p(self.as_mut_ptr()) {
+                Err(NotRefCountedTypeError)
+            } else {
+                (*self.inner.value.counted).gc.refcount += 1;
+                let val = EBox::from_raw(self.as_mut_ptr().cast());
+                Ok(val)
+            }
+        }
+    }
+
     /// Call only when self is a callable.
     ///
     /// # Errors
     ///
     /// Return Err when self is not callable.
-    pub fn call(&self, arguments: &[Val]) -> Result<EBox<Val>, CallFunctionError> {
+    pub fn call(&self, mut arguments: impl AsMut<[Val]>) -> Result<EBox<Val>, CallFunctionError> {
+        let arguments = arguments.as_mut();
         let mut ret = EBox::new(Val::null());
         unsafe {
             if phper_call_user_function(
@@ -256,7 +272,7 @@ impl Val {
                 self.as_ptr() as *mut _,
                 ret.as_mut_ptr(),
                 arguments.len() as u32,
-                arguments.as_ptr() as *const Val as *mut Val as *mut zval,
+                arguments.as_mut_ptr().cast(),
             ) && !ret.get_type().is_undef()
             {
                 Ok(ret)

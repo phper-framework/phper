@@ -10,6 +10,7 @@ members = [
     # internal
     "examples/hello",
     "examples/http-client",
+    "examples/http-server",
     "examples/logging",
     "tests/integration",
 ]

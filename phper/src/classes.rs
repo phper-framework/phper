@@ -57,12 +57,6 @@ impl<T: Default + Send + 'static> DynamicClass<T> {
     }
 }
 
-impl<T: Send + 'static> DynamicClass<Option<T>> {
-    pub fn new_with_none(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || None)
-    }
-}
-
 impl<T: Send + 'static> DynamicClass<T> {
     pub fn new_with_constructor(
         class_name: impl ToString,
@@ -125,7 +119,7 @@ impl<T: Send + 'static> DynamicClass<T> {
     ///
     /// The argument `value` should be `Copy` because 'zend_declare_property' receive only scalar
     /// zval , otherwise will report fatal error: "Internal zvals cannot be refcounted".
-    pub fn add_property<'a>(
+    pub fn add_property(
         &mut self,
         name: impl ToString,
         visibility: Visibility,
@@ -228,7 +222,7 @@ impl<T: 'static> ClassEntry<T> {
     }
 
     /// Create the object from class and call `__construct` with arguments.
-    pub fn new_object(&self, arguments: &mut [Val]) -> crate::Result<EBox<Object<T>>> {
+    pub fn new_object(&self, arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Object<T>>> {
         let mut object = self.init_object()?;
         object.call_construct(arguments)?;
         Ok(object)

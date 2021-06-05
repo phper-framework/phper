@@ -60,4 +60,6 @@ bool phper_zend_hash_index_exists(const HashTable *ht, zend_ulong h);
 
 void phper_zval_ptr_dtor_nogc(zval *zval_ptr);
 
+bool phper_z_refcounted_p(zval *zval_ptr);
+
 #endif //PHPER_PHP_WRAPPER_H

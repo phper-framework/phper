@@ -172,3 +172,7 @@ bool phper_zend_hash_index_exists(const HashTable *ht, zend_ulong h) {
 void phper_zval_ptr_dtor_nogc(zval *zval_ptr) {
     zval_ptr_dtor_nogc(zval_ptr);
 }
+
+bool phper_z_refcounted_p(zval *zval_ptr) {
+    return Z_REFCOUNTED_P(zval_ptr);
+}

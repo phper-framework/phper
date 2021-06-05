@@ -3,7 +3,7 @@
 use crate::{
     alloc::{EAllocatable, EBox},
     classes::ClassEntry,
-    errors::CallMethodError,
+    errors::{CallMethodError, NotRefCountedTypeError},
     functions::ZendFunction,
     sys::*,
     values::Val,
@@ -62,7 +62,22 @@ impl<T: 'static> Object<T> {
         eo.state.downcast_mut().unwrap()
     }
 
+    pub fn get_class(&self) -> &ClassEntry<T> {
+        ClassEntry::from_ptr(self.inner.ce)
+    }
+
     pub fn get_property(&self, name: impl AsRef<str>) -> &Val {
+        self.get_mut_property(name)
+    }
+
+    pub fn duplicate_property(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<EBox<Val>, NotRefCountedTypeError> {
+        self.get_mut_property(name).duplicate()
+    }
+
+    fn get_mut_property(&self, name: impl AsRef<str>) -> &mut Val {
         let name = name.as_ref();
 
         let prop = unsafe {
@@ -143,8 +158,14 @@ impl<T: 'static> Object<T> {
         }
     }
 
-    pub fn get_class(&self) -> &ClassEntry<T> {
-        ClassEntry::from_ptr(self.inner.ce)
+    /// Only add refcount.
+    ///
+    /// TODO Make a reference type to wrap self.
+    pub fn duplicate(&mut self) -> EBox<Self> {
+        unsafe {
+            self.inner.gc.refcount += 1;
+            EBox::from_raw(self.as_mut_ptr().cast())
+        }
     }
 
     /// Call the object method byn name.
@@ -184,7 +205,7 @@ impl<T: 'static> Object<T> {
         }
     }
 
-    pub(crate) fn call_construct(&mut self, arguments: &mut [Val]) -> crate::Result<bool> {
+    pub(crate) fn call_construct(&mut self, arguments: impl AsMut<[Val]>) -> crate::Result<bool> {
         unsafe {
             match (*self.inner.handlers).get_constructor {
                 Some(get_constructor) => {

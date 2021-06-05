@@ -238,9 +238,10 @@ impl ZendFunction {
     pub fn call_method<T: 'static>(
         &mut self,
         object: &mut Object<T>,
-        arguments: &mut [Val],
+        mut arguments: impl AsMut<[Val]>,
     ) -> crate::Result<EBox<Val>> {
         let mut ret_val = EBox::new(Val::undef());
+        let arguments = arguments.as_mut();
 
         let mut fci = zend_fcall_info {
             size: size_of::<zend_fcall_info>(),

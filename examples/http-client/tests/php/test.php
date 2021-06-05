@@ -8,13 +8,12 @@ ini_set("display_errors", "On");
 ini_set("display_startup_errors", "On");
 error_reporting(E_ALL);
 
-$client_builder = new HttpClientBuilder();
-$client_builder->timeout(15000);
-$client_builder->cookie_store(true);
-$client = $client_builder->build();
+$client = (new HttpClientBuilder())
+    ->timeout(15000)
+    ->cookie_store(true)
+    ->build();
 
-$request_builder = $client->get("https://httpbin.org/ip");
-$response = $request_builder->send();
+$response = $client->get("https://httpbin.org/ip")->send();
 var_dump([
     "status" => $response->status(),
     "headers" => $response->headers(),

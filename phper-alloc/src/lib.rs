@@ -81,3 +81,5 @@ impl<T: EAllocatable> Drop for EBox<T> {
         <T>::free(self.ptr);
     }
 }
+
+unsafe impl<T: EAllocatable> Send for EBox<T> {}
