@@ -222,7 +222,7 @@ impl<T: 'static> ClassEntry<T> {
     }
 
     /// Create the object from class and call `__construct` with arguments.
-    pub fn new_object(&self, arguments: &mut [Val]) -> crate::Result<EBox<Object<T>>> {
+    pub fn new_object(&self, arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Object<T>>> {
         let mut object = self.init_object()?;
         object.call_construct(arguments)?;
         Ok(object)

@@ -1,5 +1,4 @@
 use phper::{
-    alloc::EBox,
     arrays::Array,
     functions::{call, Argument},
     modules::Module,
@@ -22,8 +21,12 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_functions_call_callable",
-        |arguments: &mut [Val]| -> phper::Result<EBox<Val>> {
-            Ok(arguments[0].call(&arguments[1..])?)
+        |arguments: &mut [Val]| {
+            if let [head, tail @ ..] = arguments {
+                Ok::<_, phper::Error>(head.call(tail)?)
+            } else {
+                unreachable!()
+            }
         },
         vec![Argument::by_val("fn")],
     );

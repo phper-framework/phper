@@ -262,7 +262,8 @@ impl Val {
     /// # Errors
     ///
     /// Return Err when self is not callable.
-    pub fn call(&self, arguments: &[Val]) -> Result<EBox<Val>, CallFunctionError> {
+    pub fn call(&self, mut arguments: impl AsMut<[Val]>) -> Result<EBox<Val>, CallFunctionError> {
+        let arguments = arguments.as_mut();
         let mut ret = EBox::new(Val::null());
         unsafe {
             if phper_call_user_function(
@@ -271,7 +272,7 @@ impl Val {
                 self.as_ptr() as *mut _,
                 ret.as_mut_ptr(),
                 arguments.len() as u32,
-                arguments.as_ptr() as *const Val as *mut Val as *mut zval,
+                arguments.as_mut_ptr().cast(),
             ) && !ret.get_type().is_undef()
             {
                 Ok(ret)
