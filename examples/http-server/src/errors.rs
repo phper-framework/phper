@@ -1,3 +1,4 @@
+use hyper::header::{InvalidHeaderName, InvalidHeaderValue};
 use phper::classes::{ClassEntry, DynamicClass};
 use std::net::AddrParseError;
 
@@ -18,6 +19,12 @@ pub enum HttpServerError {
 
     #[error(transparent)]
     Hyper(#[from] hyper::Error),
+
+    #[error(transparent)]
+    InvalidHeaderName(#[from] InvalidHeaderName),
+
+    #[error(transparent)]
+    InvalidHeaderValue(#[from] InvalidHeaderValue),
 }
 
 pub fn make_exception_class() -> DynamicClass<()> {
