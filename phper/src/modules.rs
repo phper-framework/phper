@@ -10,7 +10,7 @@ use crate::{
     values::{SetVal, Val},
 };
 use std::{
-    mem::{replace, size_of, swap, zeroed},
+    mem::{replace, size_of, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     sync::atomic::{AtomicPtr, Ordering},

@@ -94,6 +94,7 @@ pub mod arrays;
 pub mod classes;
 pub mod cmd;
 pub mod errors;
+pub mod exceptions;
 pub mod functions;
 pub mod ini;
 pub mod modules;

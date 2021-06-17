@@ -3,6 +3,8 @@
 [![crates](https://img.shields.io/crates/v/phper?style=flat-square)](https://crates.io/crates/phper)
 [![docs](https://img.shields.io/docsrs/phper?style=flat-square)](https://docs.rs/phper)
 
+## Rust ❤️ PHP
+
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
 
 ## Requirement
@@ -69,7 +71,7 @@ cargo new myapp
 crate-type = ["cdylib"]
 
 [dependencies]
-phper = "0.2"
+phper = "0.3"
 ```
 
 4. Add these code to `main.rs`.
@@ -122,7 +124,7 @@ extension = myapp
 
 8. Enjoy.
 
-## examples
+## Examples
 
 See [examples](https://github.com/jmjoy/phper/tree/master/examples).
 

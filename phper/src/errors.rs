@@ -10,11 +10,11 @@ use anyhow::anyhow;
 use derive_more::Constructor;
 use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
-const ARGUMENT_COUNT_ERROR_CLASS: &'static str = (if PHP_VERSION_ID >= 70100 {
+const ARGUMENT_COUNT_ERROR_CLASS: &'static str = if PHP_VERSION_ID >= 70100 {
     "ArgumentCountError"
 } else {
     "TypeError"
-});
+};
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
 pub trait Throwable: error::Error {
@@ -134,16 +134,11 @@ pub struct ArgumentCountError {
 #[throwable_class("BadFunctionCallException")]
 pub struct CallFunctionError {
     fn_name: String,
-    exception: Option<Exception>,
 }
 
 impl CallFunctionError {
     pub fn fn_name(&self) -> &str {
         &self.fn_name
-    }
-
-    pub fn exception(&self) -> Option<&Exception> {
-        self.exception.as_ref()
     }
 }
 
@@ -166,25 +161,3 @@ pub struct InitializeObjectError {
 #[error("the type is not refcounted")]
 #[throwable_class("TypeError")]
 pub struct NotRefCountedTypeError;
-
-/// Mainly info for php Exception.
-#[derive(Debug, Constructor)]
-pub struct Exception {
-    class_name: String,
-    code: i64,
-    message: String,
-}
-
-impl Exception {
-    pub fn class_name(&self) -> &str {
-        &self.class_name
-    }
-
-    pub fn code(&self) -> i64 {
-        self.code
-    }
-
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-}

@@ -12,7 +12,7 @@ pub fn integrate(module: &mut Module) {
             let mut arr = Array::new();
             arr.insert("a", Val::new(1));
             arr.insert("b", Val::new(2));
-            let ret = call("array_sum", &mut [Val::new(arr)])?;
+            let ret = call("array_sum", &mut [Val::new(arr)])?.unwrap();
             assert_eq!(ret.as_long()?, 3);
             Ok(())
         },
@@ -23,7 +23,7 @@ pub fn integrate(module: &mut Module) {
         "integrate_functions_call_callable",
         |arguments: &mut [Val]| {
             if let [head, tail @ ..] = arguments {
-                Ok::<_, phper::Error>(head.call(tail)?)
+                Ok::<_, phper::Error>(head.call(tail)?.unwrap())
             } else {
                 unreachable!()
             }

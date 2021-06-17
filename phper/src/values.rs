@@ -4,10 +4,10 @@ use crate::{
     alloc::{EAllocatable, EBox},
     arrays::Array,
     classes::ClassEntry,
-    eg,
-    errors::{CallFunctionError, Exception, NotRefCountedTypeError, Throwable, TypeError},
-    functions::ZendFunction,
-    objects::{Object, StatelessObject},
+    errors::{NotRefCountedTypeError, Throwable, TypeError},
+    exceptions::Exception,
+    functions::{call_internal, ZendFunction},
+    objects::Object,
     strings::ZendString,
     sys::*,
     types::Type,
@@ -17,7 +17,6 @@ use indexmap::map::IndexMap;
 use std::{
     collections::{BTreeMap, HashMap},
     mem::{transmute, zeroed},
-    ptr::null_mut,
     str,
     str::Utf8Error,
 };
@@ -284,39 +283,11 @@ impl Val {
     /// # Errors
     ///
     /// Return Err when self is not callable.
-    pub fn call(&self, mut arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Val>> {
-        let arguments = arguments.as_mut();
-        let mut ret = EBox::new(Val::null());
-        unsafe {
-            if phper_call_user_function(
-                null_mut(),
-                null_mut(),
-                self.as_ptr() as *mut _,
-                ret.as_mut_ptr(),
-                arguments.len() as u32,
-                arguments.as_mut_ptr().cast(),
-            ) && !ret.get_type().is_undef()
-            {
-                Ok(ret)
-            } else {
-                let e = eg!(exception);
-                let exception = if e.is_null() {
-                    None
-                } else {
-                    let ex = StatelessObject::from_mut_ptr(e);
-                    eg!(exception) = null_mut();
-                    let class_name = ex.get_class().get_name().as_str()?.to_string();
-                    let code = ex.call("getCode", []).unwrap().as_long().unwrap();
-                    let message = ex.call("getMessage", []).unwrap().as_string().unwrap();
-                    eg!(exception) = e;
-                    Some(Exception::new(class_name, code, message))
-                };
-                unsafe {
-                    zend_clear_exception();
-                }
-                Err(CallFunctionError::new("{closure}".to_owned(), exception).into())
-            }
-        }
+    pub fn call(
+        &mut self,
+        arguments: impl AsMut<[Val]>,
+    ) -> crate::Result<Result<EBox<Val>, Exception>> {
+        call_internal(self, None, arguments)
     }
 
     unsafe fn drop_value(&mut self) {

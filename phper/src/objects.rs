@@ -3,8 +3,9 @@
 use crate::{
     alloc::{EAllocatable, EBox},
     classes::ClassEntry,
-    errors::{CallMethodError, NotRefCountedTypeError},
-    functions::ZendFunction,
+    errors::NotRefCountedTypeError,
+    exceptions::Exception,
+    functions::{call_internal, ZendFunction},
     sys::*,
     values::Val,
 };
@@ -168,7 +169,7 @@ impl<T: 'static> Object<T> {
         }
     }
 
-    /// Call the object method byn name.
+    /// Call the object method by name.
     ///
     /// # Examples
     ///
@@ -177,37 +178,22 @@ impl<T: 'static> Object<T> {
     ///
     /// fn example() -> phper::Result<EBox<Val>> {
     ///     let mut memcached = StatelessClassEntry::from_globals("Memcached")?.new_object(&mut [])?;
-    ///     memcached.call("addServer", &mut [Val::new("127.0.0.1"), Val::new(11211)])?;
-    ///     memcached.call("get", &mut [Val::new("hello")])
+    ///     memcached.call("addServer", &mut [Val::new("127.0.0.1"), Val::new(11211)])?.unwrap();
+    ///     let r = memcached.call("get", &mut [Val::new("hello")])?.unwrap();
+    ///     Ok(r)
     /// }
     /// ```
     pub fn call(
         &mut self,
         method_name: &str,
-        mut arguments: impl AsMut<[Val]>,
-    ) -> crate::Result<EBox<Val>> {
+        arguments: impl AsMut<[Val]>,
+    ) -> crate::Result<Result<EBox<Val>, Exception>> {
         let mut method = Val::new(method_name);
-        let mut ret = EBox::new(Val::null());
-        let arguments = arguments.as_mut();
 
         unsafe {
-            let mut object = std::mem::zeroed::<zval>();
-            phper_zval_obj(&mut object, self.as_mut_ptr());
-
-            if phper_call_user_function(
-                null_mut(),
-                &mut object,
-                method.as_mut_ptr(),
-                ret.as_mut_ptr(),
-                arguments.len() as u32,
-                arguments.as_mut_ptr().cast(),
-            ) && !ret.get_type().is_undef()
-            {
-                Ok(ret)
-            } else {
-                let class_name = self.get_class().get_name().as_str()?.to_owned();
-                Err(CallMethodError::new(class_name, method_name.to_owned()).into())
-            }
+            let mut val = Val::undef();
+            phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
+            call_internal(&mut method, Some(&mut val), arguments)
         }
     }
 

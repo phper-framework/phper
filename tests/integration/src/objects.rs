@@ -44,7 +44,7 @@ pub fn integrate(module: &mut Module) {
         |_: &mut [Val]| -> phper::Result<()> {
             let mut o = StatelessClassEntry::from_globals("Exception")?
                 .new_object(&mut [Val::new("What's happen?")])?;
-            let message = o.call("getMessage", &mut [])?;
+            let message = o.call("getMessage", &mut [])?.unwrap();
             assert_eq!(message.as_string()?, "What's happen?");
             Ok(())
         },

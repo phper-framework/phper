@@ -7,7 +7,8 @@ use crate::{
     cg,
     classes::Visibility,
     errors::{ArgumentCountError, CallFunctionError, CallMethodError},
-    objects::Object,
+    exceptions::Exception,
+    objects::{Object, StatelessObject},
     strings::ZendString,
     sys::*,
     utils::ensure_end_with_zero,
@@ -235,7 +236,8 @@ impl ZendFunction {
         }
     }
 
-    pub fn call_method<T: 'static>(
+    // TODO Refactor using `call_internal()`.
+    pub(crate) fn call_method<T: 'static>(
         &mut self,
         object: &mut Object<T>,
         mut arguments: impl AsMut<[Val]>,
@@ -413,47 +415,69 @@ pub(crate) const fn create_zend_arg_info(
 ///     Ok(())
 /// }
 /// ```
-pub fn call(fn_name: &str, arguments: &mut [Val]) -> crate::Result<EBox<Val>> {
+pub fn call(
+    fn_name: &str,
+    arguments: impl AsMut<[Val]>,
+) -> crate::Result<Result<EBox<Val>, Exception>> {
     let mut func = Val::new(fn_name);
-    let mut ret = EBox::new(Val::null());
-    unsafe {
-        if phper_call_user_function(
-            cg!(function_table),
-            null_mut(),
-            func.as_mut_ptr(),
-            ret.as_mut_ptr(),
-            arguments.len() as u32,
-            arguments.as_mut_ptr().cast(),
-        ) && !ret.get_type().is_undef()
-        {
-            Ok(ret)
-        } else {
-            Err(CallFunctionError::new(fn_name.to_owned(), None).into())
-        }
-    }
+    call_internal(&mut func, None, arguments)
 }
 
 pub(crate) fn call_internal(
-    fn_name: &str,
-    object: Option<&mut Val>,
+    func: &mut Val,
+    mut object: Option<&mut Val>,
     mut arguments: impl AsMut<[Val]>,
-) -> crate::Result<EBox<Val>> {
-    let mut func = Val::new(fn_name);
+) -> crate::Result<Result<EBox<Val>, Exception>> {
     let mut ret = EBox::new(Val::undef());
     let arguments = arguments.as_mut();
+
     unsafe {
         if phper_call_user_function(
             cg!(function_table),
-            object.map(Val::as_mut_ptr).unwrap_or(null_mut()),
+            object
+                .as_mut()
+                .map(|o| o.as_mut_ptr())
+                .unwrap_or(null_mut()),
             func.as_mut_ptr(),
             ret.as_mut_ptr(),
             arguments.len() as u32,
             arguments.as_mut_ptr().cast(),
         ) && !ret.get_type().is_undef()
         {
-            Ok(ret)
-        } else {
-            Err(CallFunctionError::new(fn_name.to_owned(), None).into())
+            return Ok(Ok(ret));
         }
+
+        let e = eg!(exception);
+        if e.is_null() {
+            let fn_name = if func.get_type().is_string() {
+                func.as_str().unwrap().to_owned()
+            } else {
+                "{closure}".to_owned()
+            };
+            return match object {
+                Some(object) => {
+                    let class_name = object
+                        .as_object()
+                        .unwrap()
+                        .get_class()
+                        .get_name()
+                        .as_str()?
+                        .to_owned();
+                    Err(CallMethodError::new(class_name, fn_name).into())
+                }
+                None => Err(CallFunctionError::new(fn_name).into()),
+            };
+        }
+
+        let ex = StatelessObject::from_mut_ptr(e);
+        eg!(exception) = null_mut();
+        let class_name = ex.get_class().get_name().as_str()?.to_string();
+        let code = ex.call("getCode", [])?.unwrap().as_long().unwrap();
+        let message = ex.call("getMessage", [])?.unwrap().as_string().unwrap();
+        eg!(exception) = e;
+
+        zend_clear_exception();
+
+        Ok(Err(Exception::new(class_name, code, message)))
     }
 }
