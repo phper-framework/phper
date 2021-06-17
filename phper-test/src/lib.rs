@@ -12,6 +12,7 @@ The `php-config` is needed. You can set environment `PHP_CONFIG` to specify the 
 
 use crate::context::Context;
 use std::{
+    panic::{catch_unwind, resume_unwind, UnwindSafe},
     path::Path,
     process::{Child, Output},
 };
@@ -93,13 +94,16 @@ pub fn test_php_scripts_with_condition(
 pub fn test_long_term_php_script_with_condition(
     exe_path: impl AsRef<Path>,
     script: impl AsRef<Path>,
-    condition: impl FnOnce(&Child),
+    condition: impl FnOnce(&Child) + UnwindSafe,
 ) {
     let context = Context::get_global();
     let lib_path = utils::get_lib_path(exe_path);
     let tmp_php_ini_file = context.create_tmp_php_ini_file(lib_path);
     let mut command = context.create_command_with_tmp_php_ini_args(&tmp_php_ini_file, script);
     let mut child = command.spawn().unwrap();
-    condition(&child);
+    let r = catch_unwind(|| condition(&child));
     child.kill().unwrap();
+    if let Err(e) = r {
+        resume_unwind(e);
+    }
 }

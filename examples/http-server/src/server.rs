@@ -5,11 +5,14 @@ use crate::{
 use hyper::{
     server::{conn::AddrIncoming, Builder},
     service::{make_service_fn, service_fn},
-    Body, Request, Response, Server,
+    Body, Request, Response, Server, StatusCode,
 };
 use phper::{
     classes::{ClassEntry, DynamicClass, StatelessClassEntry, Visibility},
+    eg,
+    errors::Error::CallFunction,
     functions::Argument,
+    objects::StatelessObject,
     values::Val,
 };
 use std::{convert::Infallible, mem::replace, net::SocketAddr, sync::Arc};
@@ -67,29 +70,53 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
                     Ok::<_, Infallible>(service_fn(move |_: Request<Body>| {
                         let handle = handle.clone();
                         async move {
-                            let handle = handle.lock().await;
+                            match async move {
+                                let handle = handle.lock().await;
 
-                            let request =
-                                StatelessClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)
-                                    .unwrap()
-                                    .new_object([])
-                                    .unwrap();
-                            let request = Val::new(request);
-                            let mut response = ClassEntry::<Response<Body>>::from_globals(
-                                HTTP_RESPONSE_CLASS_NAME,
-                            )
-                            .unwrap()
-                            .new_object([])
-                            .unwrap();
-                            let response_val = response.duplicate();
-                            let response_val = Val::new(response_val);
-                            handle
-                                .call([request, response_val])
-                                .map_err(phper::Error::CallFunction)
-                                .unwrap();
+                                let request =
+                                    StatelessClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?
+                                        .new_object([])?;
+                                let request = Val::new(request);
 
-                            let response = replace_and_get(response.as_mut_state());
-                            Ok::<Response<Body>, Infallible>(response)
+                                let mut response = ClassEntry::<Response<Body>>::from_globals(
+                                    HTTP_RESPONSE_CLASS_NAME,
+                                )?
+                                .new_object([])?;
+                                let response_val = response.duplicate();
+                                let response_val = Val::new(response_val);
+
+                                if let Err(e) = handle.call([request, response_val]) {
+                                    let mut message = e.to_string();
+                                    if let CallFunction(e) = e {
+                                        if let Some(exception) = e.exception() {
+                                            message += &format!(
+                                                ", exception: {}, code: {}, message: {}",
+                                                exception.class_name(),
+                                                exception.code(),
+                                                exception.message()
+                                            );
+                                        }
+                                        *response.as_mut_state().status_mut() =
+                                            StatusCode::INTERNAL_SERVER_ERROR;
+                                        *response.as_mut_state().body_mut() = message.into();
+                                    } else {
+                                        return Err(e.into());
+                                    }
+                                }
+
+                                let response = replace_and_get(response.as_mut_state());
+                                Ok::<Response<Body>, HttpServerError>(response)
+                            }
+                            .await
+                            {
+                                Ok(response) => Ok::<Response<Body>, Infallible>(response),
+                                Err(e) => {
+                                    let mut response = Response::new("".into());
+                                    *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                                    *response.body_mut() = e.to_string().into();
+                                    Ok::<Response<Body>, Infallible>(response)
+                                }
+                            }
                         }
                     }))
                 }

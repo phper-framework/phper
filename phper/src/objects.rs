@@ -181,9 +181,14 @@ impl<T: 'static> Object<T> {
     ///     memcached.call("get", &mut [Val::new("hello")])
     /// }
     /// ```
-    pub fn call(&mut self, method_name: &str, arguments: &mut [Val]) -> crate::Result<EBox<Val>> {
+    pub fn call(
+        &mut self,
+        method_name: &str,
+        mut arguments: impl AsMut<[Val]>,
+    ) -> crate::Result<EBox<Val>> {
         let mut method = Val::new(method_name);
         let mut ret = EBox::new(Val::null());
+        let arguments = arguments.as_mut();
 
         unsafe {
             let mut object = std::mem::zeroed::<zval>();
@@ -196,7 +201,8 @@ impl<T: 'static> Object<T> {
                 ret.as_mut_ptr(),
                 arguments.len() as u32,
                 arguments.as_mut_ptr().cast(),
-            ) {
+            ) && !ret.get_type().is_undef()
+            {
                 Ok(ret)
             } else {
                 let class_name = self.get_class().get_name().as_str()?.to_owned();

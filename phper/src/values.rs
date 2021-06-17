@@ -4,9 +4,10 @@ use crate::{
     alloc::{EAllocatable, EBox},
     arrays::Array,
     classes::ClassEntry,
-    errors::{CallFunctionError, NotRefCountedTypeError, Throwable, TypeError},
+    eg,
+    errors::{CallFunctionError, Exception, NotRefCountedTypeError, Throwable, TypeError},
     functions::ZendFunction,
-    objects::Object,
+    objects::{Object, StatelessObject},
     strings::ZendString,
     sys::*,
     types::Type,
@@ -79,6 +80,8 @@ impl ExecuteData {
 }
 
 /// Wrapper of [crate::sys::zval].
+///
+/// TODO Refactor `as_*`, to `to_*` or return reference.
 #[repr(transparent)]
 pub struct Val {
     inner: zval,
@@ -181,11 +184,30 @@ impl Val {
         }
     }
 
+    pub fn as_str(&self) -> crate::Result<&str> {
+        Ok(self.as_zend_string()?.as_str()?)
+    }
+
     pub fn as_string(&self) -> crate::Result<String> {
         if self.get_type().is_string() {
             unsafe {
                 let zs = ZendString::from_ptr(self.inner.value.str).unwrap();
                 Ok(zs.as_str()?.to_owned())
+            }
+        } else {
+            Err(self.must_be_type_error("string").into())
+        }
+    }
+
+    pub fn as_bytes(&self) -> crate::Result<&[u8]> {
+        Ok(self.as_zend_string()?.as_ref())
+    }
+
+    pub fn as_zend_string(&self) -> crate::Result<&ZendString> {
+        if self.get_type().is_string() {
+            unsafe {
+                let zs = ZendString::from_ptr(self.inner.value.str).unwrap();
+                Ok(zs)
             }
         } else {
             Err(self.must_be_type_error("string").into())
@@ -262,7 +284,7 @@ impl Val {
     /// # Errors
     ///
     /// Return Err when self is not callable.
-    pub fn call(&self, mut arguments: impl AsMut<[Val]>) -> Result<EBox<Val>, CallFunctionError> {
+    pub fn call(&self, mut arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Val>> {
         let arguments = arguments.as_mut();
         let mut ret = EBox::new(Val::null());
         unsafe {
@@ -277,7 +299,22 @@ impl Val {
             {
                 Ok(ret)
             } else {
-                Err(CallFunctionError::new("{closure}".to_owned()))
+                let e = eg!(exception);
+                let exception = if e.is_null() {
+                    None
+                } else {
+                    let ex = StatelessObject::from_mut_ptr(e);
+                    eg!(exception) = null_mut();
+                    let class_name = ex.get_class().get_name().as_str()?.to_string();
+                    let code = ex.call("getCode", []).unwrap().as_long().unwrap();
+                    let message = ex.call("getMessage", []).unwrap().as_string().unwrap();
+                    eg!(exception) = e;
+                    Some(Exception::new(class_name, code, message))
+                };
+                unsafe {
+                    zend_clear_exception();
+                }
+                Err(CallFunctionError::new("{closure}".to_owned(), exception).into())
             }
         }
     }

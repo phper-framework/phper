@@ -2,10 +2,9 @@
 //!
 //! TODO Add lambda.
 
-use std::{mem::zeroed, os::raw::c_char};
-
 use crate::{
     alloc::EBox,
+    cg,
     classes::Visibility,
     errors::{ArgumentCountError, CallFunctionError, CallMethodError},
     objects::Object,
@@ -16,7 +15,8 @@ use crate::{
 };
 use std::{
     marker::PhantomData,
-    mem::{forget, size_of},
+    mem::{forget, size_of, zeroed},
+    os::raw::c_char,
     ptr::null_mut,
 };
 
@@ -413,12 +413,12 @@ pub(crate) const fn create_zend_arg_info(
 ///     Ok(())
 /// }
 /// ```
-pub fn call(fn_name: &str, arguments: &mut [Val]) -> Result<EBox<Val>, CallFunctionError> {
+pub fn call(fn_name: &str, arguments: &mut [Val]) -> crate::Result<EBox<Val>> {
     let mut func = Val::new(fn_name);
     let mut ret = EBox::new(Val::null());
     unsafe {
         if phper_call_user_function(
-            compiler_globals.function_table,
+            cg!(function_table),
             null_mut(),
             func.as_mut_ptr(),
             ret.as_mut_ptr(),
@@ -428,7 +428,32 @@ pub fn call(fn_name: &str, arguments: &mut [Val]) -> Result<EBox<Val>, CallFunct
         {
             Ok(ret)
         } else {
-            Err(CallFunctionError::new(fn_name.to_owned()))
+            Err(CallFunctionError::new(fn_name.to_owned(), None).into())
+        }
+    }
+}
+
+pub(crate) fn call_internal(
+    fn_name: &str,
+    object: Option<&mut Val>,
+    mut arguments: impl AsMut<[Val]>,
+) -> crate::Result<EBox<Val>> {
+    let mut func = Val::new(fn_name);
+    let mut ret = EBox::new(Val::undef());
+    let arguments = arguments.as_mut();
+    unsafe {
+        if phper_call_user_function(
+            cg!(function_table),
+            object.map(Val::as_mut_ptr).unwrap_or(null_mut()),
+            func.as_mut_ptr(),
+            ret.as_mut_ptr(),
+            arguments.len() as u32,
+            arguments.as_mut_ptr().cast(),
+        ) && !ret.get_type().is_undef()
+        {
+            Ok(ret)
+        } else {
+            Err(CallFunctionError::new(fn_name.to_owned(), None).into())
         }
     }
 }

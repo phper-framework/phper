@@ -12,6 +12,7 @@ The proc-macros for [phper](https://crates.io/crates/phper).
 
 mod alloc;
 mod derives;
+mod globals;
 mod inner;
 mod log;
 mod utils;
@@ -91,8 +92,13 @@ pub fn php_get_module(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 ///
 /// TODO Support attribute `throwable` with `code` and `message`, integration tests.
-#[proc_macro_derive(Throwable, attributes(throwable, throwable_class, throwable_crate))]
+#[proc_macro_derive(Throwable, attributes(throwable, throwable_class))]
 pub fn derive_throwable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     derives::derive_throwable(input).unwrap_or_else(|e| e.into_compile_error().into())
 }
+
+// #[proc_macro]
+// pub fn eg(input: TokenStream) -> TokenStream {
+//     globals::eg(input)
+// }

@@ -9,14 +9,10 @@ pub(crate) fn derive_throwable(input: DeriveInput) -> syn::Result<TokenStream> {
     parse_throwable_input(&input, crate_ident, exception)
 }
 
-fn parse_throwable_crate_ident(input: &DeriveInput) -> TokenStream2 {
-    let has_throwable_crate = attributes_find_ident(&input.attrs, "throwable_crate");
-    let crate_ident = if has_throwable_crate.is_some() {
-        quote! { crate }
-    } else {
-        quote! { phper }
-    };
-    crate_ident
+/// For `phper` crate, using `use crate as foo;` in the mod.
+#[inline]
+fn parse_throwable_crate_ident(_input: &DeriveInput) -> TokenStream2 {
+    quote! { phper }
 }
 
 fn parse_throwable_attrs(input: &DeriveInput) -> syn::Result<TokenStream2> {

@@ -11,4 +11,5 @@ $server->onRequest(function ($request, $response) {
     $response->header('Content-Type', 'text/plain');
     $response->end("Hello World\n");
 });
+
 $server->start();

@@ -10,7 +10,7 @@ use crate::{
     values::{SetVal, Val},
 };
 use std::{
-    mem::{size_of, zeroed},
+    mem::{replace, size_of, swap, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     sync::atomic::{AtomicPtr, Ordering},
@@ -36,7 +36,8 @@ unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_in
             class_entity.init();
             class_entity.declare_properties();
         }
-        match &module.module_init {
+        let module_init = replace(&mut module.module_init, None);
+        match module_init {
             Some(f) => f(args) as c_int,
             None => 1,
         }
@@ -46,9 +47,12 @@ unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_in
 unsafe extern "C" fn module_shutdown(r#type: c_int, module_number: c_int) -> c_int {
     let args = ModuleContext::new(r#type, module_number);
     args.unregister_ini_entries();
-    read_global_module(|module| match &module.module_shutdown {
-        Some(f) => f(args) as c_int,
-        None => 1,
+    write_global_module(|module| {
+        let module_shutdown = replace(&mut module.module_shutdown, None);
+        match module_shutdown {
+            Some(f) => f(args) as c_int,
+            None => 1,
+        }
     })
 }
 
@@ -84,8 +88,8 @@ pub struct Module {
     name: String,
     version: String,
     author: String,
-    module_init: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
-    module_shutdown: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
+    module_init: Option<Box<dyn FnOnce(ModuleContext) -> bool + Send + Sync>>,
+    module_shutdown: Option<Box<dyn FnOnce(ModuleContext) -> bool + Send + Sync>>,
     request_init: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
     request_shutdown: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
     function_entities: Vec<FunctionEntity>,
@@ -107,13 +111,16 @@ impl Module {
         }
     }
 
-    pub fn on_module_init(&mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static) {
+    pub fn on_module_init(
+        &mut self,
+        func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
+    ) {
         self.module_init = Some(Box::new(func));
     }
 
     pub fn on_module_shutdown(
         &mut self,
-        func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
+        func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.module_shutdown = Some(Box::new(func));
     }

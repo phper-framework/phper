@@ -32,7 +32,10 @@ pub fn get_module() -> Module {
         forget(guard);
         true
     });
-    module.on_module_shutdown(move |_| true);
+    module.on_module_shutdown(move |_| {
+        drop(rt);
+        true
+    });
 
     module.add_class(make_exception_class());
     module.add_class(make_server_class());

@@ -67,3 +67,17 @@ macro_rules! deprecated {
         $crate::output::log($crate::output::LogLevel::Deprecated, std::format!($($arg)*))
     })
 }
+
+#[macro_export]
+macro_rules! cg {
+    ($x:ident) => {
+        $crate::sys::compiler_globals.$x
+    };
+}
+
+#[macro_export]
+macro_rules! eg {
+    ($x:ident) => {
+        $crate::sys::executor_globals.$x
+    };
+}

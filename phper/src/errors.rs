@@ -1,5 +1,6 @@
 //! The errors for crate and php.
 
+use crate as phper;
 use crate::{
     classes::{ClassEntry, StatelessClassEntry},
     sys::*,
@@ -8,6 +9,12 @@ use crate::{
 use anyhow::anyhow;
 use derive_more::Constructor;
 use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
+
+const ARGUMENT_COUNT_ERROR_CLASS: &'static str = (if PHP_VERSION_ID >= 70100 {
+    "ArgumentCountError"
+} else {
+    "TypeError"
+});
 
 /// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
 pub trait Throwable: error::Error {
@@ -36,7 +43,6 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 /// As a php exception, will throw `ErrorException` when the item not implement [Throwable].
 #[derive(thiserror::Error, crate::Throwable, Debug)]
 #[throwable_class("ErrorException")]
-#[throwable_crate]
 pub enum Error {
     #[error(transparent)]
     Io(#[from] io::Error),
@@ -94,7 +100,6 @@ impl Error {
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("type error: {message}")]
 #[throwable_class("TypeError")]
-#[throwable_crate]
 pub struct TypeError {
     message: String,
 }
@@ -102,7 +107,6 @@ pub struct TypeError {
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Class '{class_name}' not found")]
 #[throwable_class("Error")]
-#[throwable_crate]
 pub struct ClassNotFoundError {
     class_name: String,
 }
@@ -113,31 +117,39 @@ pub struct ClassNotFoundError {
 please confirm the real state type, or use StatelessClassEntry"
 )]
 #[throwable_class("Error")]
-#[throwable_crate]
 pub struct StateTypeError;
 
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("{function_name}(): expects at least {expect_count} parameter(s), {given_count} given")]
-#[throwable_class(if PHP_VERSION_ID >= 70100 { "ArgumentCountError" } else { "TypeError" })]
-#[throwable_crate]
+#[throwable_class(ARGUMENT_COUNT_ERROR_CLASS)]
 pub struct ArgumentCountError {
     function_name: String,
     expect_count: usize,
     given_count: usize,
 }
 
+/// TODO Merge CallMethodError.
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Invalid call to {fn_name}")]
 #[throwable_class("BadFunctionCallException")]
-#[throwable_crate]
 pub struct CallFunctionError {
     fn_name: String,
+    exception: Option<Exception>,
+}
+
+impl CallFunctionError {
+    pub fn fn_name(&self) -> &str {
+        &self.fn_name
+    }
+
+    pub fn exception(&self) -> Option<&Exception> {
+        self.exception.as_ref()
+    }
 }
 
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Invalid call to {class_name}::{method_name}")]
 #[throwable_class("BadMethodCallException")]
-#[throwable_crate]
 pub struct CallMethodError {
     class_name: String,
     method_name: String,
@@ -146,7 +158,6 @@ pub struct CallMethodError {
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
 #[error("Cannot instantiate class {class_name}")]
 #[throwable_class("Error")]
-#[throwable_crate]
 pub struct InitializeObjectError {
     class_name: String,
 }
@@ -154,5 +165,26 @@ pub struct InitializeObjectError {
 #[derive(Debug, thiserror::Error, crate::Throwable)]
 #[error("the type is not refcounted")]
 #[throwable_class("TypeError")]
-#[throwable_crate]
 pub struct NotRefCountedTypeError;
+
+/// Mainly info for php Exception.
+#[derive(Debug, Constructor)]
+pub struct Exception {
+    class_name: String,
+    code: i64,
+    message: String,
+}
+
+impl Exception {
+    pub fn class_name(&self) -> &str {
+        &self.class_name
+    }
+
+    pub fn code(&self) -> i64 {
+        self.code
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
