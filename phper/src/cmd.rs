@@ -64,6 +64,13 @@ fn get_lib_path_and_ext_name() -> crate::Result<(PathBuf, OsString)> {
         .parent()
         .context("failed to get current exe directory")?;
 
+    #[cfg(target_os = "linux")]
+    let ext = ".so";
+    #[cfg(target_os = "macos")]
+    let ext = ".dylib";
+    #[cfg(target_os = "windows")]
+    let ext = ".dll";
+
     let mut exe_name = OsString::new();
     exe_name.push("lib");
     let lib_stem = exe_stem
@@ -71,11 +78,11 @@ fn get_lib_path_and_ext_name() -> crate::Result<(PathBuf, OsString)> {
         .context("failed to generate target lib name")?
         .replace("-", "_");
     exe_name.push(lib_stem);
-    exe_name.push(".so");
+    exe_name.push(ext);
 
     let mut ext_name = OsString::new();
     ext_name.push(exe_stem);
-    ext_name.push(".so");
+    ext_name.push(ext);
 
     Ok((target_dir.join(exe_name), ext_name))
 }
