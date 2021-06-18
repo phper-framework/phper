@@ -1,7 +1,7 @@
 //! Logs and echo facilities.
 
 use crate::{sys::*, utils::ensure_end_with_zero};
-use std::ptr::null;
+use std::{convert::TryInto, ptr::null};
 
 #[repr(u32)]
 #[derive(Copy, Clone, PartialEq)]
@@ -29,7 +29,7 @@ pub fn echo(message: impl ToString) {
     unsafe {
         zend_write.expect("function zend_write can't be null")(
             message.as_ptr().cast(),
-            message.len() - 1,
+            (message.len() - 1).try_into().unwrap(),
         );
     }
 }

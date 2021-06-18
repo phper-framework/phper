@@ -4,7 +4,7 @@ use crate::{
     alloc::{EAllocatable, EBox},
     sys::*,
 };
-use std::{os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error};
+use std::{convert::TryInto, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error};
 
 /// Wrapper of [crate::sys::zend_string].
 #[repr(transparent)]
@@ -16,7 +16,12 @@ impl ZendString {
     pub fn new(s: impl AsRef<[u8]>) -> EBox<Self> {
         unsafe {
             let s = s.as_ref();
-            let ptr = phper_zend_string_init(s.as_ptr().cast(), s.len(), false.into()).cast();
+            let ptr = phper_zend_string_init(
+                s.as_ptr().cast(),
+                s.len().try_into().unwrap(),
+                false.into(),
+            )
+            .cast();
             EBox::from_raw(ptr)
         }
     }
@@ -48,7 +53,7 @@ impl AsRef<[u8]> for ZendString {
         unsafe {
             from_raw_parts(
                 &self.inner.val as *const c_char as *const u8,
-                self.inner.len,
+                self.inner.len.try_into().unwrap(),
             )
         }
     }

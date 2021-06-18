@@ -15,6 +15,7 @@ use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use std::{
     any::{Any, TypeId},
+    convert::TryInto,
     marker::PhantomData,
     mem::{forget, size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
@@ -264,7 +265,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
         phper_zend_hash_str_find_ptr(
             compiler_globals.class_table,
             name.as_ptr().cast(),
-            name.len(),
+            name.len().try_into().unwrap(),
         )
         .cast()
     }
@@ -290,7 +291,7 @@ impl ClassEntity {
     pub(crate) unsafe fn init(&mut self) {
         let mut class_ce = phper_init_class_entry_ex(
             self.name.as_ptr().cast(),
-            self.name.len(),
+            self.name.len().try_into().unwrap(),
             self.function_entries().load(Ordering::SeqCst).cast(),
         );
 
@@ -365,7 +366,7 @@ impl PropertyEntity {
 
     pub(crate) fn declare(&self, ce: *mut zend_class_entry) {
         let name = self.name.as_ptr().cast();
-        let name_length = self.name.len();
+        let name_length = self.name.len().try_into().unwrap();
         let access_type = self.visibility as u32 as i32;
 
         unsafe {
@@ -390,7 +391,7 @@ impl PropertyEntity {
                         name,
                         name_length,
                         s.as_ptr().cast(),
-                        s.len(),
+                        s.len().try_into().unwrap(),
                         access_type,
                     );
                 }
@@ -400,7 +401,7 @@ impl PropertyEntity {
                         name,
                         name_length,
                         b.as_ptr().cast(),
-                        b.len(),
+                        b.len().try_into().unwrap(),
                         access_type,
                     );
                 }
@@ -435,7 +436,7 @@ fn get_object_handlers() -> &'static zend_object_handlers {
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
     let extend_object: *mut ExtendObject =
-        phper_zend_object_alloc(size_of::<ExtendObject>(), ce).cast();
+        phper_zend_object_alloc(size_of::<ExtendObject>().try_into().unwrap(), ce).cast();
 
     // Common initialize process.
     let object = ExtendObject::as_mut_object(extend_object);

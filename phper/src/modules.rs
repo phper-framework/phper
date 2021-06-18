@@ -178,7 +178,7 @@ impl Module {
             request_shutdown_func: Some(request_shutdown),
             info_func: Some(module_info),
             version: null(),
-            globals_size: 0usize,
+            globals_size: 0,
             #[cfg(phper_zts)]
             globals_id_ptr: std::ptr::null_mut(),
             #[cfg(not(phper_zts))]

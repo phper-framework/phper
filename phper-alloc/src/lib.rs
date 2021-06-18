@@ -9,6 +9,7 @@ Alloc related items for [phper](https://crates.io/crates/phper).
 
 use phper_sys::*;
 use std::{
+    convert::TryInto,
     mem::{forget, size_of},
     ops::{Deref, DerefMut},
 };
@@ -41,7 +42,7 @@ impl<T: EAllocatable> EBox<T> {
     pub fn new(x: T) -> Self {
         unsafe {
             assert_ne!(size_of::<T>(), 0);
-            let ptr: *mut T = _emalloc(size_of::<T>()).cast();
+            let ptr: *mut T = _emalloc(size_of::<T>().try_into().unwrap()).cast();
             ptr.write(x);
             Self { ptr }
         }

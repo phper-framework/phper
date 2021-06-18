@@ -7,7 +7,7 @@ use crate::{
     values::Val,
 };
 use derive_more::From;
-use std::mem::zeroed;
+use std::{convert::TryInto, mem::zeroed};
 
 /// Key for [Array].
 #[derive(Debug, Clone, PartialEq, From)]
@@ -81,7 +81,7 @@ impl Array {
                     phper_zend_hash_str_update(
                         &mut self.inner,
                         s.as_ptr().cast(),
-                        s.len(),
+                        s.len().try_into().unwrap(),
                         EBox::into_raw(value).cast(),
                     );
                 }
@@ -95,7 +95,9 @@ impl Array {
         unsafe {
             let value = match key {
                 Key::Index(i) => zend_hash_index_find(&self.inner, i),
-                Key::Str(s) => zend_hash_str_find(&self.inner, s.as_ptr().cast(), s.len()),
+                Key::Str(s) => {
+                    zend_hash_str_find(&self.inner, s.as_ptr().cast(), s.len().try_into().unwrap())
+                }
             };
             if value.is_null() {
                 None
@@ -115,7 +117,11 @@ impl Array {
         unsafe {
             match key {
                 Key::Index(i) => phper_zend_hash_index_exists(&self.inner, i),
-                Key::Str(s) => phper_zend_hash_str_exists(&self.inner, s.as_ptr().cast(), s.len()),
+                Key::Str(s) => phper_zend_hash_str_exists(
+                    &self.inner,
+                    s.as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
             }
         }
     }
@@ -125,7 +131,11 @@ impl Array {
         unsafe {
             (match key {
                 Key::Index(i) => zend_hash_index_del(&mut self.inner, i),
-                Key::Str(s) => zend_hash_str_del(&mut self.inner, s.as_ptr().cast(), s.len()),
+                Key::Str(s) => zend_hash_str_del(
+                    &mut self.inner,
+                    s.as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
             }) == ZEND_RESULT_CODE_SUCCESS
         }
     }

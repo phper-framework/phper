@@ -15,6 +15,7 @@ use crate::{
 use indexmap::map::IndexMap;
 use std::{
     collections::{BTreeMap, HashMap},
+    convert::TryInto,
     mem::{transmute, zeroed},
     str,
     str::Utf8Error,
@@ -189,7 +190,7 @@ impl Val {
     pub fn as_string(&self) -> crate::Result<String> {
         if self.get_type().is_string() {
             unsafe {
-                let zs = ZendString::from_ptr(self.inner.value.str).unwrap();
+                let zs = ZendString::from_ptr(self.inner.value.str_).unwrap();
                 Ok(zs.as_str()?.to_owned())
             }
         } else {
@@ -204,7 +205,7 @@ impl Val {
     pub fn as_zend_string(&self) -> crate::Result<&ZendString> {
         if self.get_type().is_string() {
             unsafe {
-                let zs = ZendString::from_ptr(self.inner.value.str).unwrap();
+                let zs = ZendString::from_ptr(self.inner.value.str_).unwrap();
                 Ok(zs)
             }
         } else {
@@ -357,7 +358,11 @@ impl SetVal for f64 {
 
 impl SetVal for &str {
     unsafe fn set_val(self, val: &mut Val) {
-        phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
+        phper_zval_stringl(
+            val.as_mut_ptr(),
+            self.as_ptr().cast(),
+            self.len().try_into().unwrap(),
+        );
     }
 }
 
@@ -371,14 +376,22 @@ impl SetVal for String {
 impl SetVal for &[u8] {
     unsafe fn set_val(self, val: &mut Val) {
         // Because php string is binary safe, so can set `&[u8]` to php string.
-        phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
+        phper_zval_stringl(
+            val.as_mut_ptr(),
+            self.as_ptr().cast(),
+            self.len().try_into().unwrap(),
+        );
     }
 }
 
 impl<const N: usize> SetVal for &[u8; N] {
     unsafe fn set_val(self, val: &mut Val) {
         // Because php string is binary safe, so can set `&[u8; N]` to php string.
-        phper_zval_stringl(val.as_mut_ptr(), self.as_ptr().cast(), self.len());
+        phper_zval_stringl(
+            val.as_mut_ptr(),
+            self.as_ptr().cast(),
+            self.len().try_into().unwrap(),
+        );
     }
 }
 
@@ -437,7 +450,7 @@ where
         phper_zend_hash_str_update(
             (*val.as_mut_ptr()).value.arr,
             k.as_ptr().cast(),
-            k.len(),
+            k.len().try_into().unwrap(),
             EBox::into_raw(v).cast(),
         );
     }

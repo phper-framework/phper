@@ -15,6 +15,7 @@ use crate::{
     values::{ExecuteData, SetVal, Val},
 };
 use std::{
+    convert::TryInto,
     marker::PhantomData,
     mem::{forget, size_of, zeroed},
     os::raw::c_char,
@@ -263,7 +264,7 @@ impl ZendFunction {
         call_raw_common(
             |ret| unsafe {
                 let mut fci = zend_fcall_info {
-                    size: size_of::<zend_fcall_info>(),
+                    size: size_of::<zend_fcall_info>().try_into().unwrap(),
                     function_name: Val::undef().into_inner(),
                     retval: ret.as_mut_ptr(),
                     params: arguments.as_mut_ptr().cast(),

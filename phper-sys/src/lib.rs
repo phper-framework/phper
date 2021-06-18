@@ -2,6 +2,8 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+// TODO Because `bindgen` generates codes contains deref nullptr, temporary suppression.
+#![allow(deref_nullptr)]
 
 /*!
 Low level PHP binding for Rust.

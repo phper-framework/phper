@@ -10,6 +10,7 @@ use crate::{
 };
 use std::{
     any::Any,
+    convert::TryInto,
     marker::PhantomData,
     mem::{size_of, ManuallyDrop},
     ptr::null_mut,
@@ -87,7 +88,7 @@ impl<T: 'static> Object<T> {
                     self.inner.ce,
                     &self.inner as *const _ as *mut _,
                     name.as_ptr().cast(),
-                    name.len(),
+                    name.len().try_into().unwrap(),
                     true.into(),
                     null_mut(),
                 )
@@ -100,7 +101,7 @@ impl<T: 'static> Object<T> {
                     self.inner.ce,
                     &mut zv,
                     name.as_ptr().cast(),
-                    name.len(),
+                    name.len().try_into().unwrap(),
                     true.into(),
                     null_mut(),
                 )
@@ -120,7 +121,7 @@ impl<T: 'static> Object<T> {
                     self.inner.ce,
                     &mut self.inner,
                     name.as_ptr().cast(),
-                    name.len(),
+                    name.len().try_into().unwrap(),
                     EBox::into_raw(val).cast(),
                 )
             }
@@ -132,7 +133,7 @@ impl<T: 'static> Object<T> {
                     self.inner.ce,
                     &mut zv,
                     name.as_ptr().cast(),
-                    name.len(),
+                    name.len().try_into().unwrap(),
                     EBox::into_raw(val).cast(),
                 )
             }
