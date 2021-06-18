@@ -4,7 +4,6 @@ use crate::{
     alloc::{EAllocatable, EBox},
     classes::ClassEntry,
     errors::NotRefCountedTypeError,
-    exceptions::Exception,
     functions::{call_internal, ZendFunction},
     sys::*,
     values::Val,
@@ -177,9 +176,10 @@ impl<T: 'static> Object<T> {
     /// use phper::{alloc::EBox, classes::StatelessClassEntry, values::Val};
     ///
     /// fn example() -> phper::Result<EBox<Val>> {
-    ///     let mut memcached = StatelessClassEntry::from_globals("Memcached")?.new_object(&mut [])?;
-    ///     memcached.call("addServer", &mut [Val::new("127.0.0.1"), Val::new(11211)])?.unwrap();
-    ///     let r = memcached.call("get", &mut [Val::new("hello")])?.unwrap();
+    ///     let mut memcached = StatelessClassEntry::from_globals("Memcached")?
+    ///         .new_object(&mut [])?;
+    ///     memcached.call("addServer", &mut [Val::new("127.0.0.1"), Val::new(11211)])?;
+    ///     let r = memcached.call("get", &mut [Val::new("hello")])?;
     ///     Ok(r)
     /// }
     /// ```
@@ -187,26 +187,27 @@ impl<T: 'static> Object<T> {
         &mut self,
         method_name: &str,
         arguments: impl AsMut<[Val]>,
-    ) -> crate::Result<Result<EBox<Val>, Exception>> {
+    ) -> crate::Result<EBox<Val>> {
         let mut method = Val::new(method_name);
 
         unsafe {
             let mut val = Val::undef();
             phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
-            call_internal(&mut method, Some(&mut val), arguments)
+            call_internal(&mut method, Some(self), arguments)
         }
     }
 
+    /// Return bool represents whether the constructor exists.
     pub(crate) fn call_construct(&mut self, arguments: impl AsMut<[Val]>) -> crate::Result<bool> {
         unsafe {
             match (*self.inner.handlers).get_constructor {
                 Some(get_constructor) => {
-                    let f = get_constructor(self.as_ptr() as *mut _);
+                    let f = get_constructor(self.as_mut_ptr());
                     if f.is_null() {
                         Ok(false)
                     } else {
                         let zend_fn = ZendFunction::from_mut_ptr(f);
-                        zend_fn.call_method(self, arguments)?;
+                        zend_fn.call(Some(self), arguments)?;
                         Ok(true)
                     }
                 }

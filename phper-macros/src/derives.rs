@@ -90,7 +90,7 @@ fn parse_throwable_input(
                         }
                     }
 
-                    fn code(&self) -> u64 {
+                    fn code(&self) -> i64 {
                         match self {
                             #(#code_arms)*
                         }

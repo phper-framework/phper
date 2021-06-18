@@ -3,6 +3,7 @@
 use crate as phper;
 use crate::{
     classes::{ClassEntry, StatelessClassEntry},
+    exceptions::Exception,
     sys::*,
     Error::Other,
 };
@@ -20,7 +21,7 @@ const ARGUMENT_COUNT_ERROR_CLASS: &'static str = if PHP_VERSION_ID >= 70100 {
 pub trait Throwable: error::Error {
     fn class_entry(&self) -> &StatelessClassEntry;
 
-    fn code(&self) -> u64 {
+    fn code(&self) -> i64 {
         0
     }
 
@@ -55,6 +56,10 @@ pub enum Error {
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+
+    #[error(transparent)]
+    #[throwable(transparent)]
+    Throw(#[from] Exception),
 
     #[error(transparent)]
     #[throwable(transparent)]

@@ -5,9 +5,8 @@ use crate::{
     arrays::Array,
     classes::ClassEntry,
     errors::{NotRefCountedTypeError, Throwable, TypeError},
-    exceptions::Exception,
     functions::{call_internal, ZendFunction},
-    objects::Object,
+    objects::{Object, StatelessObject},
     strings::ZendString,
     sys::*,
     types::Type,
@@ -283,11 +282,9 @@ impl Val {
     /// # Errors
     ///
     /// Return Err when self is not callable.
-    pub fn call(
-        &mut self,
-        arguments: impl AsMut<[Val]>,
-    ) -> crate::Result<Result<EBox<Val>, Exception>> {
-        call_internal(self, None, arguments)
+    pub fn call(&mut self, arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Val>> {
+        let none: Option<&mut StatelessObject> = None;
+        call_internal(self, none, arguments)
     }
 
     unsafe fn drop_value(&mut self) {

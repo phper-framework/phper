@@ -1,6 +1,8 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 
 /*!
+## Rust ❤️ PHP
+
 A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
 
 ## Usage
@@ -25,7 +27,7 @@ cargo new myapp
 crate-type = ["cdylib"]
 
 [dependencies]
-phper = "0.2"
+phper = "0.3"
 ```
 
 4. Add these code to `main.rs`.

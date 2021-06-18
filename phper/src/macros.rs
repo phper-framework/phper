@@ -68,6 +68,7 @@ macro_rules! deprecated {
     })
 }
 
+/// Equivalent to the php `CG`.
 #[macro_export]
 macro_rules! cg {
     ($x:ident) => {
@@ -75,6 +76,7 @@ macro_rules! cg {
     };
 }
 
+/// Equivalent to the php `EG`.
 #[macro_export]
 macro_rules! eg {
     ($x:ident) => {

@@ -9,6 +9,7 @@ use hyper::{
 };
 use phper::{
     classes::{ClassEntry, DynamicClass, StatelessClassEntry, Visibility},
+    errors::Error::Throw,
     functions::Argument,
     values::Val,
 };
@@ -82,10 +83,14 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
                                 let response_val = response.duplicate();
                                 let response_val = Val::new(response_val);
 
-                                if let Err(e) = handle.call([request, response_val])? {
-                                    *response.as_mut_state().status_mut() =
-                                        StatusCode::INTERNAL_SERVER_ERROR;
-                                    *response.as_mut_state().body_mut() = e.to_string().into();
+                                match handle.call([request, response_val]) {
+                                    Err(Throw(ex)) => {
+                                        *response.as_mut_state().status_mut() =
+                                            StatusCode::INTERNAL_SERVER_ERROR;
+                                        *response.as_mut_state().body_mut() = ex.to_string().into();
+                                    }
+                                    Err(e) => Err(e)?,
+                                    _ => {}
                                 }
 
                                 let response = replace_and_get(response.as_mut_state());

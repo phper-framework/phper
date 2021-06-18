@@ -236,69 +236,70 @@ impl ZendFunction {
         }
     }
 
-    // TODO Refactor using `call_internal()`.
-    pub(crate) fn call_method<T: 'static>(
+    pub(crate) fn call<T: 'static>(
         &mut self,
-        object: &mut Object<T>,
+        mut object: Option<&mut Object<T>>,
         mut arguments: impl AsMut<[Val]>,
     ) -> crate::Result<EBox<Val>> {
-        let mut ret_val = EBox::new(Val::undef());
         let arguments = arguments.as_mut();
+        let function_handler = self.as_mut_ptr();
 
-        let mut fci = zend_fcall_info {
-            size: size_of::<zend_fcall_info>(),
-            function_name: Val::undef().into_inner(),
-            retval: ret_val.as_mut_ptr(),
-            params: arguments.as_mut_ptr().cast(),
-            object: object.as_mut_ptr(),
-            param_count: arguments.len() as u32,
-            #[cfg(phper_major_version = "8")]
-            named_params: null_mut(),
-            #[cfg(phper_major_version = "7")]
-            no_separation: 1,
-            #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
-            function_table: null_mut(),
-            #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
-            symbol_table: null_mut(),
-        };
+        let object_ptr = object
+            .as_mut()
+            .map(|o| o.as_mut_ptr())
+            .unwrap_or(null_mut());
 
         let called_scope = unsafe {
-            let mut called_scope = object.get_class().as_ptr() as *mut zend_class_entry;
+            let mut called_scope = object
+                .as_mut()
+                .map(|o| o.get_class().as_ptr() as *mut zend_class_entry)
+                .unwrap_or(null_mut());
             if called_scope.is_null() {
                 called_scope = self.inner.common.scope;
             }
             called_scope
         };
 
-        let mut fcc = zend_fcall_info_cache {
-            function_handler: self.as_mut_ptr(),
-            calling_scope: null_mut(),
-            called_scope,
-            object: object.as_mut_ptr(),
-            #[cfg(all(
-                phper_major_version = "7",
-                any(
-                    phper_minor_version = "0",
-                    phper_minor_version = "1",
-                    phper_minor_version = "2",
-                )
-            ))]
-            initialized: 1,
-        };
+        call_raw_common(
+            |ret| unsafe {
+                let mut fci = zend_fcall_info {
+                    size: size_of::<zend_fcall_info>(),
+                    function_name: Val::undef().into_inner(),
+                    retval: ret.as_mut_ptr(),
+                    params: arguments.as_mut_ptr().cast(),
+                    object: object_ptr,
+                    param_count: arguments.len() as u32,
+                    #[cfg(phper_major_version = "8")]
+                    named_params: null_mut(),
+                    #[cfg(phper_major_version = "7")]
+                    no_separation: 1,
+                    #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
+                    function_table: null_mut(),
+                    #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
+                    symbol_table: null_mut(),
+                };
 
-        unsafe {
-            if zend_call_function(&mut fci, &mut fcc) != ZEND_RESULT_CODE_SUCCESS
-                || ret_val.get_type().is_undef()
-            {
-                Err(CallMethodError::new(
-                    object.get_class().get_name().as_str()?.to_owned(),
-                    self.get_name().as_str()?.to_owned(),
-                )
-                .into())
-            } else {
-                Ok(ret_val)
-            }
-        }
+                let mut fcc = zend_fcall_info_cache {
+                    function_handler,
+                    calling_scope: null_mut(),
+                    called_scope,
+                    object: object_ptr,
+                    #[cfg(all(
+                        phper_major_version = "7",
+                        any(
+                            phper_minor_version = "0",
+                            phper_minor_version = "1",
+                            phper_minor_version = "2",
+                        )
+                    ))]
+                    initialized: 1,
+                };
+
+                zend_call_function(&mut fci, &mut fcc) == ZEND_RESULT_CODE_SUCCESS
+            },
+            || Ok(self.get_name().as_str()?.to_owned()),
+            object,
+        )
     }
 }
 
@@ -351,6 +352,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 
     // Do not call the drop method, because there is the `zend_vm_stack_free_args` call after
     // executing function.
+    // TODO remove after arguments become reference.
     for argument in arguments {
         forget(argument);
     }
@@ -406,7 +408,7 @@ pub(crate) const fn create_zend_arg_info(
 /// ```
 /// use phper::{arrays::Array, functions::call, values::Val};
 ///
-/// fn example() -> phper::Result<()> {
+/// fn json_encode() -> phper::Result<()> {
 ///     let mut arr = Array::new();
 ///     arr.insert("a", Val::new(1));
 ///     arr.insert("b", Val::new(2));
@@ -415,54 +417,71 @@ pub(crate) const fn create_zend_arg_info(
 ///     Ok(())
 /// }
 /// ```
-pub fn call(
-    fn_name: &str,
-    arguments: impl AsMut<[Val]>,
-) -> crate::Result<Result<EBox<Val>, Exception>> {
+pub fn call(fn_name: &str, arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Val>> {
     let mut func = Val::new(fn_name);
-    call_internal(&mut func, None, arguments)
+    let none: Option<&mut StatelessObject> = None;
+    call_internal(&mut func, none, arguments)
 }
 
-pub(crate) fn call_internal(
+pub(crate) fn call_internal<T: 'static>(
     func: &mut Val,
-    mut object: Option<&mut Val>,
+    mut object: Option<&mut Object<T>>,
     mut arguments: impl AsMut<[Val]>,
-) -> crate::Result<Result<EBox<Val>, Exception>> {
-    let mut ret = EBox::new(Val::undef());
+) -> crate::Result<EBox<Val>> {
+    let func_ptr = func.as_mut_ptr();
     let arguments = arguments.as_mut();
 
-    unsafe {
-        if phper_call_user_function(
-            cg!(function_table),
-            object
-                .as_mut()
-                .map(|o| o.as_mut_ptr())
-                .unwrap_or(null_mut()),
-            func.as_mut_ptr(),
-            ret.as_mut_ptr(),
-            arguments.len() as u32,
-            arguments.as_mut_ptr().cast(),
-        ) && !ret.get_type().is_undef()
-        {
-            return Ok(Ok(ret));
-        }
+    let mut object_val = Val::undef();
+    let mut object_val = object.as_mut().map(|o| unsafe {
+        phper_zval_obj(object_val.as_mut_ptr(), o.as_mut_ptr());
+        &mut object_val
+    });
 
-        let e = eg!(exception);
-        if e.is_null() {
-            let fn_name = if func.get_type().is_string() {
-                func.as_str().unwrap().to_owned()
+    call_raw_common(
+        |ret| unsafe {
+            phper_call_user_function(
+                cg!(function_table),
+                object_val
+                    .as_mut()
+                    .map(|o| o.as_mut_ptr())
+                    .unwrap_or(null_mut()),
+                func_ptr,
+                ret.as_mut_ptr(),
+                arguments.len() as u32,
+                arguments.as_mut_ptr().cast(),
+            )
+        },
+        || {
+            Ok(if func.get_type().is_string() {
+                func.as_str()?.to_owned()
             } else {
                 "{closure}".to_owned()
-            };
+            })
+        },
+        object,
+    )
+}
+
+/// call function with raw pointer.
+/// call_fn parameters: (return_value)
+pub(crate) fn call_raw_common<T: 'static>(
+    call_fn: impl FnOnce(&mut Val) -> bool,
+    name_fn: impl FnOnce() -> crate::Result<String>,
+    object: Option<&mut Object<T>>,
+) -> crate::Result<EBox<Val>> {
+    let mut ret = EBox::new(Val::undef());
+
+    if call_fn(&mut ret) && !ret.get_type().is_undef() {
+        return Ok(ret);
+    }
+
+    unsafe {
+        let e = eg!(exception);
+        if e.is_null() {
+            let fn_name = name_fn()?;
             return match object {
                 Some(object) => {
-                    let class_name = object
-                        .as_object()
-                        .unwrap()
-                        .get_class()
-                        .get_name()
-                        .as_str()?
-                        .to_owned();
+                    let class_name = object.get_class().get_name().as_str()?.to_owned();
                     Err(CallMethodError::new(class_name, fn_name).into())
                 }
                 None => Err(CallFunctionError::new(fn_name).into()),
@@ -472,12 +491,14 @@ pub(crate) fn call_internal(
         let ex = StatelessObject::from_mut_ptr(e);
         eg!(exception) = null_mut();
         let class_name = ex.get_class().get_name().as_str()?.to_string();
-        let code = ex.call("getCode", [])?.unwrap().as_long().unwrap();
-        let message = ex.call("getMessage", [])?.unwrap().as_string().unwrap();
+        let code = ex.call("getCode", [])?.as_long().unwrap();
+        let message = ex.call("getMessage", [])?.as_string().unwrap();
+        let file = ex.call("getFile", [])?.as_string().unwrap();
+        let line = ex.call("getLine", [])?.as_long().unwrap();
         eg!(exception) = e;
 
         zend_clear_exception();
 
-        Ok(Err(Exception::new(class_name, code, message)))
+        Err(Exception::new(class_name, code, message, file, line).into())
     }
 }

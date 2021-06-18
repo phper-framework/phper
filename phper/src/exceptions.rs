@@ -1,4 +1,4 @@
-use crate::{classes::StatelessClassEntry, sys::*};
+use crate::{classes::StatelessClassEntry, errors::Throwable, sys::*};
 use derive_more::Constructor;
 
 #[inline]
@@ -12,15 +12,14 @@ pub fn exception_class<'a>() -> &'a StatelessClassEntry {
 }
 
 /// Mainly info for php Exception.
-/// TODO Add file and line.
 #[derive(Debug, thiserror::Error, Constructor)]
-#[error("Uncaught {class_name}: {message} in ?:?")]
+#[error("Uncaught {class_name}: {message} in {file}:{line}")]
 pub struct Exception {
     class_name: String,
     code: i64,
     message: String,
-    // file: String,
-    // line: i64,
+    file: String,
+    line: i64,
 }
 
 impl Exception {
@@ -28,11 +27,25 @@ impl Exception {
         &self.class_name
     }
 
-    pub fn code(&self) -> i64 {
+    pub fn file(&self) -> &str {
+        &self.file
+    }
+
+    pub fn line(&self) -> i64 {
+        self.line
+    }
+}
+
+impl Throwable for Exception {
+    fn class_entry(&self) -> &StatelessClassEntry {
+        StatelessClassEntry::from_globals(&self.class_name).unwrap()
+    }
+
+    fn code(&self) -> i64 {
         self.code
     }
 
-    pub fn message(&self) -> &str {
-        &self.message
+    fn message(&self) -> String {
+        self.message.clone()
     }
 }
