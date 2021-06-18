@@ -9,5 +9,5 @@ license = "Unlicense"
 keywords = ["php", "binding"]
 
 [build-dependencies]
-bindgen = "0.52.0"
+bindgen = "0.58.1"
 cc = "1.0.61"
