@@ -83,6 +83,9 @@ jobs:
 
       - name: Cargo doc
         uses: actions-rs/cargo@v1
+        env:
+          RUSTDOCFLAGS: "-D warnings --cfg docsrs"
         with:
-          toolchain: stable
+          toolchain: nightly
           command: doc
+          args: --workspace --no-deps --all-features

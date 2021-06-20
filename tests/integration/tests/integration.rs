@@ -1,8 +1,8 @@
-use phper_test::test_php_scripts;
+use phper_test::{cli::test_php_scripts, fpm::test_fpm_request};
 use std::{env, path::Path};
 
 #[test]
-fn test_php() {
+fn test_cli() {
     let tests_php_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
         .join("php");
@@ -19,4 +19,9 @@ fn test_php() {
             &tests_php_dir.join("values.php"),
         ],
     );
+}
+
+#[test]
+fn test_fpm() {
+    test_fpm_request("GET", "/tmp", "/index.php", None, None);
 }

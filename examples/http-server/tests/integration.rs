@@ -1,5 +1,5 @@
 use hyper::header::CONTENT_TYPE;
-use phper_test::test_long_term_php_script_with_condition;
+use phper_test::cli::test_long_term_php_script_with_condition;
 use reqwest::Client;
 use std::{env, path::Path, thread::sleep, time::Duration};
 use tokio::runtime;

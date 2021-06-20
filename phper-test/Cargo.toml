@@ -10,6 +10,13 @@ keywords = ["php", "binding"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+fpm = ["fastcgi-client", "tokio/full"]
+
 [dependencies]
+fastcgi-client = { version = "0.6.1", optional = true }
+libc = "0.2.97"
 once_cell = "1.5.2"
+phper-macros = { version = "0.3.0", path = "../phper-macros" }
 tempfile = "3.1.0"
+tokio = { version = "1.7.0", featuers = ["full"], optional = true }
