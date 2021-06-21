@@ -1,26 +1,42 @@
 //! Test tools for php fpm program.
 //!
-use crate::context::Context;
+use crate::{context::Context, utils, utils::spawn_command};
 use fastcgi_client::{Client, Params, Request};
 use libc::{atexit, kill, pid_t, SIGTERM};
 use once_cell::sync::OnceCell;
 use std::{
     cell::RefCell,
-    mem::forget,
-    path::Path,
+    mem::{forget, ManuallyDrop},
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::Mutex,
     thread,
     thread::sleep,
     time::Duration,
 };
-use tokio::{io, io::AsyncRead, net::TcpStream, runtime::Handle, task::block_in_place};
+use tempfile::NamedTempFile;
+use tokio::{
+    io,
+    io::AsyncRead,
+    net::TcpStream,
+    runtime::{EnterGuard, Handle, Runtime},
+    task::block_in_place,
+};
 
-static FPM_COMMAND: OnceCell<Child> = OnceCell::new();
+static FPM_HANDLE: OnceCell<Mutex<FpmHandle>> = OnceCell::new();
+
+struct FpmHandle {
+    exe_path: PathBuf,
+    fpm_child: Child,
+    php_ini_file: ManuallyDrop<NamedTempFile>,
+    fpm_conf_file: ManuallyDrop<NamedTempFile>,
+}
 
 /// Start php-fpm process and tokio runtime.
-fn setup() {
-    FPM_COMMAND.get_or_init(|| {
+pub fn setup(exe_path: impl AsRef<Path>) {
+    let exe_path = exe_path.as_ref();
+
+    let handle = FPM_HANDLE.get_or_init(|| {
         // shutdown hook.
         unsafe {
             atexit(teardown);
@@ -38,27 +54,41 @@ fn setup() {
 
         // Run php-fpm.
         let context = Context::get_global();
+        let lib_path = utils::get_lib_path(exe_path);
         let php_fpm = context.find_php_fpm().unwrap();
-        let mut cmd = Command::new(php_fpm);
-        // TODO add php-fpm config and php.ini.
-        let child = cmd
-            .args(&["-F"])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("start php-fpm");
+        let php_ini_file = context.create_tmp_php_ini_file(&lib_path);
+        let fpm_conf_file = context.create_tmp_fpm_conf_file();
 
-        // Sleep 3 seconds to wait php-fpm running.
-        thread::sleep(Duration::from_secs(3));
+        let argv = [
+            &*php_fpm,
+            "-F",
+            "-n",
+            "-c",
+            php_ini_file.path().to_str().unwrap(),
+            "-y",
+            fpm_conf_file.path().to_str().unwrap(),
+        ];
+        let child = spawn_command(&argv, Some(Duration::from_secs(3)));
 
-        child
+        Mutex::new(FpmHandle {
+            exe_path: exe_path.into(),
+            fpm_child: child,
+            php_ini_file: ManuallyDrop::new(php_ini_file),
+            fpm_conf_file: ManuallyDrop::new(fpm_conf_file),
+        })
     });
+
+    assert_eq!(&handle.lock().unwrap().exe_path, exe_path);
 }
 
 extern "C" fn teardown() {
-    let id = FPM_COMMAND.get().unwrap().id();
+    let mut fpm_handle = FPM_HANDLE.get().unwrap().lock().unwrap();
+
     unsafe {
+        ManuallyDrop::drop(&mut fpm_handle.php_ini_file);
+        ManuallyDrop::drop(&mut fpm_handle.fpm_conf_file);
+
+        let id = fpm_handle.fpm_child.id();
         kill(id as pid_t, SIGTERM);
     }
 }
@@ -71,7 +101,7 @@ pub fn test_fpm_request(
     content_type: Option<String>,
     body: Option<Vec<u8>>,
 ) {
-    setup();
+    assert!(FPM_HANDLE.get().is_some(), "must call `setup()` first");
 
     block_in_place(move || {
         Handle::current().block_on(async move {
@@ -118,8 +148,31 @@ pub fn test_fpm_request(
             };
 
             let output = response.unwrap();
-            let stdout = String::from_utf8(output.get_stdout().unwrap()).unwrap();
-            dbg!(stdout);
+            let stdout = output.get_stdout().unwrap_or_default();
+            let stderr = output.get_stderr().unwrap_or_default();
+
+            let no_error = stderr.is_empty();
+
+            let f = |out: Vec<u8>| {
+                String::from_utf8(out)
+                    .map(|out| {
+                        if out.is_empty() {
+                            "<empty>".to_owned()
+                        } else {
+                            out
+                        }
+                    })
+                    .unwrap_or_else(|_| "<not utf8 string>".to_owned())
+            };
+
+            println!(
+                "===== request =====\n{}\n===== stdout ======\n{}\n===== stderr ======\n{}",
+                request_uri,
+                f(stdout),
+                f(stderr),
+            );
+
+            assert!(no_error, "request not success: {}", request_uri);
         });
     });
 }

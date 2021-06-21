@@ -41,7 +41,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 *sapi*
 
 - [x] cli
-- [ ] fpm
+- [x] fpm
 
 *debug*
 

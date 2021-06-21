@@ -101,6 +101,16 @@ impl Context {
                 p.as_path().to_str().map(|s| s.to_string())
             })
     }
+
+    #[cfg(feature = "fpm")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "fpm")))]
+    pub fn create_tmp_fpm_conf_file(&self) -> NamedTempFile {
+        let mut tmp = NamedTempFile::new().unwrap();
+        let file = tmp.as_file_mut();
+        file.write_all(include_bytes!("../etc/php-fpm.conf"))
+            .unwrap();
+        tmp
+    }
 }
 
 pub struct ContextCommand {
