@@ -5,6 +5,7 @@ use fastcgi_client::{Client, Params, Request};
 use libc::{atexit, kill, pid_t, SIGTERM};
 use once_cell::sync::OnceCell;
 use std::{
+    fs,
     mem::{forget, ManuallyDrop},
     path::{Path, PathBuf},
     process::Child,
@@ -59,7 +60,12 @@ pub fn setup(exe_path: impl AsRef<Path>) {
             "-y",
             fpm_conf_file.path().to_str().unwrap(),
         ];
+        println!("===== setup php-fpm =====\n{}", argv.join(" "));
+
         let child = spawn_command(&argv, Some(Duration::from_secs(3)));
+        let log = fs::read_to_string("/tmp/.php-fpm.log").unwrap();
+        println!("===== php-fpm log =====\n{}", log);
+        // fs::remove_file("/tmp/.php-fpm.log").unwrap();
 
         Mutex::new(FpmHandle {
             exe_path: exe_path.into(),
