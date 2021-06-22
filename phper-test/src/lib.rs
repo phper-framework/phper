@@ -11,13 +11,6 @@ The `php-config` is needed. You can set environment `PHP_CONFIG` to specify the 
 [Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
 !*/
 
-use crate::context::Context;
-use std::{
-    panic::{catch_unwind, resume_unwind, UnwindSafe},
-    path::Path,
-    process::{Child, Output},
-};
-
 pub mod cli;
 mod context;
 #[cfg(feature = "fpm")]

@@ -5,7 +5,7 @@ use std::{
     fs::read_to_string,
     io::Write,
     ops::{Deref, DerefMut},
-    path::{Path, PathBuf},
+    path::Path,
     process::Command,
 };
 use tempfile::NamedTempFile;

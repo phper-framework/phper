@@ -1,7 +1,6 @@
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, Expr};
+use syn::{parse_macro_input, Expr};
 
 pub(crate) fn c_str(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Expr);

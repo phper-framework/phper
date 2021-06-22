@@ -5,23 +5,14 @@ use fastcgi_client::{Client, Params, Request};
 use libc::{atexit, kill, pid_t, SIGTERM};
 use once_cell::sync::OnceCell;
 use std::{
-    cell::RefCell,
     mem::{forget, ManuallyDrop},
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::Child,
     sync::Mutex,
-    thread,
-    thread::sleep,
     time::Duration,
 };
 use tempfile::NamedTempFile;
-use tokio::{
-    io,
-    io::AsyncRead,
-    net::TcpStream,
-    runtime::{EnterGuard, Handle, Runtime},
-    task::block_in_place,
-};
+use tokio::{io, net::TcpStream, runtime::Handle, task::block_in_place};
 
 static FPM_HANDLE: OnceCell<Mutex<FpmHandle>> = OnceCell::new();
 

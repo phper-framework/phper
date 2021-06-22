@@ -2,7 +2,6 @@ use std::{
     convert::TryInto,
     ffi::{OsStr, OsString},
     fmt::Debug,
-    mem::forget,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     thread,
