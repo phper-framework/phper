@@ -84,3 +84,22 @@ impl<T: EAllocatable> Drop for EBox<T> {
 }
 
 unsafe impl<T: EAllocatable> Send for EBox<T> {}
+
+// TODO Write Erc for gc_refcounted holding types.
+// pub trait ERcAble {
+//     // Increment the reference count;
+//     fn incr(&mut self);
+//
+//     /// Decrement the reference count and return old count.
+//     fn decr(&mut self) -> usize;
+// }
+//
+// pub struct ERc<T> {
+//     value: T,
+// }
+//
+// impl<T> ERc<T> {
+//     pub fn new(value: T) -> Self {
+//         Self { value }
+//     }
+// }

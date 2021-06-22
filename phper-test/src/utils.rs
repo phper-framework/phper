@@ -1,8 +1,11 @@
 use std::{
+    convert::TryInto,
     ffi::{OsStr, OsString},
     fmt::Debug,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Child, Command, Stdio},
+    thread,
+    time::Duration,
 };
 
 pub fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
@@ -13,6 +16,35 @@ pub fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
         .expect(&format!("Execute command {:?} failed", &argv))
         .stdout;
     String::from_utf8(output).unwrap().trim().to_owned()
+}
+
+pub fn spawn_command<S: AsRef<OsStr> + Debug>(argv: &[S], wait_time: Option<Duration>) -> Child {
+    let mut command = Command::new(&argv[0]);
+    let child = command
+        .args(&argv[1..])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect(&format!("Execute command {:?} failed", argv));
+
+    // Sleep to wait program running.
+    if let Some(wait_time) = wait_time {
+        thread::sleep(wait_time);
+    }
+
+    // Check process is running.
+    let id = child.id();
+    unsafe {
+        assert_eq!(
+            libc::kill(id.try_into().unwrap(), 0),
+            0,
+            "start process failed: {:?}",
+            argv
+        );
+    }
+
+    child
 }
 
 pub fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {

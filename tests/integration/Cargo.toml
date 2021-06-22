@@ -16,4 +16,4 @@ indexmap = "1.6.2"
 phper = { version = "0.3.0", path = "../../phper" }
 
 [dev-dependencies]
-phper-test = { version = "0.3.0", path = "../../phper-test" }
+phper-test = { version = "0.3.0", path = "../../phper-test", features = ["fpm"] }

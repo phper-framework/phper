@@ -1,4 +1,4 @@
-use phper_test::test_php_scripts_with_condition;
+use phper_test::cli::test_php_scripts_with_condition;
 use std::{env, path::Path, str};
 
 #[test]

@@ -43,8 +43,15 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: php-config
 
+      - name: Setup php-fpm
+        run: |
+          sudo apt-get install -y php${{ matrix.php-version }}-fpm
+          sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
+
       - name: PHP version
-        run: php-config || true
+        run: |
+          php-config || true
+          /usr/sbin/php-fpm --version
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
@@ -83,6 +90,9 @@ jobs:
 
       - name: Cargo doc
         uses: actions-rs/cargo@v1
+        env:
+          RUSTDOCFLAGS: "-D warnings --cfg docsrs"
         with:
-          toolchain: stable
+          toolchain: nightly
           command: doc
+          args: --workspace --no-deps --all-features

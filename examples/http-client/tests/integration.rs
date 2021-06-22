@@ -1,4 +1,4 @@
-use phper_test::test_php_scripts;
+use phper_test::cli::test_php_scripts;
 use std::{env, path::Path};
 
 #[test]
