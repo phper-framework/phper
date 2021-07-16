@@ -2,10 +2,12 @@
 
 Http server example.
 
+Power by [tokio](https://crates.io/crates/tokio) and [hyper](https://crates.io/crates/hyper).
+
 ## Environment
 
 ```bash
-# Specify if php isn't installed globally.
+# Optional, specify if php isn't installed globally.
 export PHP_CONFIG = <Your path of php-config>
 ```
 

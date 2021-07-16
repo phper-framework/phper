@@ -2,10 +2,12 @@
 
 Http client example.
 
+Power by [reqwest::blocking](https://docs.rs/reqwest/0.11.4/reqwest/blocking/index.html) api.
+
 ## Environment
 
 ```bash
-# Specify if php isn't installed globally.
+# Optional, specify if php isn't installed globally.
 export PHP_CONFIG = <Your path of php-config>
 ```
 

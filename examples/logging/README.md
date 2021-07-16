@@ -5,7 +5,7 @@ Log example.
 ## Environment
 
 ```bash
-# Specify if php isn't installed globally.
+# Optional, specify if php isn't installed globally.
 export PHP_CONFIG = <Your path of php-config>
 ```
 
