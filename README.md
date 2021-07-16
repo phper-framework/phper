@@ -1,7 +1,10 @@
 # PHPer
 
-[![crates](https://img.shields.io/crates/v/phper?style=flat-square)](https://crates.io/crates/phper)
-[![docs](https://img.shields.io/docsrs/phper?style=flat-square)](https://docs.rs/phper)
+[![CI](https://github.com/jmjoy/phper/actions/workflows/ci.yml/badge.svg)](https://github.com/jmjoy/phper/actions/workflows/ci.yml)
+[![Crates](https://img.shields.io/crates/v/phper)](https://crates.io/crates/phper)
+[![Docs](https://img.shields.io/docsrs/phper)](https://docs.rs/phper)
+[![Lines](https://img.shields.io/tokei/lines/github/jmjoy/phper)](https://github.com/jmjoy/phper)
+[![License](https://img.shields.io/crates/l/phper)](https://github.com/jmjoy/phper/blob/master/LICENSE)
 
 ## Rust ❤️ PHP
 
@@ -16,37 +19,27 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 ### Tested Support
 
-**os**
-
-- [x] linux
-- [ ] macos
-- [ ] windows
-
-**php**
-
-*version*
-
-- [x] 7.0
-- [x] 7.1
-- [x] 7.2
-- [x] 7.3
-- [x] 7.4
-- [x] 8.0
-
-*mode*
-
-- [x] nts
-- [ ] zts
-
-*sapi*
-
-- [x] cli
-- [x] fpm
-
-*debug*
-
-- [x] disable
-- [ ] enable
+- **OS**
+    - [x] linux
+    - [ ] macos
+    - [ ] windows
+- **PHP**
+  - **version**
+    - [x] 7.0
+    - [x] 7.1
+    - [x] 7.2
+    - [x] 7.3
+    - [x] 7.4
+    - [x] 8.0
+  - **mode**
+    - [x] nts
+    - [ ] zts
+  - **sapi**
+    - [x] cli
+    - [x] fpm
+  - **debug**
+    - [x] disable
+    - [ ] enable
 
 ## Usage
 
@@ -105,7 +98,7 @@ pub fn get_module() -> Module {
 6. Build and install, if your php isn't installed globally, you should specify the path of `php-config`.
 
 ```bash
-# Specify if php isn't installed globally.
+# Optional, specify if php isn't installed globally.
 export PHP_CONFIG = <Your path of php-config>
 
 # Build libmyapp.so.
