@@ -8,7 +8,7 @@ Power by [tokio](https://crates.io/crates/tokio) and [hyper](https://crates.io/c
 
 ```bash
 # Optional, specify if php isn't installed globally.
-export PHP_CONFIG = <Your path of php-config>
+export PHP_CONFIG=<Your path of php-config>
 ```
 
 ## Build

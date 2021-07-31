@@ -6,7 +6,7 @@ Log example.
 
 ```bash
 # Optional, specify if php isn't installed globally.
-export PHP_CONFIG = <Your path of php-config>
+export PHP_CONFIG=<Your path of php-config>
 ```
 
 ## Build

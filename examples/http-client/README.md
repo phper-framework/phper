@@ -8,7 +8,7 @@ Power by [reqwest::blocking](https://docs.rs/reqwest/0.11.4/reqwest/blocking/ind
 
 ```bash
 # Optional, specify if php isn't installed globally.
-export PHP_CONFIG = <Your path of php-config>
+export PHP_CONFIG=<Your path of php-config>
 ```
 
 ## Build

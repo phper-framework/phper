@@ -14,6 +14,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 ### Necessary
 
+- **rust** 1.54 or later
 - **libclang** 9.0 or later
 - **php** 7.0 or later
 
@@ -99,13 +100,16 @@ pub fn get_module() -> Module {
 
 ```bash
 # Optional, specify if php isn't installed globally.
-export PHP_CONFIG = <Your path of php-config>
+export PHP_CONFIG=<Your path of php-config>
 
 # Build libmyapp.so.
 cargo build --release
 
-# Install to php extension path, if you install php globally, you should use sudo.
+# Install to php extension path.
 cargo run --release -- install
+# Or if you install php globally, you should use sudo.
+# sudo ./target/release/myapp install
+
 ```
 
 7. Edit your `php.ini`, add the below line.
