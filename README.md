@@ -69,7 +69,7 @@ phper = "0.3"
 
 4. Add these code to `main.rs`.
 
-```rust
+```rust,no_run
 use phper::cmd::make;
 
 fn main() {
