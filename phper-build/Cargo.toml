@@ -2,7 +2,8 @@
 name = "phper-build"
 version = "0.3.0"
 authors = ["jmjoy <918734043@qq.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 description = "Generates stubs for project using phper."
 repository = "https://github.com/jmjoy/phper.git"
 license = "Unlicense"

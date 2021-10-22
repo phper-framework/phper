@@ -14,7 +14,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
 
 ### Necessary
 
-- **rust** 1.54 or later
+- **rust** 1.56 or later
 - **libclang** 9.0 or later
 - **php** 7.0 or later
 

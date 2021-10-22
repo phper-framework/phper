@@ -2,7 +2,8 @@
 name = "phper-test"
 version = "0.3.0"
 authors = ["jmjoy <918734043@qq.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 description = "PHPer testing utilities."
 repository = "https://github.com/jmjoy/phper.git"
 license = "Unlicense"
@@ -24,4 +25,3 @@ tokio = { version = "1.7.0", optional = true }
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
-

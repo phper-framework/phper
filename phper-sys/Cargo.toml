@@ -2,7 +2,8 @@
 name = "phper-sys"
 version = "0.3.0"
 authors = ["jmjoy <918734043@qq.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 description = "Low level PHP binding for Rust."
 repository = "https://github.com/jmjoy/phper.git"
 license = "Unlicense"
