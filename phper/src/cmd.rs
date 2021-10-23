@@ -2,7 +2,7 @@
 
 use crate::sys::PHP_EXTENSION_DIR;
 use anyhow::Context;
-use clap::Clap;
+use clap::Parser;
 use std::{
     env,
     ffi::{CStr, OsString},
@@ -11,18 +11,18 @@ use std::{
 };
 
 /// Make utility.
-#[derive(Clap)]
+#[derive(Parser)]
 struct Make {
     #[clap(subcommand)]
     sub: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     Install(InstallCommand),
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct InstallCommand {}
 
 /// Make.
