@@ -2,7 +2,8 @@
 name = "phper"
 version = "0.3.0"
 authors = ["jmjoy <918734043@qq.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
 repository = "https://github.com/jmjoy/phper.git"
 documentation = "https://docs.rs/phper"
@@ -14,7 +15,7 @@ keywords = ["php", "binding", "extension", "module"]
 
 [dependencies]
 anyhow = "1.0.40"
-clap = "3.0.0-beta.2"
+clap = "3.0.0-beta.5"
 dashmap = "4.0.2"
 derive_more = "0.99.13"
 indexmap = "1.6.2"

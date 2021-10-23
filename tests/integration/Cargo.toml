@@ -2,7 +2,8 @@
 name = "integration"
 version = "0.0.0"
 authors = ["jmjoy <918734043@qq.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 publish = false
 license = "Unlicense"
 
