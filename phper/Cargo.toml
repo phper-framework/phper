@@ -15,7 +15,7 @@ keywords = ["php", "binding", "extension", "module"]
 
 [dependencies]
 anyhow = "1.0.40"
-clap = "3.0.0-beta.5"
+clap = { version = "3.0.10", features = ["derive"] }
 dashmap = "4.0.2"
 derive_more = "0.99.13"
 indexmap = "1.6.2"
