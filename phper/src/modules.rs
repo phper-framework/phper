@@ -216,7 +216,7 @@ impl Module {
 pub struct ModuleContext {
     #[allow(dead_code)]
     r#type: c_int,
-    module_number: c_int,
+    pub module_number: c_int,
 }
 
 impl ModuleContext {
