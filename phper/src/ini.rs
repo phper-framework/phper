@@ -224,6 +224,7 @@ pub(crate) fn create_ini_entry_ex(
     arg2: *mut c_void,
 ) -> zend_ini_entry_def {
     #[cfg(any(
+        phper_php_version = "8.1",
         phper_php_version = "8.0",
         phper_php_version = "7.4",
         phper_php_version = "7.3",

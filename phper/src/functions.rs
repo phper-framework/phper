@@ -363,7 +363,7 @@ pub(crate) const fn create_zend_arg_info(
     name: *const c_char,
     _pass_by_ref: bool,
 ) -> zend_internal_arg_info {
-    #[cfg(phper_php_version = "8.0")]
+    #[cfg(any(phper_php_version = "8.1", phper_php_version = "8.0"))]
     {
         zend_internal_arg_info {
             name,

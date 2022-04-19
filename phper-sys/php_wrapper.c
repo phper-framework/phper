@@ -23,7 +23,11 @@ void phper_zval_arr(zval *return_value, zend_array *arr) {
 }
 
 void phper_zval_new_arr(zval *return_value) {
+#if PHP_VERSION_ID < 80100
     ZVAL_NEW_ARR(return_value);
+#else
+    array_init(return_value);
+#endif
 }
 
 void phper_zval_stringl(zval *return_value, const char *s, size_t len) {
