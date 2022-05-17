@@ -1,14 +1,5 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
-
-/*!
-Generate stubs for project using [phper](https://crates.io/crates/phper).
-
-Add this crate in your `[build-dependencies]` and using in `build.rs`.
-
-## License
-
-[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
-*/
+#![doc = include_str!("../README.md")]
 
 use phper_sys::*;
 

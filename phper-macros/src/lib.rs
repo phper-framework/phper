@@ -1,12 +1,5 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
-
-/*!
-The proc-macros for [phper](https://crates.io/crates/phper).
-
-## License
-
-[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
-*/
+#![doc = include_str!("../README.md")]
 
 // TODO Write a bridge macro for easy usage about register functions and classes, like `cxx`.
 

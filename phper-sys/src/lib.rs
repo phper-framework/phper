@@ -4,16 +4,8 @@
 #![allow(non_snake_case)]
 // TODO Because `bindgen` generates codes contains deref nullptr, temporary suppression.
 #![allow(deref_nullptr)]
-
-/*!
-Low level PHP binding for Rust.
-
-The php-config is needed. You can set environment `PHP_CONFIG` to specify the path.
-
-## License
-
-[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
-*/
+#![allow(clippy::all)]
+#![doc = include_str!("../README.md")]
 
 use std::os::raw::c_char;
 

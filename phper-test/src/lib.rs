@@ -1,15 +1,6 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
-/*!
-Integration test tool for [phper](https://crates.io/crates/phper).
-
-The `php-config` is needed. You can set environment `PHP_CONFIG` to specify the path.
-
-## License
-
-[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
-!*/
+#![doc = include_str!("../README.md")]
 
 pub mod cli;
 mod context;

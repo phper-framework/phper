@@ -32,7 +32,7 @@ A library that allows us to write PHP extensions using pure Rust and using safe 
     - [x] 7.3
     - [x] 7.4
     - [x] 8.0
-    - [ ] 8.1
+    - [x] 8.1
   - **mode**
     - [x] nts
     - [ ] zts
