@@ -13,10 +13,10 @@ use std::{
 /// The item which can be placed into container [EBox].
 pub trait EAllocatable {
     /// The method to free the heap allocated by `emalloc`, should call `efree` at the end.
-    fn free(ptr: *mut Self) {
-        unsafe {
-            _efree(ptr.cast());
-        }
+    /// 
+    /// # Safety
+    unsafe fn free(ptr: *mut Self) {
+        _efree(ptr.cast());
     }
 }
 
@@ -43,6 +43,10 @@ impl<T: EAllocatable> EBox<T> {
     }
 
     /// Constructs from a raw pointer.
+    /// 
+    /// # Safety
+    /// 
+    /// Make sure the pointer is created from `emalloc`.
     pub unsafe fn from_raw(raw: *mut T) -> Self {
         Self { ptr: raw }
     }
@@ -73,7 +77,9 @@ impl<T: EAllocatable> DerefMut for EBox<T> {
 
 impl<T: EAllocatable> Drop for EBox<T> {
     fn drop(&mut self) {
-        <T>::free(self.ptr);
+        unsafe {
+            <T>::free(self.ptr);
+        }
     }
 }
 

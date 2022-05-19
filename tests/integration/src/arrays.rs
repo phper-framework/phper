@@ -12,15 +12,15 @@ pub fn integrate(module: &mut Module) {
         |_: &mut [Val]| -> phper::Result<String> {
             let mut a1 = Array::new();
             a1.insert("foo", Val::new("FOO"));
-            let foo = a1.get("foo").unwrap();
-            let foo = foo.as_string()?;
+            let val = a1.get("foo").unwrap();
+            let val = val.as_string()?;
 
             let mut a2 = Array::new();
             a2.insert("bar", Val::new("BAR"));
             let bar = a2.get("bar").unwrap();
             let bar = bar.as_string()?;
 
-            Ok(format!("{} {}", foo, bar))
+            Ok(format!("{} {}", val, bar))
         },
         vec![],
     );
@@ -59,9 +59,9 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(arr.get(0).unwrap().as_long()?, 0);
             assert_eq!(arr.get(1).unwrap().as_long()?, 1);
 
-            let obj: &Object<()> = a.get("obj").unwrap().as_object()?;
-            let foo = obj.get_property("foo");
-            assert_eq!(foo.as_string()?, "bar");
+            let obj: &mut Object<()> = a.get_mut("obj").unwrap().as_mut_object()?;
+            let val = obj.get_property("foo");
+            assert_eq!(val.as_string()?, "bar");
 
             assert!(a.get(10).is_none());
             assert!(a.get("not_exists").is_none());

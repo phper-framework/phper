@@ -103,7 +103,7 @@ pub fn test_fpm_request(
     block_in_place(move || {
         Handle::current().block_on(async move {
             let root = root.as_ref();
-            let script_name = request_uri.split('?').nth(0).unwrap();
+            let script_name = request_uri.split('?').next().unwrap();
 
             let mut tmp = root.to_path_buf();
             tmp.push(script_name.trim_start_matches('/'));

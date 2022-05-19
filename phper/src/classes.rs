@@ -63,19 +63,16 @@ impl<T: Send + 'static> DynamicClass<T> {
         class_name: impl ToString,
         state_constructor: impl Fn() -> T + Send + Sync + 'static,
     ) -> Self {
-        let dyn_class = Self {
+        Self {
             class_name: class_name.to_string(),
             state_constructor: Arc::new(state_constructor),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
             _p: Default::default(),
-        };
-
+        }
         // let ptr = &dyn_class.data_constructor as *const _ as usize;
         // dyn_class.add_property(DATA_CONSTRUCTOR_PROPERTY_NAME, ptr.to_string());
-
-        dyn_class
     }
 
     pub fn add_method<F, R>(

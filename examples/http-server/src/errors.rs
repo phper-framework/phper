@@ -2,7 +2,7 @@ use hyper::header::{InvalidHeaderName, InvalidHeaderValue};
 use phper::classes::{ClassEntry, DynamicClass};
 use std::net::AddrParseError;
 
-const EXCEPTION_CLASS_NAME: &'static str = "HttpServer\\HttpServerException";
+const EXCEPTION_CLASS_NAME: &str = "HttpServer\\HttpServerException";
 
 #[derive(Debug, thiserror::Error, phper::Throwable)]
 #[throwable_class(EXCEPTION_CLASS_NAME)]

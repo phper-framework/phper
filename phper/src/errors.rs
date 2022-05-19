@@ -11,7 +11,7 @@ use anyhow::anyhow;
 use derive_more::Constructor;
 use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
 
-const ARGUMENT_COUNT_ERROR_CLASS: &'static str = if PHP_VERSION_ID >= 70100 {
+const ARGUMENT_COUNT_ERROR_CLASS: &str = if PHP_VERSION_ID >= 70100 {
     "ArgumentCountError"
 } else {
     "TypeError"

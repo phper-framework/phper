@@ -87,6 +87,7 @@ pub enum Policy {
 pub trait TransformIniValue: Sized + ToString + 'static {
     fn on_modify() -> OnModify;
 
+    /// # Safety
     unsafe fn transform(data: usize) -> Option<Self>;
 
     fn arg2_type() -> TypeId;

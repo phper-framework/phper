@@ -17,8 +17,8 @@ pub fn integrate(module: &mut Module) {
             let mut o = Object::new_by_std_class();
 
             o.set_property("foo", Val::new("bar"));
-            let foo = o.get_property("foo");
-            assert_eq!(foo.as_string()?, "bar");
+            let val = o.get_property("foo");
+            assert_eq!(val.as_string()?, "bar");
 
             let not_exists = o.get_property("no_exists");
             not_exists.as_null()?;

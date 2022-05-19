@@ -381,6 +381,7 @@ pub(crate) const fn create_zend_arg_info(
         phper_php_version = "7.2"
     ))]
     {
+        #[allow(clippy::unnecessary_cast)]
         zend_internal_arg_info {
             name,
             type_: 0 as crate::sys::zend_type,

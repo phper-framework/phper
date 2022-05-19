@@ -1,4 +1,4 @@
-#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+#![warn(rust_2018_idioms, clippy::dbg_macro)]
 #![doc = include_str!("../README.md")]
 
 use phper_sys::*;
@@ -23,11 +23,11 @@ pub fn register_configures() {
         PHP_MAJOR_VERSION, PHP_MINOR_VERSION,
     );
 
-    if PHP_DEBUG > 0 {
+    if PHP_DEBUG != 0 {
         println!("cargo:rustc-cfg=phper_debug");
     }
 
-    if USING_ZTS > 0 {
+    if USING_ZTS != 0 {
         println!("cargo:rustc-cfg=phper_zts");
     }
 }

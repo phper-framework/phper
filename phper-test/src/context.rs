@@ -18,10 +18,10 @@ pub struct Context {
 impl Context {
     pub fn get_global() -> &'static Context {
         static CONTEXT: OnceCell<Context> = OnceCell::new();
-        &CONTEXT.get_or_init(|| {
+        CONTEXT.get_or_init(|| {
             let mut ini_content = String::new();
 
-            let php_config = env::var("PHP_CONFIG").unwrap_or("php-config".to_string());
+            let php_config = env::var("PHP_CONFIG").unwrap_or_else(|_| "php-config".to_string());
             let php_bin = utils::execute_command(&[php_config.as_str(), "--php-binary"]);
             let ini_file = utils::execute_command(&[
                 php_bin.as_str(),

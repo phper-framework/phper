@@ -10,7 +10,7 @@ pub fn integrate(module: &mut Module) {
             let zs = ZendString::new([1, 2, 3]);
             assert_eq!(zs.as_ref(), &[1, 2, 3]);
 
-            assert!(&*ZendString::new("hello") == &*ZendString::new(b"hello"));
+            assert!(*ZendString::new("hello") == *ZendString::new(b"hello"));
 
             Ok(())
         },

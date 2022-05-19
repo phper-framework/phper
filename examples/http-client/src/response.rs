@@ -6,7 +6,7 @@ use phper::{
 };
 use reqwest::blocking::Response;
 
-pub const RESPONSE_CLASS_NAME: &'static str = "HttpClient\\Response";
+pub const RESPONSE_CLASS_NAME: &str = "HttpClient\\Response";
 
 pub fn make_response_class() -> DynamicClass<Option<Response>> {
     let mut class = DynamicClass::new_with_default(RESPONSE_CLASS_NAME);

@@ -11,8 +11,8 @@ use phper::{
 use reqwest::blocking::{Client, ClientBuilder, RequestBuilder};
 use std::time::Duration;
 
-const HTTP_CLIENT_BUILDER_CLASS_NAME: &'static str = "HttpClient\\HttpClientBuilder";
-const HTTP_CLIENT_CLASS_NAME: &'static str = "HttpClient\\HttpClient";
+const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
+const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
 
 pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
     let mut class = DynamicClass::new_with_default(HTTP_CLIENT_BUILDER_CLASS_NAME);

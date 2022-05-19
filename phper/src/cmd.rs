@@ -36,6 +36,7 @@ struct InstallCommand {}
 ///     make();
 /// }
 /// ```
+#[allow(clippy::needless_doctest_main)]
 pub fn make() {
     try_make().expect("make failed");
 }
@@ -76,7 +77,7 @@ fn get_lib_path_and_ext_name() -> crate::Result<(PathBuf, OsString)> {
     let lib_stem = exe_stem
         .to_str()
         .context("failed to generate target lib name")?
-        .replace("-", "_");
+        .replace('-', "_");
     exe_name.push(lib_stem);
     exe_name.push(ext);
 

@@ -5,7 +5,7 @@ use phper::{
     functions::Argument,
 };
 
-pub const HTTP_RESPONSE_CLASS_NAME: &'static str = "HttpServer\\HttpResponse";
+pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 
 pub fn make_response_class() -> DynamicClass<Response<Body>> {
     let mut class = DynamicClass::new_with_default(HTTP_RESPONSE_CLASS_NAME);

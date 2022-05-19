@@ -44,11 +44,21 @@ impl Array {
         }
     }
 
+    /// New Array reference from raw pointer.
+    /// 
+    /// # Safety
+    /// 
+    /// Make sure pointer is the type of `zend_array'.
     pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> Option<&'a Array> {
         let ptr = ptr as *const Array;
         ptr.as_ref()
     }
 
+    /// New Array mutable reference from raw pointer.
+    /// 
+    /// # Safety
+    /// 
+    /// Make sure pointer is the type of `zend_array'.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> Option<&'a mut Array> {
         let ptr = ptr as *mut Array;
         ptr.as_mut()
@@ -62,7 +72,7 @@ impl Array {
         &mut self.inner
     }
 
-    // Add or update item by key.
+    /// Add or update item by key.
     pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: Val) {
         let key = key.into();
         let value = EBox::new(value);
@@ -107,9 +117,31 @@ impl Array {
         }
     }
 
+    // Get item by key.
+    pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&mut Val> {
+        let key = key.into();
+        unsafe {
+            let value = match key {
+                Key::Index(i) => zend_hash_index_find(&self.inner, i),
+                Key::Str(s) => {
+                    zend_hash_str_find(&self.inner, s.as_ptr().cast(), s.len().try_into().unwrap())
+                }
+            };
+            if value.is_null() {
+                None
+            } else {
+                Some(Val::from_mut_ptr(value))
+            }
+        }
+    }
+
     // Get items length.
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(&mut self.inner) as usize }
+    }
+
+    pub fn is_empty(&mut self) -> bool {
+        self.len() == 0
     }
 
     pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
@@ -151,19 +183,17 @@ impl Array {
     pub fn iter(&self) -> Iter<'_> {
         Iter {
             index: 0,
-            array: &self,
+            array: self,
         }
     }
 }
 
 impl EAllocatable for Array {
-    fn free(ptr: *mut Self) {
-        unsafe {
+    unsafe fn free(ptr: *mut Self) {
             (*ptr).inner.gc.refcount -= 1;
             if (*ptr).inner.gc.refcount == 0 {
                 zend_array_destroy(ptr.cast());
             }
-        }
     }
 }
 

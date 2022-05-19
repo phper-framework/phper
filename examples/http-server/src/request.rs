@@ -1,6 +1,6 @@
 use phper::classes::{DynamicClass, Visibility};
 
-pub const HTTP_REQUEST_CLASS_NAME: &'static str = "HttpServer\\HttpRequest";
+pub const HTTP_REQUEST_CLASS_NAME: &str = "HttpServer\\HttpRequest";
 
 pub fn make_request_class() -> DynamicClass<()> {
     let mut class = DynamicClass::new(HTTP_REQUEST_CLASS_NAME);

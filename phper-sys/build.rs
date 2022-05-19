@@ -7,7 +7,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=PHP_CONFIG");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let php_config = env::var("PHP_CONFIG").unwrap_or("php-config".to_string());
+    let php_config = env::var("PHP_CONFIG").unwrap_or_else(|_| "php-config".to_string());
 
     let includes = execute_command(&[php_config.as_str(), "--includes"]);
     let includes = includes.split(' ').collect::<Vec<_>>();
@@ -805,7 +805,7 @@ fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
     command.args(&argv[1..]);
     let output = command
         .output()
-        .expect(&format!("Execute command {:?} failed", &argv))
+        .unwrap_or_else(|_| panic!("Execute command {:?} failed", &argv))
         .stdout;
     String::from_utf8(output).unwrap().trim().to_owned()
 }

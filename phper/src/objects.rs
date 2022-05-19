@@ -41,6 +41,7 @@ impl<T: 'static> Object<T> {
         Self::new(class_entry, arguments)
     }
 
+    /// # Safety
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should not be null")
     }
@@ -67,18 +68,18 @@ impl<T: 'static> Object<T> {
         ClassEntry::from_ptr(self.inner.ce)
     }
 
-    pub fn get_property(&self, name: impl AsRef<str>) -> &Val {
+    pub fn get_property(&mut self, name: impl AsRef<str>) -> &Val {
         self.get_mut_property(name)
     }
 
     pub fn duplicate_property(
-        &self,
+        &mut self,
         name: impl AsRef<str>,
     ) -> Result<EBox<Val>, NotRefCountedTypeError> {
         self.get_mut_property(name).duplicate()
     }
 
-    fn get_mut_property(&self, name: impl AsRef<str>) -> &mut Val {
+    fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut Val {
         let name = name.as_ref();
 
         let prop = unsafe {
@@ -225,13 +226,11 @@ impl Object<()> {
 }
 
 impl<T> EAllocatable for Object<T> {
-    fn free(ptr: *mut Self) {
-        unsafe {
+    unsafe fn free(ptr: *mut Self) {
             (*ptr).inner.gc.refcount -= 1;
             if (*ptr).inner.gc.refcount == 0 {
                 zend_objects_store_del(ptr.cast());
             }
-        }
     }
 }
 

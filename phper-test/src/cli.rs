@@ -19,11 +19,14 @@ use crate::{context::Context, utils};
 pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
     let condition = |output: Output| output.status.success();
     let scripts = scripts
-        .into_iter()
+        .iter()
         .map(|s| (*s, &condition as _))
         .collect::<Vec<_>>();
     test_php_scripts_with_condition(exe_path, &*scripts);
 }
+
+/// Script and condition pair.
+pub type ScriptCondition<'a> = (&'a dyn AsRef<Path>, &'a dyn Fn(Output) -> bool);
 
 /// Check your extension by executing the php script, if the all your specified checkers are pass, than the test is pass.
 ///
@@ -35,7 +38,7 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]
 /// See [example logging integration test](https://github.com/jmjoy/phper/blob/master/examples/logging/tests/integration.rs).
 pub fn test_php_scripts_with_condition(
     exe_path: impl AsRef<Path>,
-    scripts: &[(&dyn AsRef<Path>, &dyn Fn(Output) -> bool)],
+    scripts: &[ScriptCondition<'_>],
 ) {
     let context = Context::get_global();
     let lib_path = utils::get_lib_path(exe_path);

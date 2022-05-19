@@ -5,7 +5,7 @@ use phper::{
 };
 use reqwest::blocking::{RequestBuilder, Response};
 
-pub const REQUEST_BUILDER_CLASS_NAME: &'static str = "HttpClient\\RequestBuilder";
+pub const REQUEST_BUILDER_CLASS_NAME: &str = "HttpClient\\RequestBuilder";
 
 pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
     let mut class = DynamicClass::new_with_default(REQUEST_BUILDER_CLASS_NAME);

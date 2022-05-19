@@ -13,7 +13,7 @@ pub fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
     command.args(&argv[1..]);
     let output = command
         .output()
-        .expect(&format!("Execute command {:?} failed", &argv))
+        .unwrap_or_else(|_| panic!("Execute command {:?} failed", &argv))
         .stdout;
     String::from_utf8(output).unwrap().trim().to_owned()
 }
@@ -26,7 +26,7 @@ pub fn spawn_command<S: AsRef<OsStr> + Debug>(argv: &[S], wait_time: Option<Dura
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .expect(&format!("Execute command {:?} failed", argv));
+        .unwrap_or_else(|_| panic!("Execute command {:?} failed", argv));
 
     // Sleep to wait program running.
     if let Some(wait_time) = wait_time {

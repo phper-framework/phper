@@ -16,7 +16,7 @@ use phper::{
 use std::{convert::Infallible, mem::replace, net::SocketAddr, sync::Arc};
 use tokio::{runtime::Handle, sync::Mutex};
 
-const HTTP_SERVER_CLASS_NAME: &'static str = "HttpServer\\HttpServer";
+const HTTP_SERVER_CLASS_NAME: &str = "HttpServer\\HttpServer";
 
 pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
     let mut class = DynamicClass::new_with_default(HTTP_SERVER_CLASS_NAME);
@@ -89,7 +89,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
                                             StatusCode::INTERNAL_SERVER_ERROR;
                                         *response.as_mut_state().body_mut() = ex.to_string().into();
                                     }
-                                    Err(e) => Err(e)?,
+                                    Err(e) => return Err(e.into()),
                                     _ => {}
                                 }
 

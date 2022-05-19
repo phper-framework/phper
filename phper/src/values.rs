@@ -28,6 +28,9 @@ pub struct ExecuteData {
 }
 
 impl ExecuteData {
+    /// # Safety
+    /// 
+    /// Create from raw pointer.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
         &mut *(ptr as *mut Self)
@@ -38,33 +41,51 @@ impl ExecuteData {
         &mut self.inner
     }
 
+    /// # Safety
+    /// 
+    /// Get value from union.
     #[inline]
     pub unsafe fn common_num_args(&self) -> u32 {
         (*self.inner.func).common.num_args
     }
 
+    /// # Safety
+    /// 
+    /// Get value from union.
     #[inline]
     pub unsafe fn common_required_num_args(&self) -> u16 {
         (*self.inner.func).common.required_num_args as u16
     }
 
+    /// # Safety
+    /// 
+    /// Get value from union.
     #[inline]
     pub unsafe fn common_arg_info(&self) -> *mut zend_arg_info {
         (*self.inner.func).common.arg_info
     }
 
+    /// # Safety
+    /// 
+    /// Get value from union.
     #[inline]
     pub unsafe fn num_args(&self) -> u16 {
         self.inner.This.u2.num_args as u16
     }
 
+    /// # Safety
+    /// 
+    /// From inner raw pointer.
     pub unsafe fn func(&self) -> &ZendFunction {
         ZendFunction::from_mut_ptr(self.inner.func)
     }
 
+    /// # Safety
+    /// 
+    /// The type of `T` should be careful.
     pub unsafe fn get_this<T>(&mut self) -> Option<&mut Object<T>> {
         let ptr = phper_get_this(&mut self.inner) as *mut Val;
-        ptr.as_ref().map(|val| val.as_mut_object_unchecked())
+        ptr.as_mut().map(|val| val.as_mut_object_unchecked())
     }
 
     /// TODO Do not return owned object, because usually Val should not be drop.
@@ -112,6 +133,9 @@ impl Val {
         }
     }
 
+    /// # Safety
+    /// 
+    /// Create from raw pointer.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         assert!(!ptr.is_null(), "ptr should not be null");
         &mut *(ptr as *mut Self)
@@ -148,7 +172,7 @@ impl Val {
         if self.get_type().is_null() {
             Ok(())
         } else {
-            Err(self.must_be_type_error("null").into())
+            Err(self.must_be_type_error("null"))
         }
     }
 
@@ -159,7 +183,7 @@ impl Val {
         } else if t.is_false() {
             Ok(false)
         } else {
-            Err(self.must_be_type_error("bool").into())
+            Err(self.must_be_type_error("bool"))
         }
     }
 
@@ -167,7 +191,7 @@ impl Val {
         if self.get_type().is_long() {
             unsafe { Ok(self.inner.value.lval) }
         } else {
-            Err(self.must_be_type_error("int").into())
+            Err(self.must_be_type_error("int"))
         }
     }
 
@@ -179,7 +203,7 @@ impl Val {
         if self.get_type().is_double() {
             unsafe { Ok(self.inner.value.dval) }
         } else {
-            Err(self.must_be_type_error("float").into())
+            Err(self.must_be_type_error("float"))
         }
     }
 
@@ -194,7 +218,7 @@ impl Val {
                 Ok(zs.as_str()?.to_owned())
             }
         } else {
-            Err(self.must_be_type_error("string").into())
+            Err(self.must_be_type_error("string"))
         }
     }
 
@@ -209,7 +233,7 @@ impl Val {
                 Ok(zs)
             }
         } else {
-            Err(self.must_be_type_error("string").into())
+            Err(self.must_be_type_error("string"))
         }
     }
 
@@ -227,7 +251,7 @@ impl Val {
                 Ok(Array::from_mut_ptr(ptr).unwrap())
             }
         } else {
-            Err(self.must_be_type_error("array").into())
+            Err(self.must_be_type_error("array"))
         }
     }
 
@@ -238,11 +262,22 @@ impl Val {
                 Ok(Object::from_mut_ptr(ptr))
             }
         } else {
-            Err(self.must_be_type_error("object").into())
+            Err(self.must_be_type_error("object"))
         }
     }
 
-    pub(crate) unsafe fn as_mut_object_unchecked<T>(&self) -> &mut Object<T> {
+    pub fn as_mut_object(&mut self) -> crate::Result<&mut Object<()>> {
+        if self.get_type().is_object() {
+            unsafe {
+                let ptr = self.inner.value.obj;
+                Ok(Object::from_mut_ptr(ptr))
+            }
+        } else {
+            Err(self.must_be_type_error("object"))
+        }
+    }
+
+    pub(crate) unsafe fn as_mut_object_unchecked<T>(&mut self) -> &mut Object<T> {
         // TODO Fix the object type assertion.
         // assert!(dbg!(val.get_type()).is_object());
 
@@ -259,7 +294,7 @@ impl Val {
                 let message = format!("must be of type {}, {} given", expect_type, type_name);
                 TypeError::new(message).into()
             }
-            Err(e) => e.into(),
+            Err(e) => e,
         }
     }
 
@@ -294,11 +329,9 @@ impl Val {
 }
 
 impl EAllocatable for Val {
-    fn free(ptr: *mut Self) {
-        unsafe {
+    unsafe fn free(ptr: *mut Self) {
             ptr.as_mut().unwrap().drop_value();
             _efree(ptr.cast());
-        }
     }
 }
 
@@ -315,6 +348,9 @@ impl Drop for Val {
 ///
 /// TODO Better name, distinguish between non-referenced and referenced cases.
 pub trait SetVal {
+    /// # Safety
+    /// 
+    /// The implement usually unsafe.
     unsafe fn set_val(self, val: &mut Val);
 }
 

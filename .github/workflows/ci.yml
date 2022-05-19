@@ -69,7 +69,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-          components: rustfmt
+          components: clippy
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
@@ -83,6 +83,13 @@ jobs:
         with:
           toolchain: stable
           command: build
+          args: --release
+
+      - name: Cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: clippy
           args: --release
 
       - name: Cargo test
