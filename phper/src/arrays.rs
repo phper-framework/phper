@@ -31,6 +31,7 @@ pub struct Array {
 }
 
 impl Array {
+    #[allow(clippy::useless_conversion)]
     pub fn new() -> EBox<Self> {
         unsafe {
             let mut array = EBox::new(zeroed::<Array>());

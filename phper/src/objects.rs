@@ -77,6 +77,7 @@ impl<T: 'static> Object<T> {
         self.get_mut_property(name).duplicate()
     }
 
+    #[allow(clippy::useless_conversion)]
     fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut Val {
         let name = name.as_ref();
 
