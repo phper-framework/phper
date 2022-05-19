@@ -45,9 +45,9 @@ impl Array {
     }
 
     /// New Array reference from raw pointer.
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// Make sure pointer is the type of `zend_array'.
     pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> Option<&'a Array> {
         let ptr = ptr as *const Array;
@@ -55,9 +55,9 @@ impl Array {
     }
 
     /// New Array mutable reference from raw pointer.
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// Make sure pointer is the type of `zend_array'.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> Option<&'a mut Array> {
         let ptr = ptr as *mut Array;
@@ -190,10 +190,10 @@ impl Array {
 
 impl EAllocatable for Array {
     unsafe fn free(ptr: *mut Self) {
-            (*ptr).inner.gc.refcount -= 1;
-            if (*ptr).inner.gc.refcount == 0 {
-                zend_array_destroy(ptr.cast());
-            }
+        (*ptr).inner.gc.refcount -= 1;
+        if (*ptr).inner.gc.refcount == 0 {
+            zend_array_destroy(ptr.cast());
+        }
     }
 }
 

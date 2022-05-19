@@ -73,9 +73,7 @@ impl Context {
     }
 
     pub fn create_command_with_tmp_php_ini_args(
-        &self,
-        tmp_php_ini_file: &NamedTempFile,
-        script: impl AsRef<Path>,
+        &self, tmp_php_ini_file: &NamedTempFile, script: impl AsRef<Path>,
     ) -> ContextCommand {
         let mut cmd = Command::new(&self.php_bin);
         let args = vec![

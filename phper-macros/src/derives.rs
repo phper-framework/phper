@@ -22,9 +22,7 @@ fn parse_throwable_attrs(input: &DeriveInput) -> syn::Result<TokenStream2> {
 }
 
 fn parse_throwable_input(
-    input: &DeriveInput,
-    crate_ident: TokenStream2,
-    exception: TokenStream2,
+    input: &DeriveInput, crate_ident: TokenStream2, exception: TokenStream2,
 ) -> syn::Result<TokenStream> {
     let input_ident = &input.ident;
 
@@ -49,7 +47,8 @@ fn parse_throwable_input(
                             _ => {
                                 return Err(syn::Error::new_spanned(
                                     &variant,
-                                    "now only support unnamed field with one item mark attribute #[throwable]",
+                                    "now only support unnamed field with one item mark attribute \
+                                     #[throwable]",
                                 ));
                             }
                         }

@@ -8,9 +8,11 @@ use std::{
 
 use crate::{context::Context, utils};
 
-/// Check your extension by executing the php script, if the all executing return success, than the test is pass.
+/// Check your extension by executing the php script, if the all executing
+/// return success, than the test is pass.
 ///
-/// - `exec_path` is the path of the make executable, which will be used to detect the path of
+/// - `exec_path` is the path of the make executable, which will be used to
+///   detect the path of
 /// extension lib.
 ///
 /// - `scripts` is the path of your php test scripts.
@@ -28,17 +30,19 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]
 /// Script and condition pair.
 pub type ScriptCondition<'a> = (&'a dyn AsRef<Path>, &'a dyn Fn(Output) -> bool);
 
-/// Check your extension by executing the php script, if the all your specified checkers are pass, than the test is pass.
+/// Check your extension by executing the php script, if the all your specified
+/// checkers are pass, than the test is pass.
 ///
-/// - `exec_path` is the path of the make executable, which will be used to detect the path of
+/// - `exec_path` is the path of the make executable, which will be used to
+///   detect the path of
 /// extension lib.
 ///
-/// - `scripts` is the slice of the tuple, format is `(path of your php test script, checker function or closure)`.
+/// - `scripts` is the slice of the tuple, format is `(path of your php test
+///   script, checker function or closure)`.
 ///
 /// See [example logging integration test](https://github.com/jmjoy/phper/blob/master/examples/logging/tests/integration.rs).
 pub fn test_php_scripts_with_condition(
-    exe_path: impl AsRef<Path>,
-    scripts: &[ScriptCondition<'_>],
+    exe_path: impl AsRef<Path>, scripts: &[ScriptCondition<'_>],
 ) {
     let context = Context::get_global();
     let lib_path = utils::get_lib_path(exe_path);
@@ -82,11 +86,10 @@ pub fn test_php_scripts_with_condition(
     }
 }
 
-/// Check your extension by executing the long term php script such as http server, if the all your
-/// specified checkers are pass, than the test is pass.
+/// Check your extension by executing the long term php script such as http
+/// server, if the all your specified checkers are pass, than the test is pass.
 pub fn test_long_term_php_script_with_condition(
-    exe_path: impl AsRef<Path>,
-    script: impl AsRef<Path>,
+    exe_path: impl AsRef<Path>, script: impl AsRef<Path>,
     condition: impl FnOnce(&Child) + UnwindSafe,
 ) {
     let context = Context::get_global();

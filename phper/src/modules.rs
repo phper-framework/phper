@@ -112,29 +112,25 @@ impl Module {
     }
 
     pub fn on_module_init(
-        &mut self,
-        func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
+        &mut self, func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.module_init = Some(Box::new(func));
     }
 
     pub fn on_module_shutdown(
-        &mut self,
-        func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
+        &mut self, func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.module_shutdown = Some(Box::new(func));
     }
 
     pub fn on_request_init(
-        &mut self,
-        func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
+        &mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.request_init = Some(Box::new(func));
     }
 
     pub fn on_request_shutdown(
-        &mut self,
-        func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
+        &mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.request_shutdown = Some(Box::new(func));
     }

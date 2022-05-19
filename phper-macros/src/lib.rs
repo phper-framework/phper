@@ -1,7 +1,8 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 #![doc = include_str!("../README.md")]
 
-// TODO Write a bridge macro for easy usage about register functions and classes, like `cxx`.
+// TODO Write a bridge macro for easy usage about register functions and
+// classes, like `cxx`.
 
 mod alloc;
 mod derives;
@@ -60,7 +61,6 @@ pub fn c_str_ptr(input: TokenStream) -> TokenStream {
 ///
 ///     module
 /// }
-///
 /// ```
 #[proc_macro_attribute]
 pub fn php_get_module(attr: TokenStream, input: TokenStream) -> TokenStream {
@@ -84,7 +84,8 @@ pub fn php_get_module(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// TODO Support attribute `throwable` with `class`, `code` and `message`, integration tests.
+/// TODO Support attribute `throwable` with `class`, `code` and `message`,
+/// integration tests.
 #[proc_macro_derive(Throwable, attributes(throwable, throwable_class))]
 pub fn derive_throwable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

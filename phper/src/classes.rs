@@ -60,8 +60,7 @@ impl<T: Default + Send + 'static> DynamicClass<T> {
 
 impl<T: Send + 'static> DynamicClass<T> {
     pub fn new_with_constructor(
-        class_name: impl ToString,
-        state_constructor: impl Fn() -> T + Send + Sync + 'static,
+        class_name: impl ToString, state_constructor: impl Fn() -> T + Send + Sync + 'static,
     ) -> Self {
         Self {
             class_name: class_name.to_string(),
@@ -72,15 +71,12 @@ impl<T: Send + 'static> DynamicClass<T> {
             _p: Default::default(),
         }
         // let ptr = &dyn_class.data_constructor as *const _ as usize;
-        // dyn_class.add_property(DATA_CONSTRUCTOR_PROPERTY_NAME, ptr.to_string());
+        // dyn_class.add_property(DATA_CONSTRUCTOR_PROPERTY_NAME,
+        // ptr.to_string());
     }
 
     pub fn add_method<F, R>(
-        &mut self,
-        name: impl ToString,
-        vis: Visibility,
-        handler: F,
-        arguments: Vec<Argument>,
+        &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
         F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync + 'static,
         R: SetVal + 'static,
@@ -95,11 +91,7 @@ impl<T: Send + 'static> DynamicClass<T> {
     }
 
     pub fn add_static_method<F, R>(
-        &mut self,
-        name: impl ToString,
-        vis: Visibility,
-        handler: F,
-        arguments: Vec<Argument>,
+        &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
         F: Fn(&mut [Val]) -> R + Send + Sync + 'static,
         R: SetVal + 'static,
@@ -115,13 +107,11 @@ impl<T: Send + 'static> DynamicClass<T> {
 
     /// Declare property.
     ///
-    /// The argument `value` should be `Copy` because 'zend_declare_property' receive only scalar
-    /// zval , otherwise will report fatal error: "Internal zvals cannot be refcounted".
+    /// The argument `value` should be `Copy` because 'zend_declare_property'
+    /// receive only scalar zval , otherwise will report fatal error:
+    /// "Internal zvals cannot be refcounted".
     pub fn add_property(
-        &mut self,
-        name: impl ToString,
-        visibility: Visibility,
-        value: impl Into<Scalar>,
+        &mut self, name: impl ToString, visibility: Visibility, value: impl Into<Scalar>,
     ) {
         self.property_entities
             .push(PropertyEntity::new(name, visibility, value));
@@ -168,11 +158,13 @@ pub type StatelessClassEntry = ClassEntry<()>;
 ///
 /// # Generic
 ///
-/// 1. Any `zend_class_entry` can be make into `ClassEntry<()>`, alias as [StatelessClassEntry].
+/// 1. Any `zend_class_entry` can be make into `ClassEntry<()>`, alias as
+/// [StatelessClassEntry].
 ///
-/// 2. Only the `zend_class_entry` created by [crate::modules::Module::add_class] can be make into
-/// `ClassEntry<T>`, where `T` is the type defined by [Classifiable::state_type_id], as the inner
-/// state of `ClassEntry<T>` and `Object<T>`.
+/// 2. Only the `zend_class_entry` created by
+/// [crate::modules::Module::add_class] can be make into `ClassEntry<T>`, where
+/// `T` is the type defined by [Classifiable::state_type_id], as the inner state
+/// of `ClassEntry<T>` and `Object<T>`.
 #[repr(transparent)]
 pub struct ClassEntry<T: 'static> {
     inner: zend_class_entry,
@@ -226,8 +218,8 @@ impl<T: 'static> ClassEntry<T> {
         Ok(object)
     }
 
-    /// Create the object from class, without calling `__construct`, be careful when `__construct`
-    /// is necessary.
+    /// Create the object from class, without calling `__construct`, be careful
+    /// when `__construct` is necessary.
     pub fn init_object(&self) -> crate::Result<EBox<Object<T>>> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;

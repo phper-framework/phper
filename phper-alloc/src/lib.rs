@@ -12,8 +12,9 @@ use std::{
 
 /// The item which can be placed into container [EBox].
 pub trait EAllocatable {
-    /// The method to free the heap allocated by `emalloc`, should call `efree` at the end.
-    /// 
+    /// The method to free the heap allocated by `emalloc`, should call `efree`
+    /// at the end.
+    ///
     /// # Safety
     unsafe fn free(ptr: *mut Self) {
         _efree(ptr.cast());
@@ -22,7 +23,8 @@ pub trait EAllocatable {
 
 /// The Box which use php `emalloc` and `efree` to manage memory.
 ///
-/// TODO now feature `allocator_api` is still unstable, implement myself, use Box<T, Alloc> later.
+/// TODO now feature `allocator_api` is still unstable, implement myself, use
+/// Box<T, Alloc> later.
 pub struct EBox<T: EAllocatable> {
     ptr: *mut T,
 }
@@ -43,9 +45,9 @@ impl<T: EAllocatable> EBox<T> {
     }
 
     /// Constructs from a raw pointer.
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// Make sure the pointer is created from `emalloc`.
     pub unsafe fn from_raw(raw: *mut T) -> Self {
         Self { ptr: raw }

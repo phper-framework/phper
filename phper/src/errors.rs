@@ -17,7 +17,8 @@ const ARGUMENT_COUNT_ERROR_CLASS: &str = if PHP_VERSION_ID >= 70100 {
     "TypeError"
 };
 
-/// PHP Throwable, can cause throwing an exception when setting to [crate::values::Val].
+/// PHP Throwable, can cause throwing an exception when setting to
+/// [crate::values::Val].
 pub trait Throwable: error::Error {
     fn class_entry(&self) -> &StatelessClassEntry;
 
@@ -41,7 +42,8 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 
 /// Crate level Error, which also can become an exception in php.
 ///
-/// As a php exception, will throw `ErrorException` when the item not implement [Throwable].
+/// As a php exception, will throw `ErrorException` when the item not implement
+/// [Throwable].
 #[derive(thiserror::Error, crate::Throwable, Debug)]
 #[throwable_class("ErrorException")]
 pub enum Error {
@@ -119,7 +121,7 @@ pub struct ClassNotFoundError {
 #[derive(Debug, thiserror::Error, crate::Throwable)]
 #[error(
     "Actual State type in generic type parameter isn't the state type registered in the class, \
-please confirm the real state type, or use StatelessClassEntry"
+     please confirm the real state type, or use StatelessClassEntry"
 )]
 #[throwable_class("Error")]
 pub struct StateTypeError;

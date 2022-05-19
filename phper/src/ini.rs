@@ -83,7 +83,8 @@ pub enum Policy {
 ///
 /// Be careful that the size of `arg2` must litter than size of `usize`.
 ///
-/// TODO Add a size compare with usize trait bound, after const generic supports.
+/// TODO Add a size compare with usize trait bound, after const generic
+/// supports.
 pub trait TransformIniValue: Sized + ToString + 'static {
     fn on_modify() -> OnModify;
 
@@ -183,9 +184,7 @@ pub(crate) struct IniEntity {
 
 impl IniEntity {
     pub(crate) fn new<T: TransformIniValue>(
-        name: impl ToString,
-        default_value: T,
-        policy: Policy,
+        name: impl ToString, default_value: T, policy: Policy,
     ) -> Self {
         assert!(<T>::arg2_size() <= size_of::<usize>());
         Self {
@@ -218,11 +217,7 @@ impl IniEntity {
 }
 
 pub(crate) fn create_ini_entry_ex(
-    name: &str,
-    default_value: &str,
-    on_modify: OnModify,
-    modifiable: u32,
-    arg2: *mut c_void,
+    name: &str, default_value: &str, on_modify: OnModify, modifiable: u32, arg2: *mut c_void,
 ) -> zend_ini_entry_def {
     #[cfg(any(
         phper_php_version = "8.1",

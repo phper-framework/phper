@@ -108,11 +108,8 @@ pub struct FunctionEntity {
 
 impl FunctionEntity {
     pub(crate) fn new(
-        name: impl ToString,
-        handler: Box<dyn Callable>,
-        arguments: Vec<Argument>,
-        visibility: Option<Visibility>,
-        r#static: Option<bool>,
+        name: impl ToString, handler: Box<dyn Callable>, arguments: Vec<Argument>,
+        visibility: Option<Visibility>, r#static: Option<bool>,
     ) -> Self {
         let name = ensure_end_with_zero(name);
         FunctionEntity {
@@ -238,9 +235,7 @@ impl ZendFunction {
     }
 
     pub(crate) fn call<T: 'static>(
-        &mut self,
-        mut object: Option<&mut Object<T>>,
-        mut arguments: impl AsMut<[Val]>,
+        &mut self, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[Val]>,
     ) -> crate::Result<EBox<Val>> {
         let arguments = arguments.as_mut();
         let function_handler = self.as_mut_ptr();
@@ -351,8 +346,8 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     // TODO catch_unwind for call, translate some panic to throwing Error.
     handler.call(execute_data, &mut arguments, return_value);
 
-    // Do not call the drop method, because there is the `zend_vm_stack_free_args` call after
-    // executing function.
+    // Do not call the drop method, because there is the `zend_vm_stack_free_args`
+    // call after executing function.
     // TODO remove after arguments become reference.
     for argument in arguments {
         forget(argument);
@@ -360,8 +355,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 }
 
 pub(crate) const fn create_zend_arg_info(
-    name: *const c_char,
-    _pass_by_ref: bool,
+    name: *const c_char, _pass_by_ref: bool,
 ) -> zend_internal_arg_info {
     #[cfg(any(phper_php_version = "8.1", phper_php_version = "8.0"))]
     {
@@ -426,9 +420,7 @@ pub fn call(fn_name: &str, arguments: impl AsMut<[Val]>) -> crate::Result<EBox<V
 }
 
 pub(crate) fn call_internal<T: 'static>(
-    func: &mut Val,
-    mut object: Option<&mut Object<T>>,
-    mut arguments: impl AsMut<[Val]>,
+    func: &mut Val, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[Val]>,
 ) -> crate::Result<EBox<Val>> {
     let func_ptr = func.as_mut_ptr();
     let arguments = arguments.as_mut();
@@ -467,8 +459,7 @@ pub(crate) fn call_internal<T: 'static>(
 /// call function with raw pointer.
 /// call_fn parameters: (return_value)
 pub(crate) fn call_raw_common<T: 'static>(
-    call_fn: impl FnOnce(&mut Val) -> bool,
-    name_fn: impl FnOnce() -> crate::Result<String>,
+    call_fn: impl FnOnce(&mut Val) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
     object: Option<&mut Object<T>>,
 ) -> crate::Result<EBox<Val>> {
     let mut ret = EBox::new(Val::undef());

@@ -29,7 +29,7 @@ pub struct ExecuteData {
 
 impl ExecuteData {
     /// # Safety
-    /// 
+    ///
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
@@ -42,7 +42,7 @@ impl ExecuteData {
     }
 
     /// # Safety
-    /// 
+    ///
     /// Get value from union.
     #[inline]
     pub unsafe fn common_num_args(&self) -> u32 {
@@ -50,7 +50,7 @@ impl ExecuteData {
     }
 
     /// # Safety
-    /// 
+    ///
     /// Get value from union.
     #[inline]
     pub unsafe fn common_required_num_args(&self) -> u16 {
@@ -58,7 +58,7 @@ impl ExecuteData {
     }
 
     /// # Safety
-    /// 
+    ///
     /// Get value from union.
     #[inline]
     pub unsafe fn common_arg_info(&self) -> *mut zend_arg_info {
@@ -66,7 +66,7 @@ impl ExecuteData {
     }
 
     /// # Safety
-    /// 
+    ///
     /// Get value from union.
     #[inline]
     pub unsafe fn num_args(&self) -> u16 {
@@ -74,14 +74,14 @@ impl ExecuteData {
     }
 
     /// # Safety
-    /// 
+    ///
     /// From inner raw pointer.
     pub unsafe fn func(&self) -> &ZendFunction {
         ZendFunction::from_mut_ptr(self.inner.func)
     }
 
     /// # Safety
-    /// 
+    ///
     /// The type of `T` should be careful.
     pub unsafe fn get_this<T>(&mut self) -> Option<&mut Object<T>> {
         let ptr = phper_get_this(&mut self.inner) as *mut Val;
@@ -134,7 +134,7 @@ impl Val {
     }
 
     /// # Safety
-    /// 
+    ///
     /// Create from raw pointer.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         assert!(!ptr.is_null(), "ptr should not be null");
@@ -330,8 +330,8 @@ impl Val {
 
 impl EAllocatable for Val {
     unsafe fn free(ptr: *mut Self) {
-            ptr.as_mut().unwrap().drop_value();
-            _efree(ptr.cast());
+        ptr.as_mut().unwrap().drop_value();
+        _efree(ptr.cast());
     }
 }
 
@@ -349,7 +349,7 @@ impl Drop for Val {
 /// TODO Better name, distinguish between non-referenced and referenced cases.
 pub trait SetVal {
     /// # Safety
-    /// 
+    ///
     /// The implement usually unsafe.
     unsafe fn set_val(self, val: &mut Val);
 }
@@ -452,8 +452,8 @@ impl<T: SetVal> SetVal for Vec<T> {
     }
 }
 
-/// Setting the val to an array, Because of the feature of [std::collections::HashMap], the item
-/// order of array is not guarantee.
+/// Setting the val to an array, Because of the feature of
+/// [std::collections::HashMap], the item order of array is not guarantee.
 impl<K: AsRef<str>, V: SetVal> SetVal for HashMap<K, V> {
     unsafe fn set_val(self, val: &mut Val) {
         map_set_val(self, val);
@@ -499,7 +499,8 @@ impl SetVal for EBox<Array> {
     }
 }
 
-// TODO Support chain call for PHP object later, now only support return owned object.
+// TODO Support chain call for PHP object later, now only support return owned
+// object.
 impl<T> SetVal for EBox<Object<T>> {
     unsafe fn set_val(self, val: &mut Val) {
         let object = EBox::into_raw(self);

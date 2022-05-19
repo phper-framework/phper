@@ -27,14 +27,14 @@ impl ZendString {
     }
 
     /// # Safety
-    /// 
+    ///
     /// Create from raw pointer.
     pub unsafe fn from_raw(ptr: *mut zend_string) -> EBox<Self> {
         EBox::from_raw(ptr as *mut ZendString)
     }
 
     /// # Safety
-    /// 
+    ///
     /// Create from raw pointer.
     pub unsafe fn from_ptr<'a>(ptr: *mut zend_string) -> Option<&'a Self> {
         let ptr = ptr as *mut Self;
@@ -73,8 +73,8 @@ impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZendString {
 
 impl EAllocatable for ZendString {
     unsafe fn free(ptr: *mut Self) {
-            // Already has `GC_DELREF(s) == 0` detection.
-            phper_zend_string_release(ptr.cast());
+        // Already has `GC_DELREF(s) == 0` detection.
+        phper_zend_string_release(ptr.cast());
     }
 }
 
