@@ -17,6 +17,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     convert::TryInto,
     mem::{transmute, zeroed},
+    os::raw::c_int,
     str,
     str::Utf8Error,
 };
@@ -96,6 +97,13 @@ impl ExecuteData {
             _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
         }
         transmute(arguments)
+    }
+
+    pub fn get_parameter(&mut self, index: usize) -> &mut Val {
+        unsafe {
+            let val = phper_execute_data_call_arg(self.as_mut_ptr(), index as c_int);
+            Val::from_mut_ptr(val)
+        }
     }
 }
 

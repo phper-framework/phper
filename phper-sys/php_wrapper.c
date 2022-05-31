@@ -184,3 +184,7 @@ void phper_zval_ptr_dtor_nogc(zval *zval_ptr) {
 bool phper_z_refcounted_p(zval *zval_ptr) {
     return Z_REFCOUNTED_P(zval_ptr);
 }
+
+zval *phper_execute_data_call_arg(zend_execute_data *execute_data, int index) {
+    return ZEND_CALL_ARG(execute_data, index);
+}

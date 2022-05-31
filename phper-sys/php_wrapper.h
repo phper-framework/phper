@@ -64,4 +64,6 @@ void phper_zval_ptr_dtor_nogc(zval *zval_ptr);
 
 bool phper_z_refcounted_p(zval *zval_ptr);
 
+zval *phper_execute_data_call_arg(zend_execute_data *execute_data, int index);
+
 #endif //PHPER_PHP_WRAPPER_H
