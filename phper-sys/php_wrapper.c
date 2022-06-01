@@ -46,7 +46,7 @@ void phper_zval_zval(zval *return_value, zval *zv, int copy, int dtor) {
     ZVAL_ZVAL(return_value, zv, copy, dtor);
 }
 
-void phper_zval_dup(zval *return_value, zval *zv) {
+void phper_zval_dup(zval *return_value, const zval *zv) {
     ZVAL_DUP(return_value, zv);
 }
 

@@ -22,7 +22,7 @@ void phper_zval_stringl(zval *return_value, const char *s, size_t len);
 char *phper_z_strval_p(const zval *v);
 zval *phper_get_this(zend_execute_data *execute_data);
 void phper_zval_zval(zval *return_value, zval *zv, int copy, int dtor);
-void phper_zval_dup(zval *return_value, zval *zv);
+void phper_zval_dup(zval *return_value, const zval *zv);
 void phper_zval_copy(zval *return_value, zval *zv);
 void phper_zval_copy_value(zval *return_value, zval *zv);
 

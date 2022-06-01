@@ -164,6 +164,7 @@ impl Val {
         t.into()
     }
 
+    #[inline]
     pub fn into_inner(self) -> zval {
         self.inner
     }
@@ -263,6 +264,17 @@ impl Val {
         }
     }
 
+    pub fn as_mut_array(&mut self) -> crate::Result<&mut Array> {
+        if self.get_type().is_array() {
+            unsafe {
+                let ptr = self.inner.value.arr;
+                Ok(Array::from_mut_ptr(ptr).unwrap())
+            }
+        } else {
+            Err(self.must_be_type_error("array"))
+        }
+    }
+
     pub fn as_object(&self) -> crate::Result<&Object<()>> {
         if self.get_type().is_object() {
             unsafe {
@@ -333,6 +345,16 @@ impl Val {
 
     unsafe fn drop_value(&mut self) {
         phper_zval_ptr_dtor_nogc(self.as_mut_ptr());
+    }
+}
+
+impl Clone for Val {
+    fn clone(&self) -> Self {
+        let mut val = Val::undef();
+        unsafe {
+            phper_zval_dup(val.as_mut_ptr(), self.as_ptr());
+        }
+        val
     }
 }
 
