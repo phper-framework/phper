@@ -95,6 +95,10 @@ impl Type {
         get_base_type_by_raw(self.t) == IS_OBJECT
     }
 
+    pub const fn is_resource(self) -> bool {
+        get_base_type_by_raw(self.t) == IS_RESOURCE
+    }
+
     pub const fn is_indirect(self) -> bool {
         self.t == IS_INDIRECT
     }

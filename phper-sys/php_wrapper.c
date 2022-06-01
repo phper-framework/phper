@@ -188,3 +188,7 @@ bool phper_z_refcounted_p(zval *zval_ptr) {
 zval *phper_execute_data_call_arg(zend_execute_data *execute_data, int index) {
     return ZEND_CALL_ARG(execute_data, index);
 }
+
+int phper_z_res_handle_p(const zval *val) {
+    return Z_RES_HANDLE_P(val);
+}

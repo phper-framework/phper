@@ -14,6 +14,7 @@ pub mod ini;
 pub mod modules;
 pub mod objects;
 pub mod output;
+pub mod resources;
 pub mod strings;
 pub mod types;
 mod utils;

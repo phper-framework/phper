@@ -7,6 +7,7 @@ use crate::{
     errors::{NotRefCountedTypeError, Throwable, TypeError},
     functions::{call_internal, ZendFunction},
     objects::{Object, StatelessObject},
+    resources::Resource,
     strings::ZendString,
     sys::*,
     types::Type,
@@ -305,6 +306,28 @@ impl Val {
         let class = object.get_class();
         ClassEntry::check_type_id(class).unwrap();
         object
+    }
+
+    pub fn as_resource(&self) -> crate::Result<&Resource> {
+        if self.get_type().is_resource() {
+            unsafe {
+                let ptr = self.inner.value.res;
+                Ok(Resource::from_mut_ptr(ptr))
+            }
+        } else {
+            Err(self.must_be_type_error("resource"))
+        }
+    }
+
+    pub fn as_mut_resource(&mut self) -> crate::Result<&mut Resource> {
+        if self.get_type().is_resource() {
+            unsafe {
+                let ptr = self.inner.value.res;
+                Ok(Resource::from_mut_ptr(ptr))
+            }
+        } else {
+            Err(self.must_be_type_error("resource"))
+        }
     }
 
     // TODO Error tip, not only for function arguments, should change.

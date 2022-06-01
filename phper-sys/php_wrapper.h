@@ -66,4 +66,6 @@ bool phper_z_refcounted_p(zval *zval_ptr);
 
 zval *phper_execute_data_call_arg(zend_execute_data *execute_data, int index);
 
+int phper_z_res_handle_p(const zval *val);
+
 #endif //PHPER_PHP_WRAPPER_H
