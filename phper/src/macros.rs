@@ -91,3 +91,11 @@ macro_rules! pg {
         $crate::sys::core_globals.$x
     };
 }
+
+/// Equivalent to the php `SG`.
+#[macro_export]
+macro_rules! sg {
+    ($x:ident) => {
+        $crate::sys::sapi_globals.$x
+    };
+}
