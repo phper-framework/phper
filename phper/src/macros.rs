@@ -83,3 +83,11 @@ macro_rules! eg {
         $crate::sys::executor_globals.$x
     };
 }
+
+/// Equivalent to the php `PG`.
+#[macro_export]
+macro_rules! pg {
+    ($x:ident) => {
+        $crate::sys::core_globals.$x
+    };
+}

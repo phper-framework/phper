@@ -14,6 +14,7 @@ impl Resource {
         (ptr as *mut Self).as_mut().expect("ptr should not be null")
     }
 
+    #[allow(clippy::useless_conversion)]
     pub fn handle(&self) -> i64 {
         self.inner.handle.into()
     }
