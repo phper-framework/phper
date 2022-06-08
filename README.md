@@ -1,4 +1,4 @@
-# PHPer
+# PHPER (PHP Enjoy Rust)
 
 [![CI](https://github.com/jmjoy/phper/actions/workflows/ci.yml/badge.svg)](https://github.com/jmjoy/phper/actions/workflows/ci.yml)
 [![Crates](https://img.shields.io/crates/v/phper)](https://crates.io/crates/phper)

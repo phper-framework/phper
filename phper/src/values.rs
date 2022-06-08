@@ -372,6 +372,7 @@ impl Val {
 }
 
 impl Clone for Val {
+    // TODO Deep copy.
     fn clone(&self) -> Self {
         let mut val = Val::undef();
         unsafe {
