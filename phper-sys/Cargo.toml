@@ -6,7 +6,7 @@ edition = "2021"
 rust-version = "1.56"
 description = "Low level PHP binding for Rust."
 repository = "https://github.com/jmjoy/phper.git"
-license = "Unlicense"
+license = "MulanPSL-2.0"
 keywords = ["php", "binding"]
 
 [build-dependencies]

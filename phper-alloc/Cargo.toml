@@ -6,7 +6,7 @@ edition = "2021"
 rust-version = "1.56"
 description = "Alloc related items for phper crate."
 repository = "https://github.com/jmjoy/phper.git"
-license = "Unlicense"
+license = "MulanPSL-2.0"
 keywords = ["php", "alloc"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

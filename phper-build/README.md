@@ -6,4 +6,4 @@ Add this crate in your `[build-dependencies]` and using in `build.rs`.
 
 ## License
 
-[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
+[MulanPSL-2.0](https://github.com/jmjoy/phper/blob/master/LICENSE).

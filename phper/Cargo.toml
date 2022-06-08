@@ -7,7 +7,7 @@ rust-version = "1.56"
 description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
 repository = "https://github.com/jmjoy/phper.git"
 documentation = "https://docs.rs/phper"
-license = "Unlicense"
+license = "MulanPSL-2.0"
 readme = "../README.md"
 keywords = ["php", "binding", "extension", "module"]
 

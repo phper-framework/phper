@@ -4,4 +4,4 @@ Alloc related items for [phper](https://crates.io/crates/phper).
 
 ## License
 
-[Unlicense](https://github.com/jmjoy/phper/blob/master/LICENSE).
+[MulanPSL-2.0](https://github.com/jmjoy/phper/blob/master/LICENSE).
