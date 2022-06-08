@@ -16,7 +16,7 @@ use crate::{
     errors::{ClassNotFoundError, InitializeObjectError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
-    strings::ZendString,
+    strings::{ZStr, ZString},
     sys::*,
     types::Scalar,
     values::{SetVal, Val},
@@ -235,7 +235,7 @@ impl<T: 'static> ClassEntry<T> {
             let ptr = self.as_ptr() as *mut _;
             let mut val = Val::undef();
             if !phper_object_init_ex(val.as_mut_ptr(), ptr) {
-                Err(InitializeObjectError::new(self.get_name().as_str()?.to_owned()).into())
+                Err(InitializeObjectError::new(self.get_name().to_str()?.to_owned()).into())
             } else {
                 let object = (*val.as_mut_ptr()).value.obj;
                 forget(val);
@@ -245,8 +245,8 @@ impl<T: 'static> ClassEntry<T> {
         }
     }
 
-    pub fn get_name(&self) -> &ZendString {
-        unsafe { ZendString::from_ptr(self.inner.name).unwrap() }
+    pub fn get_name(&self) -> &ZStr {
+        unsafe { ZStr::from_ptr(self.inner.name) }
     }
 
     pub fn has_method(&self, method_name: &str) -> bool {

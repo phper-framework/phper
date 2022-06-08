@@ -29,7 +29,7 @@ fn integrate_a(module: &mut Module) {
         "__construct",
         Visibility::Public,
         |this, arguments| {
-            let name = arguments[0].as_string()?;
+            let name = arguments[0].to_string()?;
             let number = arguments[1].as_long()?;
             this.set_property("name", Val::new(name));
             this.set_property("number", Val::new(number));
@@ -42,7 +42,7 @@ fn integrate_a(module: &mut Module) {
         "speak",
         Visibility::Public,
         |this, _arguments| {
-            let name = this.get_property("name").as_string()?;
+            let name = this.get_property("name").to_string()?;
             let number = this.get_property("number").as_long()?;
 
             Ok::<_, phper::Error>(format!("name: {}, number: {}", name, number))

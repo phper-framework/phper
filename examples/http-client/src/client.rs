@@ -84,7 +84,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         "get",
         Visibility::Public,
         |this, arguments| {
-            let url = arguments[0].as_string()?;
+            let url = arguments[0].to_string()?;
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.get(url);
             let mut object =
@@ -100,7 +100,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         "post",
         Visibility::Public,
         |this, arguments| {
-            let url = arguments[0].as_string()?;
+            let url = arguments[0].to_string()?;
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.post(url);
             let mut object =

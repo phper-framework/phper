@@ -28,7 +28,7 @@ pub fn integrate(module: &mut Module) {
 
             o.set_property("foo", Val::new("bar"));
             let val = o.get_property("foo");
-            assert_eq!(val.as_string()?, "bar");
+            assert_eq!(val.to_string()?, "bar");
 
             let not_exists = o.get_property("no_exists");
             not_exists.as_null()?;
@@ -55,7 +55,7 @@ pub fn integrate(module: &mut Module) {
             let mut o = StatelessClassEntry::from_globals("Exception")?
                 .new_object(&mut [Val::new("What's happen?")])?;
             let message = o.call("getMessage", &mut [])?;
-            assert_eq!(message.as_string()?, "What's happen?");
+            assert_eq!(message.to_string()?, "What's happen?");
             Ok(())
         },
         vec![],

@@ -8,7 +8,18 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#include "php_wrapper.h"
+#include <stdbool.h>
+#include <php.h>
+#include <php_ini.h>
+#include <ext/standard/info.h>
+#include <zend_exceptions.h>
+#include <main/SAPI.h>
+
+typedef ZEND_INI_MH(phper_zend_ini_mh);
+
+zend_string *zend_new_interned_string_(zend_string *str);
+zend_class_entry phper_init_class_entry_ex(const char *class_name, size_t class_name_len, const zend_function_entry *functions);
+zend_uchar phper_zval_get_type(const zval* pz);
 
 zend_string *phper_zend_new_interned_string(zend_string *str) {
     return zend_new_interned_string(str);
@@ -201,4 +212,20 @@ zval *phper_execute_data_call_arg(zend_execute_data *execute_data, int index) {
 
 int phper_z_res_handle_p(const zval *val) {
     return Z_RES_HANDLE_P(val);
+}
+
+int phper_zstr_len(const zend_string *s) {
+    return ZSTR_LEN(s);
+}
+
+const char *phper_zstr_val(const zend_string *s) {
+    return ZSTR_VAL(s);
+}
+
+void *phper_emalloc(size_t size) {
+    return emalloc(size);
+}
+
+void phper_efree(void *ptr) {
+    return efree(ptr);
 }

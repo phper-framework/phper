@@ -26,8 +26,8 @@ pub fn make_response_class() -> DynamicClass<Response<Body>> {
         |this, arguments| {
             let response: &mut Response<Body> = this.as_mut_state();
             response.headers_mut().insert(
-                HeaderName::from_bytes(arguments[0].as_string()?.as_bytes())?,
-                HeaderValue::from_bytes(arguments[1].as_string()?.as_bytes())?,
+                HeaderName::from_bytes(arguments[0].to_string()?.as_bytes())?,
+                HeaderValue::from_bytes(arguments[1].to_string()?.as_bytes())?,
             );
             Ok::<_, HttpServerError>(())
         },

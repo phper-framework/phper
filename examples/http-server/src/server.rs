@@ -39,7 +39,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         "__construct",
         Visibility::Public,
         |this, arguments| {
-            let host = arguments[0].as_string()?;
+            let host = arguments[0].to_string()?;
             let port = arguments[1].as_long()?;
             this.set_property("host", Val::new(&*host));
             this.set_property("port", Val::new(port));

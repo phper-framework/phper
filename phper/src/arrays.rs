@@ -11,8 +11,8 @@
 //! Apis relate to [crate::sys::zend_array].
 
 use crate::{
-    alloc::{EAllocatable, EBox},
-    strings::ZendString,
+    alloc::EBox,
+    strings::{ZStr, ZString},
     sys::*,
     values::Val,
 };
@@ -199,14 +199,14 @@ impl Array {
     }
 }
 
-impl EAllocatable for Array {
-    unsafe fn free(ptr: *mut Self) {
-        (*ptr).inner.gc.refcount -= 1;
-        if (*ptr).inner.gc.refcount == 0 {
-            zend_array_destroy(ptr.cast());
-        }
-    }
-}
+// impl EAllocatable for Array {
+//     unsafe fn free(ptr: *mut Self) {
+//         (*ptr).inner.gc.refcount -= 1;
+//         if (*ptr).inner.gc.refcount == 0 {
+//             zend_array_destroy(ptr.cast());
+//         }
+//     }
+// }
 
 impl Drop for Array {
     fn drop(&mut self) {
@@ -235,8 +235,8 @@ impl<'a> Iterator for Iter<'a> {
                 let key = if (*bucket).key.is_null() {
                     Key::Index((*bucket).h)
                 } else {
-                    let s = ZendString::from_ptr((*bucket).key).unwrap();
-                    let s = s.as_str().unwrap();
+                    let s = ZStr::from_ptr((*bucket).key);
+                    let s = s.to_str().unwrap();
                     Key::Str(s)
                 };
 

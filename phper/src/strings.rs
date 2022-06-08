@@ -10,48 +10,35 @@
 
 //! Apis relate to [crate::sys::zend_string].
 
-use crate::{
-    alloc::{EAllocatable, EBox},
-    sys::*,
+use crate::{alloc::EBox, sys::*};
+use std::{
+    convert::TryInto,
+    marker::{PhantomData, PhantomPinned},
+    ops::{Deref, DerefMut},
+    os::raw::c_char,
+    ptr::NonNull,
+    slice::from_raw_parts,
+    str,
+    str::Utf8Error,
 };
-use std::{convert::TryInto, os::raw::c_char, slice::from_raw_parts, str, str::Utf8Error};
 
-/// Wrapper of [crate::sys::zend_string].
+/// Like str, CStr for [crate::sys::zend_string].
 #[repr(transparent)]
-pub struct ZendString {
+pub struct ZStr {
     inner: zend_string,
+    _p: PhantomData<*mut ()>,
 }
 
-impl ZendString {
-    pub fn new(s: impl AsRef<[u8]>) -> EBox<Self> {
-        unsafe {
-            let s = s.as_ref();
-            let ptr = phper_zend_string_init(
-                s.as_ptr().cast(),
-                s.len().try_into().unwrap(),
-                false.into(),
-            )
-            .cast();
-            EBox::from_raw(ptr)
-        }
+impl ZStr {
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_string) -> &'a Self {
+        (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
-    /// # Safety
-    ///
-    /// Create from raw pointer.
-    pub unsafe fn from_raw(ptr: *mut zend_string) -> EBox<Self> {
-        EBox::from_raw(ptr as *mut ZendString)
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
+        (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
-    /// # Safety
-    ///
-    /// Create from raw pointer.
-    pub unsafe fn from_ptr<'a>(ptr: *mut zend_string) -> Option<&'a Self> {
-        let ptr = ptr as *mut Self;
-        ptr.as_ref()
-    }
-
-    pub fn as_ptr(&self) -> *const zend_string {
+    pub const fn as_ptr(&self) -> *const zend_string {
         &self.inner
     }
 
@@ -59,37 +46,98 @@ impl ZendString {
         &mut self.inner
     }
 
-    pub fn as_str(&self) -> Result<&str, Utf8Error> {
-        str::from_utf8(self.as_ref())
-    }
-}
-
-impl AsRef<[u8]> for ZendString {
-    fn as_ref(&self) -> &[u8] {
+    pub fn to_bytes(&self) -> &[u8] {
         unsafe {
             from_raw_parts(
-                &self.inner.val as *const c_char as *const u8,
-                self.inner.len.try_into().unwrap(),
+                phper_zstr_val(&self.inner).cast(),
+                phper_zstr_len(&self.inner).try_into().unwrap(),
             )
         }
     }
+
+    pub fn to_str(&self) -> Result<&str, Utf8Error> {
+        str::from_utf8(self.to_bytes())
+    }
 }
 
-impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZendString {
+impl AsRef<[u8]> for ZStr {
+    fn as_ref(&self) -> &[u8] {
+        self.to_bytes()
+    }
+}
+
+impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZStr {
     fn eq(&self, other: &Rhs) -> bool {
         self.as_ref() == other.as_ref()
     }
 }
 
-impl EAllocatable for ZendString {
-    unsafe fn free(ptr: *mut Self) {
-        // Already has `GC_DELREF(s) == 0` detection.
-        phper_zend_string_release(ptr.cast());
+/// Like String, CString for [crate::sys::zend_string].
+pub struct ZString {
+    inner: *mut ZStr,
+}
+
+impl ZString {
+    pub fn new(s: impl AsRef<[u8]>) -> Self {
+        unsafe {
+            let s = s.as_ref();
+            let ptr = phper_zend_string_init(
+                s.as_ptr().cast(),
+                s.len().try_into().unwrap(),
+                false.into(),
+            );
+            Self {
+                inner: ZStr::from_mut_ptr(ptr.cast()),
+            }
+        }
     }
 }
 
-impl Drop for ZendString {
+impl Clone for ZString {
+    fn clone(&self) -> Self {
+        unsafe {
+            let ptr = phper_zend_string_init(
+                phper_zstr_val(self.as_ptr()),
+                phper_zstr_len(self.as_ptr()).try_into().unwrap(),
+                false.into(),
+            );
+            Self {
+                inner: ZStr::from_mut_ptr(ptr.cast()),
+            }
+        }
+    }
+}
+
+impl AsRef<[u8]> for ZString {
+    fn as_ref(&self) -> &[u8] {
+        self.to_bytes()
+    }
+}
+
+impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZString {
+    fn eq(&self, other: &Rhs) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Deref for ZString {
+    type Target = ZStr;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.inner.as_ref().unwrap() }
+    }
+}
+
+impl DerefMut for ZString {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.inner.as_mut().unwrap() }
+    }
+}
+
+impl Drop for ZString {
     fn drop(&mut self) {
-        unreachable!("Allocation on the stack is not allowed")
+        unsafe {
+            phper_zend_string_release(self.as_mut_ptr());
+        }
     }
 }

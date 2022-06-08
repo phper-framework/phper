@@ -11,7 +11,7 @@
 //! Apis relate to [crate::sys::zend_object].
 
 use crate::{
-    alloc::{EAllocatable, EBox},
+    alloc::EBox,
     classes::ClassEntry,
     errors::NotRefCountedTypeError,
     functions::{call_internal, ZendFunction},
@@ -231,14 +231,14 @@ impl Object<()> {
     }
 }
 
-impl<T> EAllocatable for Object<T> {
-    unsafe fn free(ptr: *mut Self) {
-        (*ptr).inner.gc.refcount -= 1;
-        if (*ptr).inner.gc.refcount == 0 {
-            zend_objects_store_del(ptr.cast());
-        }
-    }
-}
+// impl<T> EAllocatable for Object<T> {
+//     unsafe fn free(ptr: *mut Self) {
+//         (*ptr).inner.gc.refcount -= 1;
+//         if (*ptr).inner.gc.refcount == 0 {
+//             zend_objects_store_del(ptr.cast());
+//         }
+//     }
+// }
 
 impl<T> Drop for Object<T> {
     fn drop(&mut self) {

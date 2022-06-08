@@ -11,14 +11,14 @@
 //! Apis relate to [crate::sys::zval].
 
 use crate::{
-    alloc::{EAllocatable, EBox},
+    alloc::EBox,
     arrays::Array,
     classes::ClassEntry,
     errors::{NotRefCountedTypeError, Throwable, TypeError},
     functions::{call_internal, ZendFunction},
     objects::{Object, StatelessObject},
     resources::Resource,
-    strings::ZendString,
+    strings::{ZStr, ZString},
     sys::*,
     types::Type,
     utils::ensure_end_with_zero,
@@ -227,15 +227,15 @@ impl Val {
         }
     }
 
-    pub fn as_str(&self) -> crate::Result<&str> {
-        Ok(self.as_zend_string()?.as_str()?)
+    pub fn to_str(&self) -> crate::Result<&str> {
+        Ok(self.as_zend_string()?.to_str()?)
     }
 
-    pub fn as_string(&self) -> crate::Result<String> {
+    pub fn to_string(&self) -> crate::Result<String> {
         if self.get_type().is_string() {
             unsafe {
-                let zs = ZendString::from_ptr(self.inner.value.str_).unwrap();
-                Ok(zs.as_str()?.to_owned())
+                let zs = ZStr::from_ptr(self.inner.value.str_);
+                Ok(zs.to_str()?.to_owned())
             }
         } else {
             Err(self.must_be_type_error("string"))
@@ -246,10 +246,10 @@ impl Val {
         Ok(self.as_zend_string()?.as_ref())
     }
 
-    pub fn as_zend_string(&self) -> crate::Result<&ZendString> {
+    pub fn as_zend_string(&self) -> crate::Result<&ZStr> {
         if self.get_type().is_string() {
             unsafe {
-                let zs = ZendString::from_ptr(self.inner.value.str_).unwrap();
+                let zs = ZStr::from_ptr(self.inner.value.str_);
                 Ok(zs)
             }
         } else {
@@ -260,7 +260,7 @@ impl Val {
     pub fn as_string_value(&self) -> Result<String, Utf8Error> {
         unsafe {
             let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
-            ZendString::from_raw(s).as_str().map(ToOwned::to_owned)
+            ZStr::from_ptr(s).to_str().map(ToOwned::to_owned)
         }
     }
 
@@ -377,7 +377,7 @@ impl Val {
     }
 
     unsafe fn drop_value(&mut self) {
-        phper_zval_ptr_dtor_nogc(self.as_mut_ptr());
+        phper_zval_ptr_dtor(self.as_mut_ptr());
     }
 }
 
@@ -392,12 +392,12 @@ impl Clone for Val {
     }
 }
 
-impl EAllocatable for Val {
-    unsafe fn free(ptr: *mut Self) {
-        ptr.as_mut().unwrap().drop_value();
-        _efree(ptr.cast());
-    }
-}
+// impl EAllocatable for Val {
+//     unsafe fn free(ptr: *mut Self) {
+//         ptr.as_mut().unwrap().drop_value();
+//         _efree(ptr.cast());
+//     }
+// }
 
 impl Drop for Val {
     fn drop(&mut self) {

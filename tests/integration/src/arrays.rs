@@ -23,12 +23,12 @@ pub fn integrate(module: &mut Module) {
             let mut a1 = Array::new();
             a1.insert("foo", Val::new("FOO"));
             let val = a1.get("foo").unwrap();
-            let val = val.as_string()?;
+            let val = val.to_string()?;
 
             let mut a2 = Array::new();
             a2.insert("bar", Val::new("BAR"));
             let bar = a2.get("bar").unwrap();
-            let bar = bar.as_string()?;
+            let bar = bar.to_string()?;
 
             Ok(format!("{} {}", val, bar))
         },
@@ -63,7 +63,7 @@ pub fn integrate(module: &mut Module) {
 
             assert_eq!(a.get(0).unwrap().as_long()?, 0);
             assert_eq!(a.get(1).unwrap().as_long()?, 1);
-            assert_eq!(a.get("foo").unwrap().as_string()?, "bar");
+            assert_eq!(a.get("foo").unwrap().to_string()?, "bar");
 
             let arr = a.get("arr").unwrap().as_array()?;
             assert_eq!(arr.get(0).unwrap().as_long()?, 0);
@@ -71,7 +71,7 @@ pub fn integrate(module: &mut Module) {
 
             let obj: &mut Object<()> = a.get_mut("obj").unwrap().as_mut_object()?;
             let val = obj.get_property("foo");
-            assert_eq!(val.as_string()?, "bar");
+            assert_eq!(val.to_string()?, "bar");
 
             assert!(a.get(10).is_none());
             assert!(a.get("not_exists").is_none());
@@ -88,31 +88,31 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(a.len(), 0);
 
             a.insert(InsertKey::NextIndex, Val::new("0"));
-            assert_eq!(a.get(0).unwrap().as_string()?, "0");
+            assert_eq!(a.get(0).unwrap().to_string()?, "0");
             assert_eq!(a.len(), 1);
 
             a.insert(10, Val::new("10"));
-            assert_eq!(a.get(10).unwrap().as_string()?, "10");
+            assert_eq!(a.get(10).unwrap().to_string()?, "10");
             assert_eq!(a.len(), 2);
 
             a.insert(10, Val::new("foo"));
-            assert_eq!(a.get(10).unwrap().as_string()?, "foo");
+            assert_eq!(a.get(10).unwrap().to_string()?, "foo");
             assert_eq!(a.len(), 2);
 
             a.insert((), Val::new("11"));
-            assert_eq!(a.get(11).unwrap().as_string()?, "11");
+            assert_eq!(a.get(11).unwrap().to_string()?, "11");
             assert_eq!(a.len(), 3);
 
             a.insert((), Val::new("12"));
-            assert_eq!(a.get(12).unwrap().as_string()?, "12");
+            assert_eq!(a.get(12).unwrap().to_string()?, "12");
             assert_eq!(a.len(), 4);
 
             a.insert("foo", Val::new("bar"));
-            assert_eq!(a.get("foo").unwrap().as_string()?, "bar");
+            assert_eq!(a.get("foo").unwrap().to_string()?, "bar");
             assert_eq!(a.len(), 5);
 
             a.insert("foo", Val::new("bar2"));
-            assert_eq!(a.get("foo").unwrap().as_string()?, "bar2");
+            assert_eq!(a.get("foo").unwrap().to_string()?, "bar2");
             assert_eq!(a.len(), 5);
 
             assert!(a.get(13).is_none());
@@ -173,7 +173,7 @@ pub fn integrate(module: &mut Module) {
             let b = a.clone_arr();
             assert_eq!(b.get(0).unwrap().as_long()?, 0);
             assert_eq!(b.get(1).unwrap().as_long()?, 1);
-            assert_eq!(b.get("foo").unwrap().as_string()?, "bar");
+            assert_eq!(b.get("foo").unwrap().to_string()?, "bar");
 
             Ok(())
         },
@@ -201,7 +201,7 @@ pub fn integrate(module: &mut Module) {
                     }
                     2 => {
                         assert_eq!(k, "foo".into());
-                        assert_eq!(v.as_string()?, "bar");
+                        assert_eq!(v.to_string()?, "bar");
                     }
                     _ => unreachable!(),
                 }

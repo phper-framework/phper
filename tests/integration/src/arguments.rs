@@ -42,7 +42,7 @@ fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_string",
         |arguments: &mut [Val]| -> phper::Result<String> {
-            let a = arguments[0].as_string()?;
+            let a = arguments[0].to_string()?;
             let b = arguments[1].as_string_value()?;
             Ok(format!("{}, {}", a, b))
         },
@@ -75,7 +75,7 @@ fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_optional",
         |arguments: &mut [Val]| -> phper::Result<String> {
-            let a = arguments[0].as_string()?;
+            let a = arguments[0].to_string()?;
             let b = arguments
                 .get(1)
                 .map(|b| b.as_bool())

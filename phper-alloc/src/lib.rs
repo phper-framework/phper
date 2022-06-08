@@ -18,28 +18,15 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-// TODO Add ERc, for refcounted type.
-
-/// The item which can be placed into container [EBox].
-pub trait EAllocatable {
-    /// The method to free the heap allocated by `emalloc`, should call `efree`
-    /// at the end.
-    ///
-    /// # Safety
-    unsafe fn free(ptr: *mut Self) {
-        _efree(ptr.cast());
-    }
-}
-
 /// The Box which use php `emalloc` and `efree` to manage memory.
 ///
 /// TODO now feature `allocator_api` is still unstable, implement myself, use
 /// Box<T, Alloc> later.
-pub struct EBox<T: EAllocatable> {
+pub struct EBox<T> {
     ptr: *mut T,
 }
 
-impl<T: EAllocatable> EBox<T> {
+impl<T> EBox<T> {
     /// Allocates heap memory using `emalloc` then places `x` into it.
     ///
     /// # Panic
@@ -48,7 +35,7 @@ impl<T: EAllocatable> EBox<T> {
     pub fn new(x: T) -> Self {
         unsafe {
             assert_ne!(size_of::<T>(), 0);
-            let ptr: *mut T = _emalloc(size_of::<T>().try_into().unwrap()).cast();
+            let ptr: *mut T = phper_emalloc(size_of::<T>().try_into().unwrap()).cast();
             ptr.write(x);
             Self { ptr }
         }
@@ -73,7 +60,7 @@ impl<T: EAllocatable> EBox<T> {
     }
 }
 
-impl<T: EAllocatable> Deref for EBox<T> {
+impl<T> Deref for EBox<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -81,37 +68,17 @@ impl<T: EAllocatable> Deref for EBox<T> {
     }
 }
 
-impl<T: EAllocatable> DerefMut for EBox<T> {
+impl<T> DerefMut for EBox<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.ptr.as_mut().unwrap() }
     }
 }
 
-impl<T: EAllocatable> Drop for EBox<T> {
+impl<T> Drop for EBox<T> {
     fn drop(&mut self) {
         unsafe {
-            <T>::free(self.ptr);
+            self.ptr.drop_in_place();
+            phper_efree(self.ptr.cast());
         }
     }
 }
-
-unsafe impl<T: EAllocatable> Send for EBox<T> {}
-
-// TODO Write Erc for gc_refcounted holding types.
-// pub trait ERcAble {
-//     // Increment the reference count;
-//     fn incr(&mut self);
-//
-//     /// Decrement the reference count and return old count.
-//     fn decr(&mut self) -> usize;
-// }
-//
-// pub struct ERc<T> {
-//     value: T,
-// }
-//
-// impl<T> ERc<T> {
-//     pub fn new(value: T) -> Self {
-//         Self { value }
-//     }
-// }

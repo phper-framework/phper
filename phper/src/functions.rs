@@ -19,7 +19,7 @@ use crate::{
     errors::{ArgumentCountError, CallFunctionError, CallMethodError},
     exceptions::Exception,
     objects::{Object, StatelessObject},
-    strings::ZendString,
+    strings::{ZStr, ZString},
     sys::*,
     utils::ensure_end_with_zero,
     values::{ExecuteData, SetVal, Val},
@@ -237,10 +237,10 @@ impl ZendFunction {
         &mut self.inner
     }
 
-    pub fn get_name(&self) -> EBox<ZendString> {
+    pub fn get_name(&self) -> &ZStr {
         unsafe {
             let s = phper_get_function_or_method_name(self.as_ptr());
-            ZendString::from_raw(s)
+            ZStr::from_ptr(s)
         }
     }
 
@@ -303,7 +303,7 @@ impl ZendFunction {
 
                 zend_call_function(&mut fci, &mut fcc) == ZEND_RESULT_CODE_SUCCESS
             },
-            || Ok(self.get_name().as_str()?.to_owned()),
+            || Ok(self.get_name().to_str()?.to_owned()),
             object,
         )
     }
@@ -338,7 +338,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     if num_args < required_num_args {
         let func_name = execute_data.func().get_name();
         let result = func_name
-            .as_str()
+            .to_str()
             .map(|func_name| {
                 Err::<(), _>(ArgumentCountError::new(
                     func_name.to_owned(),
@@ -457,7 +457,7 @@ pub(crate) fn call_internal<T: 'static>(
         },
         || {
             Ok(if func.get_type().is_string() {
-                func.as_str()?.to_owned()
+                func.to_str()?.to_owned()
             } else {
                 "{closure}".to_owned()
             })
@@ -484,7 +484,7 @@ pub(crate) fn call_raw_common<T: 'static>(
             let fn_name = name_fn()?;
             return match object {
                 Some(object) => {
-                    let class_name = object.get_class().get_name().as_str()?.to_owned();
+                    let class_name = object.get_class().get_name().to_str()?.to_owned();
                     Err(CallMethodError::new(class_name, fn_name).into())
                 }
                 None => Err(CallFunctionError::new(fn_name).into()),
@@ -493,10 +493,10 @@ pub(crate) fn call_raw_common<T: 'static>(
 
         let ex = StatelessObject::from_mut_ptr(e);
         eg!(exception) = null_mut();
-        let class_name = ex.get_class().get_name().as_str()?.to_string();
+        let class_name = ex.get_class().get_name().to_str()?.to_string();
         let code = ex.call("getCode", [])?.as_long().unwrap();
-        let message = ex.call("getMessage", [])?.as_string().unwrap();
-        let file = ex.call("getFile", [])?.as_string().unwrap();
+        let message = ex.call("getMessage", [])?.to_string().unwrap();
+        let file = ex.call("getFile", [])?.to_string().unwrap();
         let line = ex.call("getLine", [])?.as_long().unwrap();
         eg!(exception) = e;
 

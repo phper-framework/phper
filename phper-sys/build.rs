@@ -12,7 +12,6 @@ use bindgen::Builder;
 use std::{env, ffi::OsStr, fmt::Debug, path::PathBuf, process::Command};
 
 fn main() {
-    println!("cargo:rerun-if-changed=php_wrapper.h");
     println!("cargo:rerun-if-changed=php_wrapper.c");
     println!("cargo:rerun-if-env-changed=PHP_CONFIG");
 
@@ -83,7 +82,7 @@ fn main() {
     });
 
     let bindings = Builder::default()
-        .header("php_wrapper.h")
+        .header("php_wrapper.c")
         .clang_args(&includes)
         .blocklist_function("__acosf64x")
         .blocklist_function("__acosf64x")
