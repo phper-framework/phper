@@ -12,8 +12,10 @@
 
 use crate::{alloc::EBox, sys::*};
 use std::{
+    borrow::Borrow,
     convert::TryInto,
     marker::{PhantomData, PhantomPinned},
+    mem::forget,
     ops::{Deref, DerefMut},
     os::raw::c_char,
     ptr::NonNull,
@@ -42,10 +44,12 @@ impl ZStr {
         &self.inner
     }
 
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_string {
         &mut self.inner
     }
 
+    #[inline]
     pub fn to_bytes(&self) -> &[u8] {
         unsafe {
             from_raw_parts(
@@ -72,6 +76,14 @@ impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZStr {
     }
 }
 
+impl ToOwned for ZStr {
+    type Owned = ZString;
+
+    fn to_owned(&self) -> Self::Owned {
+        ZString::new(self.to_bytes())
+    }
+}
+
 /// Like String, CString for [crate::sys::zend_string].
 pub struct ZString {
     inner: *mut ZStr,
@@ -91,6 +103,20 @@ impl ZString {
             }
         }
     }
+
+    #[inline]
+    pub unsafe fn from_raw(ptr: *mut zend_string) -> Self {
+        Self {
+            inner: ZStr::from_mut_ptr(ptr),
+        }
+    }
+
+    #[inline]
+    pub fn into_raw(mut self) -> *mut zend_string {
+        let ptr = self.as_mut_ptr();
+        forget(self);
+        ptr
+    }
 }
 
 impl Clone for ZString {
@@ -108,18 +134,6 @@ impl Clone for ZString {
     }
 }
 
-impl AsRef<[u8]> for ZString {
-    fn as_ref(&self) -> &[u8] {
-        self.to_bytes()
-    }
-}
-
-impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZString {
-    fn eq(&self, other: &Rhs) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-
 impl Deref for ZString {
     type Target = ZStr;
 
@@ -131,6 +145,12 @@ impl Deref for ZString {
 impl DerefMut for ZString {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.inner.as_mut().unwrap() }
+    }
+}
+
+impl Borrow<ZStr> for ZString {
+    fn borrow(&self) -> &ZStr {
+        self.deref()
     }
 }
 

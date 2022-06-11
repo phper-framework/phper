@@ -9,20 +9,20 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    arrays::Array,
+    arrays::ZArray,
     functions::{call, Argument},
     modules::Module,
-    values::Val,
+    values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_functions_call",
-        |_: &mut [Val]| -> phper::Result<()> {
-            let mut arr = Array::new();
-            arr.insert("a", Val::new(1));
-            arr.insert("b", Val::new(2));
-            let ret = call("array_sum", &mut [Val::new(arr)])?;
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut arr = ZArray::new();
+            arr.insert("a", ZVal::new(1));
+            arr.insert("b", ZVal::new(2));
+            let ret = call("array_sum", &mut [ZVal::new(arr)])?;
             assert_eq!(ret.as_long()?, 3);
             Ok(())
         },
@@ -31,7 +31,7 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_functions_call_callable",
-        |arguments: &mut [Val]| {
+        |arguments: &mut [ZVal]| {
             if let [head, tail @ ..] = arguments {
                 Ok::<_, phper::Error>(head.call(tail)?)
             } else {

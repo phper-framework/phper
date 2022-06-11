@@ -12,14 +12,14 @@
 
 use crate::{
     alloc::EBox,
-    arrays::Array,
+    arrays::ZArray,
     errors::{ClassNotFoundError, InitializeObjectError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
     strings::{ZStr, ZString},
     sys::*,
     types::Scalar,
-    values::{SetVal, Val},
+    values::ZVal,
 };
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
@@ -88,7 +88,7 @@ impl<T: Send + 'static> DynamicClass<T> {
     pub fn add_method<F, R>(
         &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
-        F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync + 'static,
+        F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
         R: SetVal + 'static,
     {
         self.method_entities.push(FunctionEntity::new(
@@ -103,7 +103,7 @@ impl<T: Send + 'static> DynamicClass<T> {
     pub fn add_static_method<F, R>(
         &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
-        F: Fn(&mut [Val]) -> R + Send + Sync + 'static,
+        F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
         R: SetVal + 'static,
     {
         self.method_entities.push(FunctionEntity::new(
@@ -222,7 +222,7 @@ impl<T: 'static> ClassEntry<T> {
     }
 
     /// Create the object from class and call `__construct` with arguments.
-    pub fn new_object(&self, arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Object<T>>> {
+    pub fn new_object(&self, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<Object<T>>> {
         let mut object = self.init_object()?;
         object.call_construct(arguments)?;
         Ok(object)
@@ -233,7 +233,7 @@ impl<T: 'static> ClassEntry<T> {
     pub fn init_object(&self) -> crate::Result<EBox<Object<T>>> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
-            let mut val = Val::undef();
+            let mut val = ZVal::undef();
             if !phper_object_init_ex(val.as_mut_ptr(), ptr) {
                 Err(InitializeObjectError::new(self.get_name().to_str()?.to_owned()).into())
             } else {
@@ -251,7 +251,7 @@ impl<T: 'static> ClassEntry<T> {
 
     pub fn has_method(&self, method_name: &str) -> bool {
         unsafe {
-            let function_table = Array::from_ptr(&self.inner.function_table).unwrap();
+            let function_table = ZArray::from_ptr(&self.inner.function_table).unwrap();
             function_table.exists(method_name)
         }
     }

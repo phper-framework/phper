@@ -22,7 +22,7 @@ use crate::{
     strings::{ZStr, ZString},
     sys::*,
     utils::ensure_end_with_zero,
-    values::{ExecuteData, SetVal, Val},
+    values::{ExecuteData, SetVal, ZVal},
 };
 use std::{
     convert::TryInto,
@@ -33,17 +33,17 @@ use std::{
 };
 
 pub(crate) trait Callable {
-    fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val);
+    fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal);
 }
 
 pub(crate) struct Function<F, R>(F)
 where
-    F: Fn(&mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut [ZVal]) -> R + Send + Sync,
     R: SetVal;
 
 impl<F, R> Function<F, R>
 where
-    F: Fn(&mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut [ZVal]) -> R + Send + Sync,
     R: SetVal,
 {
     pub fn new(f: F) -> Self {
@@ -53,10 +53,10 @@ where
 
 impl<F, R> Callable for Function<F, R>
 where
-    F: Fn(&mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut [ZVal]) -> R + Send + Sync,
     R: SetVal,
 {
-    fn call(&self, _: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
+    fn call(&self, _: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal) {
         let r = (self.0)(arguments);
         unsafe {
             r.set_val(return_value);
@@ -66,7 +66,7 @@ where
 
 pub(crate) struct Method<F, R, T>
 where
-    F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
     R: SetVal,
 {
     f: F,
@@ -76,7 +76,7 @@ where
 
 impl<F, R, T> Method<F, R, T>
 where
-    F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
     R: SetVal,
 {
     pub(crate) fn new(f: F) -> Self {
@@ -90,10 +90,12 @@ where
 
 impl<F, R, T: 'static> Callable for Method<F, R, T>
 where
-    F: Fn(&mut Object<T>, &mut [Val]) -> R + Send + Sync,
+    F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
     R: SetVal,
 {
-    fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [Val], return_value: &mut Val) {
+    fn call(
+        &self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal,
+    ) {
         unsafe {
             let this = execute_data.get_this::<T>().unwrap();
             let r = (self.f)(this, arguments);
@@ -245,8 +247,8 @@ impl ZendFunction {
     }
 
     pub(crate) fn call<T: 'static>(
-        &mut self, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[Val]>,
-    ) -> crate::Result<EBox<Val>> {
+        &mut self, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[ZVal]>,
+    ) -> crate::Result<EBox<ZVal>> {
         let arguments = arguments.as_mut();
         let function_handler = self.as_mut_ptr();
 
@@ -270,7 +272,7 @@ impl ZendFunction {
             |ret| unsafe {
                 let mut fci = zend_fcall_info {
                     size: size_of::<zend_fcall_info>().try_into().unwrap(),
-                    function_name: Val::undef().into_inner(),
+                    function_name: ZVal::undef().into_inner(),
                     retval: ret.as_mut_ptr(),
                     params: arguments.as_mut_ptr().cast(),
                     object: object_ptr,
@@ -319,7 +321,7 @@ pub(crate) union CallableTranslator {
 /// The entry for all registered PHP functions.
 unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: *mut zval) {
     let execute_data = ExecuteData::from_mut_ptr(execute_data);
-    let return_value = Val::from_mut_ptr(return_value);
+    let return_value = ZVal::from_mut_ptr(return_value);
 
     let num_args = execute_data.common_num_args();
     let arg_info = execute_data.common_arg_info();
@@ -423,19 +425,19 @@ pub(crate) const fn create_zend_arg_info(
 ///     Ok(())
 /// }
 /// ```
-pub fn call(fn_name: &str, arguments: impl AsMut<[Val]>) -> crate::Result<EBox<Val>> {
-    let mut func = Val::new(fn_name);
+pub fn call(fn_name: &str, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<ZVal>> {
+    let mut func = ZVal::new(fn_name);
     let none: Option<&mut StatelessObject> = None;
     call_internal(&mut func, none, arguments)
 }
 
 pub(crate) fn call_internal<T: 'static>(
-    func: &mut Val, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[Val]>,
-) -> crate::Result<EBox<Val>> {
+    func: &mut ZVal, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[ZVal]>,
+) -> crate::Result<EBox<ZVal>> {
     let func_ptr = func.as_mut_ptr();
     let arguments = arguments.as_mut();
 
-    let mut object_val = Val::undef();
+    let mut object_val = ZVal::undef();
     let mut object_val = object.as_mut().map(|o| unsafe {
         phper_zval_obj(object_val.as_mut_ptr(), o.as_mut_ptr());
         &mut object_val
@@ -456,7 +458,7 @@ pub(crate) fn call_internal<T: 'static>(
             )
         },
         || {
-            Ok(if func.get_type().is_string() {
+            Ok(if func.get_type_info().is_string() {
                 func.to_str()?.to_owned()
             } else {
                 "{closure}".to_owned()
@@ -469,12 +471,12 @@ pub(crate) fn call_internal<T: 'static>(
 /// call function with raw pointer.
 /// call_fn parameters: (return_value)
 pub(crate) fn call_raw_common<T: 'static>(
-    call_fn: impl FnOnce(&mut Val) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
+    call_fn: impl FnOnce(&mut ZVal) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
     object: Option<&mut Object<T>>,
-) -> crate::Result<EBox<Val>> {
-    let mut ret = EBox::new(Val::undef());
+) -> crate::Result<EBox<ZVal>> {
+    let mut ret = EBox::new(ZVal::undef());
 
-    if call_fn(&mut ret) && !ret.get_type().is_undef() {
+    if call_fn(&mut ret) && !ret.get_type_info().is_undef() {
         return Ok(ret);
     }
 

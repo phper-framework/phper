@@ -31,28 +31,24 @@ zend_class_entry phper_init_class_entry_ex(const char *class_name, size_t class_
     return class_container;
 }
 
-void phper_zval_string(zval *return_value, const char *s) {
-    ZVAL_STRING(return_value, s);
-}
-
 zend_uchar phper_zval_get_type(const zval* pz) {
     return zval_get_type(pz);
 }
 
-void phper_zval_arr(zval *return_value, zend_array *arr) {
-    ZVAL_ARR(return_value, arr);
+void phper_zval_arr(zval *val, zend_array *arr) {
+    ZVAL_ARR(val, arr);
 }
 
-void phper_zval_new_arr(zval *return_value) {
+void phper_zval_new_arr(zval *val) {
 #if PHP_VERSION_ID < 80100
-    ZVAL_NEW_ARR(return_value);
+    ZVAL_NEW_ARR(val);
 #else
-    array_init(return_value);
+    array_init(val);
 #endif
 }
 
-void phper_zval_stringl(zval *return_value, const char *s, size_t len) {
-    ZVAL_STRINGL(return_value, s, len);
+void phper_zval_stringl(zval *val, const char *s, size_t len) {
+    ZVAL_STRINGL(val, s, len);
 }
 
 char *phper_z_strval_p(const zval *v) {
@@ -63,20 +59,16 @@ zval *phper_get_this(zend_execute_data *execute_data) {
     return getThis();
 }
 
-void phper_zval_zval(zval *return_value, zval *zv, int copy, int dtor) {
-    ZVAL_ZVAL(return_value, zv, copy, dtor);
+void phper_zval_zval(zval *val, zval *zv, int copy, int dtor) {
+    ZVAL_ZVAL(val, zv, copy, dtor);
 }
 
-void phper_zval_dup(zval *return_value, const zval *zv) {
-    ZVAL_DUP(return_value, zv);
+void phper_zval_copy(zval *val, const zval *zv) {
+    ZVAL_COPY(val, zv);
 }
 
-void phper_zval_copy(zval *return_value, zval *zv) {
-    ZVAL_COPY(return_value, zv);
-}
-
-void phper_zval_copy_value(zval *return_value, zval *zv) {
-    ZVAL_COPY_VALUE(return_value, zv);
+void phper_zval_copy_value(zval *val, const zval *zv) {
+    ZVAL_COPY_VALUE(val, zv);
 }
 
 zend_string *phper_zval_get_string(zval *op) {
@@ -159,8 +151,8 @@ zend_string *phper_get_function_or_method_name(const zend_function *func) {
     #endif
 }
 
-void phper_zval_ptr_dtor(zval *pDest) {
-    ZVAL_PTR_DTOR(pDest);
+void phper_zval_ptr_dtor(zval *zv) {
+    ZVAL_PTR_DTOR(zv);
 }
 
 size_t phper_zend_object_properties_size(zend_class_entry *ce) {
@@ -228,4 +220,48 @@ void *phper_emalloc(size_t size) {
 
 void phper_efree(void *ptr) {
     return efree(ptr);
+}
+
+void phper_separate_string(zval *zv) {
+    SEPARATE_STRING(zv);
+}
+
+void phper_separate_array(zval *zv) {
+    SEPARATE_ARRAY(zv);
+}
+
+void phper_zval_null(zval *zv) {
+    ZVAL_NULL(zv);
+}
+
+void phper_zval_true(zval *zv) {
+    ZVAL_TRUE(zv);
+}
+
+void phper_zval_false(zval *zv) {
+    ZVAL_FALSE(zv);
+}
+
+void phper_zval_long(zval *zv, zend_long l) {
+    ZVAL_LONG(zv, l);
+}
+
+void phper_zval_double(zval *zv, double d) {
+    ZVAL_DOUBLE(zv, d);
+}
+
+int phper_z_type_info_p(zval *zv) {
+    return Z_TYPE_INFO_P(zv);
+}
+
+int phper_z_type_p(zval *zv) {
+    return Z_TYPE_P(zv);
+}
+
+void phper_zval_str(zval *zv, zend_string *s) {
+    ZVAL_STR(zv, s);
+}
+
+zend_array *phper_zend_new_array(uint32_t nSize) {
+    return zend_new_array(nSize);
 }

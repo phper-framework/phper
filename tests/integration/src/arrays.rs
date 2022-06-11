@@ -10,23 +10,23 @@
 
 use phper::{
     alloc::EBox,
-    arrays::{Array, InsertKey},
+    arrays::{ZArray, InsertKey},
     modules::Module,
     objects::Object,
-    values::Val,
+    values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_arrays_new_drop",
-        |_: &mut [Val]| -> phper::Result<String> {
-            let mut a1 = Array::new();
-            a1.insert("foo", Val::new("FOO"));
+        |_: &mut [ZVal]| -> phper::Result<String> {
+            let mut a1 = ZArray::new();
+            a1.insert("foo", ZVal::new("FOO"));
             let val = a1.get("foo").unwrap();
             let val = val.to_string()?;
 
-            let mut a2 = Array::new();
-            a2.insert("bar", Val::new("BAR"));
+            let mut a2 = ZArray::new();
+            a2.insert("bar", ZVal::new("BAR"));
             let bar = a2.get("bar").unwrap();
             let bar = bar.to_string()?;
 
@@ -37,26 +37,26 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_arrays_types",
-        |_: &mut [Val]| -> phper::Result<()> {
-            let mut a = Array::new();
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut a = ZArray::new();
 
-            a.insert(0, Val::new(0));
-            a.insert(1, Val::new(1));
-            a.insert("foo", Val::new("bar"));
+            a.insert(0, ZVal::new(0));
+            a.insert(1, ZVal::new(1));
+            a.insert("foo", ZVal::new("bar"));
             a.insert(
                 "arr",
-                Val::new({
-                    let mut arr = Array::new();
-                    arr.insert(0, Val::new(0));
-                    arr.insert(1, Val::new(1));
+                ZVal::new({
+                    let mut arr = ZArray::new();
+                    arr.insert(0, ZVal::new(0));
+                    arr.insert(1, ZVal::new(1));
                     arr
                 }),
             );
             a.insert(
                 "obj",
-                Val::new({
+                ZVal::new({
                     let mut o: EBox<Object<()>> = Object::new_by_std_class();
-                    o.set_property("foo", Val::new("bar"));
+                    o.set_property("foo", ZVal::new("bar"));
                     o
                 }),
             );
@@ -83,35 +83,35 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_arrays_insert",
-        |_: &mut [Val]| -> phper::Result<()> {
-            let mut a = Array::new();
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut a = ZArray::new();
             assert_eq!(a.len(), 0);
 
-            a.insert(InsertKey::NextIndex, Val::new("0"));
+            a.insert(InsertKey::NextIndex, ZVal::new("0"));
             assert_eq!(a.get(0).unwrap().to_string()?, "0");
             assert_eq!(a.len(), 1);
 
-            a.insert(10, Val::new("10"));
+            a.insert(10, ZVal::new("10"));
             assert_eq!(a.get(10).unwrap().to_string()?, "10");
             assert_eq!(a.len(), 2);
 
-            a.insert(10, Val::new("foo"));
+            a.insert(10, ZVal::new("foo"));
             assert_eq!(a.get(10).unwrap().to_string()?, "foo");
             assert_eq!(a.len(), 2);
 
-            a.insert((), Val::new("11"));
+            a.insert((), ZVal::new("11"));
             assert_eq!(a.get(11).unwrap().to_string()?, "11");
             assert_eq!(a.len(), 3);
 
-            a.insert((), Val::new("12"));
+            a.insert((), ZVal::new("12"));
             assert_eq!(a.get(12).unwrap().to_string()?, "12");
             assert_eq!(a.len(), 4);
 
-            a.insert("foo", Val::new("bar"));
+            a.insert("foo", ZVal::new("bar"));
             assert_eq!(a.get("foo").unwrap().to_string()?, "bar");
             assert_eq!(a.len(), 5);
 
-            a.insert("foo", Val::new("bar2"));
+            a.insert("foo", ZVal::new("bar2"));
             assert_eq!(a.get("foo").unwrap().to_string()?, "bar2");
             assert_eq!(a.len(), 5);
 
@@ -125,12 +125,12 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_arrays_exists",
-        |_: &mut [Val]| -> phper::Result<()> {
-            let mut a = Array::new();
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut a = ZArray::new();
 
             assert!(!a.exists("foo"));
 
-            a.insert("foo", Val::new("bar"));
+            a.insert("foo", ZVal::new("bar"));
             assert!(a.exists("foo"));
 
             Ok(())
@@ -140,11 +140,11 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_arrays_remove",
-        |_: &mut [Val]| -> phper::Result<()> {
-            let mut a = Array::new();
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut a = ZArray::new();
 
-            a.insert(10, Val::new(10));
-            a.insert("foo", Val::new("bar"));
+            a.insert(10, ZVal::new(10));
+            a.insert("foo", ZVal::new("bar"));
 
             assert!(a.exists(10));
             assert!(a.remove(10));
@@ -163,12 +163,12 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_arrays_clone",
-        |_: &mut [Val]| -> phper::Result<()> {
-            let mut a = Array::new();
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut a = ZArray::new();
 
-            a.insert(0, Val::new(0));
-            a.insert((), Val::new(1));
-            a.insert("foo", Val::new("bar"));
+            a.insert(0, ZVal::new(0));
+            a.insert((), ZVal::new(1));
+            a.insert("foo", ZVal::new("bar"));
 
             let b = a.clone_arr();
             assert_eq!(b.get(0).unwrap().as_long()?, 0);
@@ -182,12 +182,12 @@ pub fn integrate(module: &mut Module) {
 
     module.add_function(
         "integrate_arrays_iter",
-        |_: &mut [Val]| -> phper::Result<()> {
-            let mut a = Array::new();
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut a = ZArray::new();
 
-            a.insert(0, Val::new(0));
-            a.insert((), Val::new(1));
-            a.insert("foo", Val::new("bar"));
+            a.insert(0, ZVal::new(0));
+            a.insert((), ZVal::new(1));
+            a.insert("foo", ZVal::new("bar"));
 
             for (i, (k, v)) in a.iter().enumerate() {
                 match i {

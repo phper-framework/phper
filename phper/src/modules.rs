@@ -17,7 +17,7 @@ use crate::{
     ini::Ini,
     sys::*,
     utils::ensure_end_with_zero,
-    values::{SetVal, Val},
+    values::{SetVal, ZVal},
 };
 use std::{
     mem::{replace, size_of, zeroed},
@@ -147,7 +147,7 @@ impl Module {
 
     pub fn add_function<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
     where
-        F: Fn(&mut [Val]) -> R + Send + Sync + 'static,
+        F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
         R: SetVal + 'static,
     {
         self.function_entities.push(FunctionEntity::new(

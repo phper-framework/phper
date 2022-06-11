@@ -16,11 +16,11 @@ use std::{ffi::CStr, os::raw::c_int};
 
 /// Wrapper of PHP type.
 #[derive(PartialEq, Clone, Copy, Debug)]
-pub struct Type {
+pub struct TypeInfo {
     t: u32,
 }
 
-impl Type {
+impl TypeInfo {
     pub const fn from_raw(t: u32) -> Self {
         Self { t }
     }
@@ -29,39 +29,39 @@ impl Type {
         self.t
     }
 
-    pub const fn undef() -> Type {
+    pub const fn undef() -> TypeInfo {
         Self::from_raw(IS_UNDEF)
     }
 
-    pub const fn null() -> Type {
+    pub const fn null() -> TypeInfo {
         Self::from_raw(IS_NULL)
     }
 
-    pub const fn bool(b: bool) -> Type {
+    pub const fn bool(b: bool) -> TypeInfo {
         Self::from_raw(if b { IS_TRUE } else { IS_FALSE })
     }
 
-    pub const fn long() -> Type {
+    pub const fn long() -> TypeInfo {
         Self::from_raw(IS_LONG)
     }
 
-    pub const fn double() -> Type {
+    pub const fn double() -> TypeInfo {
         Self::from_raw(IS_DOUBLE)
     }
 
-    pub const fn array() -> Type {
+    pub const fn array() -> TypeInfo {
         Self::from_raw(IS_ARRAY)
     }
 
-    pub const fn array_ex() -> Type {
+    pub const fn array_ex() -> TypeInfo {
         Self::from_raw(IS_ARRAY_EX)
     }
 
-    pub const fn object() -> Type {
+    pub const fn object() -> TypeInfo {
         Self::from_raw(IS_OBJECT)
     }
 
-    pub const fn object_ex() -> Type {
+    pub const fn object_ex() -> TypeInfo {
         Self::from_raw(IS_OBJECT_EX)
     }
 
@@ -113,7 +113,7 @@ impl Type {
         self.t == IS_INDIRECT
     }
 
-    pub const fn get_base_type(self) -> Type {
+    pub const fn get_base_type(self) -> TypeInfo {
         Self::from_raw(get_base_type_by_raw(self.t))
     }
 
@@ -122,7 +122,7 @@ impl Type {
     }
 }
 
-impl From<u32> for Type {
+impl From<u32> for TypeInfo {
     fn from(n: u32) -> Self {
         Self::from_raw(n)
     }

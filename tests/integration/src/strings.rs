@@ -8,12 +8,12 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::{modules::Module, strings::ZString, values::Val};
+use phper::{modules::Module, strings::ZString, values::ZVal};
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_strings_zend_string_new",
-        |_: &mut [Val]| -> phper::Result<()> {
+        |_: &mut [ZVal]| -> phper::Result<()> {
             let zs = ZString::new("hello");
             assert_eq!(zs.to_str()?, "hello");
 

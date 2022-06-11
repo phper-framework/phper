@@ -14,10 +14,15 @@ use crate::{
     alloc::EBox,
     strings::{ZStr, ZString},
     sys::*,
-    values::Val,
+    values::ZVal,
 };
 use derive_more::From;
-use std::{convert::TryInto, mem::zeroed};
+use std::{
+    convert::TryInto,
+    marker::PhantomData,
+    mem::{forget, zeroed},
+    ops::{Deref, DerefMut},
+};
 
 /// Key for [Array].
 #[derive(Debug, Clone, PartialEq, From)]
@@ -34,57 +39,32 @@ pub enum InsertKey<'a> {
     Str(&'a str),
 }
 
-/// Wrapper of [crate::sys::zend_array].
 #[repr(transparent)]
-pub struct Array {
+pub struct ZArr {
     inner: zend_array,
+    _p: PhantomData<*mut ()>,
 }
 
-impl Array {
-    #[allow(clippy::useless_conversion)]
-    pub fn new() -> EBox<Self> {
-        unsafe {
-            let mut array = EBox::new(zeroed::<Array>());
-            _zend_hash_init(
-                array.as_mut_ptr(),
-                0,
-                Some(phper_zval_ptr_dtor),
-                false.into(),
-            );
-            array
-        }
+impl ZArr {
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Self {
+        (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
-    /// New Array reference from raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// Make sure pointer is the type of `zend_array'.
-    pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> Option<&'a Array> {
-        let ptr = ptr as *const Array;
-        ptr.as_ref()
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
+        (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
-    /// New Array mutable reference from raw pointer.
-    ///
-    /// # Safety
-    ///
-    /// Make sure pointer is the type of `zend_array'.
-    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> Option<&'a mut Array> {
-        let ptr = ptr as *mut Array;
-        ptr.as_mut()
-    }
-
-    pub fn as_ptr(&self) -> *const zend_array {
+    pub const fn as_ptr(&self) -> *const zend_array {
         &self.inner
     }
 
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_array {
         &mut self.inner
     }
 
     /// Add or update item by key.
-    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: Val) {
+    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: ZVal) {
         let key = key.into();
         let value = EBox::new(value);
         unsafe {
@@ -111,7 +91,7 @@ impl Array {
     }
 
     // Get item by key.
-    pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&Val> {
+    pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&ZVal> {
         let key = key.into();
         unsafe {
             let value = match key {
@@ -123,13 +103,13 @@ impl Array {
             if value.is_null() {
                 None
             } else {
-                Some(Val::from_mut_ptr(value))
+                Some(ZVal::from_mut_ptr(value))
             }
         }
     }
 
     // Get item by key.
-    pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&mut Val> {
+    pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&mut ZVal> {
         let key = key.into();
         unsafe {
             let value = match key {
@@ -141,7 +121,7 @@ impl Array {
             if value.is_null() {
                 None
             } else {
-                Some(Val::from_mut_ptr(value))
+                Some(ZVal::from_mut_ptr(value))
             }
         }
     }
@@ -199,29 +179,67 @@ impl Array {
     }
 }
 
-// impl EAllocatable for Array {
-//     unsafe fn free(ptr: *mut Self) {
-//         (*ptr).inner.gc.refcount -= 1;
-//         if (*ptr).inner.gc.refcount == 0 {
-//             zend_array_destroy(ptr.cast());
-//         }
-//     }
-// }
+/// Wrapper of [crate::sys::zend_array].
+#[repr(transparent)]
+pub struct ZArray {
+    inner: *mut zend_array,
+}
 
-impl Drop for Array {
+impl ZArray {
+    pub fn new() -> Self {
+        unsafe {
+            let ptr = phper_zend_new_array(0);
+            Self {
+                inner: ZArr::from_mut_ptr(ptr),
+            }
+        }
+    }
+
+    #[inline]
+    pub unsafe fn from_raw(ptr: *mut zend_array) -> Self {
+        Self {
+            inner: ZArr::from_mut_ptr(ptr),
+        }
+    }
+
+    #[inline]
+    pub fn into_raw(mut self) -> *mut zend_array {
+        let ptr = self.as_mut_ptr();
+        forget(self);
+        ptr
+    }
+}
+
+impl Deref for ZArray {
+    type Target = ZArr;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.inner.as_ref().unwrap() }
+    }
+}
+
+impl DerefMut for ZArray {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.inner.as_mut().unwrap() }
+    }
+}
+
+impl Drop for ZArray {
     fn drop(&mut self) {
-        unreachable!("Allocation on the stack is not allowed")
+        unsafe {
+            zend_array_destroy(self.as_mut_ptr());
+        }
     }
 }
 
 /// Iter created by [Array::iter].
 pub struct Iter<'a> {
     index: isize,
-    array: &'a Array,
+    array: &'a ZArray,
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (Key<'a>, &'a Val);
+    type Item = (Key<'a>, &'a ZVal);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -241,14 +259,14 @@ impl<'a> Iterator for Iter<'a> {
                 };
 
                 let val = &mut (*bucket).val;
-                let mut val = Val::from_mut_ptr(val);
-                if val.get_type().is_indirect() {
-                    val = Val::from_mut_ptr((*val.as_mut_ptr()).value.zv);
+                let mut val = ZVal::from_mut_ptr(val);
+                if val.get_type_info().is_indirect() {
+                    val = ZVal::from_mut_ptr((*val.as_mut_ptr()).value.zv);
                 }
 
                 self.index += 1;
 
-                if val.get_type().is_undef() {
+                if val.get_type_info().is_undef() {
                     continue;
                 }
                 break Some((key, val));

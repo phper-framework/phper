@@ -9,26 +9,26 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    arrays::Array,
+    arrays::ZArray,
     classes::{DynamicClass, Visibility},
     functions::Argument,
     ini::{Ini, Policy},
     modules::{Module, ModuleContext},
     objects::Object,
     php_get_module,
-    values::Val,
+    values::ZVal,
 };
 
 fn module_init(_args: ModuleContext) -> bool {
     true
 }
 
-fn say_hello(arguments: &mut [Val]) -> phper::Result<String> {
+fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
     let name = arguments[0].as_string_value()?;
     Ok(format!("Hello, {}!\n", name))
 }
 
-fn throw_exception(_: &mut [Val]) -> phper::Result<()> {
+fn throw_exception(_: &mut [ZVal]) -> phper::Result<()> {
     Err(phper::Error::other("I am sorry"))
 }
 
@@ -57,13 +57,13 @@ pub fn get_module() -> Module {
     module.add_function("hello_throw_exception", throw_exception, vec![]);
     module.add_function(
         "hello_get_all_ini",
-        |_: &mut [Val]| {
-            let mut arr = Array::new();
+        |_: &mut [ZVal]| {
+            let mut arr = ZArray::new();
 
-            let hello_enable = Val::new(Ini::get::<bool>("hello.enable"));
+            let hello_enable = ZVal::new(Ini::get::<bool>("hello.enable"));
             arr.insert("hello.enable", hello_enable);
 
-            let hello_description = Val::new(Ini::get::<String>("hello.description"));
+            let hello_description = ZVal::new(Ini::get::<String>("hello.description"));
             arr.insert("hello.description", hello_description);
 
             arr
@@ -77,7 +77,7 @@ pub fn get_module() -> Module {
     foo_class.add_method(
         "getFoo",
         Visibility::Public,
-        |this: &mut Object<()>, _: &mut [Val]| {
+        |this: &mut Object<()>, _: &mut [ZVal]| {
             let prop = this.get_property("foo");
             Ok::<_, phper::Error>(prop.as_string_value()?)
         },
@@ -86,8 +86,8 @@ pub fn get_module() -> Module {
     foo_class.add_method(
         "setFoo",
         Visibility::Public,
-        |this: &mut Object<()>, arguments: &mut [Val]| -> phper::Result<()> {
-            this.set_property("foo", Val::new(arguments[0].as_string_value()?));
+        |this: &mut Object<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
+            this.set_property("foo", ZVal::new(arguments[0].as_string_value()?));
             Ok(())
         },
         vec![Argument::by_val("foo")],

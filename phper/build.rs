@@ -8,6 +8,17 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
+use phper_sys::*;
+
 fn main() {
     phper_build::register_configures();
+    assert_eq!(
+        PHP_DEBUG, 0,
+        "PHPER not support DEBUG mode now (php built with `--enable-debug`)."
+    );
+    assert_eq!(
+        USING_ZTS, 0,
+        "PHPER not support ZTS mode now (php built with `--enable-maintainer-zts` or \
+         `--enable-zts`)."
+    );
 }

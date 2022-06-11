@@ -16,7 +16,7 @@ use crate::{
     errors::NotRefCountedTypeError,
     functions::{call_internal, ZendFunction},
     sys::*,
-    values::Val,
+    values::ZVal,
 };
 use std::{
     any::Any,
@@ -39,12 +39,12 @@ pub struct Object<T: 'static> {
 
 impl<T: 'static> Object<T> {
     /// Another way to new object like [crate::classes::ClassEntry::new_object].
-    pub fn new(class_entry: &ClassEntry<T>, arguments: &mut [Val]) -> crate::Result<EBox<Self>> {
+    pub fn new(class_entry: &ClassEntry<T>, arguments: &mut [ZVal]) -> crate::Result<EBox<Self>> {
         class_entry.new_object(arguments)
     }
 
     pub fn new_by_class_name(
-        class_name: impl AsRef<str>, arguments: &mut [Val],
+        class_name: impl AsRef<str>, arguments: &mut [ZVal],
     ) -> crate::Result<EBox<Self>> {
         let class_entry = ClassEntry::from_globals(class_name)?;
         Self::new(class_entry, arguments)
@@ -77,18 +77,18 @@ impl<T: 'static> Object<T> {
         ClassEntry::from_ptr(self.inner.ce)
     }
 
-    pub fn get_property(&mut self, name: impl AsRef<str>) -> &Val {
+    pub fn get_property(&mut self, name: impl AsRef<str>) -> &ZVal {
         self.get_mut_property(name)
     }
 
     pub fn duplicate_property(
         &mut self, name: impl AsRef<str>,
-    ) -> Result<EBox<Val>, NotRefCountedTypeError> {
+    ) -> Result<EBox<ZVal>, NotRefCountedTypeError> {
         self.get_mut_property(name).duplicate()
     }
 
     #[allow(clippy::useless_conversion)]
-    fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut Val {
+    fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut ZVal {
         let name = name.as_ref();
 
         let prop = unsafe {
@@ -118,10 +118,10 @@ impl<T: 'static> Object<T> {
             }
         };
 
-        unsafe { Val::from_mut_ptr(prop) }
+        unsafe { ZVal::from_mut_ptr(prop) }
     }
 
-    pub fn set_property(&mut self, name: impl AsRef<str>, val: Val) {
+    pub fn set_property(&mut self, name: impl AsRef<str>, val: ZVal) {
         let name = name.as_ref();
         let val = EBox::new(val);
         unsafe {
@@ -194,19 +194,19 @@ impl<T: 'static> Object<T> {
     /// }
     /// ```
     pub fn call(
-        &mut self, method_name: &str, arguments: impl AsMut<[Val]>,
-    ) -> crate::Result<EBox<Val>> {
-        let mut method = Val::new(method_name);
+        &mut self, method_name: &str, arguments: impl AsMut<[ZVal]>,
+    ) -> crate::Result<EBox<ZVal>> {
+        let mut method = ZVal::new(method_name);
 
         unsafe {
-            let mut val = Val::undef();
+            let mut val = ZVal::undef();
             phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
             call_internal(&mut method, Some(self), arguments)
         }
     }
 
     /// Return bool represents whether the constructor exists.
-    pub(crate) fn call_construct(&mut self, arguments: impl AsMut<[Val]>) -> crate::Result<bool> {
+    pub(crate) fn call_construct(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<bool> {
         unsafe {
             match (*self.inner.handlers).get_constructor {
                 Some(get_constructor) => {

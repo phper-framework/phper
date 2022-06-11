@@ -21,7 +21,7 @@ use phper::{
     classes::{ClassEntry, DynamicClass, StatelessClassEntry, Visibility},
     errors::Error::Throw,
     functions::Argument,
-    values::Val,
+    values::ZVal,
 };
 use std::{convert::Infallible, mem::replace, net::SocketAddr, sync::Arc};
 use tokio::{runtime::Handle, sync::Mutex};
@@ -41,8 +41,8 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         |this, arguments| {
             let host = arguments[0].to_string()?;
             let port = arguments[1].as_long()?;
-            this.set_property("host", Val::new(&*host));
-            this.set_property("port", Val::new(port));
+            this.set_property("host", ZVal::new(&*host));
+            this.set_property("port", ZVal::new(port));
             let addr = format!("{}:{}", host, port).parse::<SocketAddr>()?;
             let builder = Server::bind(&addr);
             *this.as_mut_state() = Some(builder);
@@ -55,7 +55,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         "onRequest",
         Visibility::Public,
         |this, arguments| {
-            this.set_property("onRequestHandle", Val::new(arguments[0].duplicate()?));
+            this.set_property("onRequestHandle", ZVal::new(arguments[0].duplicate()?));
             Ok::<_, phper::Error>(())
         },
         vec![Argument::by_val("handle")],
@@ -84,14 +84,14 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
                                 let request =
                                     StatelessClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?
                                         .new_object([])?;
-                                let request = Val::new(request);
+                                let request = ZVal::new(request);
 
                                 let mut response = ClassEntry::<Response<Body>>::from_globals(
                                     HTTP_RESPONSE_CLASS_NAME,
                                 )?
                                 .new_object([])?;
                                 let response_val = response.duplicate();
-                                let response_val = Val::new(response_val);
+                                let response_val = ZVal::new(response_val);
 
                                 match handle.call([request, response_val]) {
                                     Err(Throw(ex)) => {
