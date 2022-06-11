@@ -14,12 +14,17 @@ use crate::sys::*;
 
 /// Wrapper of [crate::sys::zend_resource].
 #[repr(transparent)]
-pub struct Resource {
+pub struct ZRes {
     inner: zend_resource,
 }
 
-impl Resource {
-    /// # Safety
+impl ZRes {
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_resource) -> &'a Self {
+        (ptr as *const Self)
+            .as_ref()
+            .expect("ptr should not be null")
+    }
+
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_resource) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should not be null")
     }

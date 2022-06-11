@@ -17,7 +17,7 @@ use crate::{
     errors::{NotRefCountedTypeError, Throwable, TypeError},
     functions::{call_internal, ZendFunction},
     objects::{Object, StatelessObject},
-    resources::Resource,
+    resources::ZRes,
     strings::{ZStr, ZString},
     sys::*,
     types::TypeInfo,
@@ -130,11 +130,11 @@ pub struct ZVal {
 }
 
 impl ZVal {
-    pub unsafe fn from_ptr<'a>(ptr: *const zend_string) -> &'a Self {
+    pub unsafe fn from_ptr<'a>(ptr: *const zval) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
-    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
@@ -165,75 +165,55 @@ impl ZVal {
         self.inner.u1.type_info = t.into_raw();
     }
 
-    pub fn as_null(&self) -> crate::Result<()> {
+    pub fn as_null(&self) -> Option<()> {
         if self.get_type_info().is_null() {
-            Ok(())
+            Some(())
         } else {
-            Err(self.must_be_type_error("null"))
+            None
         }
     }
 
-    pub fn as_bool(&self) -> crate::Result<bool> {
+    pub fn as_bool(&self) -> Option<bool> {
         let t = self.get_type_info();
         if t.is_true() {
-            Ok(true)
+            Some(true)
         } else if t.is_false() {
-            Ok(false)
+            Some(false)
         } else {
-            Err(self.must_be_type_error("bool"))
+            None
         }
     }
 
-    pub fn as_long(&self) -> crate::Result<i64> {
+    pub fn as_long(&self) -> Option<i64> {
         if self.get_type_info().is_long() {
-            unsafe { Ok(self.inner.value.lval) }
+            unsafe { Some(phper_z_lval_p(self.as_ptr())) }
         } else {
-            Err(self.must_be_type_error("int"))
+            None
         }
     }
 
+    // TODO Remove, and add convert_* methods.
     pub fn as_long_value(&self) -> i64 {
         unsafe { phper_zval_get_long(&self.inner as *const _ as *mut _) }
     }
 
-    pub fn as_double(&self) -> crate::Result<f64> {
+    pub fn as_double(&self) -> Option<f64> {
         if self.get_type_info().is_double() {
-            unsafe { Ok(self.inner.value.dval) }
+            unsafe { Some(phper_z_dval_p(self.as_ptr())) }
         } else {
-            Err(self.must_be_type_error("float"))
+            None
         }
     }
 
-    pub fn to_str(&self) -> crate::Result<&str> {
-        Ok(self.as_zend_string()?.to_str()?)
-    }
-
-    pub fn to_string(&self) -> crate::Result<String> {
+    pub fn as_z_str(&self) -> Option<&ZStr> {
         if self.get_type_info().is_string() {
-            unsafe {
-                let zs = ZStr::from_ptr(self.inner.value.str_);
-                Ok(zs.to_str()?.to_owned())
-            }
+            unsafe { Some(ZStr::from_mut_ptr(phper_z_str_p(self.as_ptr()))) }
         } else {
-            Err(self.must_be_type_error("string"))
+            None
         }
     }
 
-    pub fn as_bytes(&self) -> crate::Result<&[u8]> {
-        Ok(self.as_zend_string()?.as_ref())
-    }
-
-    pub fn as_zend_string(&self) -> crate::Result<&ZStr> {
-        if self.get_type_info().is_string() {
-            unsafe {
-                let zs = ZStr::from_ptr(self.inner.value.str_);
-                Ok(zs)
-            }
-        } else {
-            Err(self.must_be_type_error("string"))
-        }
-    }
-
+    // TODO Remove, and add convert_* methods.
     pub fn as_string_value(&self) -> Result<String, Utf8Error> {
         unsafe {
             let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
@@ -241,25 +221,19 @@ impl ZVal {
         }
     }
 
-    pub fn as_array(&self) -> crate::Result<&ZArray> {
+    pub fn as_z_arr(&self) -> Option<&ZArr> {
         if self.get_type_info().is_array() {
-            unsafe {
-                let ptr = self.inner.value.arr;
-                Ok(ZArray::from_mut_ptr(ptr).unwrap())
-            }
+            unsafe { Some(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
         } else {
-            Err(self.must_be_type_error("array"))
+            None
         }
     }
 
-    pub fn as_mut_array(&mut self) -> crate::Result<&mut ZArray> {
+    pub fn as_mut_z_arr(&mut self) -> Option<&mut ZArr> {
         if self.get_type_info().is_array() {
-            unsafe {
-                let ptr = self.inner.value.arr;
-                Ok(ZArray::from_mut_ptr(ptr).unwrap())
-            }
+            unsafe { Some(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
         } else {
-            Err(self.must_be_type_error("array"))
+            None
         }
     }
 
@@ -295,25 +269,19 @@ impl ZVal {
         object
     }
 
-    pub fn as_resource(&self) -> crate::Result<&Resource> {
+    pub fn as_z_res(&self) -> Option<&ZRes> {
         if self.get_type_info().is_resource() {
-            unsafe {
-                let ptr = self.inner.value.res;
-                Ok(Resource::from_mut_ptr(ptr))
-            }
+            unsafe { Some(ZRes::from_mut_ptr(phper_z_res_p(self.as_ptr()))) }
         } else {
-            Err(self.must_be_type_error("resource"))
+            None
         }
     }
 
-    pub fn as_mut_resource(&mut self) -> crate::Result<&mut Resource> {
+    pub fn as_mut_res(&mut self) -> Option<&mut ZRes> {
         if self.get_type_info().is_resource() {
-            unsafe {
-                let ptr = self.inner.value.res;
-                Ok(Resource::from_mut_ptr(ptr))
-            }
+            unsafe { Some(ZRes::from_mut_ptr(phper_z_res_p(self.as_ptr()))) }
         } else {
-            Err(self.must_be_type_error("resource"))
+            None
         }
     }
 
@@ -359,9 +327,9 @@ impl Clone for ZVal {
         let mut val = ZVal::from(());
         unsafe {
             phper_zval_copy(val.as_mut_ptr(), self.as_ptr());
-            if val.get_type().is_string() {
+            if val.get_type_info().is_string() {
                 phper_separate_string(val.as_mut_ptr());
-            } else if val.get_type().is_array() {
+            } else if val.get_type_info().is_array() {
                 phper_separate_array(val.as_mut_ptr());
             }
         }
@@ -381,7 +349,7 @@ impl From<()> for ZVal {
     fn from(_: ()) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_null(val.as_mut_ptr());
+            phper_zval_null(val.as_mut_ptr().cast());
             val.assume_init()
         }
     }
@@ -392,9 +360,9 @@ impl From<bool> for ZVal {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
             if b {
-                phper_zval_true(val.as_mut_ptr());
+                phper_zval_true(val.as_mut_ptr().cast());
             } else {
-                phper_zval_false(val.as_mut_ptr());
+                phper_zval_false(val.as_mut_ptr().cast());
             }
             val.assume_init()
         }
@@ -405,7 +373,7 @@ impl From<i32> for ZVal {
     fn from(i: i32) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_long(val.as_mut_ptr(), i.try_into().unwrap());
+            phper_zval_long(val.as_mut_ptr().cast(), i.try_into().unwrap());
             val.assume_init()
         }
     }
@@ -415,7 +383,7 @@ impl From<i64> for ZVal {
     fn from(i: i64) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_long(val.as_mut_ptr(), i.try_into().unwrap());
+            phper_zval_long(val.as_mut_ptr().cast(), i.try_into().unwrap());
             val.assume_init()
         }
     }
@@ -425,7 +393,7 @@ impl From<f32> for ZVal {
     fn from(f: f32) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_double(val.as_mut_ptr(), f.try_into().unwrap());
+            phper_zval_double(val.as_mut_ptr().cast(), f.try_into().unwrap());
             val.assume_init()
         }
     }
@@ -435,7 +403,7 @@ impl From<f64> for ZVal {
     fn from(f: f64) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_double(val.as_mut_ptr(), f.try_into().unwrap());
+            phper_zval_double(val.as_mut_ptr().cast(), f.try_into().unwrap());
             val.assume_init()
         }
     }
@@ -458,7 +426,7 @@ impl From<&[u8]> for ZVal {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
             phper_zval_stringl(
-                val.as_mut_ptr(),
+                val.as_mut_ptr().cast(),
                 b.as_ptr().cast(),
                 b.len().try_into().unwrap(),
             );
@@ -477,7 +445,7 @@ impl From<ZString> for ZVal {
     fn from(s: ZString) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_str(val.as_mut_ptr(), s.into_raw());
+            phper_zval_str(val.as_mut_ptr().cast(), s.into_raw());
             val.assume_init()
         }
     }
@@ -487,7 +455,7 @@ impl From<&ZArr> for ZVal {
     fn from(arr: &ZArr) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_arr(val.as_mut_ptr(), zend_array_dup(arr.as_mut_ptr()));
+            phper_zval_arr(val.as_mut_ptr().cast(), zend_array_dup(arr.as_mut_ptr()));
             val.assume_init()
         }
     }
@@ -497,7 +465,7 @@ impl From<ZArray> for ZVal {
     fn from(arr: ZArray) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_arr(val.as_mut_ptr(), arr.into_raw());
+            phper_zval_arr(val.as_mut_ptr().cast(), arr.into_raw());
             val.assume_init()
         }
     }
@@ -505,7 +473,7 @@ impl From<ZArray> for ZVal {
 
 // // TODO Support chain call for PHP object later, now only support return
 // owned // object.
-// impl<T> SetVal for EBox<Object<T>> {
+// impl<T> Into<ZVal> for EBox<Object<T>> {
 //     unsafe fn set_val(self, val: &mut ZVal) {
 //         let object = EBox::into_raw(self);
 //         val.inner.value.obj = object.cast();
@@ -513,40 +481,42 @@ impl From<ZArray> for ZVal {
 //     }
 // }
 
-// impl<T: SetVal> SetVal for Option<T> {
+// impl<T: Into<ZVal>> Into<ZVal> for Option<T> {
 //     unsafe fn set_val(self, val: &mut ZVal) {
 //         match self {
-//             Some(t) => SetVal::set_val(t, val),
-//             None => SetVal::set_val((), val),
+//             Some(t) => Into<ZVal>::set_val(t, val),
+//             None => Into<ZVal>::set_val((), val),
 //         }
 //     }
 // }
 
-// impl<T: SetVal, E: Throwable> SetVal for Result<T, E> {
-//     unsafe fn set_val(self, val: &mut ZVal) {
-//         match self {
-//             Ok(t) => t.set_val(val),
-//             Err(e) => {
-//                 let class_entry = e.class_entry();
-//                 let message = ensure_end_with_zero(e.message());
-//                 zend_throw_exception(
-//                     class_entry.as_ptr() as *mut _,
-//                     message.as_ptr().cast(),
-//                     e.code() as i64,
-//                 );
-//                 SetVal::set_val((), val);
-//             }
-//         }
-//     }
-// }
+impl<T: Into<ZVal>, E: Throwable> From<Result<T, E>> for ZVal {
+    fn from(r: Result<T, E>) -> Self {
+        match r {
+            Ok(t) => t.into(),
+            Err(e) => {
+                let class_entry = e.class_entry();
+                let message = ensure_end_with_zero(e.message());
+                unsafe {
+                    zend_throw_exception(
+                        class_entry.as_ptr() as *mut _,
+                        message.as_ptr().cast(),
+                        e.code() as i64,
+                    );
+                }
+                ZVal::from(())
+            }
+        }
+    }
+}
 
-// impl SetVal for ZVal {
+// impl Into<ZVal> for ZVal {
 //     unsafe fn set_val(mut self, val: &mut ZVal) {
 //         phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
 //     }
 // }
 
-// impl SetVal for EBox<ZVal> {
+// impl Into<ZVal> for EBox<ZVal> {
 //     unsafe fn set_val(self, val: &mut ZVal) {
 //         phper_zval_zval(val.as_mut_ptr(), EBox::into_raw(self).cast(), 0, 1);
 //     }

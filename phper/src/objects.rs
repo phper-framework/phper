@@ -196,10 +196,10 @@ impl<T: 'static> Object<T> {
     pub fn call(
         &mut self, method_name: &str, arguments: impl AsMut<[ZVal]>,
     ) -> crate::Result<EBox<ZVal>> {
-        let mut method = ZVal::new(method_name);
+        let mut method = method_name.into();
 
         unsafe {
-            let mut val = ZVal::undef();
+            let mut val = ZVal::from(());
             phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
             call_internal(&mut method, Some(self), arguments)
         }

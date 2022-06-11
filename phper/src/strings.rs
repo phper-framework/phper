@@ -98,9 +98,7 @@ impl ZString {
                 s.len().try_into().unwrap(),
                 false.into(),
             );
-            Self {
-                inner: ZStr::from_mut_ptr(ptr.cast()),
-            }
+            Self::from_raw(ptr)
         }
     }
 

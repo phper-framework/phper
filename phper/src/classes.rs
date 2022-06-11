@@ -12,7 +12,7 @@
 
 use crate::{
     alloc::EBox,
-    arrays::ZArray,
+    arrays::{ZArr, ZArray},
     errors::{ClassNotFoundError, InitializeObjectError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
     objects::{ExtendObject, Object},
@@ -89,7 +89,7 @@ impl<T: Send + 'static> DynamicClass<T> {
         &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
         F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
-        R: SetVal + 'static,
+        R: Into<ZVal> + 'static,
     {
         self.method_entities.push(FunctionEntity::new(
             name,
@@ -104,7 +104,7 @@ impl<T: Send + 'static> DynamicClass<T> {
         &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
         F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
-        R: SetVal + 'static,
+        R: Into<ZVal> + 'static,
     {
         self.method_entities.push(FunctionEntity::new(
             name,
@@ -233,7 +233,7 @@ impl<T: 'static> ClassEntry<T> {
     pub fn init_object(&self) -> crate::Result<EBox<Object<T>>> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
-            let mut val = ZVal::undef();
+            let mut val = ZVal::from(());
             if !phper_object_init_ex(val.as_mut_ptr(), ptr) {
                 Err(InitializeObjectError::new(self.get_name().to_str()?.to_owned()).into())
             } else {
@@ -251,7 +251,7 @@ impl<T: 'static> ClassEntry<T> {
 
     pub fn has_method(&self, method_name: &str) -> bool {
         unsafe {
-            let function_table = ZArray::from_ptr(&self.inner.function_table).unwrap();
+            let function_table = ZArr::from_ptr(&self.inner.function_table);
             function_table.exists(method_name)
         }
     }

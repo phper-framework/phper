@@ -265,3 +265,27 @@ void phper_zval_str(zval *zv, zend_string *s) {
 zend_array *phper_zend_new_array(uint32_t nSize) {
     return zend_new_array(nSize);
 }
+
+zend_array *phper_zend_array_dup(zend_array *source) {
+    return zend_array_dup(source);
+}
+
+zend_array *phper_z_arr_p(const zval *zv) {
+    return Z_ARR_P(zv);
+}
+
+zend_long phper_z_lval_p(const zval *zv) {
+    return Z_LVAL_P(zv);
+}
+
+double phper_z_dval_p(const zval *zv) {
+    return Z_DVAL_P(zv);
+}
+
+zend_string *phper_z_str_p(const zval *zv) {
+    return Z_STR_P(zv);
+}
+
+zend_resource *phper_z_res_p(const zval *zv) {
+    return Z_RES_P(zv);
+}

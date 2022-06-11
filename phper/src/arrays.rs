@@ -18,6 +18,7 @@ use crate::{
 };
 use derive_more::From;
 use std::{
+    borrow::Borrow,
     convert::TryInto,
     marker::PhantomData,
     mem::{forget, zeroed},
@@ -163,14 +164,6 @@ impl ZArr {
         }
     }
 
-    pub fn clone_arr(&self) -> EBox<Self> {
-        let mut other = Self::new();
-        unsafe {
-            zend_hash_copy(other.as_mut_ptr(), self.as_ptr() as *mut _, None);
-        }
-        other
-    }
-
     pub fn iter(&self) -> Iter<'_> {
         Iter {
             index: 0,
@@ -179,19 +172,29 @@ impl ZArr {
     }
 }
 
+impl ToOwned for ZArr {
+    type Owned = ZArray;
+
+    fn to_owned(&self) -> Self::Owned {
+        unsafe {
+            // TODO The source really immutable?
+            let dest = phper_zend_array_dup(self.as_ptr() as *mut _);
+            ZArray::from_raw(dest)
+        }
+    }
+}
+
 /// Wrapper of [crate::sys::zend_array].
 #[repr(transparent)]
 pub struct ZArray {
-    inner: *mut zend_array,
+    inner: *mut ZArr,
 }
 
 impl ZArray {
     pub fn new() -> Self {
         unsafe {
             let ptr = phper_zend_new_array(0);
-            Self {
-                inner: ZArr::from_mut_ptr(ptr),
-            }
+            Self::from_raw(ptr)
         }
     }
 
@@ -224,6 +227,18 @@ impl DerefMut for ZArray {
     }
 }
 
+impl Borrow<ZArr> for ZArray {
+    fn borrow(&self) -> &ZArr {
+        self.deref()
+    }
+}
+
+impl Clone for ZArray {
+    fn clone(&self) -> Self {
+        self.deref().to_owned()
+    }
+}
+
 impl Drop for ZArray {
     fn drop(&mut self) {
         unsafe {
@@ -235,7 +250,7 @@ impl Drop for ZArray {
 /// Iter created by [Array::iter].
 pub struct Iter<'a> {
     index: isize,
-    array: &'a ZArray,
+    array: &'a ZArr,
 }
 
 impl<'a> Iterator for Iter<'a> {

@@ -9,7 +9,8 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    alloc::EBox, arrays::ZArray, functions::Argument, modules::Module, objects::Object, values::ZVal,
+    alloc::EBox, arrays::ZArray, functions::Argument, modules::Module, objects::Object,
+    values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
@@ -52,7 +53,7 @@ fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_array",
         |arguments: &mut [ZVal]| -> phper::Result<EBox<ZArray>> {
-            let a = arguments[0].as_array()?;
+            let a = arguments[0].as_z_arr()?;
             let mut b = a.clone_arr();
             b.insert("a", ZVal::new(1));
             b.insert("foo", ZVal::new("bar"));

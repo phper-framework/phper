@@ -22,7 +22,7 @@ use crate::{
     strings::{ZStr, ZString},
     sys::*,
     utils::ensure_end_with_zero,
-    values::{ExecuteData, SetVal, ZVal},
+    values::{ExecuteData, ZVal},
 };
 use std::{
     convert::TryInto,
@@ -39,12 +39,12 @@ pub(crate) trait Callable {
 pub(crate) struct Function<F, R>(F)
 where
     F: Fn(&mut [ZVal]) -> R + Send + Sync,
-    R: SetVal;
+    R: Into<ZVal>;
 
 impl<F, R> Function<F, R>
 where
     F: Fn(&mut [ZVal]) -> R + Send + Sync,
-    R: SetVal,
+    R: Into<ZVal>,
 {
     pub fn new(f: F) -> Self {
         Self(f)
@@ -54,20 +54,18 @@ where
 impl<F, R> Callable for Function<F, R>
 where
     F: Fn(&mut [ZVal]) -> R + Send + Sync,
-    R: SetVal,
+    R: Into<ZVal>,
 {
     fn call(&self, _: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal) {
         let r = (self.0)(arguments);
-        unsafe {
-            r.set_val(return_value);
-        }
+        *return_value = r.into();
     }
 }
 
 pub(crate) struct Method<F, R, T>
 where
     F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
-    R: SetVal,
+    R: Into<ZVal>,
 {
     f: F,
     _p0: PhantomData<R>,
@@ -77,7 +75,7 @@ where
 impl<F, R, T> Method<F, R, T>
 where
     F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
-    R: SetVal,
+    R: Into<ZVal>,
 {
     pub(crate) fn new(f: F) -> Self {
         Self {
@@ -91,7 +89,7 @@ where
 impl<F, R, T: 'static> Callable for Method<F, R, T>
 where
     F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
-    R: SetVal,
+    R: Into<ZVal>,
 {
     fn call(
         &self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal,
@@ -99,7 +97,7 @@ where
         unsafe {
             let this = execute_data.get_this::<T>().unwrap();
             let r = (self.f)(this, arguments);
-            r.set_val(return_value);
+            *return_value = r.into();
         }
     }
 }
@@ -272,7 +270,7 @@ impl ZendFunction {
             |ret| unsafe {
                 let mut fci = zend_fcall_info {
                     size: size_of::<zend_fcall_info>().try_into().unwrap(),
-                    function_name: ZVal::undef().into_inner(),
+                    function_name: ZVal::from(()).into_inner(),
                     retval: ret.as_mut_ptr(),
                     params: arguments.as_mut_ptr().cast(),
                     object: object_ptr,
@@ -349,7 +347,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
                 ))
             })
             .map_err(crate::Error::Utf8);
-        SetVal::set_val(result, return_value);
+        *return_value = ZVal::from(result);
         return;
     }
 
@@ -426,7 +424,7 @@ pub(crate) const fn create_zend_arg_info(
 /// }
 /// ```
 pub fn call(fn_name: &str, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<ZVal>> {
-    let mut func = ZVal::new(fn_name);
+    let mut func = fn_name.into();
     let none: Option<&mut StatelessObject> = None;
     call_internal(&mut func, none, arguments)
 }
@@ -437,7 +435,7 @@ pub(crate) fn call_internal<T: 'static>(
     let func_ptr = func.as_mut_ptr();
     let arguments = arguments.as_mut();
 
-    let mut object_val = ZVal::undef();
+    let mut object_val = ZVal::from(());
     let mut object_val = object.as_mut().map(|o| unsafe {
         phper_zval_obj(object_val.as_mut_ptr(), o.as_mut_ptr());
         &mut object_val
@@ -474,7 +472,7 @@ pub(crate) fn call_raw_common<T: 'static>(
     call_fn: impl FnOnce(&mut ZVal) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
     object: Option<&mut Object<T>>,
 ) -> crate::Result<EBox<ZVal>> {
-    let mut ret = EBox::new(ZVal::undef());
+    let mut ret = EBox::new(ZVal::from(()));
 
     if call_fn(&mut ret) && !ret.get_type_info().is_undef() {
         return Ok(ret);

@@ -10,7 +10,7 @@
 
 use phper::{
     alloc::EBox,
-    arrays::{ZArray, InsertKey},
+    arrays::{InsertKey, ZArray},
     modules::Module,
     objects::Object,
     values::ZVal,
@@ -65,7 +65,7 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(a.get(1).unwrap().as_long()?, 1);
             assert_eq!(a.get("foo").unwrap().to_string()?, "bar");
 
-            let arr = a.get("arr").unwrap().as_array()?;
+            let arr = a.get("arr").unwrap().as_z_arr()?;
             assert_eq!(arr.get(0).unwrap().as_long()?, 0);
             assert_eq!(arr.get(1).unwrap().as_long()?, 1);
 
