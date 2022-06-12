@@ -60,10 +60,10 @@ pub fn get_module() -> Module {
         |_: &mut [ZVal]| {
             let mut arr = ZArray::new();
 
-            let hello_enable = ZVal::new(Ini::get::<bool>("hello.enable"));
+            let hello_enable = ZVal::from(Ini::get::<bool>("hello.enable"));
             arr.insert("hello.enable", hello_enable);
 
-            let hello_description = ZVal::new(Ini::get::<String>("hello.description"));
+            let hello_description = ZVal::from(Ini::get::<String>("hello.description"));
             arr.insert("hello.description", hello_description);
 
             arr
@@ -87,7 +87,7 @@ pub fn get_module() -> Module {
         "setFoo",
         Visibility::Public,
         |this: &mut Object<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
-            this.set_property("foo", ZVal::new(arguments[0].as_string_value()?));
+            this.set_property("foo", ZVal::from(arguments[0].as_string_value()?));
             Ok(())
         },
         vec![Argument::by_val("foo")],

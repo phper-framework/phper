@@ -12,12 +12,22 @@
 
 use crate::sys::*;
 use derive_more::From;
-use std::{ffi::CStr, os::raw::c_int};
+use std::{ffi::CStr, fmt::Display, os::raw::c_int};
 
 /// Wrapper of PHP type.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct TypeInfo {
     t: u32,
+}
+
+impl TypeInfo {
+    pub const ARRAY: TypeInfo = TypeInfo::from_raw(IS_ARRAY);
+    pub const BOOL: TypeInfo = TypeInfo::from_raw(_IS_BOOL);
+    pub const DOUBLE: TypeInfo = TypeInfo::from_raw(IS_DOUBLE);
+    pub const LONG: TypeInfo = TypeInfo::from_raw(IS_LONG);
+    pub const NULL: TypeInfo = TypeInfo::from_raw(IS_NULL);
+    pub const STRING: TypeInfo = TypeInfo::from_raw(IS_STRING);
+    pub const UNDEF: TypeInfo = TypeInfo::from_raw(IS_UNDEF);
 }
 
 impl TypeInfo {
@@ -47,6 +57,10 @@ impl TypeInfo {
 
     pub const fn double() -> TypeInfo {
         Self::from_raw(IS_DOUBLE)
+    }
+
+    pub const fn string() -> TypeInfo {
+        Self::from_raw(IS_STRING)
     }
 
     pub const fn array() -> TypeInfo {
@@ -128,6 +142,19 @@ impl From<u32> for TypeInfo {
     }
 }
 
+impl Display for TypeInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let t = if self.is_null() {
+            "null"
+        } else if self.is_bool() {
+            "bool"
+        } else {
+            "unknown"
+        };
+        Display::fmt(t, f)
+    }
+}
+
 fn get_type_by_const(mut t: u32) -> crate::Result<String> {
     unsafe {
         t = get_base_type_by_raw(t);
@@ -157,12 +184,6 @@ pub enum Scalar {
     F64(f64),
     String(String),
     Bytes(Vec<u8>),
-}
-
-impl From<i32> for Scalar {
-    fn from(i: i32) -> Self {
-        Self::I64(i.into())
-    }
 }
 
 impl From<&str> for Scalar {

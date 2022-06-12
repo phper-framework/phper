@@ -20,7 +20,7 @@ use std::{
 
 /// The Box which use php `emalloc` and `efree` to manage memory.
 ///
-/// TODO now feature `allocator_api` is still unstable, implement myself, use
+/// TODO Now feature `allocator_api` is still unstable, implement myself, use
 /// Box<T, Alloc> later.
 pub struct EBox<T> {
     ptr: *mut T,
@@ -36,6 +36,7 @@ impl<T> EBox<T> {
         unsafe {
             assert_ne!(size_of::<T>(), 0);
             let ptr: *mut T = phper_emalloc(size_of::<T>().try_into().unwrap()).cast();
+            // TODO Deal with ptr is zero, when memory limit is reached.
             ptr.write(x);
             Self { ptr }
         }
@@ -57,6 +58,10 @@ impl<T> EBox<T> {
         let ptr = b.ptr;
         forget(b);
         ptr
+    }
+
+    pub fn into_inner(self) -> T {
+        unsafe { self.ptr.read() }
     }
 }
 

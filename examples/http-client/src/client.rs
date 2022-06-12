@@ -31,7 +31,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         "timeout",
         Visibility::Public,
         |this, arguments| {
-            let ms = arguments[0].as_long()?;
+            let ms = arguments[0].as_long().unwrap();
             let state: &mut ClientBuilder = this.as_mut_state();
             replace_and_set(state, |builder| {
                 builder.timeout(Duration::from_millis(ms as u64))
@@ -45,7 +45,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         "cookie_store",
         Visibility::Public,
         |this, arguments| {
-            let enable = arguments[0].as_bool()?;
+            let enable = arguments[0].as_bool().unwrap();
             let state = this.as_mut_state();
             replace_and_set(state, |builder| builder.cookie_store(enable));
             Ok::<_, HttpClientError>(this.duplicate())
@@ -84,7 +84,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         "get",
         Visibility::Public,
         |this, arguments| {
-            let url = arguments[0].to_string()?;
+            let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.get(url);
             let mut object =
@@ -100,7 +100,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         "post",
         Visibility::Public,
         |this, arguments| {
-            let url = arguments[0].to_string()?;
+            let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.post(url);
             let mut object =

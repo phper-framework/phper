@@ -250,7 +250,7 @@ void phper_zval_double(zval *zv, double d) {
     ZVAL_DOUBLE(zv, d);
 }
 
-int phper_z_type_info_p(zval *zv) {
+uint32_t phper_z_type_info_p(const zval *zv) {
     return Z_TYPE_INFO_P(zv);
 }
 
@@ -262,8 +262,8 @@ void phper_zval_str(zval *zv, zend_string *s) {
     ZVAL_STR(zv, s);
 }
 
-zend_array *phper_zend_new_array(uint32_t nSize) {
-    return zend_new_array(nSize);
+zend_array *phper_zend_new_array(uint32_t size) {
+    return zend_new_array(size);
 }
 
 zend_array *phper_zend_array_dup(zend_array *source) {

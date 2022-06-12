@@ -457,7 +457,7 @@ pub(crate) fn call_internal<T: 'static>(
         },
         || {
             Ok(if func.get_type_info().is_string() {
-                func.to_str()?.to_owned()
+                func.as_z_str().unwrap().to_str()?.to_owned()
             } else {
                 "{closure}".to_owned()
             })
@@ -495,8 +495,20 @@ pub(crate) fn call_raw_common<T: 'static>(
         eg!(exception) = null_mut();
         let class_name = ex.get_class().get_name().to_str()?.to_string();
         let code = ex.call("getCode", [])?.as_long().unwrap();
-        let message = ex.call("getMessage", [])?.to_string().unwrap();
-        let file = ex.call("getFile", [])?.to_string().unwrap();
+        let message = ex
+            .call("getMessage", [])?
+            .as_z_str()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
+        let file = ex
+            .call("getFile", [])?
+            .as_z_str()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
         let line = ex.call("getLine", [])?.as_long().unwrap();
         eg!(exception) = e;
 

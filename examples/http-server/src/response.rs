@@ -26,8 +26,8 @@ pub fn make_response_class() -> DynamicClass<Response<Body>> {
         |this, arguments| {
             let response: &mut Response<Body> = this.as_mut_state();
             response.headers_mut().insert(
-                HeaderName::from_bytes(arguments[0].to_string()?.as_bytes())?,
-                HeaderValue::from_bytes(arguments[1].to_string()?.as_bytes())?,
+                HeaderName::from_bytes(arguments[0].as_z_str().unwrap().to_bytes())?,
+                HeaderValue::from_bytes(arguments[1].as_z_str().unwrap().to_bytes())?,
             );
             Ok::<_, HttpServerError>(())
         },
@@ -39,7 +39,7 @@ pub fn make_response_class() -> DynamicClass<Response<Body>> {
         Visibility::Public,
         |this, arguments| {
             let response: &mut Response<Body> = this.as_mut_state();
-            *response.body_mut() = arguments[0].as_bytes()?.to_vec().into();
+            *response.body_mut() = arguments[0].as_z_str().unwrap().to_bytes().to_vec().into();
             Ok::<_, phper::Error>(())
         },
         vec![Argument::by_val("data")],

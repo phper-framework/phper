@@ -18,12 +18,24 @@ use hyper::{
     Body, Request, Response, Server, StatusCode,
 };
 use phper::{
+    alloc::EBox,
     classes::{ClassEntry, DynamicClass, StatelessClassEntry, Visibility},
-    errors::Error::Throw,
+    errors::{Error::Throw, MapMustBeTypeError},
     functions::Argument,
+    types::TypeInfo,
     values::ZVal,
 };
-use std::{convert::Infallible, mem::replace, net::SocketAddr, sync::Arc};
+use std::{
+    cell::RefCell,
+    convert::Infallible,
+    mem::replace,
+    net::SocketAddr,
+    ptr::null_mut,
+    sync::{
+        atomic::{AtomicPtr, Ordering},
+        Arc,
+    },
+};
 use tokio::{runtime::Handle, sync::Mutex};
 
 const HTTP_SERVER_CLASS_NAME: &str = "HttpServer\\HttpServer";
@@ -39,11 +51,15 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         "__construct",
         Visibility::Public,
         |this, arguments| {
-            let host = arguments[0].to_string()?;
-            let port = arguments[1].as_long()?;
-            this.set_property("host", ZVal::new(&*host));
-            this.set_property("port", ZVal::new(port));
-            let addr = format!("{}:{}", host, port).parse::<SocketAddr>()?;
+            let host = arguments[0]
+                .as_z_str()
+                .map_must_be_type_error(TypeInfo::string(), arguments[0].get_type_info())?;
+            let port = arguments[1]
+                .as_long()
+                .map_must_be_type_error(TypeInfo::string(), arguments[0].get_type_info())?;
+            this.set_property("host", host);
+            this.set_property("port", port);
+            let addr = format!("{}:{}", host.to_str()?, port).parse::<SocketAddr>()?;
             let builder = Server::bind(&addr);
             *this.as_mut_state() = Some(builder);
             Ok::<_, HttpServerError>(())
@@ -55,7 +71,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         "onRequest",
         Visibility::Public,
         |this, arguments| {
-            this.set_property("onRequestHandle", ZVal::new(arguments[0].duplicate()?));
+            this.set_property("onRequestHandle", arguments[0].clone());
             Ok::<_, phper::Error>(())
         },
         vec![Argument::by_val("handle")],
@@ -65,60 +81,53 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         "start",
         Visibility::Public,
         |this, _| {
+            static HANDLE: AtomicPtr<ZVal> = AtomicPtr::new(null_mut());
+
             let builder = replace(this.as_mut_state(), None).unwrap();
             let handle = this
                 .duplicate_property("onRequestHandle")
                 .map_err(phper::Error::NotRefCountedType)?;
-            let handle = Arc::new(Mutex::new(handle));
+            HANDLE.store(EBox::into_raw(handle), Ordering::SeqCst);
 
-            let make_svc = make_service_fn(move |_conn| {
-                let handle = handle.clone();
+            let make_svc = make_service_fn(move |_conn| async move {
+                Ok::<_, Infallible>(service_fn(move |_: Request<Body>| async move {
+                    match async move {
+                        let handle = unsafe { HANDLE.load(Ordering::SeqCst).as_mut().unwrap() };
 
-                async move {
-                    Ok::<_, Infallible>(service_fn(move |_: Request<Body>| {
-                        let handle = handle.clone();
-                        async move {
-                            match async move {
-                                let mut handle = handle.lock().await;
+                        let request = StatelessClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?
+                            .new_object([])?;
+                        let request = ZVal::from(request);
 
-                                let request =
-                                    StatelessClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?
-                                        .new_object([])?;
-                                let request = ZVal::new(request);
-
-                                let mut response = ClassEntry::<Response<Body>>::from_globals(
-                                    HTTP_RESPONSE_CLASS_NAME,
-                                )?
+                        let mut response =
+                            ClassEntry::<Response<Body>>::from_globals(HTTP_RESPONSE_CLASS_NAME)?
                                 .new_object([])?;
-                                let response_val = response.duplicate();
-                                let response_val = ZVal::new(response_val);
+                        let response_val = response.duplicate();
+                        let response_val = ZVal::from(response_val);
 
-                                match handle.call([request, response_val]) {
-                                    Err(Throw(ex)) => {
-                                        *response.as_mut_state().status_mut() =
-                                            StatusCode::INTERNAL_SERVER_ERROR;
-                                        *response.as_mut_state().body_mut() = ex.to_string().into();
-                                    }
-                                    Err(e) => return Err(e.into()),
-                                    _ => {}
-                                }
-
-                                let response = replace_and_get(response.as_mut_state());
-                                Ok::<Response<Body>, HttpServerError>(response)
+                        match handle.call([request, response_val]) {
+                            Err(Throw(ex)) => {
+                                *response.as_mut_state().status_mut() =
+                                    StatusCode::INTERNAL_SERVER_ERROR;
+                                *response.as_mut_state().body_mut() = ex.to_string().into();
                             }
-                            .await
-                            {
-                                Ok(response) => Ok::<Response<Body>, Infallible>(response),
-                                Err(e) => {
-                                    let mut response = Response::new("".into());
-                                    *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                                    *response.body_mut() = e.to_string().into();
-                                    Ok::<Response<Body>, Infallible>(response)
-                                }
-                            }
+                            Err(e) => return Err(e.into()),
+                            _ => {}
                         }
-                    }))
-                }
+
+                        let response = replace_and_get(response.as_mut_state());
+                        Ok::<Response<Body>, HttpServerError>(response)
+                    }
+                    .await
+                    {
+                        Ok(response) => Ok::<Response<Body>, Infallible>(response),
+                        Err(e) => {
+                            let mut response = Response::new("".into());
+                            *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                            *response.body_mut() = e.to_string().into();
+                            Ok::<Response<Body>, Infallible>(response)
+                        }
+                    }
+                }))
             });
 
             let server = builder.serve(make_svc);

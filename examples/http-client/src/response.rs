@@ -11,8 +11,10 @@
 use crate::{errors::HttpClientError, utils::replace_and_get};
 use indexmap::map::IndexMap;
 use phper::{
+    arrays::{InsertKey, ZArray},
     classes::{DynamicClass, Visibility},
     objects::Object,
+    values::ZVal,
 };
 use reqwest::blocking::Response;
 
@@ -65,10 +67,11 @@ pub fn make_response_class() -> DynamicClass<Option<Response>> {
                 response
                     .headers()
                     .iter()
-                    .fold(IndexMap::new(), |mut acc, (key, value)| {
-                        acc.entry(key.as_str().to_owned())
-                            .or_insert(vec![])
-                            .push(value.as_bytes().to_owned());
+                    .fold(ZArray::new(), |mut acc, (key, value)| {
+                        let arr = acc.entry(key.as_str()).or_insert(ZVal::from(ZArray::new()));
+                        arr.as_mut_z_arr()
+                            .unwrap()
+                            .insert(InsertKey::NextIndex, ZVal::from(value.as_bytes()));
                         acc
                     });
             Ok::<_, HttpClientError>(headers_map)

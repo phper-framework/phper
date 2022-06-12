@@ -9,8 +9,8 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    alloc::EBox, arrays::ZArray, functions::Argument, modules::Module, objects::Object,
-    values::ZVal,
+    alloc::EBox, arrays::ZArray, errors::MapMustBeTypeError, functions::Argument, modules::Module,
+    objects::Object, types::TypeInfo, values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
@@ -27,7 +27,9 @@ fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_long",
         |arguments: &mut [ZVal]| -> phper::Result<i64> {
-            let a = arguments[0].as_long()?;
+            let a = arguments[0]
+                .as_long()
+                .map_must_be_type_error(TypeInfo::LONG, arguments[0].get_type_info())?;
             let b = arguments[1].as_long_value();
             Ok(a + b)
         },
@@ -43,7 +45,10 @@ fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_string",
         |arguments: &mut [ZVal]| -> phper::Result<String> {
-            let a = arguments[0].to_string()?;
+            let a = arguments[0]
+                .as_z_str()
+                .map_must_be_type_error(TypeInfo::STRING, arguments[0].get_type_info())?
+                .to_str()?;
             let b = arguments[1].as_string_value()?;
             Ok(format!("{}, {}", a, b))
         },
@@ -52,11 +57,13 @@ fn integrate_arguments(module: &mut Module) {
 
     module.add_function(
         "integrate_arguments_array",
-        |arguments: &mut [ZVal]| -> phper::Result<EBox<ZArray>> {
-            let a = arguments[0].as_z_arr()?;
-            let mut b = a.clone_arr();
-            b.insert("a", ZVal::new(1));
-            b.insert("foo", ZVal::new("bar"));
+        |arguments: &mut [ZVal]| -> phper::Result<ZArray> {
+            let a = arguments[0]
+                .as_z_arr()
+                .map_must_be_type_error(TypeInfo::ARRAY, arguments[0].get_type_info())?;
+            let mut b = a.to_owned();
+            b.insert("a", ZVal::from(1));
+            b.insert("foo", ZVal::from("bar"));
             Ok(b)
         },
         vec![Argument::by_val("a")],
@@ -67,7 +74,7 @@ fn integrate_arguments(module: &mut Module) {
         |arguments: &mut [ZVal]| -> phper::Result<EBox<Object<()>>> {
             let a = arguments[0].as_object()?;
             let mut a = a.clone_obj();
-            a.set_property("foo", ZVal::new("bar"));
+            a.set_property("foo", ZVal::from("bar"));
             Ok(a)
         },
         vec![Argument::by_val("a")],
@@ -76,10 +83,16 @@ fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_optional",
         |arguments: &mut [ZVal]| -> phper::Result<String> {
-            let a = arguments[0].to_string()?;
+            let a = arguments[0]
+                .as_z_str()
+                .map_must_be_type_error(TypeInfo::STRING, arguments[0].get_type_info())?
+                .to_str()?;
             let b = arguments
                 .get(1)
-                .map(|b| b.as_bool())
+                .map(|b| {
+                    b.as_bool()
+                        .map_must_be_type_error(TypeInfo::BOOL, b.get_type_info())
+                })
                 .transpose()?
                 .unwrap_or_default();
             Ok(format!("{}: {}", a, b))

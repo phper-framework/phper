@@ -31,8 +31,8 @@ fn integrate_a(module: &mut Module) {
         |this, arguments| {
             let name = arguments[0].to_string()?;
             let number = arguments[1].as_long()?;
-            this.set_property("name", ZVal::new(name));
-            this.set_property("number", ZVal::new(number));
+            this.set_property("name", ZVal::from(name));
+            this.set_property("number", ZVal::from(number));
             Ok::<_, phper::Error>(())
         },
         vec![Argument::by_val("name"), Argument::by_val("number")],

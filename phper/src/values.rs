@@ -153,7 +153,7 @@ impl ZVal {
     }
 
     pub fn get_type_info(&self) -> TypeInfo {
-        let t = unsafe { self.inner.u1.type_info };
+        let t = unsafe { phper_z_type_info_p(self.as_ptr()) };
         t.into()
     }
 
@@ -322,6 +322,12 @@ impl ZVal {
     }
 }
 
+impl Default for ZVal {
+    fn default() -> Self {
+        ZVal::from(())
+    }
+}
+
 impl Clone for ZVal {
     fn clone(&self) -> Self {
         let mut val = ZVal::from(());
@@ -369,16 +375,6 @@ impl From<bool> for ZVal {
     }
 }
 
-impl From<i32> for ZVal {
-    fn from(i: i32) -> Self {
-        unsafe {
-            let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_long(val.as_mut_ptr().cast(), i.try_into().unwrap());
-            val.assume_init()
-        }
-    }
-}
-
 impl From<i64> for ZVal {
     fn from(i: i64) -> Self {
         unsafe {
@@ -409,18 +405,6 @@ impl From<f64> for ZVal {
     }
 }
 
-impl From<&str> for ZVal {
-    fn from(s: &str) -> Self {
-        ZVal::from(s.as_bytes())
-    }
-}
-
-impl<const N: usize> From<&[u8; N]> for ZVal {
-    fn from(b: &[u8; N]) -> Self {
-        ZVal::from(&b[..])
-    }
-}
-
 impl From<&[u8]> for ZVal {
     fn from(b: &[u8]) -> Self {
         unsafe {
@@ -432,6 +416,24 @@ impl From<&[u8]> for ZVal {
             );
             val.assume_init()
         }
+    }
+}
+
+impl From<Vec<u8>> for ZVal {
+    fn from(b: Vec<u8>) -> Self {
+        ZVal::from(&b[..])
+    }
+}
+
+impl From<&str> for ZVal {
+    fn from(s: &str) -> Self {
+        ZVal::from(s.as_bytes())
+    }
+}
+
+impl From<String> for ZVal {
+    fn from(s: String) -> Self {
+        ZVal::from(s.as_bytes())
     }
 }
 
@@ -455,7 +457,10 @@ impl From<&ZArr> for ZVal {
     fn from(arr: &ZArr) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_arr(val.as_mut_ptr().cast(), zend_array_dup(arr.as_mut_ptr()));
+            phper_zval_arr(
+                val.as_mut_ptr().cast(),
+                zend_array_dup(arr.as_ptr() as *mut _),
+            );
             val.assume_init()
         }
     }
@@ -481,14 +486,30 @@ impl From<ZArray> for ZVal {
 //     }
 // }
 
-// impl<T: Into<ZVal>> Into<ZVal> for Option<T> {
-//     unsafe fn set_val(self, val: &mut ZVal) {
-//         match self {
-//             Some(t) => Into<ZVal>::set_val(t, val),
-//             None => Into<ZVal>::set_val((), val),
-//         }
-//     }
-// }
+impl<T> From<Object<T>> for ZVal {
+    fn from(mut o: Object<T>) -> Self {
+        unsafe {
+            let mut val = MaybeUninit::<ZVal>::uninit();
+            todo!();
+            val.assume_init()
+        }
+    }
+}
+
+impl<T: Into<ZVal>> From<Option<T>> for ZVal {
+    fn from(o: Option<T>) -> Self {
+        match o {
+            Some(t) => t.into(),
+            None => ().into(),
+        }
+    }
+}
+
+impl<T: Into<ZVal>> From<EBox<T>> for ZVal {
+    fn from(t: EBox<T>) -> Self {
+        t.into_inner().into()
+    }
+}
 
 impl<T: Into<ZVal>, E: Throwable> From<Result<T, E>> for ZVal {
     fn from(r: Result<T, E>) -> Self {
@@ -509,15 +530,3 @@ impl<T: Into<ZVal>, E: Throwable> From<Result<T, E>> for ZVal {
         }
     }
 }
-
-// impl Into<ZVal> for ZVal {
-//     unsafe fn set_val(mut self, val: &mut ZVal) {
-//         phper_zval_copy(val.as_mut_ptr(), self.as_mut_ptr());
-//     }
-// }
-
-// impl Into<ZVal> for EBox<ZVal> {
-//     unsafe fn set_val(self, val: &mut ZVal) {
-//         phper_zval_zval(val.as_mut_ptr(), EBox::into_raw(self).cast(), 0, 1);
-//     }
-// }

@@ -22,7 +22,7 @@ use std::{
     any::Any,
     convert::TryInto,
     marker::PhantomData,
-    mem::{size_of, ManuallyDrop},
+    mem::{forget, size_of, ManuallyDrop},
     ptr::null_mut,
 };
 
@@ -61,6 +61,12 @@ impl<T: 'static> Object<T> {
 
     pub fn as_mut_ptr(&mut self) -> *mut zend_object {
         &mut self.inner
+    }
+
+    pub fn into_raw(mut self) -> *mut zend_object {
+        let ptr: *mut _ = &mut self.inner;
+        forget(self);
+        ptr
     }
 
     pub fn as_state(&self) -> &T {
@@ -121,9 +127,9 @@ impl<T: 'static> Object<T> {
         unsafe { ZVal::from_mut_ptr(prop) }
     }
 
-    pub fn set_property(&mut self, name: impl AsRef<str>, val: ZVal) {
+    pub fn set_property(&mut self, name: impl AsRef<str>, val: impl Into<ZVal>) {
         let name = name.as_ref();
-        let val = EBox::new(val);
+        let val = EBox::new(val.into());
         unsafe {
             #[cfg(phper_major_version = "8")]
             {

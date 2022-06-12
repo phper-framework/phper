@@ -26,7 +26,7 @@ pub fn integrate(module: &mut Module) {
         |_: &mut [ZVal]| -> phper::Result<()> {
             let mut o = Object::new_by_std_class();
 
-            o.set_property("foo", ZVal::new("bar"));
+            o.set_property("foo", ZVal::from("bar"));
             let val = o.get_property("foo");
             assert_eq!(val.to_string()?, "bar");
 
@@ -53,7 +53,7 @@ pub fn integrate(module: &mut Module) {
         "integrate_objects_call",
         |_: &mut [ZVal]| -> phper::Result<()> {
             let mut o = StatelessClassEntry::from_globals("Exception")?
-                .new_object(&mut [ZVal::new("What's happen?")])?;
+                .new_object(&mut [ZVal::from("What's happen?")])?;
             let message = o.call("getMessage", &mut [])?;
             assert_eq!(message.to_string()?, "What's happen?");
             Ok(())

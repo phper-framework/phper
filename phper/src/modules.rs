@@ -67,6 +67,8 @@ unsafe extern "C" fn module_shutdown(r#type: c_int, module_number: c_int) -> c_i
 }
 
 unsafe extern "C" fn request_startup(r#type: c_int, request_number: c_int) -> c_int {
+    // TODO Catch panic.
+
     read_global_module(|module| match &module.request_init {
         Some(f) => f(ModuleContext::new(r#type, request_number)) as c_int,
         None => 1,

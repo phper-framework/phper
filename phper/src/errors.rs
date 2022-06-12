@@ -15,6 +15,7 @@ use crate::{
     classes::{ClassEntry, StatelessClassEntry},
     exceptions::Exception,
     sys::*,
+    types::TypeInfo,
     Error::Other,
 };
 use anyhow::anyhow;
@@ -178,3 +179,17 @@ pub struct InitializeObjectError {
 #[error("the type is not refcounted")]
 #[throwable_class("TypeError")]
 pub struct NotRefCountedTypeError;
+
+pub trait MapMustBeTypeError<T> {
+    fn map_must_be_type_error(self, expect_type: TypeInfo, actual_type: TypeInfo) -> Result<T>;
+}
+
+impl<T> MapMustBeTypeError<T> for Option<T> {
+    fn map_must_be_type_error(self, expect_type: TypeInfo, actual_type: TypeInfo) -> Result<T> {
+        self.ok_or_else(|| {
+            Error::Type(TypeError {
+                message: format!("must be of type {}, {} given", expect_type, actual_type),
+            })
+        })
+    }
+}

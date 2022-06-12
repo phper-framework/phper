@@ -170,6 +170,10 @@ impl ZArr {
             array: self,
         }
     }
+
+    pub fn entry<'a>(&mut self, key: impl Into<Key<'a>>) -> Entry<'a> {
+        todo!()
+    }
 }
 
 impl ToOwned for ZArr {
@@ -210,6 +214,12 @@ impl ZArray {
         let ptr = self.as_mut_ptr();
         forget(self);
         ptr
+    }
+}
+
+impl Default for ZArray {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -287,5 +297,17 @@ impl<'a> Iterator for Iter<'a> {
                 break Some((key, val));
             }
         }
+    }
+}
+
+// TODO Implement it.
+pub enum Entry<'a> {
+    Occupied(PhantomData<&'a ()>),
+    Vacant(PhantomData<&'a ()>),
+}
+
+impl<'a> Entry<'a> {
+    pub fn or_insert(&mut self, val: ZVal) -> &'a mut ZVal {
+        todo!()
     }
 }

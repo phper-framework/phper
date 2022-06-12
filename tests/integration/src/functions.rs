@@ -20,9 +20,9 @@ pub fn integrate(module: &mut Module) {
         "integrate_functions_call",
         |_: &mut [ZVal]| -> phper::Result<()> {
             let mut arr = ZArray::new();
-            arr.insert("a", ZVal::new(1));
-            arr.insert("b", ZVal::new(2));
-            let ret = call("array_sum", &mut [ZVal::new(arr)])?;
+            arr.insert("a", ZVal::from(1));
+            arr.insert("b", ZVal::from(2));
+            let ret = call("array_sum", &mut [ZVal::from(arr)])?;
             assert_eq!(ret.as_long()?, 3);
             Ok(())
         },

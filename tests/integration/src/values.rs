@@ -192,14 +192,14 @@ fn integration_values_return_i64_index_map(_: &mut [ZVal]) -> IndexMap<&'static 
 
 fn integration_values_return_array(_: &mut [ZVal]) -> EBox<ZArray> {
     let mut arr = ZArray::new();
-    arr.insert("a", ZVal::new(1));
-    arr.insert("b", ZVal::new("foo"));
+    arr.insert("a", ZVal::from(1));
+    arr.insert("b", ZVal::from("foo"));
     arr
 }
 
 fn integration_values_return_object(_: &mut [ZVal]) -> EBox<Object<()>> {
     let mut object = Object::new_by_std_class();
-    object.set_property("foo", ZVal::new("bar"));
+    object.set_property("foo", ZVal::from("bar"));
     object
 }
 
@@ -220,5 +220,5 @@ fn integration_values_return_result_string_err(_: &mut [ZVal]) -> phper::Result<
 }
 
 fn integration_values_return_val(_: &mut [ZVal]) -> ZVal {
-    ZVal::new("foo")
+    ZVal::from("foo")
 }

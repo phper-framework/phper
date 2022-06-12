@@ -10,7 +10,7 @@
 
 use hyper::header::{InvalidHeaderName, InvalidHeaderValue};
 use phper::classes::{ClassEntry, DynamicClass};
-use std::net::AddrParseError;
+use std::{net::AddrParseError, str::Utf8Error};
 
 const EXCEPTION_CLASS_NAME: &str = "HttpServer\\HttpServerException";
 
@@ -20,6 +20,9 @@ pub enum HttpServerError {
     #[error(transparent)]
     #[throwable(transparent)]
     Phper(#[from] phper::Error),
+
+    #[error(transparent)]
+    Utf8Error(#[from] Utf8Error),
 
     #[error(transparent)]
     AddrParse(#[from] AddrParseError),
