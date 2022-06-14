@@ -20,23 +20,18 @@ use hyper::{
 use phper::{
     alloc::EBox,
     classes::{ClassEntry, DynamicClass, StatelessClassEntry, Visibility},
-    errors::{Error::Throw, MapMustBeTypeError},
+    errors::Error::Throw,
     functions::Argument,
-    types::TypeInfo,
     values::ZVal,
 };
 use std::{
-    cell::RefCell,
     convert::Infallible,
     mem::replace,
     net::SocketAddr,
     ptr::null_mut,
-    sync::{
-        atomic::{AtomicPtr, Ordering},
-        Arc,
-    },
+    sync::atomic::{AtomicPtr, Ordering},
 };
-use tokio::{runtime::Handle, sync::Mutex};
+use tokio::runtime::Handle;
 
 const HTTP_SERVER_CLASS_NAME: &str = "HttpServer\\HttpServer";
 
@@ -51,12 +46,8 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         "__construct",
         Visibility::Public,
         |this, arguments| {
-            let host = arguments[0]
-                .as_z_str()
-                .map_must_be_type_error(TypeInfo::string(), arguments[0].get_type_info())?;
-            let port = arguments[1]
-                .as_long()
-                .map_must_be_type_error(TypeInfo::string(), arguments[0].get_type_info())?;
+            let host = arguments[0].expect_z_str()?;
+            let port = arguments[1].expect_long()?;
             this.set_property("host", host);
             this.set_property("port", port);
             let addr = format!("{}:{}", host.to_str()?, port).parse::<SocketAddr>()?;

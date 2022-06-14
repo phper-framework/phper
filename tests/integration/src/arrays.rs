@@ -72,7 +72,7 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(arr.get(0).unwrap().as_long().unwrap(), 0);
             assert_eq!(arr.get(1).unwrap().as_long().unwrap(), 1);
 
-            let obj: &mut Object<()> = a.get_mut("obj").unwrap().as_mut_object()?;
+            let obj: &mut Object<()> = a.get_mut("obj").unwrap().expect_mut_object()?;
             let val = obj.get_property("foo");
             assert_eq!(val.as_z_str().unwrap().to_str().unwrap(), "bar");
 

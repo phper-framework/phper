@@ -105,6 +105,10 @@ pub enum Error {
     #[error(transparent)]
     #[throwable(transparent)]
     NotRefCountedType(#[from] NotRefCountedTypeError),
+
+    #[error(transparent)]
+    #[throwable(transparent)]
+    ExpectType(#[from] ExpectTypeError),
 }
 
 impl Error {
@@ -120,6 +124,14 @@ impl Error {
 #[throwable_class("TypeError")]
 pub struct TypeError {
     message: String,
+}
+
+#[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
+#[error("type error: must be of type {expect_type}, {actual_type} given")]
+#[throwable_class("TypeError")]
+pub struct ExpectTypeError {
+    expect_type: TypeInfo,
+    actual_type: TypeInfo,
 }
 
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
@@ -179,17 +191,3 @@ pub struct InitializeObjectError {
 #[error("the type is not refcounted")]
 #[throwable_class("TypeError")]
 pub struct NotRefCountedTypeError;
-
-pub trait MapMustBeTypeError<T> {
-    fn map_must_be_type_error(self, expect_type: TypeInfo, actual_type: TypeInfo) -> Result<T>;
-}
-
-impl<T> MapMustBeTypeError<T> for Option<T> {
-    fn map_must_be_type_error(self, expect_type: TypeInfo, actual_type: TypeInfo) -> Result<T> {
-        self.ok_or_else(|| {
-            Error::Type(TypeError {
-                message: format!("must be of type {}, {} given", expect_type, actual_type),
-            })
-        })
-    }
-}

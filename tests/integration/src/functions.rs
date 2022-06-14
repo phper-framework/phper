@@ -23,7 +23,7 @@ pub fn integrate(module: &mut Module) {
             arr.insert("a", ZVal::from(1));
             arr.insert("b", ZVal::from(2));
             let ret = call("array_sum", &mut [ZVal::from(arr)])?;
-            assert_eq!(ret.as_long()?, 3);
+            assert_eq!(ret.expect_long()?, 3);
             Ok(())
         },
         vec![],

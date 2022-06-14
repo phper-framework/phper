@@ -9,7 +9,6 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::{errors::HttpClientError, utils::replace_and_get};
-use indexmap::map::IndexMap;
 use phper::{
     arrays::{InsertKey, ZArray},
     classes::{DynamicClass, Visibility},

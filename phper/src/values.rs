@@ -14,7 +14,7 @@ use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
     classes::ClassEntry,
-    errors::{NotRefCountedTypeError, Throwable, TypeError},
+    errors::{ExpectTypeError, NotRefCountedTypeError, Throwable, TypeError},
     functions::{call_internal, ZendFunction},
     objects::{Object, StatelessObject},
     resources::ZRes,
@@ -166,29 +166,41 @@ impl ZVal {
     }
 
     pub fn as_null(&self) -> Option<()> {
+        self.expect_null().ok()
+    }
+
+    pub fn expect_null(&self) -> crate::Result<()> {
         if self.get_type_info().is_null() {
-            Some(())
+            Ok(())
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::NULL, self.get_type_info()).into())
         }
     }
 
     pub fn as_bool(&self) -> Option<bool> {
+        self.expect_bool().ok()
+    }
+
+    pub fn expect_bool(&self) -> crate::Result<bool> {
         let t = self.get_type_info();
         if t.is_true() {
-            Some(true)
+            Ok(true)
         } else if t.is_false() {
-            Some(false)
+            Ok(false)
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::BOOL, self.get_type_info()).into())
         }
     }
 
     pub fn as_long(&self) -> Option<i64> {
+        self.expect_long().ok()
+    }
+
+    pub fn expect_long(&self) -> crate::Result<i64> {
         if self.get_type_info().is_long() {
-            unsafe { Some(phper_z_lval_p(self.as_ptr())) }
+            unsafe { Ok(phper_z_lval_p(self.as_ptr())) }
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::LONG, self.get_type_info()).into())
         }
     }
 
@@ -198,18 +210,38 @@ impl ZVal {
     }
 
     pub fn as_double(&self) -> Option<f64> {
+        self.expect_double().ok()
+    }
+
+    pub fn expect_double(&self) -> crate::Result<f64> {
         if self.get_type_info().is_double() {
-            unsafe { Some(phper_z_dval_p(self.as_ptr())) }
+            unsafe { Ok(phper_z_dval_p(self.as_ptr())) }
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::DOUBLE, self.get_type_info()).into())
         }
     }
 
     pub fn as_z_str(&self) -> Option<&ZStr> {
+        self.expect_z_str().ok()
+    }
+
+    pub fn expect_z_str(&self) -> crate::Result<&ZStr> {
         if self.get_type_info().is_string() {
-            unsafe { Some(ZStr::from_mut_ptr(phper_z_str_p(self.as_ptr()))) }
+            unsafe { Ok(ZStr::from_mut_ptr(phper_z_str_p(self.as_ptr()))) }
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::STRING, self.get_type_info()).into())
+        }
+    }
+
+    pub fn as_mut_z_str(&mut self) -> Option<&mut ZStr> {
+        self.expect_mut_z_str().ok()
+    }
+
+    pub fn expect_mut_z_str(&mut self) -> crate::Result<&mut ZStr> {
+        if self.get_type_info().is_string() {
+            unsafe { Ok(ZStr::from_mut_ptr(phper_z_str_p(self.as_mut_ptr()))) }
+        } else {
+            Err(ExpectTypeError::new(TypeInfo::STRING, self.get_type_info()).into())
         }
     }
 
@@ -222,40 +254,56 @@ impl ZVal {
     }
 
     pub fn as_z_arr(&self) -> Option<&ZArr> {
+        self.expect_z_arr().ok()
+    }
+
+    pub fn expect_z_arr(&self) -> crate::Result<&ZArr> {
         if self.get_type_info().is_array() {
-            unsafe { Some(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
+            unsafe { Ok(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::ARRAY, self.get_type_info()).into())
         }
     }
 
     pub fn as_mut_z_arr(&mut self) -> Option<&mut ZArr> {
+        self.expect_mut_z_arr().ok()
+    }
+
+    pub fn expect_mut_z_arr(&mut self) -> crate::Result<&mut ZArr> {
         if self.get_type_info().is_array() {
-            unsafe { Some(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
+            unsafe { Ok(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::ARRAY, self.get_type_info()).into())
         }
     }
 
-    pub fn as_object(&self) -> crate::Result<&Object<()>> {
+    pub fn as_object(&self) -> Option<&Object<()>> {
+        self.expect_object().ok()
+    }
+
+    pub fn expect_object(&self) -> crate::Result<&Object<()>> {
         if self.get_type_info().is_object() {
             unsafe {
                 let ptr = self.inner.value.obj;
                 Ok(Object::from_mut_ptr(ptr))
             }
         } else {
-            Err(self.must_be_type_error("object"))
+            Err(ExpectTypeError::new(TypeInfo::OBJECT, self.get_type_info()).into())
         }
     }
 
-    pub fn as_mut_object(&mut self) -> crate::Result<&mut Object<()>> {
+    pub fn as_mut_object(&mut self) -> Option<&mut Object<()>> {
+        self.expect_mut_object().ok()
+    }
+
+    pub fn expect_mut_object(&mut self) -> crate::Result<&mut Object<()>> {
         if self.get_type_info().is_object() {
             unsafe {
                 let ptr = self.inner.value.obj;
                 Ok(Object::from_mut_ptr(ptr))
             }
         } else {
-            Err(self.must_be_type_error("object"))
+            Err(ExpectTypeError::new(TypeInfo::OBJECT, self.get_type_info()).into())
         }
     }
 

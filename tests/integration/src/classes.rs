@@ -29,8 +29,8 @@ fn integrate_a(module: &mut Module) {
         "__construct",
         Visibility::Public,
         |this, arguments| {
-            let name = arguments[0].to_string()?;
-            let number = arguments[1].as_long()?;
+            let name = arguments[0].expect_z_str()?.to_str()?;
+            let number = arguments[1].expect_long()?;
             this.set_property("name", ZVal::from(name));
             this.set_property("number", ZVal::from(number));
             Ok::<_, phper::Error>(())
@@ -42,8 +42,12 @@ fn integrate_a(module: &mut Module) {
         "speak",
         Visibility::Public,
         |this, _arguments| {
-            let name = this.get_property("name").to_string()?;
-            let number = this.get_property("number").as_long()?;
+            let name = this
+                .get_property("name")
+                .expect_z_str()?
+                .to_str()?
+                .to_owned();
+            let number = this.get_property("number").expect_long()?;
 
             Ok::<_, phper::Error>(format!("name: {}, number: {}", name, number))
         },

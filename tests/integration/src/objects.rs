@@ -8,7 +8,9 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::{classes::StatelessClassEntry, modules::Module, objects::Object, values::ZVal};
+use phper::{
+    classes::StatelessClassEntry, modules::Module, objects::Object, types::TypeInfo, values::ZVal,
+};
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
@@ -28,10 +30,10 @@ pub fn integrate(module: &mut Module) {
 
             o.set_property("foo", ZVal::from("bar"));
             let val = o.get_property("foo");
-            assert_eq!(val.to_string()?, "bar");
+            assert_eq!(val.expect_z_str()?.to_str()?, "bar");
 
             let not_exists = o.get_property("no_exists");
-            not_exists.as_null()?;
+            not_exists.expect_null()?;
 
             Ok(())
         },
@@ -42,8 +44,9 @@ pub fn integrate(module: &mut Module) {
         "integrate_objects_set_val",
         |_: &mut [ZVal]| -> phper::Result<()> {
             let o = Object::new_by_std_class();
-            let mut v = ZVal::null();
-            v.set(o);
+            let mut v = ZVal::default();
+            v = o.into();
+            assert_eq!(v.get_type_info(), TypeInfo::OBJECT);
             Ok(())
         },
         vec![],
@@ -55,7 +58,7 @@ pub fn integrate(module: &mut Module) {
             let mut o = StatelessClassEntry::from_globals("Exception")?
                 .new_object(&mut [ZVal::from("What's happen?")])?;
             let message = o.call("getMessage", &mut [])?;
-            assert_eq!(message.to_string()?, "What's happen?");
+            assert_eq!(message.expect_z_str()?.to_str()?, "What's happen?");
             Ok(())
         },
         vec![],

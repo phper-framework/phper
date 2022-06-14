@@ -152,6 +152,18 @@ impl Borrow<ZStr> for ZString {
     }
 }
 
+impl AsRef<[u8]> for ZString {
+    fn as_ref(&self) -> &[u8] {
+        self.to_bytes()
+    }
+}
+
+impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZString {
+    fn eq(&self, other: &Rhs) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
 impl Drop for ZString {
     fn drop(&mut self) {
         unsafe {

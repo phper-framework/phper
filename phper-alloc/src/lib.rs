@@ -11,6 +11,9 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
 #![doc = include_str!("../README.md")]
 
+#[macro_use]
+mod macros;
+
 use phper_sys::*;
 use std::{
     convert::TryInto,
