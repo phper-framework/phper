@@ -18,7 +18,7 @@ use hyper::{
     Body, Request, Response, Server, StatusCode,
 };
 use phper::{
-    alloc::EBox,
+    alloc::{EBox, RefClone},
     classes::{ClassEntry, DynamicClass, StatelessClassEntry, Visibility},
     errors::Error::Throw,
     functions::Argument,
@@ -75,9 +75,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
             static HANDLE: AtomicPtr<ZVal> = AtomicPtr::new(null_mut());
 
             let builder = replace(this.as_mut_state(), None).unwrap();
-            let handle = this
-                .duplicate_property("onRequestHandle")
-                .map_err(phper::Error::NotRefCountedType)?;
+            let handle = EBox::new(this.get_mut_property("onRequestHandle").ref_clone());
             HANDLE.store(EBox::into_raw(handle), Ordering::SeqCst);
 
             let make_svc = make_service_fn(move |_conn| async move {

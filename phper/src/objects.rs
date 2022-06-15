@@ -87,14 +87,8 @@ impl<T: 'static> Object<T> {
         self.get_mut_property(name)
     }
 
-    pub fn duplicate_property(
-        &mut self, name: impl AsRef<str>,
-    ) -> Result<EBox<ZVal>, NotRefCountedTypeError> {
-        self.get_mut_property(name).duplicate()
-    }
-
     #[allow(clippy::useless_conversion)]
-    fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut ZVal {
+    pub fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut ZVal {
         let name = name.as_ref();
 
         let prop = unsafe {

@@ -44,8 +44,8 @@ pub fn integrate(module: &mut Module) {
         "integrate_objects_set_val",
         |_: &mut [ZVal]| -> phper::Result<()> {
             let o = Object::new_by_std_class();
-            let mut v = ZVal::default();
-            v = o.into();
+            let v = &mut ZVal::default();
+            *v = o.into();
             assert_eq!(v.get_type_info(), TypeInfo::OBJECT);
             Ok(())
         },

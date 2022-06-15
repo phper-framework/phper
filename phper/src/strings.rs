@@ -11,6 +11,7 @@
 //! Apis relate to [crate::sys::zend_string].
 
 use crate::{alloc::EBox, sys::*};
+use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
     convert::TryInto,
@@ -81,6 +82,17 @@ impl ToOwned for ZStr {
 
     fn to_owned(&self) -> Self::Owned {
         ZString::new(self.to_bytes())
+    }
+}
+
+impl ToRefOwned for ZStr {
+    type Owned = ZString;
+
+    fn to_ref_owned(&mut self) -> Self::Owned {
+        unsafe {
+            let ptr = phper_zend_string_copy(self.as_mut_ptr());
+            ZString::from_raw(ptr)
+        }
     }
 }
 

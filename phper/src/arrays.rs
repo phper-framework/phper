@@ -17,6 +17,7 @@ use crate::{
     values::ZVal,
 };
 use derive_more::From;
+use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
     convert::TryInto,
@@ -185,6 +186,14 @@ impl ToOwned for ZArr {
             let dest = phper_zend_array_dup(self.as_ptr() as *mut _);
             ZArray::from_raw(dest)
         }
+    }
+}
+
+impl ToRefOwned for ZArr {
+    type Owned = ZArray;
+
+    fn to_ref_owned(&mut self) -> Self::Owned {
+        todo!()
     }
 }
 

@@ -289,3 +289,11 @@ zend_string *phper_z_str_p(const zval *zv) {
 zend_resource *phper_z_res_p(const zval *zv) {
     return Z_RES_P(zv);
 }
+
+zend_string *phper_zend_string_copy(zend_string *s) {
+    return zend_string_copy(s);
+}
+
+const char *phper_get_zend_module_build_id() {
+    return ZEND_MODULE_BUILD_ID;
+}

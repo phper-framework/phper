@@ -198,7 +198,7 @@ impl Module {
             type_: 0,
             handle: null_mut(),
             module_number: 0,
-            build_id: PHP_MODULE_BUILD_ID,
+            build_id: phper_get_zend_module_build_id(),
         });
 
         let entry = Box::into_raw(entry);

@@ -24,6 +24,7 @@ use crate::{
     utils::ensure_end_with_zero,
 };
 use indexmap::map::IndexMap;
+use phper_alloc::RefClone;
 use std::{
     collections::{BTreeMap, HashMap},
     convert::TryInto,
@@ -333,32 +334,6 @@ impl ZVal {
         }
     }
 
-    // TODO Error tip, not only for function arguments, should change.
-    fn must_be_type_error(&self, expect_type: &str) -> crate::Error {
-        match self.get_type_name() {
-            Ok(type_name) => {
-                let message = format!("must be of type {}, {} given", expect_type, type_name);
-                TypeError::new(message).into()
-            }
-            Err(e) => e,
-        }
-    }
-
-    /// Only add refcount.
-    ///
-    /// TODO Make a reference type to wrap self.
-    pub fn duplicate(&mut self) -> Result<EBox<Self>, NotRefCountedTypeError> {
-        unsafe {
-            if !phper_z_refcounted_p(self.as_mut_ptr()) {
-                Err(NotRefCountedTypeError)
-            } else {
-                (*self.inner.value.counted).gc.refcount += 1;
-                let val = EBox::from_raw(self.as_mut_ptr().cast());
-                Ok(val)
-            }
-        }
-    }
-
     /// Call only when self is a callable.
     ///
     /// # Errors
@@ -371,6 +346,7 @@ impl ZVal {
 }
 
 impl Default for ZVal {
+    #[inline]
     fn default() -> Self {
         ZVal::from(())
     }
@@ -378,7 +354,7 @@ impl Default for ZVal {
 
 impl Clone for ZVal {
     fn clone(&self) -> Self {
-        let mut val = ZVal::from(());
+        let mut val = ZVal::default();
         unsafe {
             phper_zval_copy(val.as_mut_ptr(), self.as_ptr());
             if val.get_type_info().is_string() {
@@ -386,6 +362,16 @@ impl Clone for ZVal {
             } else if val.get_type_info().is_array() {
                 phper_separate_array(val.as_mut_ptr());
             }
+        }
+        val
+    }
+}
+
+impl RefClone for ZVal {
+    fn ref_clone(&mut self) -> Self {
+        let mut val = ZVal::default();
+        unsafe {
+            phper_zval_copy(val.as_mut_ptr(), self.as_ptr());
         }
         val
     }
@@ -428,16 +414,6 @@ impl From<i64> for ZVal {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
             phper_zval_long(val.as_mut_ptr().cast(), i.try_into().unwrap());
-            val.assume_init()
-        }
-    }
-}
-
-impl From<f32> for ZVal {
-    fn from(f: f32) -> Self {
-        unsafe {
-            let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_double(val.as_mut_ptr().cast(), f.try_into().unwrap());
             val.assume_init()
         }
     }

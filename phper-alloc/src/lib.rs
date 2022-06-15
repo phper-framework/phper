@@ -16,6 +16,7 @@ mod macros;
 
 use phper_sys::*;
 use std::{
+    borrow::Borrow,
     convert::TryInto,
     mem::{forget, size_of},
     ops::{Deref, DerefMut},
@@ -89,4 +90,18 @@ impl<T> Drop for EBox<T> {
             phper_efree(self.ptr.cast());
         }
     }
+}
+
+/// Duplicate an object without deep copy, but to only add the refcount, for php
+/// refcount struct.
+pub trait ToRefOwned {
+    type Owned: Borrow<Self>;
+
+    fn to_ref_owned(&mut self) -> Self::Owned;
+}
+
+/// Duplicate an object without deep copy, but to only add the refcount, for php
+/// refcount struct.
+pub trait RefClone {
+    fn ref_clone(&mut self) -> Self;
 }
