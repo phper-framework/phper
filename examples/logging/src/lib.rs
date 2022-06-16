@@ -8,6 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
+use anyhow::Context;
 use phper::{
     deprecated, echo, error, functions::Argument, modules::Module, notice, php_get_module,
     values::ZVal, warning,
@@ -24,7 +25,8 @@ pub fn get_module() -> Module {
     module.add_function(
         "log_say",
         |params: &mut [ZVal]| -> phper::Result<()> {
-            let message = params[0].as_string_value()?;
+            params[0].convert_to_string();
+            let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             echo!("Hello, {}!", message);
             Ok(())
         },
@@ -34,7 +36,8 @@ pub fn get_module() -> Module {
     module.add_function(
         "log_notice",
         |params: &mut [ZVal]| -> phper::Result<()> {
-            let message = params[0].as_string_value()?;
+            params[0].convert_to_string();
+            let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             notice!("Something happened: {}", message);
             Ok(())
         },
@@ -44,7 +47,8 @@ pub fn get_module() -> Module {
     module.add_function(
         "log_warning",
         |params: &mut [ZVal]| -> phper::Result<()> {
-            let message = params[0].as_string_value()?;
+            params[0].convert_to_string();
+            let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             warning!("Something warning: {}", message);
             Ok(())
         },
@@ -54,7 +58,8 @@ pub fn get_module() -> Module {
     module.add_function(
         "log_error",
         |params: &mut [ZVal]| -> phper::Result<()> {
-            let message = params[0].as_string_value()?;
+            params[0].convert_to_string();
+            let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             error!("Something gone failed: {}", message);
             Ok(())
         },
@@ -64,7 +69,8 @@ pub fn get_module() -> Module {
     module.add_function(
         "log_deprecated",
         |params: &mut [ZVal]| -> phper::Result<()> {
-            let message = params[0].as_string_value()?;
+            params[0].convert_to_string();
+            let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             deprecated!("Something deprecated: {}", message);
             Ok(())
         },

@@ -28,7 +28,8 @@ fn integrate_arguments(module: &mut Module) {
         "integrate_arguments_long",
         |arguments: &mut [ZVal]| -> phper::Result<i64> {
             let a = arguments[0].expect_long()?;
-            let b = arguments[1].as_long_value();
+            arguments[1].convert_to_long();
+            let b = arguments[1].as_long().unwrap();
             Ok(a + b)
         },
         vec![Argument::by_val("a"), Argument::by_val("b")],
@@ -43,8 +44,9 @@ fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_string",
         |arguments: &mut [ZVal]| -> phper::Result<String> {
-            let a = arguments[0].expect_z_str()?.to_str()?;
-            let b = arguments[1].as_string_value()?;
+            let a = arguments[0].expect_z_str()?.to_str()?.to_owned();
+            arguments[1].convert_to_string();
+            let b = arguments[1].as_z_str().unwrap().to_str()?;
             Ok(format!("{}, {}", a, b))
         },
         vec![Argument::by_val("a"), Argument::by_val("b")],

@@ -297,3 +297,11 @@ zend_string *phper_zend_string_copy(zend_string *s) {
 const char *phper_get_zend_module_build_id() {
     return ZEND_MODULE_BUILD_ID;
 }
+
+void phper_convert_to_long(zval *op) {
+    convert_to_long(op);
+}
+
+void phper_convert_to_string(zval *op) {
+    convert_to_string(op);
+}

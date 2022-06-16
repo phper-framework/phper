@@ -27,6 +27,7 @@ impl TypeInfo {
     pub const LONG: TypeInfo = TypeInfo::from_raw(IS_LONG);
     pub const NULL: TypeInfo = TypeInfo::from_raw(IS_NULL);
     pub const OBJECT: TypeInfo = TypeInfo::from_raw(IS_OBJECT);
+    pub const RESOURCE: TypeInfo = TypeInfo::from_raw(IS_RESOURCE);
     pub const STRING: TypeInfo = TypeInfo::from_raw(IS_STRING);
     pub const UNDEF: TypeInfo = TypeInfo::from_raw(IS_UNDEF);
 }

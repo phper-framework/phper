@@ -24,7 +24,9 @@ fn module_init(_args: ModuleContext) -> bool {
 }
 
 fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
-    let name = arguments[0].as_string_value()?;
+    let name = &mut arguments[0];
+    name.convert_to_string();
+    let name = name.as_z_str().unwrap().to_str()?;
     Ok(format!("Hello, {}!\n", name))
 }
 
@@ -79,7 +81,7 @@ pub fn get_module() -> Module {
         Visibility::Public,
         |this: &mut Object<()>, _: &mut [ZVal]| {
             let prop = this.get_property("foo");
-            Ok::<_, phper::Error>(prop.as_string_value()?)
+            Ok::<_, phper::Error>(prop.clone())
         },
         vec![],
     );
@@ -87,7 +89,7 @@ pub fn get_module() -> Module {
         "setFoo",
         Visibility::Public,
         |this: &mut Object<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
-            this.set_property("foo", ZVal::from(arguments[0].as_string_value()?));
+            this.set_property("foo", arguments[0].clone());
             Ok(())
         },
         vec![Argument::by_val("foo")],

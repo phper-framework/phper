@@ -17,6 +17,4 @@
 #![allow(clippy::all)]
 #![doc = include_str!("../README.md")]
 
-use std::os::raw::c_char;
-
 include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));

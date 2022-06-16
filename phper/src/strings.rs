@@ -15,6 +15,8 @@ use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
     convert::TryInto,
+    ffi::CStr,
+    fmt::Debug,
     marker::{PhantomData, PhantomPinned},
     mem::forget,
     ops::{Deref, DerefMut},
@@ -51,17 +53,37 @@ impl ZStr {
     }
 
     #[inline]
+    pub fn as_c_str_ptr(&self) -> *const c_char {
+        unsafe { phper_zstr_val(&self.inner).cast() }
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        unsafe { phper_zstr_len(&self.inner).try_into().unwrap() }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[inline]
     pub fn to_bytes(&self) -> &[u8] {
-        unsafe {
-            from_raw_parts(
-                phper_zstr_val(&self.inner).cast(),
-                phper_zstr_len(&self.inner).try_into().unwrap(),
-            )
-        }
+        unsafe { from_raw_parts(phper_zstr_val(&self.inner).cast(), self.len()) }
+    }
+
+    pub fn to_c_str(&self) -> &CStr {
+        CStr::from_bytes_with_nul(self.to_bytes()).unwrap()
     }
 
     pub fn to_str(&self) -> Result<&str, Utf8Error> {
         str::from_utf8(self.to_bytes())
+    }
+}
+
+impl Debug for ZStr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self.to_c_str(), f)
     }
 }
 
@@ -126,6 +148,12 @@ impl ZString {
         let ptr = self.as_mut_ptr();
         forget(self);
         ptr
+    }
+}
+
+impl Debug for ZString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self.deref(), f)
     }
 }
 

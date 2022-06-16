@@ -31,6 +31,8 @@ use std::{
 pub enum Key<'a> {
     Index(u64),
     Str(&'a str),
+    Bytes(&'a [u8]),
+    ZStr(&'a ZStr),
 }
 
 /// Insert key for [Array].
@@ -39,6 +41,8 @@ pub enum InsertKey<'a> {
     NextIndex,
     Index(u64),
     Str(&'a str),
+    Bytes(&'a [u8]),
+    ZStr(&'a ZStr),
 }
 
 #[repr(transparent)]
@@ -65,27 +69,50 @@ impl ZArr {
         &mut self.inner
     }
 
+    #[inline]
+    pub fn is_empty(&mut self) -> bool {
+        self.len() == 0
+    }
+
+    // Get items length.
+    #[inline]
+    pub fn len(&mut self) -> usize {
+        unsafe { zend_array_count(self.as_mut_ptr()).try_into().unwrap() }
+    }
+
     /// Add or update item by key.
     pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: ZVal) {
         let key = key.into();
-        let value = EBox::new(value);
         unsafe {
             match key {
                 InsertKey::NextIndex => {
-                    phper_zend_hash_next_index_insert(
-                        &mut self.inner,
-                        EBox::into_raw(value).cast(),
-                    );
+                    phper_zend_hash_next_index_insert(self.as_mut_ptr(), value.into_raw());
                 }
                 InsertKey::Index(i) => {
-                    phper_zend_hash_index_update(&mut self.inner, i, EBox::into_raw(value).cast());
+                    phper_zend_hash_index_update(self.as_mut_ptr(), i, value.into_raw());
                 }
                 InsertKey::Str(s) => {
                     phper_zend_hash_str_update(
-                        &mut self.inner,
+                        self.as_mut_ptr(),
                         s.as_ptr().cast(),
                         s.len().try_into().unwrap(),
-                        EBox::into_raw(value).cast(),
+                        value.into_raw(),
+                    );
+                }
+                InsertKey::Bytes(b) => {
+                    phper_zend_hash_str_update(
+                        self.as_mut_ptr(),
+                        b.as_ptr().cast(),
+                        b.len().try_into().unwrap(),
+                        value.into_raw(),
+                    );
+                }
+                InsertKey::ZStr(s) => {
+                    phper_zend_hash_str_update(
+                        self.as_mut_ptr(),
+                        s.as_c_str_ptr().cast(),
+                        s.len().try_into().unwrap(),
+                        value.into_raw(),
                     );
                 }
             }
@@ -94,30 +121,31 @@ impl ZArr {
 
     // Get item by key.
     pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&ZVal> {
-        let key = key.into();
-        unsafe {
-            let value = match key {
-                Key::Index(i) => zend_hash_index_find(&self.inner, i),
-                Key::Str(s) => {
-                    zend_hash_str_find(&self.inner, s.as_ptr().cast(), s.len().try_into().unwrap())
-                }
-            };
-            if value.is_null() {
-                None
-            } else {
-                Some(ZVal::from_mut_ptr(value))
-            }
-        }
+        self.inner_get(key).map(|v| &*v)
     }
 
     // Get item by key.
     pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&mut ZVal> {
+        self.inner_get(key)
+    }
+
+    fn inner_get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&mut ZVal> {
         let key = key.into();
         unsafe {
             let value = match key {
-                Key::Index(i) => zend_hash_index_find(&self.inner, i),
-                Key::Str(s) => {
-                    zend_hash_str_find(&self.inner, s.as_ptr().cast(), s.len().try_into().unwrap())
+                Key::Index(i) => zend_hash_index_find(self.as_ptr(), i),
+                Key::Str(s) => zend_hash_str_find(
+                    self.as_ptr(),
+                    s.as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
+                Key::Bytes(b) => zend_hash_str_find(
+                    self.as_ptr(),
+                    b.as_ptr().cast(),
+                    b.len().try_into().unwrap(),
+                ),
+                Key::ZStr(s) => {
+                    zend_hash_str_find(self.as_ptr(), s.as_c_str_ptr(), s.len().try_into().unwrap())
                 }
             };
             if value.is_null() {
@@ -126,15 +154,6 @@ impl ZArr {
                 Some(ZVal::from_mut_ptr(value))
             }
         }
-    }
-
-    // Get items length.
-    pub fn len(&mut self) -> usize {
-        unsafe { zend_array_count(&mut self.inner) as usize }
-    }
-
-    pub fn is_empty(&mut self) -> bool {
-        self.len() == 0
     }
 
     pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
@@ -145,6 +164,16 @@ impl ZArr {
                 Key::Str(s) => phper_zend_hash_str_exists(
                     &self.inner,
                     s.as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
+                Key::Bytes(b) => phper_zend_hash_str_exists(
+                    &self.inner,
+                    b.as_ptr().cast(),
+                    b.len().try_into().unwrap(),
+                ),
+                Key::ZStr(s) => phper_zend_hash_str_exists(
+                    &self.inner,
+                    s.to_bytes().as_ptr().cast(),
                     s.len().try_into().unwrap(),
                 ),
             }
@@ -161,9 +190,21 @@ impl ZArr {
                     s.as_ptr().cast(),
                     s.len().try_into().unwrap(),
                 ),
+                Key::Bytes(b) => zend_hash_str_del(
+                    &mut self.inner,
+                    b.as_ptr().cast(),
+                    b.len().try_into().unwrap(),
+                ),
+                Key::ZStr(s) => zend_hash_str_del(
+                    &mut self.inner,
+                    s.as_c_str_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
             }) == ZEND_RESULT_CODE_SUCCESS
         }
     }
+
+    pub fn clear(&mut self) {}
 
     pub fn iter(&self) -> Iter<'_> {
         Iter {
@@ -204,9 +245,16 @@ pub struct ZArray {
 }
 
 impl ZArray {
+    #[inline]
     pub fn new() -> Self {
+        Self::with_capacity(0)
+    }
+
+    /// Note that the actual capacity is always a power of two, so if you have
+    /// 12 elements in a hashtable the actual table capacity will be 16.
+    pub fn with_capacity(n: usize) -> Self {
         unsafe {
-            let ptr = phper_zend_new_array(0);
+            let ptr = phper_zend_new_array(n.try_into().unwrap());
             Self::from_raw(ptr)
         }
     }
@@ -266,6 +314,13 @@ impl Drop for ZArray {
     }
 }
 
+/// Iterator key for [Iter].
+#[derive(Debug, Clone, PartialEq, From)]
+pub enum IterKey<'a> {
+    Index(u64),
+    ZStr(&'a ZStr),
+}
+
 /// Iter created by [Array::iter].
 pub struct Iter<'a> {
     index: isize,
@@ -273,7 +328,7 @@ pub struct Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (Key<'a>, &'a ZVal);
+    type Item = (IterKey<'a>, &'a ZVal);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -285,11 +340,10 @@ impl<'a> Iterator for Iter<'a> {
                 let bucket = self.array.inner.arData.offset(self.index);
 
                 let key = if (*bucket).key.is_null() {
-                    Key::Index((*bucket).h)
+                    IterKey::Index((*bucket).h)
                 } else {
                     let s = ZStr::from_ptr((*bucket).key);
-                    let s = s.to_str().unwrap();
-                    Key::Str(s)
+                    IterKey::ZStr(s)
                 };
 
                 let val = &mut (*bucket).val;

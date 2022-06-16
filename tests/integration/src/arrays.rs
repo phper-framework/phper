@@ -10,9 +10,10 @@
 
 use phper::{
     alloc::EBox,
-    arrays::{InsertKey, ZArray},
+    arrays::{InsertKey, IterKey, ZArray},
     modules::Module,
     objects::Object,
+    strings::ZString,
     values::ZVal,
 };
 
@@ -212,7 +213,7 @@ pub fn integrate(module: &mut Module) {
                         assert_eq!(v.as_long(), Some(1));
                     }
                     2 => {
-                        assert_eq!(k, "foo".into());
+                        assert_eq!(k, IterKey::ZStr(&ZString::new("foo")));
                         assert_eq!(v.as_z_str().unwrap().to_str(), Ok("bar"));
                     }
                     _ => unreachable!(),

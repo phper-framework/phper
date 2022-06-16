@@ -29,7 +29,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     convert::TryInto,
     marker::PhantomData,
-    mem::{transmute, zeroed, MaybeUninit},
+    mem::{forget, transmute, zeroed, MaybeUninit},
     ops::{Deref, DerefMut},
     os::raw::c_int,
     str,
@@ -153,6 +153,13 @@ impl ZVal {
         self.inner
     }
 
+    #[inline]
+    pub fn into_raw(mut self) -> *mut zval {
+        let ptr = self.as_mut_ptr();
+        forget(self);
+        ptr
+    }
+
     pub fn get_type_info(&self) -> TypeInfo {
         let t = unsafe { phper_z_type_info_p(self.as_ptr()) };
         t.into()
@@ -205,11 +212,6 @@ impl ZVal {
         }
     }
 
-    // TODO Remove, and add convert_* methods.
-    pub fn as_long_value(&self) -> i64 {
-        unsafe { phper_zval_get_long(&self.inner as *const _ as *mut _) }
-    }
-
     pub fn as_double(&self) -> Option<f64> {
         self.expect_double().ok()
     }
@@ -227,11 +229,7 @@ impl ZVal {
     }
 
     pub fn expect_z_str(&self) -> crate::Result<&ZStr> {
-        if self.get_type_info().is_string() {
-            unsafe { Ok(ZStr::from_mut_ptr(phper_z_str_p(self.as_ptr()))) }
-        } else {
-            Err(ExpectTypeError::new(TypeInfo::STRING, self.get_type_info()).into())
-        }
+        self.inner_expect_z_str().map(|x| &*x)
     }
 
     pub fn as_mut_z_str(&mut self) -> Option<&mut ZStr> {
@@ -239,18 +237,14 @@ impl ZVal {
     }
 
     pub fn expect_mut_z_str(&mut self) -> crate::Result<&mut ZStr> {
-        if self.get_type_info().is_string() {
-            unsafe { Ok(ZStr::from_mut_ptr(phper_z_str_p(self.as_mut_ptr()))) }
-        } else {
-            Err(ExpectTypeError::new(TypeInfo::STRING, self.get_type_info()).into())
-        }
+        self.inner_expect_z_str()
     }
 
-    // TODO Remove, and add convert_* methods.
-    pub fn as_string_value(&self) -> Result<String, Utf8Error> {
-        unsafe {
-            let s = phper_zval_get_string(&self.inner as *const _ as *mut _);
-            ZStr::from_ptr(s).to_str().map(ToOwned::to_owned)
+    fn inner_expect_z_str(&self) -> crate::Result<&mut ZStr> {
+        if self.get_type_info().is_string() {
+            unsafe { Ok(ZStr::from_mut_ptr(phper_z_str_p(self.as_ptr()))) }
+        } else {
+            Err(ExpectTypeError::new(TypeInfo::STRING, self.get_type_info()).into())
         }
     }
 
@@ -259,11 +253,7 @@ impl ZVal {
     }
 
     pub fn expect_z_arr(&self) -> crate::Result<&ZArr> {
-        if self.get_type_info().is_array() {
-            unsafe { Ok(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
-        } else {
-            Err(ExpectTypeError::new(TypeInfo::ARRAY, self.get_type_info()).into())
-        }
+        self.inner_expect_z_arr().map(|x| &*x)
     }
 
     pub fn as_mut_z_arr(&mut self) -> Option<&mut ZArr> {
@@ -271,6 +261,10 @@ impl ZVal {
     }
 
     pub fn expect_mut_z_arr(&mut self) -> crate::Result<&mut ZArr> {
+        self.inner_expect_z_arr()
+    }
+
+    fn inner_expect_z_arr(&self) -> crate::Result<&mut ZArr> {
         if self.get_type_info().is_array() {
             unsafe { Ok(ZArr::from_mut_ptr(phper_z_arr_p(self.as_ptr()))) }
         } else {
@@ -283,14 +277,7 @@ impl ZVal {
     }
 
     pub fn expect_object(&self) -> crate::Result<&Object<()>> {
-        if self.get_type_info().is_object() {
-            unsafe {
-                let ptr = self.inner.value.obj;
-                Ok(Object::from_mut_ptr(ptr))
-            }
-        } else {
-            Err(ExpectTypeError::new(TypeInfo::OBJECT, self.get_type_info()).into())
-        }
+        self.inner_expect_object().map(|x| &*x)
     }
 
     pub fn as_mut_object(&mut self) -> Option<&mut Object<()>> {
@@ -298,6 +285,10 @@ impl ZVal {
     }
 
     pub fn expect_mut_object(&mut self) -> crate::Result<&mut Object<()>> {
+        self.inner_expect_object()
+    }
+
+    fn inner_expect_object(&self) -> crate::Result<&mut Object<()>> {
         if self.get_type_info().is_object() {
             unsafe {
                 let ptr = self.inner.value.obj;
@@ -319,18 +310,38 @@ impl ZVal {
     }
 
     pub fn as_z_res(&self) -> Option<&ZRes> {
-        if self.get_type_info().is_resource() {
-            unsafe { Some(ZRes::from_mut_ptr(phper_z_res_p(self.as_ptr()))) }
-        } else {
-            None
-        }
+        self.expect_z_res().ok()
+    }
+
+    pub fn expect_z_res(&self) -> crate::Result<&ZRes> {
+        self.inner_expect_res().map(|x| &*x)
     }
 
     pub fn as_mut_res(&mut self) -> Option<&mut ZRes> {
-        if self.get_type_info().is_resource() {
-            unsafe { Some(ZRes::from_mut_ptr(phper_z_res_p(self.as_ptr()))) }
+        self.expect_mut_res().ok()
+    }
+
+    pub fn expect_mut_res(&mut self) -> crate::Result<&mut ZRes> {
+        self.inner_expect_res()
+    }
+
+    fn inner_expect_res(&self) -> crate::Result<&mut ZRes> {
+        if self.get_type_info().is_object() {
+            unsafe { Ok(ZRes::from_mut_ptr(phper_z_res_p(self.as_ptr()))) }
         } else {
-            None
+            Err(ExpectTypeError::new(TypeInfo::RESOURCE, self.get_type_info()).into())
+        }
+    }
+
+    pub fn convert_to_long(&mut self) {
+        unsafe {
+            phper_convert_to_long(self.as_mut_ptr());
+        }
+    }
+
+    pub fn convert_to_string(&mut self) {
+        unsafe {
+            phper_convert_to_string(self.as_mut_ptr());
         }
     }
 
