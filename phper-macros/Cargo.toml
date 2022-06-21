@@ -15,9 +15,9 @@ keywords = ["php", "proc-macro"]
 proc-macro = true
 
 [dependencies]
-quote = "1.0.2"
-syn = { version = "1.0.11", features = ["full"] }
-proc-macro2 = "1.0.6"
+quote = "1.0.20"
+syn = { version = "1.0.98", features = ["full"] }
+proc-macro2 = "1.0.40"
 
 [dev-dependencies]
-syn = { version = "1.0.11", features = ["full", "extra-traits"] }
+syn = { version = "1.0.98", features = ["full", "extra-traits"] }

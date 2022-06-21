@@ -10,5 +10,5 @@ license = "MulanPSL-2.0"
 keywords = ["php", "binding"]
 
 [build-dependencies]
-bindgen = "0.58.1"
-cc = "1.0.61"
+bindgen = "0.60.1"
+cc = "1.0.73"
