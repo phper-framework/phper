@@ -9,14 +9,18 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::StatelessClassEntry, modules::Module, objects::ZObj, types::TypeInfo, values::ZVal,
+    classes::ClassEntry,
+    modules::Module,
+    objects::{ZObj, ZObject},
+    types::TypeInfo,
+    values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_new_drop",
         |_: &mut [ZVal]| -> phper::Result<()> {
-            let o = ZObj::new_by_std_class();
+            let o = ZObject::new_by_std_class();
             drop(o);
             Ok(())
         },
@@ -26,7 +30,7 @@ pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_get_set",
         |_: &mut [ZVal]| -> phper::Result<()> {
-            let mut o = ZObj::new_by_std_class();
+            let mut o = ZObject::new_by_std_class();
 
             o.set_property("foo", ZVal::from("bar"));
             let val = o.get_property("foo");
@@ -43,7 +47,7 @@ pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_set_val",
         |_: &mut [ZVal]| -> phper::Result<()> {
-            let o = ZObj::new_by_std_class();
+            let o = ZObject::new_by_std_class();
             let v = &mut ZVal::default();
             *v = o.into();
             assert_eq!(v.get_type_info(), TypeInfo::OBJECT);
@@ -55,7 +59,7 @@ pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_call",
         |_: &mut [ZVal]| -> phper::Result<()> {
-            let mut o = StatelessClassEntry::from_globals("Exception")?
+            let mut o = ClassEntry::from_globals("Exception")?
                 .new_object(&mut [ZVal::from("What's happen?")])?;
             let message = o.call("getMessage", &mut [])?;
             assert_eq!(message.expect_z_str()?.to_str()?, "What's happen?");

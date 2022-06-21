@@ -75,7 +75,7 @@ pub fn get_module() -> Module {
     foo_class.add_method(
         "getFoo",
         Visibility::Public,
-        |this: &mut ZObj<()>, _: &mut [ZVal]| {
+        |this: &mut ZObj, _: &mut [ZVal]| {
             let prop = this.get_property("foo");
             Ok::<_, phper::Error>(prop.clone())
         },
@@ -84,7 +84,7 @@ pub fn get_module() -> Module {
     foo_class.add_method(
         "setFoo",
         Visibility::Public,
-        |this: &mut ZObj<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
+        |this: &mut ZObj, arguments: &mut [ZVal]| -> phper::Result<()> {
             this.set_property("foo", arguments[0].clone());
             Ok(())
         },

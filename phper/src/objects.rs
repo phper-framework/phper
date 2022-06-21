@@ -218,6 +218,10 @@ impl ZObject {
         Self::new(class_entry, arguments)
     }
 
+    pub fn new_by_std_class() -> Self {
+        Self::new_by_class_name("stdclass", &mut []).unwrap()
+    }
+
     #[inline]
     pub unsafe fn from_raw(ptr: *mut zend_object) -> Self {
         Self {

@@ -488,7 +488,7 @@ pub(crate) fn call_raw_common(
             };
         }
 
-        let ex = ZObj::from_ptr(e);
+        let ex = ZObj::from_mut_ptr(e);
         eg!(exception) = null_mut();
         let class_name = ex.get_class().get_name().to_str()?.to_string();
         let code = ex.call("getCode", [])?.as_long().unwrap();

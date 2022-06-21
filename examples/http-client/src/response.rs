@@ -25,8 +25,8 @@ pub fn make_response_class() -> DynamicClass<Option<Response>> {
     class.add_method(
         "body",
         Visibility::Public,
-        |this: &mut ZObj<Option<Response>>, _arguments| {
-            let response = unsafe { this.as_mut_state() };
+        |this: &mut ZObj, _arguments| {
+            let response = unsafe { this.as_mut_state::<Option<Response>>() };
             let body = replace_and_get(response, |response| {
                 response
                     .ok_or(HttpClientError::ResponseHadRead)
@@ -41,11 +41,11 @@ pub fn make_response_class() -> DynamicClass<Option<Response>> {
         "status",
         Visibility::Public,
         |this, _arguments| {
-            let response = unsafe { this.as_state() }.as_ref().ok_or_else(|| {
-                HttpClientError::ResponseAfterRead {
+            let response = unsafe { this.as_state::<Option<Response>>() }
+                .as_ref()
+                .ok_or_else(|| HttpClientError::ResponseAfterRead {
                     method_name: "status".to_owned(),
-                }
-            })?;
+                })?;
 
             Ok::<_, HttpClientError>(response.status().as_u16() as i64)
         },
@@ -57,7 +57,7 @@ pub fn make_response_class() -> DynamicClass<Option<Response>> {
         Visibility::Public,
         |this, _arguments| {
             let response = unsafe {
-                this.as_state()
+                this.as_state::<Option<Response>>()
                     .as_ref()
                     .ok_or_else(|| HttpClientError::ResponseAfterRead {
                         method_name: "headers".to_owned(),

@@ -18,8 +18,8 @@ use hyper::{
     Body, Request, Response, Server, StatusCode,
 };
 use phper::{
-    alloc::{EBox, RefClone},
-    classes::{ClassEntry, DynamicClass, StatelessClassEntry, Visibility},
+    alloc::{EBox, RefClone, ToRefOwned},
+    classes::{ClassEntry, DynamicClass, Visibility},
     errors::Error::Throw,
     functions::Argument,
     values::ZVal,
@@ -52,7 +52,9 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
             this.set_property("port", port);
             let addr = format!("{}:{}", host.to_str()?, port).parse::<SocketAddr>()?;
             let builder = Server::bind(&addr);
-            *this.as_mut_state() = Some(builder);
+            unsafe {
+                *this.as_mut_state() = Some(builder);
+            }
             Ok::<_, HttpServerError>(())
         },
         vec![Argument::by_val("host"), Argument::by_val("port")],
@@ -74,7 +76,11 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         |this, _| {
             static HANDLE: AtomicPtr<ZVal> = AtomicPtr::new(null_mut());
 
-            let builder = replace(this.as_mut_state(), None).unwrap();
+            let builder = replace(
+                unsafe { this.as_mut_state::<Option<Builder<AddrIncoming>>>() },
+                None,
+            )
+            .unwrap();
             let handle = EBox::new(this.get_mut_property("onRequestHandle").ref_clone());
             HANDLE.store(EBox::into_raw(handle), Ordering::SeqCst);
 
@@ -83,27 +89,26 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
                     match async move {
                         let handle = unsafe { HANDLE.load(Ordering::SeqCst).as_mut().unwrap() };
 
-                        let request = StatelessClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?
-                            .new_object([])?;
+                        let request =
+                            ClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?.new_object([])?;
                         let request = ZVal::from(request);
 
                         let mut response =
-                            ClassEntry::<Response<Body>>::from_globals(HTTP_RESPONSE_CLASS_NAME)?
-                                .new_object([])?;
-                        let response_val = response.duplicate();
+                            ClassEntry::from_globals(HTTP_RESPONSE_CLASS_NAME)?.new_object([])?;
+                        let response_val = response.to_ref_owned();
                         let response_val = ZVal::from(response_val);
 
                         match handle.call([request, response_val]) {
                             Err(Throw(ex)) => {
-                                *response.as_mut_state().status_mut() =
-                                    StatusCode::INTERNAL_SERVER_ERROR;
-                                *response.as_mut_state().body_mut() = ex.to_string().into();
+                                let state = unsafe { response.as_mut_state::<Response<Body>>() };
+                                *state.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                                *state.body_mut() = ex.to_string().into();
                             }
                             Err(e) => return Err(e.into()),
                             _ => {}
                         }
 
-                        let response = replace_and_get(response.as_mut_state());
+                        let response = replace_and_get(unsafe { response.as_mut_state() });
                         Ok::<Response<Body>, HttpServerError>(response)
                     }
                     .await

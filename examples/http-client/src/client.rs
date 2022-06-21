@@ -14,6 +14,7 @@ use crate::{
     utils::{replace_and_get, replace_and_set},
 };
 use phper::{
+    alloc::ToRefOwned,
     classes::{ClassEntry, DynamicClass, Visibility},
     functions::Argument,
     objects::ZObj,
@@ -36,7 +37,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
             replace_and_set(state, |builder| {
                 builder.timeout(Duration::from_millis(ms as u64))
             });
-            Ok::<_, HttpClientError>(this.duplicate())
+            Ok::<_, HttpClientError>(this.to_ref_owned())
         },
         vec![Argument::by_val("ms")],
     );
@@ -46,9 +47,9 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         Visibility::Public,
         |this, arguments| {
             let enable = arguments[0].as_bool().unwrap();
-            let state = unsafe { this.as_mut_state() };
+            let state: &mut ClientBuilder = unsafe { this.as_mut_state() };
             replace_and_set(state, |builder| builder.cookie_store(enable));
-            Ok::<_, HttpClientError>(this.duplicate())
+            Ok::<_, HttpClientError>(this.to_ref_owned())
         },
         vec![Argument::by_val("enable")],
     );
@@ -59,8 +60,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         |this, _arguments| {
             let state = unsafe { this.as_mut_state() };
             let client = replace_and_get(state, ClientBuilder::build)?;
-            let mut object = ClassEntry::<Option<Client>>::from_globals(HTTP_CLIENT_CLASS_NAME)?
-                .init_object()?;
+            let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.new_object([])?;
             unsafe {
                 *object.as_mut_state() = Some(client);
             }
@@ -78,7 +78,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
     class.add_method(
         "__construct",
         Visibility::Private,
-        |_: &mut ZObj<Option<Client>>, _| {},
+        |_: &mut ZObj, _| {},
         vec![],
     );
 
@@ -87,11 +87,9 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         Visibility::Public,
         |this, arguments| {
             let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
-            let client = unsafe { this.as_state().as_ref().unwrap() };
+            let client = unsafe { this.as_state::<Option<Client>>().as_ref().unwrap() };
             let request_builder = client.get(url);
-            let mut object =
-                ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
-                    .init_object()?;
+            let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.new_object([])?;
             unsafe {
                 *object.as_mut_state() = Some(request_builder);
             }
@@ -105,11 +103,9 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         Visibility::Public,
         |this, arguments| {
             let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
-            let client = unsafe { this.as_state().as_ref().unwrap() };
+            let client = unsafe { this.as_state::<Option<Client>>().as_ref().unwrap() };
             let request_builder = client.post(url);
-            let mut object =
-                ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
-                    .init_object()?;
+            let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.new_object([])?;
             unsafe {
                 *object.as_mut_state() = Some(request_builder);
             }

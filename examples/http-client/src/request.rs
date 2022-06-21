@@ -23,7 +23,7 @@ pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
     class.add_method(
         "__construct",
         Visibility::Private,
-        |_: &mut ZObj<Option<RequestBuilder>>, _| {},
+        |_: &mut ZObj, _| {},
         vec![],
     );
 
@@ -31,10 +31,9 @@ pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
         "send",
         Visibility::Public,
         |this, _arguments| {
-            let state = unsafe { this.as_mut_state() };
+            let state = unsafe { this.as_mut_state::<Option<RequestBuilder>>() };
             let response = replace_and_get(state, |builder| builder.unwrap().send())?;
-            let mut object =
-                ClassEntry::<Option<Response>>::from_globals(RESPONSE_CLASS_NAME)?.init_object()?;
+            let mut object = ClassEntry::from_globals(RESPONSE_CLASS_NAME)?.new_object([])?;
             unsafe {
                 *object.as_mut_state() = Some(response);
             }

@@ -9,7 +9,12 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    alloc::EBox, arrays::ZArray, functions::Argument, modules::Module, objects::ZObj, values::ZVal,
+    alloc::{EBox, ToRefOwned},
+    arrays::ZArray,
+    functions::Argument,
+    modules::Module,
+    objects::{ZObj, ZObject},
+    values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
@@ -65,9 +70,9 @@ fn integrate_arguments(module: &mut Module) {
 
     module.add_function(
         "integrate_arguments_object",
-        |arguments: &mut [ZVal]| -> phper::Result<EBox<ZObj<()>>> {
-            let a = arguments[0].expect_z_obj()?;
-            let mut a = a.clone_obj();
+        |arguments: &mut [ZVal]| -> phper::Result<ZObject> {
+            let a = arguments[0].expect_mut_z_obj()?;
+            let mut a = a.to_ref_owned();
             a.set_property("foo", ZVal::from("bar"));
             Ok(a)
         },
