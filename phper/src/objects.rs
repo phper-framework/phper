@@ -207,13 +207,13 @@ pub struct ZObject {
 
 impl ZObject {
     /// Another way to new object like [crate::classes::ClassEntry::new_object].
-    pub fn new(class_entry: &ClassEntry, arguments: &mut [ZVal]) -> crate::Result<EBox<Self>> {
+    pub fn new(class_entry: &ClassEntry, arguments: &mut [ZVal]) -> crate::Result<Self> {
         class_entry.new_object(arguments)
     }
 
     pub fn new_by_class_name(
         class_name: impl AsRef<str>, arguments: &mut [ZVal],
-    ) -> crate::Result<EBox<Self>> {
+    ) -> crate::Result<Self> {
         let class_entry = ClassEntry::from_globals(class_name)?;
         Self::new(class_entry, arguments)
     }

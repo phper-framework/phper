@@ -15,7 +15,7 @@ use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
-    objects::{ExtendObject, ZObj},
+    objects::{ExtendObject, ZObj, ZObject},
     strings::ZStr,
     sys::*,
     types::Scalar,
@@ -23,6 +23,7 @@ use crate::{
 };
 use dashmap::DashMap;
 use once_cell::sync::OnceCell;
+use phper_alloc::ToRefOwned;
 use std::{
     any::{Any, TypeId},
     convert::TryInto,
@@ -214,17 +215,15 @@ impl ClassEntry {
 
     /// Create the object from class, without calling `__construct`, be careful
     /// when `__construct` is necessary.
-    pub fn init_object(&self) -> crate::Result<ZObject> {
+    pub(crate) fn init_object(&self) -> crate::Result<ZObject> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
-            let mut val = ZVal::from(());
+            let mut val = ZVal::default();
             if !phper_object_init_ex(val.as_mut_ptr(), ptr) {
                 Err(InitializeObjectError::new(self.get_name().to_str()?.to_owned()).into())
             } else {
-                let object = (*val.as_mut_ptr()).value.obj;
-                forget(val);
-                let object: EBox<ZObj> = EBox::from_raw(object.cast());
-                Ok(object)
+                let ptr = phper_z_obj_p(val.as_mut_ptr());
+                Ok(ZObj::from_mut_ptr(ptr).to_ref_owned())
             }
         }
     }
@@ -283,7 +282,7 @@ impl ClassEntity {
             .parent()
             .map(|s| ClassEntry::from_globals(s).unwrap());
 
-        let class: *mut ClassEntry<()> = match parent {
+        let class: *mut ClassEntry = match parent {
             Some(parent) => {
                 zend_register_internal_class_ex(&mut class_ce, parent.as_ptr() as *mut _).cast()
             }

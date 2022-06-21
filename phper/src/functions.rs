@@ -93,7 +93,7 @@ where
         &self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal,
     ) {
         unsafe {
-            let this = execute_data.get_this::<T>().unwrap();
+            let this = execute_data.get_this().unwrap();
             let r = (self.f)(this, arguments);
             *return_value = r.into();
         }
@@ -242,7 +242,7 @@ impl ZendFunction {
         }
     }
 
-    pub(crate) fn call<T: 'static>(
+    pub(crate) fn call(
         &mut self, mut object: Option<&mut ZObj>, mut arguments: impl AsMut<[ZVal]>,
     ) -> crate::Result<EBox<ZVal>> {
         let arguments = arguments.as_mut();
@@ -256,7 +256,7 @@ impl ZendFunction {
         let called_scope = unsafe {
             let mut called_scope = object
                 .as_mut()
-                .map(|o| o.get_class::<T>().as_ptr() as *mut zend_class_entry)
+                .map(|o| o.get_class().as_ptr() as *mut zend_class_entry)
                 .unwrap_or(null_mut());
             if called_scope.is_null() {
                 called_scope = self.inner.common.scope;

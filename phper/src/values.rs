@@ -16,7 +16,7 @@ use crate::{
     classes::ClassEntry,
     errors::{ExpectTypeError, NotRefCountedTypeError, Throwable, TypeError},
     functions::{call_internal, ZendFunction},
-    objects::ZObj,
+    objects::{ZObj, ZObject},
     resources::ZRes,
     strings::{ZStr, ZString},
     sys::*,
@@ -98,8 +98,8 @@ impl ExecuteData {
     ///
     /// The type of `T` should be careful.
     pub unsafe fn get_this(&mut self) -> Option<&mut ZObj> {
-        let ptr = phper_get_this(&mut self.inner) as *mut ZVal;
-        ptr.as_mut().map(|val| val.as_mut_z_obj())
+        let val = ZVal::from_mut_ptr(phper_get_this(&mut self.inner));
+        val.as_mut_z_obj()
     }
 
     /// TODO Do not return owned object, because usually Val should not be drop.
@@ -499,8 +499,8 @@ impl From<ZArray> for ZVal {
     }
 }
 
-impl From<ZObj> for ZVal {
-    fn from(mut obj: ZObj) -> Self {
+impl From<ZObject> for ZVal {
+    fn from(mut obj: ZObject) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
             phper_zval_obj(obj.as_mut_ptr().cast(), obj.into_raw());
