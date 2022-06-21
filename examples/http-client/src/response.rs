@@ -12,7 +12,7 @@ use crate::{errors::HttpClientError, utils::replace_and_get};
 use phper::{
     arrays::{InsertKey, ZArray},
     classes::{DynamicClass, Visibility},
-    objects::Object,
+    objects::ZObj,
     values::ZVal,
 };
 use reqwest::blocking::Response;
@@ -25,8 +25,8 @@ pub fn make_response_class() -> DynamicClass<Option<Response>> {
     class.add_method(
         "body",
         Visibility::Public,
-        |this: &mut Object<Option<Response>>, _arguments| {
-            let response = this.as_mut_state();
+        |this: &mut ZObj<Option<Response>>, _arguments| {
+            let response = unsafe { this.as_mut_state() };
             let body = replace_and_get(response, |response| {
                 response
                     .ok_or(HttpClientError::ResponseHadRead)
@@ -41,12 +41,12 @@ pub fn make_response_class() -> DynamicClass<Option<Response>> {
         "status",
         Visibility::Public,
         |this, _arguments| {
-            let response =
-                this.as_state()
-                    .as_ref()
-                    .ok_or_else(|| HttpClientError::ResponseAfterRead {
-                        method_name: "status".to_owned(),
-                    })?;
+            let response = unsafe { this.as_state() }.as_ref().ok_or_else(|| {
+                HttpClientError::ResponseAfterRead {
+                    method_name: "status".to_owned(),
+                }
+            })?;
+
             Ok::<_, HttpClientError>(response.status().as_u16() as i64)
         },
         vec![],
@@ -56,12 +56,13 @@ pub fn make_response_class() -> DynamicClass<Option<Response>> {
         "headers",
         Visibility::Public,
         |this, _arguments| {
-            let response =
+            let response = unsafe {
                 this.as_state()
                     .as_ref()
                     .ok_or_else(|| HttpClientError::ResponseAfterRead {
                         method_name: "headers".to_owned(),
-                    })?;
+                    })?
+            };
             let headers_map =
                 response
                     .headers()

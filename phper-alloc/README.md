@@ -1,6 +1,6 @@
 # phper-alloc
 
-Alloc related items for [phper](https://crates.io/crates/phper).
+Allocator related items for [phper](https://crates.io/crates/phper).
 
 ## License
 

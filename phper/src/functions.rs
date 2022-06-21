@@ -18,8 +18,8 @@ use crate::{
     classes::Visibility,
     errors::{ArgumentCountError, CallFunctionError, CallMethodError},
     exceptions::Exception,
-    objects::{Object, StatelessObject},
-    strings::{ZStr, ZString},
+    objects::ZObj,
+    strings::ZStr,
     sys::*,
     utils::ensure_end_with_zero,
     values::{ExecuteData, ZVal},
@@ -62,33 +62,31 @@ where
     }
 }
 
-pub(crate) struct Method<F, R, T>
+pub(crate) struct Method<F, R>
 where
-    F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     f: F,
-    _p0: PhantomData<R>,
-    _p1: PhantomData<T>,
+    _p: PhantomData<R>,
 }
 
-impl<F, R, T> Method<F, R, T>
+impl<F, R> Method<F, R>
 where
-    F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     pub(crate) fn new(f: F) -> Self {
         Self {
             f,
-            _p0: Default::default(),
-            _p1: Default::default(),
+            _p: Default::default(),
         }
     }
 }
 
-impl<F, R, T: 'static> Callable for Method<F, R, T>
+impl<F, R> Callable for Method<F, R>
 where
-    F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     fn call(
@@ -245,7 +243,7 @@ impl ZendFunction {
     }
 
     pub(crate) fn call<T: 'static>(
-        &mut self, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[ZVal]>,
+        &mut self, mut object: Option<&mut ZObj>, mut arguments: impl AsMut<[ZVal]>,
     ) -> crate::Result<EBox<ZVal>> {
         let arguments = arguments.as_mut();
         let function_handler = self.as_mut_ptr();
@@ -258,7 +256,7 @@ impl ZendFunction {
         let called_scope = unsafe {
             let mut called_scope = object
                 .as_mut()
-                .map(|o| o.get_class().as_ptr() as *mut zend_class_entry)
+                .map(|o| o.get_class::<T>().as_ptr() as *mut zend_class_entry)
                 .unwrap_or(null_mut());
             if called_scope.is_null() {
                 called_scope = self.inner.common.scope;
@@ -425,12 +423,11 @@ pub(crate) const fn create_zend_arg_info(
 /// ```
 pub fn call(fn_name: &str, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<ZVal>> {
     let mut func = fn_name.into();
-    let none: Option<&mut StatelessObject> = None;
-    call_internal(&mut func, none, arguments)
+    call_internal(&mut func, None, arguments)
 }
 
-pub(crate) fn call_internal<T: 'static>(
-    func: &mut ZVal, mut object: Option<&mut Object<T>>, mut arguments: impl AsMut<[ZVal]>,
+pub(crate) fn call_internal(
+    func: &mut ZVal, mut object: Option<&mut ZObj>, mut arguments: impl AsMut<[ZVal]>,
 ) -> crate::Result<EBox<ZVal>> {
     let func_ptr = func.as_mut_ptr();
     let arguments = arguments.as_mut();
@@ -468,9 +465,9 @@ pub(crate) fn call_internal<T: 'static>(
 
 /// call function with raw pointer.
 /// call_fn parameters: (return_value)
-pub(crate) fn call_raw_common<T: 'static>(
+pub(crate) fn call_raw_common(
     call_fn: impl FnOnce(&mut ZVal) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
-    object: Option<&mut Object<T>>,
+    object: Option<&mut ZObj>,
 ) -> crate::Result<EBox<ZVal>> {
     let mut ret = EBox::new(ZVal::from(()));
 
@@ -491,7 +488,7 @@ pub(crate) fn call_raw_common<T: 'static>(
             };
         }
 
-        let ex = StatelessObject::from_mut_ptr(e);
+        let ex = ZObj::from_ptr(e);
         eg!(exception) = null_mut();
         let class_name = ex.get_class().get_name().to_str()?.to_string();
         let code = ex.call("getCode", [])?.as_long().unwrap();

@@ -11,13 +11,7 @@
 //! The errors for crate and php.
 
 use crate as phper;
-use crate::{
-    classes::{ClassEntry, StatelessClassEntry},
-    exceptions::Exception,
-    sys::*,
-    types::TypeInfo,
-    Error::Other,
-};
+use crate::{classes::ClassEntry, exceptions::Exception, sys::*, types::TypeInfo, Error::Other};
 use anyhow::anyhow;
 use derive_more::Constructor;
 use std::{convert::Infallible, error, ffi::FromBytesWithNulError, io, str::Utf8Error};
@@ -31,7 +25,7 @@ const ARGUMENT_COUNT_ERROR_CLASS: &str = if PHP_VERSION_ID >= 70100 {
 /// PHP Throwable, can cause throwing an exception when setting to
 /// [crate::values::Val].
 pub trait Throwable: error::Error {
-    fn class_entry(&self) -> &StatelessClassEntry;
+    fn class_entry(&self) -> &ClassEntry;
 
     fn code(&self) -> i64 {
         0
@@ -43,7 +37,7 @@ pub trait Throwable: error::Error {
 }
 
 impl Throwable for Infallible {
-    fn class_entry(&self) -> &StatelessClassEntry {
+    fn class_entry(&self) -> &ClassEntry {
         unreachable!()
     }
 }

@@ -16,7 +16,7 @@ use crate::{
 use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},
     functions::Argument,
-    objects::Object,
+    objects::ZObj,
 };
 use reqwest::blocking::{Client, ClientBuilder, RequestBuilder};
 use std::time::Duration;
@@ -32,7 +32,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         Visibility::Public,
         |this, arguments| {
             let ms = arguments[0].as_long().unwrap();
-            let state: &mut ClientBuilder = this.as_mut_state();
+            let state: &mut ClientBuilder = unsafe { this.as_mut_state() };
             replace_and_set(state, |builder| {
                 builder.timeout(Duration::from_millis(ms as u64))
             });
@@ -46,7 +46,7 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         Visibility::Public,
         |this, arguments| {
             let enable = arguments[0].as_bool().unwrap();
-            let state = this.as_mut_state();
+            let state = unsafe { this.as_mut_state() };
             replace_and_set(state, |builder| builder.cookie_store(enable));
             Ok::<_, HttpClientError>(this.duplicate())
         },
@@ -57,11 +57,13 @@ pub fn make_client_builder_class() -> DynamicClass<ClientBuilder> {
         "build",
         Visibility::Public,
         |this, _arguments| {
-            let state = this.as_mut_state();
+            let state = unsafe { this.as_mut_state() };
             let client = replace_and_get(state, ClientBuilder::build)?;
             let mut object = ClassEntry::<Option<Client>>::from_globals(HTTP_CLIENT_CLASS_NAME)?
                 .init_object()?;
-            *object.as_mut_state() = Some(client);
+            unsafe {
+                *object.as_mut_state() = Some(client);
+            }
             Ok::<_, HttpClientError>(object)
         },
         vec![],
@@ -76,7 +78,7 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
     class.add_method(
         "__construct",
         Visibility::Private,
-        |_: &mut Object<Option<Client>>, _| {},
+        |_: &mut ZObj<Option<Client>>, _| {},
         vec![],
     );
 
@@ -85,12 +87,14 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         Visibility::Public,
         |this, arguments| {
             let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
-            let client = this.as_state().as_ref().unwrap();
+            let client = unsafe { this.as_state().as_ref().unwrap() };
             let request_builder = client.get(url);
             let mut object =
                 ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
                     .init_object()?;
-            *object.as_mut_state() = Some(request_builder);
+            unsafe {
+                *object.as_mut_state() = Some(request_builder);
+            }
             Ok::<_, HttpClientError>(object)
         },
         vec![Argument::by_val("url")],
@@ -101,12 +105,14 @@ pub fn make_client_class() -> DynamicClass<Option<Client>> {
         Visibility::Public,
         |this, arguments| {
             let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
-            let client = this.as_state().as_ref().unwrap();
+            let client = unsafe { this.as_state().as_ref().unwrap() };
             let request_builder = client.post(url);
             let mut object =
                 ClassEntry::<Option<RequestBuilder>>::from_globals(REQUEST_BUILDER_CLASS_NAME)?
                     .init_object()?;
-            *object.as_mut_state() = Some(request_builder);
+            unsafe {
+                *object.as_mut_state() = Some(request_builder);
+            }
             Ok::<_, HttpClientError>(object)
         },
         vec![Argument::by_val("url")],

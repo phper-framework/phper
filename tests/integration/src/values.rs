@@ -12,7 +12,7 @@ use phper::{
     alloc::{ebox, EBox},
     arrays::ZArray,
     modules::Module,
-    objects::Object,
+    objects::ZObj,
     values::ZVal,
 };
 
@@ -126,8 +126,8 @@ fn integration_values_return_array(_: &mut [ZVal]) -> EBox<ZArray> {
     ebox!(arr)
 }
 
-fn integration_values_return_object(_: &mut [ZVal]) -> EBox<Object<()>> {
-    let mut object = Object::new_by_std_class();
+fn integration_values_return_object(_: &mut [ZVal]) -> EBox<ZObj<()>> {
+    let mut object = ZObj::new_by_std_class();
     object.set_property("foo", ZVal::from("bar"));
     object
 }

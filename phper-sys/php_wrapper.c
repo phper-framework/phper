@@ -305,3 +305,15 @@ void phper_convert_to_long(zval *op) {
 void phper_convert_to_string(zval *op) {
     convert_to_string(op);
 }
+
+void phper_zend_object_release(zend_object *obj) {
+    zend_object_release(obj);
+}
+
+const zend_object_handlers *phper_z_obj_ht_p(const zval *zv) {
+    return Z_OBJ_HT_P(zv);
+}
+
+ zend_object *phper_z_obj_p(const zval *zv) {
+     return Z_OBJ_P(zv);
+ }

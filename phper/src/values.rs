@@ -16,14 +16,13 @@ use crate::{
     classes::ClassEntry,
     errors::{ExpectTypeError, NotRefCountedTypeError, Throwable, TypeError},
     functions::{call_internal, ZendFunction},
-    objects::{Object, StatelessObject},
+    objects::ZObj,
     resources::ZRes,
     strings::{ZStr, ZString},
     sys::*,
     types::TypeInfo,
     utils::ensure_end_with_zero,
 };
-use indexmap::map::IndexMap;
 use phper_alloc::RefClone;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -98,9 +97,9 @@ impl ExecuteData {
     /// # Safety
     ///
     /// The type of `T` should be careful.
-    pub unsafe fn get_this<T>(&mut self) -> Option<&mut Object<T>> {
+    pub unsafe fn get_this(&mut self) -> Option<&mut ZObj> {
         let ptr = phper_get_this(&mut self.inner) as *mut ZVal;
-        ptr.as_mut().map(|val| val.as_mut_object_unchecked())
+        ptr.as_mut().map(|val| val.as_mut_z_obj())
     }
 
     /// TODO Do not return owned object, because usually Val should not be drop.
@@ -272,41 +271,31 @@ impl ZVal {
         }
     }
 
-    pub fn as_object(&self) -> Option<&Object<()>> {
-        self.expect_object().ok()
+    pub fn as_z_obj(&self) -> Option<&ZObj> {
+        self.expect_z_obj().ok()
     }
 
-    pub fn expect_object(&self) -> crate::Result<&Object<()>> {
-        self.inner_expect_object().map(|x| &*x)
+    pub fn expect_z_obj(&self) -> crate::Result<&ZObj> {
+        self.inner_expect_z_obj().map(|x| &*x)
     }
 
-    pub fn as_mut_object(&mut self) -> Option<&mut Object<()>> {
-        self.expect_mut_object().ok()
+    pub fn as_mut_z_obj(&mut self) -> Option<&mut ZObj> {
+        self.expect_mut_z_obj().ok()
     }
 
-    pub fn expect_mut_object(&mut self) -> crate::Result<&mut Object<()>> {
-        self.inner_expect_object()
+    pub fn expect_mut_z_obj(&mut self) -> crate::Result<&mut ZObj> {
+        self.inner_expect_z_obj()
     }
 
-    fn inner_expect_object(&self) -> crate::Result<&mut Object<()>> {
+    fn inner_expect_z_obj(&self) -> crate::Result<&mut ZObj> {
         if self.get_type_info().is_object() {
             unsafe {
-                let ptr = self.inner.value.obj;
-                Ok(Object::from_mut_ptr(ptr))
+                let ptr = phper_z_obj_p(self.as_ptr());
+                Ok(ZObj::from_mut_ptr(ptr))
             }
         } else {
             Err(ExpectTypeError::new(TypeInfo::OBJECT, self.get_type_info()).into())
         }
-    }
-
-    pub(crate) unsafe fn as_mut_object_unchecked<T>(&mut self) -> &mut Object<T> {
-        // TODO Fix the object type assertion.
-        // assert!(dbg!(val.get_type()).is_object());
-
-        let object = Object::from_mut_ptr(self.inner.value.obj);
-        let class = object.get_class();
-        ClassEntry::check_type_id(class).unwrap();
-        object
     }
 
     pub fn as_z_res(&self) -> Option<&ZRes> {
@@ -314,18 +303,18 @@ impl ZVal {
     }
 
     pub fn expect_z_res(&self) -> crate::Result<&ZRes> {
-        self.inner_expect_res().map(|x| &*x)
+        self.inner_expect_z_res().map(|x| &*x)
     }
 
-    pub fn as_mut_res(&mut self) -> Option<&mut ZRes> {
-        self.expect_mut_res().ok()
+    pub fn as_mut_z_res(&mut self) -> Option<&mut ZRes> {
+        self.expect_mut_z_res().ok()
     }
 
-    pub fn expect_mut_res(&mut self) -> crate::Result<&mut ZRes> {
-        self.inner_expect_res()
+    pub fn expect_mut_z_res(&mut self) -> crate::Result<&mut ZRes> {
+        self.inner_expect_z_res()
     }
 
-    fn inner_expect_res(&self) -> crate::Result<&mut ZRes> {
+    fn inner_expect_z_res(&self) -> crate::Result<&mut ZRes> {
         if self.get_type_info().is_object() {
             unsafe { Ok(ZRes::from_mut_ptr(phper_z_res_p(self.as_ptr()))) }
         } else {
@@ -351,8 +340,7 @@ impl ZVal {
     ///
     /// Return Err when self is not callable.
     pub fn call(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<ZVal>> {
-        let none: Option<&mut StatelessObject> = None;
-        call_internal(self, none, arguments)
+        call_internal(self, None, arguments)
     }
 }
 
@@ -511,21 +499,11 @@ impl From<ZArray> for ZVal {
     }
 }
 
-// // TODO Support chain call for PHP object later, now only support return
-// owned // object.
-// impl<T> Into<ZVal> for EBox<Object<T>> {
-//     unsafe fn set_val(self, val: &mut ZVal) {
-//         let object = EBox::into_raw(self);
-//         val.inner.value.obj = object.cast();
-//         val.set_type(TypeInfo::object_ex());
-//     }
-// }
-
-impl<T> From<Object<T>> for ZVal {
-    fn from(mut o: Object<T>) -> Self {
+impl From<ZObj> for ZVal {
+    fn from(mut obj: ZObj) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            todo!();
+            phper_zval_obj(obj.as_mut_ptr().cast(), obj.into_raw());
             val.assume_init()
         }
     }

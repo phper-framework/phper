@@ -12,7 +12,7 @@ use phper::{
     alloc::EBox,
     arrays::{InsertKey, IterKey, ZArray},
     modules::Module,
-    objects::Object,
+    objects::ZObj,
     strings::ZString,
     values::ZVal,
 };
@@ -56,7 +56,7 @@ pub fn integrate(module: &mut Module) {
             a.insert(
                 "obj",
                 ZVal::from({
-                    let mut o: EBox<Object<()>> = Object::new_by_std_class();
+                    let mut o: EBox<ZObj<()>> = ZObj::new_by_std_class();
                     o.set_property("foo", ZVal::from("bar"));
                     o
                 }),
@@ -73,7 +73,7 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(arr.get(0).unwrap().as_long().unwrap(), 0);
             assert_eq!(arr.get(1).unwrap().as_long().unwrap(), 1);
 
-            let obj: &mut Object<()> = a.get_mut("obj").unwrap().expect_mut_object()?;
+            let obj: &mut ZObj<()> = a.get_mut("obj").unwrap().expect_mut_z_obj()?;
             let val = obj.get_property("foo");
             assert_eq!(val.as_z_str().unwrap().to_str().unwrap(), "bar");
 

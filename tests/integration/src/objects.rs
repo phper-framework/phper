@@ -9,14 +9,14 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::StatelessClassEntry, modules::Module, objects::Object, types::TypeInfo, values::ZVal,
+    classes::StatelessClassEntry, modules::Module, objects::ZObj, types::TypeInfo, values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_new_drop",
         |_: &mut [ZVal]| -> phper::Result<()> {
-            let o = Object::new_by_std_class();
+            let o = ZObj::new_by_std_class();
             drop(o);
             Ok(())
         },
@@ -26,7 +26,7 @@ pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_get_set",
         |_: &mut [ZVal]| -> phper::Result<()> {
-            let mut o = Object::new_by_std_class();
+            let mut o = ZObj::new_by_std_class();
 
             o.set_property("foo", ZVal::from("bar"));
             let val = o.get_property("foo");
@@ -43,7 +43,7 @@ pub fn integrate(module: &mut Module) {
     module.add_function(
         "integrate_objects_set_val",
         |_: &mut [ZVal]| -> phper::Result<()> {
-            let o = Object::new_by_std_class();
+            let o = ZObj::new_by_std_class();
             let v = &mut ZVal::default();
             *v = o.into();
             assert_eq!(v.get_type_info(), TypeInfo::OBJECT);

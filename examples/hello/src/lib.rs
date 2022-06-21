@@ -14,14 +14,10 @@ use phper::{
     functions::Argument,
     ini::{Ini, Policy},
     modules::{Module, ModuleContext},
-    objects::Object,
+    objects::ZObj,
     php_get_module,
     values::ZVal,
 };
-
-fn module_init(_args: ModuleContext) -> bool {
-    true
-}
 
 fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
     let name = &mut arguments[0];
@@ -49,7 +45,7 @@ pub fn get_module() -> Module {
     Ini::add("hello.description", "hello world.".to_owned(), Policy::All);
 
     // register hook functions
-    module.on_module_init(module_init);
+    module.on_module_init(|_: ModuleContext| true);
     module.on_module_shutdown(|_| true);
     module.on_request_init(|_| true);
     module.on_request_shutdown(|_| true);
@@ -79,7 +75,7 @@ pub fn get_module() -> Module {
     foo_class.add_method(
         "getFoo",
         Visibility::Public,
-        |this: &mut Object<()>, _: &mut [ZVal]| {
+        |this: &mut ZObj<()>, _: &mut [ZVal]| {
             let prop = this.get_property("foo");
             Ok::<_, phper::Error>(prop.clone())
         },
@@ -88,7 +84,7 @@ pub fn get_module() -> Module {
     foo_class.add_method(
         "setFoo",
         Visibility::Public,
-        |this: &mut Object<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
+        |this: &mut ZObj<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
             this.set_property("foo", arguments[0].clone());
             Ok(())
         },

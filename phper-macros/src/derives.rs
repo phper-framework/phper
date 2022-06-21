@@ -93,7 +93,7 @@ fn parse_throwable_input(
 
             Ok((quote! {
                 impl #crate_ident::errors::Throwable for #input_ident {
-                    fn class_entry(&self) -> &#crate_ident::classes::StatelessClassEntry {
+                    fn class_entry(&self) -> &#crate_ident::classes::ClassEntry {
                         match self {
                             #(#class_entry_arms)*
                         }
@@ -116,7 +116,7 @@ fn parse_throwable_input(
         }
         Data::Struct(_) => Ok((quote! {
             impl #crate_ident::errors::Throwable for #input_ident {
-                fn class_entry(&self) -> &#crate_ident::classes::StatelessClassEntry {
+                fn class_entry(&self) -> &#crate_ident::classes::ClassEntry {
                     ClassEntry::from_globals(#exception).unwrap()
                 }
             }

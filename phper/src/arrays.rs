@@ -10,19 +10,14 @@
 
 //! Apis relate to [crate::sys::zend_array].
 
-use crate::{
-    alloc::EBox,
-    strings::{ZStr, ZString},
-    sys::*,
-    values::ZVal,
-};
+use crate::{strings::ZStr, sys::*, values::ZVal};
 use derive_more::From;
 use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
     convert::TryInto,
     marker::PhantomData,
-    mem::{forget, zeroed},
+    mem::forget,
     ops::{Deref, DerefMut},
 };
 

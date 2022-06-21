@@ -11,7 +11,7 @@
 use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME, utils::replace_and_get};
 use phper::{
     classes::{ClassEntry, DynamicClass, Visibility},
-    objects::Object,
+    objects::ZObj,
 };
 use reqwest::blocking::{RequestBuilder, Response};
 
@@ -23,7 +23,7 @@ pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
     class.add_method(
         "__construct",
         Visibility::Private,
-        |_: &mut Object<Option<RequestBuilder>>, _| {},
+        |_: &mut ZObj<Option<RequestBuilder>>, _| {},
         vec![],
     );
 
@@ -31,11 +31,13 @@ pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
         "send",
         Visibility::Public,
         |this, _arguments| {
-            let state = this.as_mut_state();
+            let state = unsafe { this.as_mut_state() };
             let response = replace_and_get(state, |builder| builder.unwrap().send())?;
             let mut object =
                 ClassEntry::<Option<Response>>::from_globals(RESPONSE_CLASS_NAME)?.init_object()?;
-            *object.as_mut_state() = Some(response);
+            unsafe {
+                *object.as_mut_state() = Some(response);
+            }
             Ok::<_, HttpClientError>(object)
         },
         vec![],

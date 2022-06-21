@@ -12,11 +12,11 @@
 
 use crate::{
     alloc::EBox,
-    arrays::{ZArr, ZArray},
+    arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError, StateTypeError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
-    objects::{ExtendObject, Object},
-    strings::{ZStr, ZString},
+    objects::{ExtendObject, ZObj},
+    strings::ZStr,
     sys::*,
     types::Scalar,
     values::ZVal,
@@ -88,7 +88,7 @@ impl<T: Send + 'static> DynamicClass<T> {
     pub fn add_method<F, R>(
         &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
-        F: Fn(&mut Object<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
+        F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
     {
         self.method_entities.push(FunctionEntity::new(
@@ -160,10 +160,6 @@ impl<T: Send> Classifiable for DynamicClass<T> {
     }
 }
 
-/// Used to represent classes not registered by this framework,
-/// or classes that do not have or do not want to process state.
-pub type StatelessClassEntry = ClassEntry<()>;
-
 /// Wrapper of [crate::sys::zend_class_entry].
 ///
 /// # Generic
@@ -176,53 +172,41 @@ pub type StatelessClassEntry = ClassEntry<()>;
 /// `T` is the type defined by [Classifiable::state_type_id], as the inner state
 /// of `ClassEntry<T>` and `Object<T>`.
 #[repr(transparent)]
-pub struct ClassEntry<T: 'static> {
+pub struct ClassEntry {
     inner: zend_class_entry,
-    _p: PhantomData<T>,
+    _p: PhantomData<*mut ()>,
 }
 
-impl<T: 'static> ClassEntry<T> {
+impl ClassEntry {
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
+        (ptr as *const Self).as_ref().expect("ptr should't be null")
+    }
+
+    pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_class_entry) -> &'a mut Self {
+        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
     pub fn from_globals<'a>(class_name: impl AsRef<str>) -> crate::Result<&'a Self> {
         let name = class_name.as_ref();
         let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
-        let r = unsafe {
+        unsafe {
             ptr.as_ref().ok_or_else(|| {
                 crate::Error::ClassNotFound(ClassNotFoundError::new(name.to_string()))
             })
-        };
-        Self::check_type_id(ptr)?;
-        r
-    }
-
-    pub(crate) fn check_type_id(this: *const Self) -> Result<(), StateTypeError> {
-        if TypeId::of::<T>() == TypeId::of::<()>() {
-            return Ok(());
-        }
-        let is = get_registered_class_type_map()
-            .get(&(this as usize))
-            .map(|t| *t == TypeId::of::<T>())
-            .unwrap_or_default();
-        if is {
-            Ok(())
-        } else {
-            Err(StateTypeError)
         }
     }
 
-    pub fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
-        unsafe { (ptr as *const Self).as_ref() }.expect("ptr should not be null")
-    }
-
-    pub fn as_ptr(&self) -> *const zend_class_entry {
+    pub const fn as_ptr(&self) -> *const zend_class_entry {
         &self.inner
     }
 
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
         &mut self.inner
     }
 
     /// Create the object from class and call `__construct` with arguments.
-    pub fn new_object(&self, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<Object<T>>> {
+    pub fn new_object(&self, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZObject> {
         let mut object = self.init_object()?;
         object.call_construct(arguments)?;
         Ok(object)
@@ -230,7 +214,7 @@ impl<T: 'static> ClassEntry<T> {
 
     /// Create the object from class, without calling `__construct`, be careful
     /// when `__construct` is necessary.
-    pub fn init_object(&self) -> crate::Result<EBox<Object<T>>> {
+    pub fn init_object(&self) -> crate::Result<ZObject> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
             let mut val = ZVal::from(());
@@ -239,7 +223,7 @@ impl<T: 'static> ClassEntry<T> {
             } else {
                 let object = (*val.as_mut_ptr()).value.obj;
                 forget(val);
-                let object: EBox<Object<T>> = EBox::from_raw(object.cast());
+                let object: EBox<ZObj> = EBox::from_raw(object.cast());
                 Ok(object)
             }
         }
@@ -272,7 +256,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 
 pub struct ClassEntity {
     pub(crate) name: String,
-    pub(crate) entry: AtomicPtr<ClassEntry<Box<dyn Any>>>,
+    pub(crate) entry: AtomicPtr<ClassEntry>,
     pub(crate) classifiable: Box<dyn Classifiable>,
     pub(crate) function_entries: OnceCell<AtomicPtr<FunctionEntry>>,
 }
@@ -294,7 +278,7 @@ impl ClassEntity {
             self.function_entries().load(Ordering::SeqCst).cast(),
         );
 
-        let parent: Option<&StatelessClassEntry> = self
+        let parent: Option<&ClassEntry> = self
             .classifiable
             .parent()
             .map(|s| ClassEntry::from_globals(s).unwrap());

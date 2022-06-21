@@ -8,17 +8,17 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::{classes::StatelessClassEntry, errors::Throwable, sys::*};
+use crate::{classes::ClassEntry, errors::Throwable, sys::*};
 use derive_more::Constructor;
 
 #[inline]
-pub fn throwable_class<'a>() -> &'a StatelessClassEntry {
-    unsafe { StatelessClassEntry::from_ptr(zend_ce_throwable) }
+pub fn throwable_class<'a>() -> &'a ClassEntry {
+    unsafe { ClassEntry::from_ptr(zend_ce_throwable) }
 }
 
 #[inline]
-pub fn exception_class<'a>() -> &'a StatelessClassEntry {
-    unsafe { StatelessClassEntry::from_ptr(zend_ce_exception) }
+pub fn exception_class<'a>() -> &'a ClassEntry {
+    unsafe { ClassEntry::from_ptr(zend_ce_exception) }
 }
 
 /// Mainly info for php Exception.
@@ -47,8 +47,8 @@ impl Exception {
 }
 
 impl Throwable for Exception {
-    fn class_entry(&self) -> &StatelessClassEntry {
-        StatelessClassEntry::from_globals(&self.class_name).unwrap()
+    fn class_entry(&self) -> &ClassEntry {
+        ClassEntry::from_globals(&self.class_name).unwrap()
     }
 
     fn code(&self) -> i64 {
