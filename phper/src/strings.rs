@@ -10,18 +10,17 @@
 
 //! Apis relate to [crate::sys::zend_string].
 
-use crate::{alloc::EBox, sys::*};
+use crate::sys::*;
 use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
     convert::TryInto,
     ffi::CStr,
     fmt::Debug,
-    marker::{PhantomData, PhantomPinned},
+    marker::PhantomData,
     mem::forget,
     ops::{Deref, DerefMut},
     os::raw::c_char,
-    ptr::NonNull,
     slice::from_raw_parts,
     str,
     str::Utf8Error,

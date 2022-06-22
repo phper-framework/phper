@@ -13,8 +13,7 @@
 use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
-    classes::ClassEntry,
-    errors::{ExpectTypeError, NotRefCountedTypeError, Throwable, TypeError},
+    errors::{ExpectTypeError, Throwable},
     functions::{call_internal, ZendFunction},
     objects::{ZObj, ZObject},
     resources::ZRes,
@@ -25,14 +24,11 @@ use crate::{
 };
 use phper_alloc::RefClone;
 use std::{
-    collections::{BTreeMap, HashMap},
     convert::TryInto,
     marker::PhantomData,
     mem::{forget, transmute, zeroed, MaybeUninit},
-    ops::{Deref, DerefMut},
     os::raw::c_int,
     str,
-    str::Utf8Error,
 };
 
 /// Wrapper of [crate::sys::zend_execute_data].
@@ -502,7 +498,7 @@ impl From<ZArray> for ZVal {
 impl From<ZObject> for ZVal {
     fn from(mut obj: ZObject) -> Self {
         unsafe {
-            let mut val = MaybeUninit::<ZVal>::uninit();
+            let val = MaybeUninit::<ZVal>::uninit();
             phper_zval_obj(obj.as_mut_ptr().cast(), obj.into_raw());
             val.assume_init()
         }

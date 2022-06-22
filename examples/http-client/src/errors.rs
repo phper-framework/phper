@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::classes::{ClassEntry, DynamicClass};
+use phper::classes::{ClassEntry, StatefulClass};
 
 const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
 
@@ -29,8 +29,8 @@ pub enum HttpClientError {
     ResponseHadRead,
 }
 
-pub fn make_exception_class() -> DynamicClass<()> {
-    let mut exception_class = DynamicClass::new(EXCEPTION_CLASS_NAME);
+pub fn make_exception_class() -> StatefulClass<()> {
+    let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
     exception_class.extends("Exception");
     exception_class
 }

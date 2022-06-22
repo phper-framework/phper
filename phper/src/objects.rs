@@ -15,7 +15,6 @@ use phper_alloc::ToRefOwned;
 use crate::{
     alloc::EBox,
     classes::ClassEntry,
-    errors::NotRefCountedTypeError,
     functions::{call_internal, ZendFunction},
     sys::*,
     values::ZVal,
@@ -24,6 +23,7 @@ use std::{
     any::Any,
     borrow::Borrow,
     convert::TryInto,
+    intrinsics::transmute,
     marker::PhantomData,
     mem::{forget, size_of, ManuallyDrop},
     ops::{Deref, DerefMut},
@@ -197,7 +197,6 @@ impl ToRefOwned for ZObj {
 }
 
 /// Wrapper of [crate::sys::zend_object].
-#[repr(transparent)]
 pub struct ZObject {
     inner: *mut ZObj,
 }
@@ -285,6 +284,40 @@ impl Drop for ZObject {
         unsafe {
             phper_zend_object_release(self.as_mut_ptr());
         }
+    }
+}
+
+#[repr(transparent)]
+pub struct StatefulObj<T> {
+    inner: ZObj,
+    _p: PhantomData<T>,
+}
+
+impl<T: 'static> StatefulObj<T> {
+    pub unsafe fn from_z_obj(obj: &mut ZObj) -> &mut Self {
+        transmute(obj)
+    }
+
+    pub fn as_state(&self) -> &T {
+        unsafe { self.inner.as_state() }
+    }
+
+    pub fn as_mut_state(&mut self) -> &mut T {
+        unsafe { self.inner.as_mut_state() }
+    }
+}
+
+impl<T> Deref for StatefulObj<T> {
+    type Target = ZObj;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut for StatefulObj<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 

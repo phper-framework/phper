@@ -9,29 +9,22 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME, utils::replace_and_get};
-use phper::{
-    classes::{ClassEntry, DynamicClass, Visibility},
-    objects::ZObj,
-};
-use reqwest::blocking::{RequestBuilder, Response};
+use phper::classes::{ClassEntry, StatefulClass, Visibility};
+use reqwest::blocking::RequestBuilder;
 
 pub const REQUEST_BUILDER_CLASS_NAME: &str = "HttpClient\\RequestBuilder";
 
-pub fn make_request_builder_class() -> DynamicClass<Option<RequestBuilder>> {
-    let mut class = DynamicClass::new_with_default(REQUEST_BUILDER_CLASS_NAME);
+pub fn make_request_builder_class() -> StatefulClass<Option<RequestBuilder>> {
+    let mut class =
+        StatefulClass::<Option<RequestBuilder>>::new_with_default_state(REQUEST_BUILDER_CLASS_NAME);
 
-    class.add_method(
-        "__construct",
-        Visibility::Private,
-        |_: &mut ZObj, _| {},
-        vec![],
-    );
+    class.add_method("__construct", Visibility::Private, |_, _| {}, vec![]);
 
     class.add_method(
         "send",
         Visibility::Public,
         |this, _arguments| {
-            let state = unsafe { this.as_mut_state::<Option<RequestBuilder>>() };
+            let state = this.as_mut_state();
             let response = replace_and_get(state, |builder| builder.unwrap().send())?;
             let mut object = ClassEntry::from_globals(RESPONSE_CLASS_NAME)?.new_object([])?;
             unsafe {

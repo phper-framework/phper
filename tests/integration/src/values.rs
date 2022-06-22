@@ -12,7 +12,7 @@ use phper::{
     alloc::{ebox, EBox},
     arrays::ZArray,
     modules::Module,
-    objects::{ZObj, ZObject},
+    objects::ZObject,
     values::ZVal,
 };
 

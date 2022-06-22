@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use hyper::header::{InvalidHeaderName, InvalidHeaderValue};
-use phper::classes::{ClassEntry, DynamicClass};
+use phper::classes::{ClassEntry, StatefulClass};
 use std::{net::AddrParseError, str::Utf8Error};
 
 const EXCEPTION_CLASS_NAME: &str = "HttpServer\\HttpServerException";
@@ -40,8 +40,8 @@ pub enum HttpServerError {
     InvalidHeaderValue(#[from] InvalidHeaderValue),
 }
 
-pub fn make_exception_class() -> DynamicClass<()> {
-    let mut exception_class = DynamicClass::new(EXCEPTION_CLASS_NAME);
+pub fn make_exception_class() -> StatefulClass<()> {
+    let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
     exception_class.extends("Exception");
     exception_class
 }

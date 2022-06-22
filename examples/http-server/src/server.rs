@@ -19,7 +19,7 @@ use hyper::{
 };
 use phper::{
     alloc::{EBox, RefClone, ToRefOwned},
-    classes::{ClassEntry, DynamicClass, Visibility},
+    classes::{ClassEntry, StatefulClass, Visibility},
     errors::Error::Throw,
     functions::Argument,
     values::ZVal,
@@ -35,8 +35,10 @@ use tokio::runtime::Handle;
 
 const HTTP_SERVER_CLASS_NAME: &str = "HttpServer\\HttpServer";
 
-pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
-    let mut class = DynamicClass::new_with_default(HTTP_SERVER_CLASS_NAME);
+pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
+    let mut class = StatefulClass::<Option<Builder<AddrIncoming>>>::new_with_default_state(
+        HTTP_SERVER_CLASS_NAME,
+    );
 
     class.add_property("host", Visibility::Private, "127.0.0.1");
     class.add_property("port", Visibility::Private, 8080);
@@ -52,9 +54,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
             this.set_property("port", port);
             let addr = format!("{}:{}", host.to_str()?, port).parse::<SocketAddr>()?;
             let builder = Server::bind(&addr);
-            unsafe {
-                *this.as_mut_state() = Some(builder);
-            }
+            *this.as_mut_state() = Some(builder);
             Ok::<_, HttpServerError>(())
         },
         vec![Argument::by_val("host"), Argument::by_val("port")],
@@ -76,11 +76,7 @@ pub fn make_server_class() -> DynamicClass<Option<Builder<AddrIncoming>>> {
         |this, _| {
             static HANDLE: AtomicPtr<ZVal> = AtomicPtr::new(null_mut());
 
-            let builder = replace(
-                unsafe { this.as_mut_state::<Option<Builder<AddrIncoming>>>() },
-                None,
-            )
-            .unwrap();
+            let builder = replace(this.as_mut_state(), None).unwrap();
             let handle = EBox::new(this.get_mut_property("onRequestHandle").ref_clone());
             HANDLE.store(EBox::into_raw(handle), Ordering::SeqCst);
 

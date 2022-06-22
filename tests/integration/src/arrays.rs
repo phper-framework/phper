@@ -9,7 +9,6 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    alloc::EBox,
     arrays::{InsertKey, IterKey, ZArray},
     modules::Module,
     objects::{ZObj, ZObject},

@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::{DynamicClass, Visibility},
+    classes::{StatefulClass, Visibility},
     functions::Argument,
     modules::Module,
     values::ZVal,
@@ -20,7 +20,7 @@ pub fn integrate(module: &mut Module) {
 }
 
 fn integrate_a(module: &mut Module) {
-    let mut class = DynamicClass::new("IntegrationTest\\A");
+    let mut class = StatefulClass::new("IntegrationTest\\A");
 
     class.add_property("name", Visibility::Private, "default");
     class.add_property("number", Visibility::Private, 100);

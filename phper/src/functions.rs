@@ -18,7 +18,7 @@ use crate::{
     classes::Visibility,
     errors::{ArgumentCountError, CallFunctionError, CallMethodError},
     exceptions::Exception,
-    objects::ZObj,
+    objects::{StatefulObj, ZObj},
     strings::ZStr,
     sys::*,
     utils::ensure_end_with_zero,
@@ -62,18 +62,18 @@ where
     }
 }
 
-pub(crate) struct Method<F, R>
+pub(crate) struct Method<F, R, T>
 where
-    F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     f: F,
-    _p: PhantomData<R>,
+    _p: PhantomData<(R, T)>,
 }
 
-impl<F, R> Method<F, R>
+impl<F, R, T> Method<F, R, T>
 where
-    F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     pub(crate) fn new(f: F) -> Self {
@@ -84,9 +84,9 @@ where
     }
 }
 
-impl<F, R> Callable for Method<F, R>
+impl<F, R, T: 'static> Callable for Method<F, R, T>
 where
-    F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     fn call(
@@ -94,6 +94,7 @@ where
     ) {
         unsafe {
             let this = execute_data.get_this().unwrap();
+            let this = StatefulObj::from_z_obj(this);
             let r = (self.f)(this, arguments);
             *return_value = r.into();
         }

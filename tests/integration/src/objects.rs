@@ -9,11 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::ClassEntry,
-    modules::Module,
-    objects::{ZObj, ZObject},
-    types::TypeInfo,
-    values::ZVal,
+    classes::ClassEntry, modules::Module, objects::ZObject, types::TypeInfo, values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {

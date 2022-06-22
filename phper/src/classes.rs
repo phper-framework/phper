@@ -11,11 +11,10 @@
 //! Apis relate to [crate::sys::zend_class_entry].
 
 use crate::{
-    alloc::EBox,
     arrays::ZArr,
-    errors::{ClassNotFoundError, InitializeObjectError, StateTypeError},
+    errors::{ClassNotFoundError, InitializeObjectError},
     functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
-    objects::{ExtendObject, ZObj, ZObject},
+    objects::{ExtendObject, StatefulObj, ZObj, ZObject},
     strings::ZStr,
     sys::*,
     types::Scalar,
@@ -28,7 +27,7 @@ use std::{
     any::{Any, TypeId},
     convert::TryInto,
     marker::PhantomData,
-    mem::{forget, size_of, zeroed, ManuallyDrop},
+    mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     sync::{
@@ -38,7 +37,7 @@ use std::{
 };
 
 pub trait Classifiable {
-    fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>>;
+    fn state_constructor(&self) -> Box<StatefulConstructor<Box<dyn Any>>>;
     fn state_type_id(&self) -> TypeId;
     fn class_name(&self) -> &str;
     fn methods(&mut self) -> &mut [FunctionEntity];
@@ -46,31 +45,31 @@ pub trait Classifiable {
     fn parent(&self) -> Option<&str>;
 }
 
-pub type StateConstructor<T> = dyn Fn() -> T + Send + Sync;
+pub type StatefulConstructor<T> = dyn Fn() -> T + Send + Sync;
 
-pub struct DynamicClass<T: Send + 'static> {
+pub struct StatefulClass<T: Send + 'static> {
     class_name: String,
-    state_constructor: Arc<StateConstructor<T>>,
+    state_constructor: Arc<StatefulConstructor<T>>,
     pub(crate) method_entities: Vec<FunctionEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
     pub(crate) parent: Option<String>,
     _p: PhantomData<T>,
 }
 
-impl DynamicClass<()> {
+impl StatefulClass<()> {
     pub fn new(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, || ())
+        Self::new_with_state_constructor(class_name, || ())
     }
 }
 
-impl<T: Default + Send + 'static> DynamicClass<T> {
-    pub fn new_with_default(class_name: impl ToString) -> Self {
-        Self::new_with_constructor(class_name, Default::default)
+impl<T: Default + Send + 'static> StatefulClass<T> {
+    pub fn new_with_default_state(class_name: impl ToString) -> Self {
+        Self::new_with_state_constructor(class_name, Default::default)
     }
 }
 
-impl<T: Send + 'static> DynamicClass<T> {
-    pub fn new_with_constructor(
+impl<T: Send + 'static> StatefulClass<T> {
+    pub fn new_with_state_constructor(
         class_name: impl ToString, state_constructor: impl Fn() -> T + Send + Sync + 'static,
     ) -> Self {
         Self {
@@ -89,7 +88,7 @@ impl<T: Send + 'static> DynamicClass<T> {
     pub fn add_method<F, R>(
         &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
-        F: Fn(&mut ZObj, &mut [ZVal]) -> R + Send + Sync + 'static,
+        F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
     {
         self.method_entities.push(FunctionEntity::new(
@@ -134,8 +133,8 @@ impl<T: Send + 'static> DynamicClass<T> {
     }
 }
 
-impl<T: Send> Classifiable for DynamicClass<T> {
-    fn state_constructor(&self) -> Box<StateConstructor<Box<dyn Any>>> {
+impl<T: Send> Classifiable for StatefulClass<T> {
+    fn state_constructor(&self) -> Box<StatefulConstructor<Box<dyn Any>>> {
         let sc = self.state_constructor.clone();
         Box::new(move || Box::new(sc()))
     }
@@ -324,7 +323,7 @@ impl ClassEntity {
 
     unsafe fn take_classifiable_into_function_entry(&self) -> zend_function_entry {
         let mut entry = zeroed::<zend_function_entry>();
-        let ptr = &mut entry as *mut _ as *mut ManuallyDrop<Box<StateConstructor<Box<dyn Any>>>>;
+        let ptr = &mut entry as *mut _ as *mut ManuallyDrop<Box<StatefulConstructor<Box<dyn Any>>>>;
         let state_constructor = ManuallyDrop::new(self.classifiable.state_constructor());
         ptr.write(state_constructor);
         entry
@@ -433,7 +432,7 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
         func_ptr = func_ptr.offset(1);
     }
     func_ptr = func_ptr.offset(1);
-    let state_constructor = func_ptr as *const ManuallyDrop<Box<StateConstructor<Box<dyn Any>>>>;
+    let state_constructor = func_ptr as *const ManuallyDrop<Box<StatefulConstructor<Box<dyn Any>>>>;
     let state_constructor = state_constructor.read();
 
     // Call the state constructor.

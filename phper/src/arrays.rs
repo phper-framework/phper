@@ -208,7 +208,7 @@ impl ZArr {
         }
     }
 
-    pub fn entry<'a>(&mut self, key: impl Into<Key<'a>>) -> Entry<'a> {
+    pub fn entry<'a>(&mut self, _key: impl Into<Key<'a>>) -> Entry<'a> {
         todo!()
     }
 }
@@ -365,7 +365,7 @@ pub enum Entry<'a> {
 }
 
 impl<'a> Entry<'a> {
-    pub fn or_insert(&mut self, val: ZVal) -> &'a mut ZVal {
+    pub fn or_insert(&mut self, _val: ZVal) -> &'a mut ZVal {
         todo!()
     }
 }
