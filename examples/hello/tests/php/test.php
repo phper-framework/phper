@@ -29,7 +29,7 @@ assert_eq(hello_get_all_ini(), [
 ]);
 
 $foo = new FooClass();
-assert_eq($foo->getFoo(), "100");
+assert_eq($foo->getFoo(), 100);
 
 $foo->setFoo("Hello");
 assert_eq($foo->getFoo(), "Hello");

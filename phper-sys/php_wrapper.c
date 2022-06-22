@@ -317,3 +317,7 @@ const zend_object_handlers *phper_z_obj_ht_p(const zval *zv) {
  zend_object *phper_z_obj_p(const zval *zv) {
      return Z_OBJ_P(zv);
  }
+
+uint32_t phper_z_addref_p(zval *zv) {
+    return Z_ADDREF_P(zv);
+}

@@ -55,16 +55,14 @@ impl ZObj {
         &mut self.inner
     }
 
-    pub unsafe fn as_state<T>(&self) -> &T {
-        todo!()
-        // let eo = ExtendObject::fetch(&self.inner);
-        // eo.state.downcast_ref().unwrap()
+    pub unsafe fn as_state<T: 'static>(&self) -> &T {
+        let eo = ExtendObject::fetch(&self.inner);
+        eo.state.downcast_ref().unwrap()
     }
 
-    pub unsafe fn as_mut_state<T>(&mut self) -> &mut T {
-        todo!()
-        // let eo = ExtendObject::fetch_mut(&mut self.inner);
-        // eo.state.downcast_mut().unwrap()
+    pub unsafe fn as_mut_state<T: 'static>(&mut self) -> &mut T {
+        let eo = ExtendObject::fetch_mut(&mut self.inner);
+        eo.state.downcast_mut().unwrap()
     }
 
     pub fn get_class(&self) -> &ClassEntry {
@@ -188,13 +186,12 @@ impl ToRefOwned for ZObj {
     type Owned = ZObject;
 
     fn to_ref_owned(&mut self) -> Self::Owned {
-        let mut dst = ZVal::default();
-        let mut src = ZVal::default();
+        let mut val = ZVal::default();
 
         unsafe {
-            phper_zval_obj(src.as_mut_ptr(), self.as_mut_ptr());
-            phper_zval_copy(dst.as_mut_ptr(), src.as_mut_ptr());
-            ZObject::from_raw(dst.as_mut_z_obj().unwrap().as_mut_ptr())
+            phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
+            phper_z_addref_p(val.as_mut_ptr());
+            ZObject::from_raw(val.as_mut_z_obj().unwrap().as_mut_ptr())
         }
     }
 }
