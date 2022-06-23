@@ -17,7 +17,7 @@ use std::{
     borrow::Borrow,
     convert::TryInto,
     marker::PhantomData,
-    mem::forget,
+    mem::{forget, ManuallyDrop},
     ops::{Deref, DerefMut},
 };
 
@@ -38,6 +38,17 @@ pub enum InsertKey<'a> {
     Str(&'a str),
     Bytes(&'a [u8]),
     ZStr(&'a ZStr),
+}
+
+impl<'a> From<Key<'a>> for InsertKey<'a> {
+    fn from(k: Key<'a>) -> Self {
+        match k {
+            Key::Index(i) => InsertKey::Index(i),
+            Key::Str(s) => InsertKey::Str(s),
+            Key::Bytes(b) => InsertKey::Bytes(b),
+            Key::ZStr(s) => InsertKey::ZStr(s),
+        }
+    }
 }
 
 #[repr(transparent)]
@@ -115,16 +126,16 @@ impl ZArr {
     }
 
     // Get item by key.
-    pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&ZVal> {
+    pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&'a ZVal> {
         self.inner_get(key).map(|v| &*v)
     }
 
     // Get item by key.
-    pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&mut ZVal> {
+    pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&'a mut ZVal> {
         self.inner_get(key)
     }
 
-    fn inner_get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&mut ZVal> {
+    fn inner_get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&'a mut ZVal> {
         let key = key.into();
         unsafe {
             let value = match key {
@@ -199,8 +210,6 @@ impl ZArr {
         }
     }
 
-    pub fn clear(&mut self) {}
-
     pub fn iter(&self) -> Iter<'_> {
         Iter {
             index: 0,
@@ -208,8 +217,12 @@ impl ZArr {
         }
     }
 
-    pub fn entry<'a>(&mut self, _key: impl Into<Key<'a>>) -> Entry<'a> {
-        todo!()
+    pub fn entry<'a>(&'a mut self, key: impl Into<Key<'a>>) -> Entry<'a> {
+        let key = key.into();
+        match self.get_mut(key.clone()) {
+            Some(val) => Entry::Occupied(val),
+            None => Entry::Vacant { arr: self, key },
+        }
     }
 }
 
@@ -229,7 +242,12 @@ impl ToRefOwned for ZArr {
     type Owned = ZArray;
 
     fn to_ref_owned(&mut self) -> Self::Owned {
-        todo!()
+        let mut val = ManuallyDrop::new(ZVal::default());
+        unsafe {
+            phper_zval_arr(val.as_mut_ptr(), self.as_mut_ptr());
+            phper_z_addref_p(val.as_mut_ptr());
+            ZArray::from_raw(val.as_mut_z_arr().unwrap().as_mut_ptr())
+        }
     }
 }
 
@@ -358,14 +376,20 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-// TODO Implement it.
 pub enum Entry<'a> {
-    Occupied(PhantomData<&'a ()>),
-    Vacant(PhantomData<&'a ()>),
+    Occupied(&'a mut ZVal),
+    Vacant { arr: &'a mut ZArr, key: Key<'a> },
 }
 
 impl<'a> Entry<'a> {
-    pub fn or_insert(&mut self, _val: ZVal) -> &'a mut ZVal {
-        todo!()
+    pub fn or_insert(self, val: ZVal) -> &'a mut ZVal {
+        match self {
+            Entry::Occupied(val) => val,
+            Entry::Vacant { arr, key } => {
+                let insert_key: InsertKey<'_> = key.clone().into();
+                arr.insert(insert_key, val);
+                arr.get_mut(key).unwrap()
+            }
+        }
     }
 }

@@ -20,7 +20,7 @@ pub fn integrate(module: &mut Module) {
 fn integrate_arguments(module: &mut Module) {
     module.add_function(
         "integrate_arguments_null",
-        |arguments: &mut [ZVal]| arguments[0].as_null(),
+        |arguments: &mut [ZVal]| arguments[0].expect_null(),
         vec![Argument::by_val("a")],
     );
 
