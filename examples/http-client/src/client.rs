@@ -31,7 +31,7 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
         "timeout",
         Visibility::Public,
         |this, arguments| {
-            let ms = arguments[0].as_long().unwrap();
+            let ms = arguments[0].expect_long()?;
             let state: &mut ClientBuilder = this.as_mut_state();
             replace_and_set(state, |builder| {
                 builder.timeout(Duration::from_millis(ms as u64))
@@ -45,7 +45,7 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
         "cookie_store",
         Visibility::Public,
         |this, arguments| {
-            let enable = arguments[0].as_bool().unwrap();
+            let enable = arguments[0].expect_bool()?;
             let state: &mut ClientBuilder = this.as_mut_state();
             replace_and_set(state, |builder| builder.cookie_store(enable));
             Ok::<_, HttpClientError>(this.to_ref_owned())
@@ -59,7 +59,7 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
         |this, _arguments| {
             let state = this.as_mut_state();
             let client = replace_and_get(state, ClientBuilder::build)?;
-            let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.new_object([])?;
+            let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
             unsafe {
                 *object.as_mut_state() = Some(client);
             }
@@ -83,7 +83,7 @@ pub fn make_client_class() -> StatefulClass<Option<Client>> {
             let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.get(url);
-            let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.new_object([])?;
+            let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.init_object()?;
             unsafe {
                 *object.as_mut_state() = Some(request_builder);
             }
@@ -99,7 +99,7 @@ pub fn make_client_class() -> StatefulClass<Option<Client>> {
             let url = arguments[0].as_z_str().unwrap().to_str().unwrap();
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.post(url);
-            let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.new_object([])?;
+            let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.init_object()?;
             unsafe {
                 *object.as_mut_state() = Some(request_builder);
             }

@@ -160,14 +160,6 @@ impl ZVal {
         t.into()
     }
 
-    fn get_type_name(&self) -> crate::Result<String> {
-        self.get_type_info().get_base_type_name()
-    }
-
-    fn set_type(&mut self, t: TypeInfo) {
-        self.inner.u1.type_info = t.into_raw();
-    }
-
     pub fn as_null(&self) -> Option<()> {
         self.expect_null().ok()
     }
@@ -496,10 +488,10 @@ impl From<ZArray> for ZVal {
 }
 
 impl From<ZObject> for ZVal {
-    fn from(mut obj: ZObject) -> Self {
+    fn from(obj: ZObject) -> Self {
         unsafe {
-            let val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_obj(obj.as_mut_ptr().cast(), obj.into_raw());
+            let mut val = MaybeUninit::<ZVal>::uninit();
+            phper_zval_obj(val.as_mut_ptr().cast(), obj.into_raw());
             val.assume_init()
         }
     }

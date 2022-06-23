@@ -186,10 +186,11 @@ impl ToRefOwned for ZObj {
     type Owned = ZObject;
 
     fn to_ref_owned(&mut self) -> Self::Owned {
-        let mut val = ZVal::default();
+        let mut val = ManuallyDrop::new(ZVal::default());
 
         unsafe {
             phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
+            phper_z_addref_p(val.as_mut_ptr());
             phper_z_addref_p(val.as_mut_ptr());
             ZObject::from_raw(val.as_mut_z_obj().unwrap().as_mut_ptr())
         }

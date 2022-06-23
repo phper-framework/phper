@@ -214,7 +214,7 @@ impl ClassEntry {
 
     /// Create the object from class, without calling `__construct`, be careful
     /// when `__construct` is necessary.
-    pub(crate) fn init_object(&self) -> crate::Result<ZObject> {
+    pub fn init_object(&self) -> crate::Result<ZObject> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
             let mut val = ZVal::default();
