@@ -37,7 +37,7 @@ fn integrate_arguments(module: &mut Module) {
 
     module.add_function(
         "integrate_arguments_double",
-        |arguments: &mut [ZVal]| arguments[0].as_double(),
+        |arguments: &mut [ZVal]| arguments[0].expect_double(),
         vec![Argument::by_val("a")],
     );
 

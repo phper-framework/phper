@@ -46,7 +46,7 @@ pub fn integrate(module: &mut Module) {
             let o = ZObject::new_by_std_class();
             let v = &mut ZVal::default();
             *v = o.into();
-            assert_eq!(v.get_type_info(), TypeInfo::OBJECT);
+            assert_eq!(v.get_type_info().get_base_type(), TypeInfo::OBJECT);
             Ok(())
         },
         vec![],

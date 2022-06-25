@@ -150,6 +150,18 @@ impl Display for TypeInfo {
             "null"
         } else if self.is_bool() {
             "bool"
+        } else if self.is_long() {
+            "int"
+        } else if self.is_double() {
+            "float"
+        } else if self.is_string() {
+            "string"
+        } else if self.is_array() {
+            "array"
+        } else if self.is_object() {
+            "object"
+        } else if self.is_resource() {
+            "resource"
         } else {
             "unknown"
         };

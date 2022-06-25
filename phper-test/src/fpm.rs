@@ -27,7 +27,7 @@ use tokio::{io, net::TcpStream, runtime::Handle, task::block_in_place};
 static FPM_HANDLE: OnceCell<Mutex<FpmHandle>> = OnceCell::new();
 
 struct FpmHandle {
-    exe_path: PathBuf,
+    lib_path: PathBuf,
     fpm_child: Child,
     php_ini_file: ManuallyDrop<NamedTempFile>,
     fpm_conf_file: ManuallyDrop<NamedTempFile>,
@@ -36,6 +36,13 @@ struct FpmHandle {
 /// Start php-fpm process and tokio runtime.
 pub fn setup(exe_path: impl AsRef<Path>) {
     let exe_path = exe_path.as_ref();
+    let lib_path = utils::get_lib_path(exe_path);
+    setup_lib(lib_path)
+}
+
+/// Start php-fpm process and tokio runtime.
+pub fn setup_lib(lib_path: impl AsRef<Path>) {
+    let lib_path = lib_path.as_ref().to_owned();
 
     let handle = FPM_HANDLE.get_or_init(|| {
         // shutdown hook.
@@ -55,7 +62,6 @@ pub fn setup(exe_path: impl AsRef<Path>) {
 
         // Run php-fpm.
         let context = Context::get_global();
-        let lib_path = utils::get_lib_path(exe_path);
         let php_fpm = context.find_php_fpm().unwrap();
         let php_ini_file = context.create_tmp_php_ini_file(&lib_path);
         let fpm_conf_file = context.create_tmp_fpm_conf_file();
@@ -77,14 +83,14 @@ pub fn setup(exe_path: impl AsRef<Path>) {
         // fs::remove_file("/tmp/.php-fpm.log").unwrap();
 
         Mutex::new(FpmHandle {
-            exe_path: exe_path.into(),
+            lib_path: lib_path.clone(),
             fpm_child: child,
             php_ini_file: ManuallyDrop::new(php_ini_file),
             fpm_conf_file: ManuallyDrop::new(fpm_conf_file),
         })
     });
 
-    assert_eq!(&handle.lock().unwrap().exe_path, exe_path);
+    assert_eq!(handle.lock().unwrap().lib_path, &*lib_path);
 }
 
 extern "C" fn teardown() {

@@ -121,7 +121,7 @@ pub struct TypeError {
 }
 
 #[derive(Debug, thiserror::Error, crate::Throwable, Constructor)]
-#[error("must be of type {expect_type}, {actual_type} given")]
+#[error("type error: must be of type {expect_type}, {actual_type} given")]
 #[throwable_class("TypeError")]
 pub struct ExpectTypeError {
     expect_type: TypeInfo,

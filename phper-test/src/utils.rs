@@ -18,7 +18,7 @@ use std::{
     time::Duration,
 };
 
-pub fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
+pub(crate) fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
     let mut command = Command::new(&argv[0]);
     command.args(&argv[1..]);
     let output = command
@@ -28,7 +28,9 @@ pub fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
     String::from_utf8(output).unwrap().trim().to_owned()
 }
 
-pub fn spawn_command<S: AsRef<OsStr> + Debug>(argv: &[S], wait_time: Option<Duration>) -> Child {
+pub(crate) fn spawn_command<S: AsRef<OsStr> + Debug>(
+    argv: &[S], wait_time: Option<Duration>,
+) -> Child {
     let mut command = Command::new(&argv[0]);
     let child = command
         .args(&argv[1..])
@@ -58,6 +60,14 @@ pub fn spawn_command<S: AsRef<OsStr> + Debug>(argv: &[S], wait_time: Option<Dura
 }
 
 pub fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
+    get_lib_path_inner(exe_path, false)
+}
+
+pub fn get_lib_path_by_example(exe_path: impl AsRef<Path>) -> PathBuf {
+    get_lib_path_inner(exe_path, true)
+}
+
+fn get_lib_path_inner(exe_path: impl AsRef<Path>, use_example: bool) -> PathBuf {
     let exe_path = exe_path.as_ref();
     let exe_stem = exe_path
         .file_stem()
@@ -78,5 +88,9 @@ pub fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
     #[cfg(target_os = "windows")]
     ext_name.push(".dll");
 
-    target_dir.join(ext_name)
+    if use_example {
+        target_dir.join("examples").join(ext_name)
+    } else {
+        target_dir.join(ext_name)
+    }
 }

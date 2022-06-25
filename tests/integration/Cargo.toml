@@ -7,9 +7,13 @@ rust-version = "1.56"
 publish = false
 license = "MulanPSL-2.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
+crate-type = ["lib", "cdylib"]
+
+# This example is hack to used for integration tests.
+[[example]]
+name = "integration"
+path = "src/_reexport.rs"
 crate-type = ["cdylib"]
 
 [dependencies]

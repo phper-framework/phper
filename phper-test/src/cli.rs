@@ -37,6 +37,25 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]
     test_php_scripts_with_condition(exe_path, &*scripts);
 }
 
+/// Check your extension by executing the php script, if the all executing
+/// return success, than the test is pass.
+///
+/// - `exec_path` is the path of the make executable, which will be used to
+///   detect the path of
+/// extension lib.
+///
+/// - `scripts` is the path of your php test scripts.
+///
+/// See [example hello integration test](https://github.com/jmjoy/phper/blob/master/examples/hello/tests/integration.rs).
+pub fn test_php_scripts_with_lib(lib_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
+    let condition = |output: Output| output.status.success();
+    let scripts = scripts
+        .iter()
+        .map(|s| (*s, &condition as _))
+        .collect::<Vec<_>>();
+    test_php_scripts_with_condition_and_lib(lib_path, &*scripts);
+}
+
 /// Script and condition pair.
 pub type ScriptCondition<'a> = (&'a dyn AsRef<Path>, &'a dyn Fn(Output) -> bool);
 
@@ -54,8 +73,14 @@ pub type ScriptCondition<'a> = (&'a dyn AsRef<Path>, &'a dyn Fn(Output) -> bool)
 pub fn test_php_scripts_with_condition(
     exe_path: impl AsRef<Path>, scripts: &[ScriptCondition<'_>],
 ) {
-    let context = Context::get_global();
     let lib_path = utils::get_lib_path(exe_path);
+    test_php_scripts_with_condition_and_lib(lib_path, scripts)
+}
+
+pub fn test_php_scripts_with_condition_and_lib(
+    lib_path: impl AsRef<Path>, scripts: &[ScriptCondition<'_>],
+) {
+    let context = Context::get_global();
     let tmp_php_ini_file = context.create_tmp_php_ini_file(&lib_path);
 
     for (script, condition) in scripts {

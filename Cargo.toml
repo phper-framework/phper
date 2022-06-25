@@ -14,3 +14,9 @@ members = [
     "examples/logging",
     "tests/integration",
 ]
+
+[profile.dev]
+lto = true
+
+[profile.release]
+lto = true
