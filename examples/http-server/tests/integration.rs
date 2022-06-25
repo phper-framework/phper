@@ -9,15 +9,15 @@
 // See the Mulan PSL v2 for more details.
 
 use hyper::header::CONTENT_TYPE;
-use phper_test::cli::test_long_term_php_script_with_condition;
+use phper_test::{cli::{test_long_term_php_script_with_condition, test_long_term_php_script_with_condition_and_lib}, utils::get_lib_path_by_example};
 use reqwest::Client;
 use std::{env, path::Path, thread::sleep, time::Duration};
 use tokio::runtime;
 
 #[test]
 fn test_php() {
-    test_long_term_php_script_with_condition(
-        env!("CARGO_BIN_EXE_http-server"),
+    test_long_term_php_script_with_condition_and_lib(
+get_lib_path_by_example(env!("CARGO_BIN_EXE_http-server")),
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("php")

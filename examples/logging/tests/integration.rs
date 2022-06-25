@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper_test::cli::test_php_scripts_with_condition;
+use phper_test::{cli::{test_php_scripts_with_condition, test_php_scripts_with_condition_and_lib}, utils::get_lib_path_by_example};
 use std::{env, path::Path, str};
 
 #[test]
@@ -17,8 +17,8 @@ fn test_php() {
         .join("tests")
         .join("php");
 
-    test_php_scripts_with_condition(
-        env!("CARGO_BIN_EXE_logging"),
+    test_php_scripts_with_condition_and_lib(
+    get_lib_path_by_example(env!("CARGO_BIN_EXE_logging")),
         &[
             (&base_dir.join("test_php_say.php"), &|output| {
                 let stdout = str::from_utf8(&output.stdout).unwrap();

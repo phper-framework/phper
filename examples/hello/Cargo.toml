@@ -14,7 +14,7 @@ crate-type = ["lib", "cdylib"]
 
 # This example is hack to used for integration tests.
 [[example]]
-name = "hello_reexport"
+name = "hello"
 path = "src/_reexport.rs"
 crate-type = ["cdylib"]
 

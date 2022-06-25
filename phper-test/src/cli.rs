@@ -127,8 +127,17 @@ pub fn test_long_term_php_script_with_condition(
     exe_path: impl AsRef<Path>, script: impl AsRef<Path>,
     condition: impl FnOnce(&Child) + UnwindSafe,
 ) {
-    let context = Context::get_global();
     let lib_path = utils::get_lib_path(exe_path);
+    test_long_term_php_script_with_condition_and_lib(lib_path, script, condition)
+}
+
+/// Check your extension by executing the long term php script such as http
+/// server, if the all your specified checkers are pass, than the test is pass.
+pub fn test_long_term_php_script_with_condition_and_lib(
+    lib_path: impl AsRef<Path>, script: impl AsRef<Path>,
+    condition: impl FnOnce(&Child) + UnwindSafe,
+) {
+    let context = Context::get_global();
     let tmp_php_ini_file = context.create_tmp_php_ini_file(lib_path);
     let mut command = context.create_command_with_tmp_php_ini_args(&tmp_php_ini_file, script);
     let mut child = command.spawn().unwrap();

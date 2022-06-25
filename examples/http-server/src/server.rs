@@ -50,7 +50,7 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
         |this, arguments| {
             let host = arguments[0].expect_z_str()?;
             let port = arguments[1].expect_long()?;
-            this.set_property("host", host);
+            this.set_property("host", host.to_owned());
             this.set_property("port", port);
             let addr = format!("{}:{}", host.to_str()?, port).parse::<SocketAddr>()?;
             let builder = Server::bind(&addr);

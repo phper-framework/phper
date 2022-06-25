@@ -448,30 +448,11 @@ impl From<String> for ZVal {
     }
 }
 
-impl From<&ZStr> for ZVal {
-    fn from(s: &ZStr) -> Self {
-        ZVal::from(s.to_bytes())
-    }
-}
-
 impl From<ZString> for ZVal {
     fn from(s: ZString) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
             phper_zval_str(val.as_mut_ptr().cast(), s.into_raw());
-            val.assume_init()
-        }
-    }
-}
-
-impl From<&ZArr> for ZVal {
-    fn from(arr: &ZArr) -> Self {
-        unsafe {
-            let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_arr(
-                val.as_mut_ptr().cast(),
-                zend_array_dup(arr.as_ptr() as *mut _),
-            );
             val.assume_init()
         }
     }
