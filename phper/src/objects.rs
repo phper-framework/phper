@@ -141,7 +141,7 @@ impl ZObj {
     /// # Examples
     ///
     /// ```
-    /// use phper::{alloc::EBox, classes::StatelessClassEntry, values::Val};
+    /// use phper::{alloc::EBox, classes::ClassEntry, values::ZVal};
     ///
     /// fn example() -> phper::Result<EBox<Val>> {
     ///     let mut memcached = StatelessClassEntry::from_globals("Memcached")?.new_object(&mut [])?;

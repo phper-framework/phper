@@ -99,15 +99,27 @@ impl Context {
     #[cfg(feature = "fpm")]
     #[cfg_attr(docsrs, doc(cfg(feature = "fpm")))]
     pub fn find_php_fpm(&self) -> Option<String> {
-        Path::new(&self.php_bin)
-            .parent()
-            .and_then(Path::parent)
-            .and_then(|p| {
-                let mut p = p.to_path_buf();
-                p.push("sbin");
-                p.push("php-fpm");
-                p.as_path().to_str().map(|s| s.to_string())
-            })
+        use std::ffi::OsStr;
+
+        let php_bin = Path::new(&self.php_bin);
+        php_bin.parent().and_then(Path::parent).and_then(|p| {
+            php_bin
+                .file_name()
+                .and_then(OsStr::to_str)
+                .and_then(|name| {
+                    let mut p = p.to_path_buf();
+                    p.push("sbin");
+                    p.push(&format!(
+                        "php-fpm{}",
+                        if name.starts_with("php") {
+                            name.chars().skip(3).collect::<String>()
+                        } else {
+                            "".to_owned()
+                        }
+                    ));
+                    p.as_path().to_str().map(ToOwned::to_owned)
+                })
+        })
     }
 
     #[cfg(feature = "fpm")]

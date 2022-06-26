@@ -10,7 +10,7 @@
 
 use phper::{
     alloc::{ebox, EBox},
-    arrays::ZArray,
+    arrays::{InsertKey, ZArray},
     modules::Module,
     objects::ZObject,
     values::ZVal,
@@ -62,6 +62,11 @@ fn integrate_returns(module: &mut Module) {
         vec![],
     );
     module.add_function(
+        "integration_values_return_kv_array",
+        integration_values_return_kv_array,
+        vec![],
+    );
+    module.add_function(
         "integration_values_return_object",
         integration_values_return_object,
         vec![],
@@ -74,6 +79,11 @@ fn integrate_returns(module: &mut Module) {
     module.add_function(
         "integration_values_return_option_i64_none",
         integration_values_return_option_i64_none,
+        vec![],
+    );
+    module.add_function(
+        "integration_values_return_ebox_i64",
+        integration_values_return_ebox_i64,
         vec![],
     );
     module.add_function(
@@ -119,11 +129,19 @@ fn integration_values_return_string(_: &mut [ZVal]) -> String {
     "foo".to_string()
 }
 
-fn integration_values_return_array(_: &mut [ZVal]) -> EBox<ZArray> {
+fn integration_values_return_array(_: &mut [ZVal]) -> ZArray {
+    let mut arr = ZArray::new();
+    arr.insert(InsertKey::NextIndex, ZVal::from("a"));
+    arr.insert(InsertKey::NextIndex, ZVal::from("b"));
+    arr.insert(InsertKey::NextIndex, ZVal::from("c"));
+    arr
+}
+
+fn integration_values_return_kv_array(_: &mut [ZVal]) -> ZArray {
     let mut arr = ZArray::new();
     arr.insert("a", ZVal::from(1));
     arr.insert("b", ZVal::from("foo"));
-    ebox!(arr)
+    arr
 }
 
 fn integration_values_return_object(_: &mut [ZVal]) -> ZObject {
@@ -138,6 +156,10 @@ fn integration_values_return_option_i64_some(_: &mut [ZVal]) -> Option<i64> {
 
 fn integration_values_return_option_i64_none(_: &mut [ZVal]) -> Option<i64> {
     None
+}
+
+fn integration_values_return_ebox_i64(_: &mut [ZVal]) -> EBox<i64> {
+    ebox!(64)
 }
 
 fn integration_values_return_result_string_ok(_: &mut [ZVal]) -> phper::Result<String> {

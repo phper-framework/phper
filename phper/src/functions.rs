@@ -411,14 +411,14 @@ pub(crate) const fn create_zend_arg_info(
 /// # Examples
 ///
 /// ```
-/// use phper::{arrays::Array, functions::call, values::Val};
+/// use phper::{arrays::ZArray, functions::call, values::ZVal};
 ///
 /// fn json_encode() -> phper::Result<()> {
-///     let mut arr = Array::new();
-///     arr.insert("a", Val::new(1));
-///     arr.insert("b", Val::new(2));
-///     let ret = call("json_encode", &mut [Val::new(arr)])?;
-///     assert_eq!(ret.as_string()?, r#"{"a":1,"b":2}"#);
+///     let mut arr = ZArray::new();
+///     arr.insert("a", ZVal::from(1));
+///     arr.insert("b", ZVal::from(2));
+///     let ret = call("json_encode", &mut [ZVal::from(arr)])?;
+///     assert_eq!(ret.expect_z_str()?.to_str(), Ok(r#"{"a":1,"b":2}"#));
 ///     Ok(())
 /// }
 /// ```
