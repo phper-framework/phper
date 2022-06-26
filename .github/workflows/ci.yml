@@ -85,12 +85,12 @@ jobs:
           command: build
           args: --release
 
-      - name: Cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: clippy
-          args: --release
+      # - name: Cargo clippy
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     toolchain: stable
+      #     command: clippy
+      #     args: --release
 
       - name: Cargo test
         uses: actions-rs/cargo@v1
