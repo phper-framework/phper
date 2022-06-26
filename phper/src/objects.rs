@@ -238,22 +238,13 @@ impl ZObject {
 impl Clone for ZObject {
     fn clone(&self) -> Self {
         unsafe {
-            // TODO Get the handle clone_obj of object.
             let ptr = {
-                #[cfg(phper_major_version = "7")]
-                {
-                    let mut zv = ZVal::default();
-                    phper_zval_obj(zv.as_mut_ptr(), self.as_ptr() as *mut _);
-                    let handlers = phper_z_obj_ht_p(zv.as_ptr());
-                    match (*handlers).clone_obj {
-                        Some(clone_obj) => clone_obj(zv.as_mut_ptr()),
-                        None => zend_objects_clone_obj(zv.as_mut_ptr()),
-                    }
-                }
-                #[cfg(phper_major_version = "8")]
-                {
-                    // zend_objects_clone_obj(self.as_ptr() as *mut _).cast()
-                    todo!()
+                let mut zv = ZVal::default();
+                phper_zval_obj(zv.as_mut_ptr(), self.as_ptr() as *mut _);
+                let handlers = phper_z_obj_ht_p(zv.as_ptr());
+                match (*handlers).clone_obj {
+                    Some(clone_obj) => clone_obj(zv.as_mut_ptr()),
+                    None => zend_objects_clone_obj(zv.as_mut_ptr()),
                 }
             };
             Self::from_raw(ptr)
