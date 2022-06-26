@@ -10,10 +10,7 @@
 
 use hyper::header::CONTENT_TYPE;
 use phper_test::{
-    cli::{
-        test_long_term_php_script_with_condition, test_long_term_php_script_with_condition_and_lib,
-    },
-    utils::get_lib_path_by_example,
+    cli::test_long_term_php_script_with_condition_and_lib, utils::get_lib_path_by_example,
 };
 use reqwest::Client;
 use std::{env, path::Path, thread::sleep, time::Duration};

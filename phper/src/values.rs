@@ -327,7 +327,7 @@ impl ZVal {
     /// # Errors
     ///
     /// Return Err when self is not callable.
-    pub fn call(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<ZVal>> {
+    pub fn call(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZVal> {
         call_internal(self, None, arguments)
     }
 }

@@ -13,7 +13,6 @@
 //! TODO Add lambda.
 
 use crate::{
-    alloc::EBox,
     cg,
     classes::Visibility,
     errors::{ArgumentCountError, CallFunctionError, CallMethodError},
@@ -245,7 +244,7 @@ impl ZendFunction {
 
     pub(crate) fn call(
         &mut self, mut object: Option<&mut ZObj>, mut arguments: impl AsMut<[ZVal]>,
-    ) -> crate::Result<EBox<ZVal>> {
+    ) -> crate::Result<ZVal> {
         let arguments = arguments.as_mut();
         let function_handler = self.as_mut_ptr();
 
@@ -422,14 +421,14 @@ pub(crate) const fn create_zend_arg_info(
 ///     Ok(())
 /// }
 /// ```
-pub fn call(fn_name: &str, arguments: impl AsMut<[ZVal]>) -> crate::Result<EBox<ZVal>> {
+pub fn call(fn_name: &str, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZVal> {
     let mut func = fn_name.into();
     call_internal(&mut func, None, arguments)
 }
 
 pub(crate) fn call_internal(
     func: &mut ZVal, mut object: Option<&mut ZObj>, mut arguments: impl AsMut<[ZVal]>,
-) -> crate::Result<EBox<ZVal>> {
+) -> crate::Result<ZVal> {
     let func_ptr = func.as_mut_ptr();
     let arguments = arguments.as_mut();
 
@@ -469,8 +468,8 @@ pub(crate) fn call_internal(
 pub(crate) fn call_raw_common(
     call_fn: impl FnOnce(&mut ZVal) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
     object: Option<&mut ZObj>,
-) -> crate::Result<EBox<ZVal>> {
-    let mut ret = EBox::new(ZVal::from(()));
+) -> crate::Result<ZVal> {
+    let mut ret = ZVal::default();
 
     if call_fn(&mut ret) && !ret.get_type_info().is_undef() {
         return Ok(ret);

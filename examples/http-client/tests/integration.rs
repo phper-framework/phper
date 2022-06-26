@@ -8,10 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper_test::{
-    cli::{test_php_scripts, test_php_scripts_with_lib},
-    utils::get_lib_path_by_example,
-};
+use phper_test::{cli::test_php_scripts_with_lib, utils::get_lib_path_by_example};
 use std::{env, path::Path};
 
 #[test]

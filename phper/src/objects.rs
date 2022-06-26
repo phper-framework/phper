@@ -143,16 +143,19 @@ impl ZObj {
     /// ```
     /// use phper::{alloc::EBox, classes::ClassEntry, values::ZVal};
     ///
-    /// fn example() -> phper::Result<EBox<Val>> {
-    ///     let mut memcached = StatelessClassEntry::from_globals("Memcached")?.new_object(&mut [])?;
-    ///     memcached.call("addServer", &mut [Val::new("127.0.0.1"), Val::new(11211)])?;
-    ///     let r = memcached.call("get", &mut [Val::new("hello")])?;
+    /// fn example() -> phper::Result<ZVal> {
+    ///     let mut memcached = ClassEntry::from_globals("Memcached")?.new_object(&mut [])?;
+    ///     memcached.call(
+    ///         "addServer",
+    ///         &mut [ZVal::from("127.0.0.1"), ZVal::from(11211)],
+    ///     )?;
+    ///     let r = memcached.call("get", &mut [ZVal::from("hello")])?;
     ///     Ok(r)
     /// }
     /// ```
     pub fn call(
         &mut self, method_name: &str, arguments: impl AsMut<[ZVal]>,
-    ) -> crate::Result<EBox<ZVal>> {
+    ) -> crate::Result<ZVal> {
         let mut method = method_name.into();
 
         unsafe {
