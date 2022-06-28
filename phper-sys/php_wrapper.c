@@ -263,7 +263,13 @@ void phper_zval_str(zval *zv, zend_string *s) {
 }
 
 zend_array *phper_zend_new_array(uint32_t size) {
+    #if PHP_VERSION_ID >= 70300
     return zend_new_array(size);
+    #else
+	HashTable *ht = emalloc(sizeof(HashTable));
+	zend_hash_init(ht, size, NULL, ZVAL_PTR_DTOR, 0);
+	return ht;
+    #endif
 }
 
 zend_array *phper_zend_array_dup(zend_array *source) {

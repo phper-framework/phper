@@ -238,16 +238,27 @@ impl ZObject {
 impl Clone for ZObject {
     fn clone(&self) -> Self {
         unsafe {
-            let ptr = {
-                let mut zv = ZVal::default();
+            Self::from_raw({
+                let mut zv = ManuallyDrop::new(ZVal::default());
                 phper_zval_obj(zv.as_mut_ptr(), self.as_ptr() as *mut _);
                 let handlers = phper_z_obj_ht_p(zv.as_ptr());
+
+                let ptr = {
+                    #[cfg(phper_major_version = "7")]
+                    {
+                        zv.as_mut_ptr()
+                    }
+                    #[cfg(phper_major_version = "8")]
+                    {
+                        self.as_ptr() as *mut _
+                    }
+                };
+
                 match (*handlers).clone_obj {
-                    Some(clone_obj) => clone_obj(zv.as_mut_ptr()),
-                    None => zend_objects_clone_obj(zv.as_mut_ptr()),
+                    Some(clone_obj) => clone_obj(ptr),
+                    None => zend_objects_clone_obj(ptr),
                 }
-            };
-            Self::from_raw(ptr)
+            })
         }
     }
 }
