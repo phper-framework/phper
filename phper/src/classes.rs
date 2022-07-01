@@ -161,16 +161,6 @@ impl<T: Send> Classifiable for StatefulClass<T> {
 }
 
 /// Wrapper of [crate::sys::zend_class_entry].
-///
-/// # Generic
-///
-/// 1. Any `zend_class_entry` can be make into `ClassEntry<()>`, alias as
-/// [StatelessClassEntry].
-///
-/// 2. Only the `zend_class_entry` created by
-/// [crate::modules::Module::add_class] can be make into `ClassEntry<T>`, where
-/// `T` is the type defined by [Classifiable::state_type_id], as the inner state
-/// of `ClassEntry<T>` and `Object<T>`.
 #[repr(transparent)]
 pub struct ClassEntry {
     inner: zend_class_entry,

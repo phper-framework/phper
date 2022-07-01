@@ -20,7 +20,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-/// Key for [Array].
+/// Key for [ZArr].
 #[derive(Debug, Clone, PartialEq, From)]
 pub enum Key<'a> {
     Index(u64),
@@ -29,7 +29,7 @@ pub enum Key<'a> {
     ZStr(&'a ZStr),
 }
 
-/// Insert key for [Array].
+/// Insert key for [ZArr].
 #[derive(Debug, Clone, PartialEq, From)]
 pub enum InsertKey<'a> {
     NextIndex,
@@ -337,7 +337,7 @@ pub enum IterKey<'a> {
     ZStr(&'a ZStr),
 }
 
-/// Iter created by [Array::iter].
+/// Iter created by [ZArr::iter].
 pub struct Iter<'a> {
     index: isize,
     array: &'a ZArr,

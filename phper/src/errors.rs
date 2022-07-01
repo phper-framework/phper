@@ -23,7 +23,7 @@ const ARGUMENT_COUNT_ERROR_CLASS: &str = if PHP_VERSION_ID >= 70100 {
 };
 
 /// PHP Throwable, can cause throwing an exception when setting to
-/// [crate::values::Val].
+/// [crate::values::ZVal].
 pub trait Throwable: error::Error {
     fn class_entry(&self) -> &ClassEntry;
 
