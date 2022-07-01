@@ -320,10 +320,34 @@ const zend_object_handlers *phper_z_obj_ht_p(const zval *zv) {
     return Z_OBJ_HT_P(zv);
 }
 
- zend_object *phper_z_obj_p(const zval *zv) {
-     return Z_OBJ_P(zv);
- }
+zend_object *phper_z_obj_p(const zval *zv) {
+    return Z_OBJ_P(zv);
+}
 
 uint32_t phper_z_addref_p(zval *zv) {
     return Z_ADDREF_P(zv);
+}
+
+zval* phper_zend_hash_index_find(const HashTable *ht, zend_ulong h) {
+    return zend_hash_index_find(ht, h);
+}
+
+bool phper_zend_hash_index_del(HashTable *ht, zend_ulong h) {
+    return zend_hash_index_del(ht, h) == SUCCESS;
+}
+
+zval *phper_zend_symtable_str_update(HashTable *ht, const char *str, size_t len, zval *pData) {
+    return zend_symtable_str_update(ht, str, len, pData);
+}
+
+bool phper_zend_symtable_str_del(HashTable *ht, const char *str, size_t len) {
+    return zend_symtable_str_del(ht, str, len) == SUCCESS;
+}
+
+zval *phper_zend_symtable_str_find(HashTable *ht, const char *str, size_t len) {
+    return zend_symtable_str_find(ht, str, len);
+}
+
+bool phper_zend_symtable_str_exists(HashTable *ht, const char *str, size_t len) {
+    return zend_symtable_str_exists(ht, str, len) != 0;
 }

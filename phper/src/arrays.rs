@@ -10,9 +10,8 @@
 
 //! Apis relate to [crate::sys::zend_array].
 
-use crate::{strings::ZStr, sys::*, values::ZVal};
+use crate::{alloc::ToRefOwned, strings::ZStr, sys::*, values::ZVal};
 use derive_more::From;
-use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
     convert::TryInto,
@@ -87,42 +86,46 @@ impl ZArr {
     }
 
     /// Add or update item by key.
-    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: ZVal) {
+    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, mut value: ZVal) {
         let key = key.into();
+        let val = value.as_mut_ptr();
+
         unsafe {
             match key {
                 InsertKey::NextIndex => {
-                    phper_zend_hash_next_index_insert(self.as_mut_ptr(), value.into_raw());
+                    phper_zend_hash_next_index_insert(self.as_mut_ptr(), val);
                 }
                 InsertKey::Index(i) => {
-                    phper_zend_hash_index_update(self.as_mut_ptr(), i, value.into_raw());
+                    phper_zend_hash_index_update(self.as_mut_ptr(), i, val);
                 }
                 InsertKey::Str(s) => {
-                    phper_zend_hash_str_update(
+                    phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         s.as_ptr().cast(),
                         s.len().try_into().unwrap(),
-                        value.into_raw(),
+                        val,
                     );
                 }
                 InsertKey::Bytes(b) => {
-                    phper_zend_hash_str_update(
+                    phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         b.as_ptr().cast(),
                         b.len().try_into().unwrap(),
-                        value.into_raw(),
+                        val,
                     );
                 }
                 InsertKey::ZStr(s) => {
-                    phper_zend_hash_str_update(
+                    phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         s.as_c_str_ptr().cast(),
                         s.len().try_into().unwrap(),
-                        value.into_raw(),
+                        val,
                     );
                 }
             }
         }
+
+        forget(value);
     }
 
     // Get item by key.
@@ -137,21 +140,22 @@ impl ZArr {
 
     fn inner_get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&'a mut ZVal> {
         let key = key.into();
+        let ptr = self.as_ptr() as *mut _;
         unsafe {
             let value = match key {
-                Key::Index(i) => zend_hash_index_find(self.as_ptr(), i),
-                Key::Str(s) => zend_hash_str_find(
-                    self.as_ptr(),
+                Key::Index(i) => phper_zend_hash_index_find(ptr, i),
+                Key::Str(s) => phper_zend_symtable_str_find(
+                    ptr,
                     s.as_ptr().cast(),
                     s.len().try_into().unwrap(),
                 ),
-                Key::Bytes(b) => zend_hash_str_find(
-                    self.as_ptr(),
+                Key::Bytes(b) => phper_zend_symtable_str_find(
+                    ptr,
                     b.as_ptr().cast(),
                     b.len().try_into().unwrap(),
                 ),
                 Key::ZStr(s) => {
-                    zend_hash_str_find(self.as_ptr(), s.as_c_str_ptr(), s.len().try_into().unwrap())
+                    phper_zend_symtable_str_find(ptr, s.as_c_str_ptr(), s.len().try_into().unwrap())
                 }
             };
             if value.is_null() {
@@ -164,21 +168,22 @@ impl ZArr {
 
     pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
+        let ptr = self.as_ptr() as *mut _;
         unsafe {
             match key {
-                Key::Index(i) => phper_zend_hash_index_exists(&self.inner, i),
-                Key::Str(s) => phper_zend_hash_str_exists(
-                    &self.inner,
+                Key::Index(i) => phper_zend_hash_index_exists(ptr, i),
+                Key::Str(s) => phper_zend_symtable_str_exists(
+                    ptr,
                     s.as_ptr().cast(),
                     s.len().try_into().unwrap(),
                 ),
-                Key::Bytes(b) => phper_zend_hash_str_exists(
-                    &self.inner,
+                Key::Bytes(b) => phper_zend_symtable_str_exists(
+                    ptr,
                     b.as_ptr().cast(),
                     b.len().try_into().unwrap(),
                 ),
-                Key::ZStr(s) => phper_zend_hash_str_exists(
-                    &self.inner,
+                Key::ZStr(s) => phper_zend_symtable_str_exists(
+                    ptr,
                     s.to_bytes().as_ptr().cast(),
                     s.len().try_into().unwrap(),
                 ),
@@ -189,24 +194,24 @@ impl ZArr {
     pub fn remove<'a>(&mut self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
         unsafe {
-            (match key {
-                Key::Index(i) => zend_hash_index_del(&mut self.inner, i),
-                Key::Str(s) => zend_hash_str_del(
+            match key {
+                Key::Index(i) => phper_zend_hash_index_del(&mut self.inner, i),
+                Key::Str(s) => phper_zend_symtable_str_del(
                     &mut self.inner,
                     s.as_ptr().cast(),
                     s.len().try_into().unwrap(),
                 ),
-                Key::Bytes(b) => zend_hash_str_del(
+                Key::Bytes(b) => phper_zend_symtable_str_del(
                     &mut self.inner,
                     b.as_ptr().cast(),
                     b.len().try_into().unwrap(),
                 ),
-                Key::ZStr(s) => zend_hash_str_del(
+                Key::ZStr(s) => phper_zend_symtable_str_del(
                     &mut self.inner,
                     s.as_c_str_ptr().cast(),
                     s.len().try_into().unwrap(),
                 ),
-            }) == ZEND_RESULT_CODE_SUCCESS
+            }
         }
     }
 
@@ -280,10 +285,8 @@ impl ZArray {
     }
 
     #[inline]
-    pub fn into_raw(mut self) -> *mut zend_array {
-        let ptr = self.as_mut_ptr();
-        forget(self);
-        ptr
+    pub fn into_raw(self) -> *mut zend_array {
+        ManuallyDrop::new(self).as_mut_ptr()
     }
 }
 

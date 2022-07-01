@@ -26,7 +26,7 @@ use phper_alloc::RefClone;
 use std::{
     convert::TryInto,
     marker::PhantomData,
-    mem::{forget, transmute, zeroed, MaybeUninit},
+    mem::{transmute, zeroed, MaybeUninit},
     os::raw::c_int,
     str,
 };
@@ -146,13 +146,6 @@ impl ZVal {
     #[inline]
     pub fn into_inner(self) -> zval {
         self.inner
-    }
-
-    #[inline]
-    pub fn into_raw(mut self) -> *mut zval {
-        let ptr = self.as_mut_ptr();
-        forget(self);
-        ptr
     }
 
     pub fn get_type_info(&self) -> TypeInfo {

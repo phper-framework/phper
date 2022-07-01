@@ -18,7 +18,7 @@ use phper_sys::*;
 use std::{
     borrow::Borrow,
     convert::TryInto,
-    mem::{forget, size_of},
+    mem::{size_of, ManuallyDrop},
     ops::{Deref, DerefMut},
 };
 
@@ -59,9 +59,7 @@ impl<T> EBox<T> {
     ///
     /// Will leak memory.
     pub fn into_raw(b: EBox<T>) -> *mut T {
-        let ptr = b.ptr;
-        forget(b);
-        ptr
+        ManuallyDrop::new(b).ptr
     }
 
     pub fn into_inner(self) -> T {
