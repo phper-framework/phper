@@ -19,7 +19,7 @@ path = "src/_reexport.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-hyper = { version = "0.14.19", features = ["http1", "runtime", "server"] }
+hyper = { version = "0.14.20", features = ["http1", "runtime", "server"] }
 phper = { version = "0.4.0-alpha.3", path = "../../phper" }
 thiserror = "1.0.31"
 tokio = { version = "1.19.2", features = ["full"] }
