@@ -198,7 +198,11 @@ bool phper_z_refcounted_p(zval *zval_ptr) {
     return Z_REFCOUNTED_P(zval_ptr);
 }
 
-zval *phper_execute_data_call_arg(zend_execute_data *execute_data, int index) {
+zval *phper_zend_call_var_num(zend_execute_data *execute_data, int index) {
+    return ZEND_CALL_VAR_NUM(execute_data, index);
+}
+
+zval *phper_zend_call_arg(zend_execute_data *execute_data, int index) {
     return ZEND_CALL_ARG(execute_data, index);
 }
 
@@ -350,4 +354,8 @@ zval *phper_zend_symtable_str_find(HashTable *ht, const char *str, size_t len) {
 
 bool phper_zend_symtable_str_exists(HashTable *ht, const char *str, size_t len) {
     return zend_symtable_str_exists(ht, str, len) != 0;
+}
+
+uint32_t phper_zend_num_args(const zend_execute_data *execute_data) {
+    return ZEND_NUM_ARGS();
 }

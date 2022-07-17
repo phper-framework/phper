@@ -42,8 +42,21 @@ impl ExecuteData {
     ///
     /// Create from raw pointer.
     #[inline]
+    pub unsafe fn from_ptr<'a>(ptr: *const zend_execute_data) -> &'a Self {
+        (ptr as *const Self).as_ref().expect("ptr should't be null")
+    }
+
+    #[inline]
+    pub fn as_ptr(&self) -> *const zend_execute_data {
+        &self.inner
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
-        &mut *(ptr as *mut Self)
+        (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
     #[inline]
@@ -55,32 +68,29 @@ impl ExecuteData {
     ///
     /// Get value from union.
     #[inline]
-    pub unsafe fn common_num_args(&self) -> u32 {
-        (*self.inner.func).common.num_args
+    pub fn common_num_args(&self) -> u32 {
+        unsafe { (*self.inner.func).common.num_args }
     }
 
     /// # Safety
     ///
     /// Get value from union.
     #[inline]
-    pub unsafe fn common_required_num_args(&self) -> u16 {
-        (*self.inner.func).common.required_num_args as u16
+    pub fn common_required_num_args(&self) -> u16 {
+        unsafe { (*self.inner.func).common.required_num_args as u16 }
     }
 
     /// # Safety
     ///
     /// Get value from union.
     #[inline]
-    pub unsafe fn common_arg_info(&self) -> *mut zend_arg_info {
-        (*self.inner.func).common.arg_info
+    pub fn common_arg_info(&self) -> *mut zend_arg_info {
+        unsafe { (*self.inner.func).common.arg_info }
     }
 
-    /// # Safety
-    ///
-    /// Get value from union.
     #[inline]
-    pub unsafe fn num_args(&self) -> u16 {
-        self.inner.This.u2.num_args as u16
+    pub fn num_args(&self) -> usize {
+        unsafe { phper_zend_num_args(self.as_ptr()).try_into().unwrap() }
     }
 
     /// # Safety
@@ -103,14 +113,14 @@ impl ExecuteData {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
         if num_args > 0 {
-            _zend_get_parameters_array_ex(num_args.into(), arguments.as_mut_ptr());
+            _zend_get_parameters_array_ex(num_args.try_into().unwrap(), arguments.as_mut_ptr());
         }
         transmute(arguments)
     }
 
     pub fn get_parameter(&mut self, index: usize) -> &mut ZVal {
         unsafe {
-            let val = phper_execute_data_call_arg(self.as_mut_ptr(), index as c_int);
+            let val = phper_zend_call_arg(self.as_mut_ptr(), index as c_int);
             ZVal::from_mut_ptr(val)
         }
     }
