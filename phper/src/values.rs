@@ -120,7 +120,7 @@ impl ExecuteData {
 
     pub fn get_parameter(&mut self, index: usize) -> &mut ZVal {
         unsafe {
-            let val = phper_zend_call_arg(self.as_mut_ptr(), index as c_int);
+            let val = phper_zend_call_var_num(self.as_mut_ptr(), index.try_into().unwrap());
             ZVal::from_mut_ptr(val)
         }
     }
@@ -306,7 +306,7 @@ impl ZVal {
     }
 
     fn inner_expect_z_res(&self) -> crate::Result<&mut ZRes> {
-        if self.get_type_info().is_object() {
+        if self.get_type_info().is_resource() {
             unsafe { Ok(ZRes::from_mut_ptr(phper_z_res_p(self.as_ptr()))) }
         } else {
             Err(ExpectTypeError::new(TypeInfo::RESOURCE, self.get_type_info()).into())
