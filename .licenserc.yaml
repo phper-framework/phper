@@ -8,25 +8,26 @@
 # NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-[workspace]
-members = [
-    "phper",
-    "phper-alloc",
-    "phper-build",
-    "phper-macros",
-    "phper-sys",
-    "phper-test",
+header:
+  license:
+    spdx-id: MulanPSL-2.0
+    copyright-owner: jmjoy
+    copyright-software: phper
 
-    # internal
-    "examples/hello",
-    "examples/http-client",
-    "examples/http-server",
-    "examples/logging",
-    "tests/integration",
-]
+  paths-ignore:
+    - 'LICENSE'
+    - 'NOTICE'
+    - '**/*.md'
+    - '**/*.lock'
+    - '**/.gitignore'
+    - '**/.gitmodules'
+    - 'vendor'
+    - '.cargo'
+    - '.vscode'
+    - '.idea'
 
-[profile.dev]
-lto = true
+  comment: on-failure
 
-[profile.release]
-lto = true
+dependency:
+  files:
+    - Cargo.toml
