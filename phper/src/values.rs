@@ -27,7 +27,6 @@ use std::{
     convert::TryInto,
     marker::PhantomData,
     mem::{transmute, zeroed, MaybeUninit},
-    os::raw::c_int,
     str,
 };
 
