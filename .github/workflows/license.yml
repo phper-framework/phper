@@ -8,25 +8,23 @@
 # NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-[workspace]
-members = [
-    "phper",
-    "phper-alloc",
-    "phper-build",
-    "phper-macros",
-    "phper-sys",
-    "phper-test",
+name: License
 
-    # internal
-    "examples/hello",
-    "examples/http-client",
-    "examples/http-server",
-    "examples/logging",
-    "tests/integration",
-]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches: [ "**" ]
 
-[profile.dev]
-lto = true
-
-[profile.release]
-lto = true
+jobs:
+  license-check:
+    name: License check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Check License Header
+        uses: apache/skywalking-eyes/header/@d5466651aaded6fbd588d2278eccc469afc89d92
+        with:
+          config: .licenserc.yaml
