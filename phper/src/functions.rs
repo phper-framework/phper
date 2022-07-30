@@ -308,7 +308,7 @@ impl ZendFunction {
 
                 zend_call_function(&mut fci, &mut fcc) == ZEND_RESULT_CODE_SUCCESS
             },
-            || Ok(self.get_function_name().to_str()?.to_owned()),
+            || Ok(self.get_function_or_method_name().to_str()?.to_owned()),
             object,
         )
     }
@@ -341,7 +341,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     let num_args = execute_data.num_args() as usize;
     let required_num_args = execute_data.common_required_num_args() as usize;
     if num_args < required_num_args {
-        let func_name = execute_data.func().get_function_name();
+        let func_name = execute_data.func().get_function_or_method_name();
         let result = func_name
             .to_str()
             .map(|func_name| {
