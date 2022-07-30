@@ -92,7 +92,7 @@ where
         &self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal,
     ) {
         unsafe {
-            let this = execute_data.get_this().unwrap();
+            let this = execute_data.get_this_mut().unwrap();
             let this = StatefulObj::from_z_obj(this);
             let r = (self.f)(this, arguments);
             *return_value = r.into();

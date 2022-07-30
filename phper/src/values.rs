@@ -99,12 +99,18 @@ impl ExecuteData {
         ZendFunction::from_mut_ptr(self.inner.func)
     }
 
-    /// # Safety
-    ///
-    /// The type of `T` should be careful.
-    pub unsafe fn get_this(&mut self) -> Option<&mut ZObj> {
-        let val = ZVal::from_mut_ptr(phper_get_this(&mut self.inner));
-        val.as_mut_z_obj()
+    pub fn get_this(&mut self) -> Option<&ZObj> {
+        unsafe {
+            let val = ZVal::from_ptr(phper_get_this(&mut self.inner));
+            val.as_z_obj()
+        }
+    }
+
+    pub fn get_this_mut(&mut self) -> Option<&mut ZObj> {
+        unsafe {
+            let val = ZVal::from_mut_ptr(phper_get_this(&mut self.inner));
+            val.as_mut_z_obj()
+        }
     }
 
     /// TODO Do not return owned object, because usually Val should not be drop.
