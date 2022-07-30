@@ -151,6 +151,10 @@ zend_string *phper_get_function_or_method_name(const zend_function *func) {
     #endif
 }
 
+zend_string *phper_get_function_name(const zend_function *func) {
+    return func->common.function_name;
+}
+
 void phper_zval_ptr_dtor(zval *zv) {
     ZVAL_PTR_DTOR(zv);
 }
