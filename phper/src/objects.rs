@@ -65,6 +65,11 @@ impl ZObj {
         eo.state.downcast_mut().unwrap()
     }
 
+    #[inline]
+    pub fn handle(&self) -> u32 {
+        self.inner.handle
+    }
+
     pub fn get_class(&self) -> &ClassEntry {
         unsafe { ClassEntry::from_ptr(self.inner.ce) }
     }
