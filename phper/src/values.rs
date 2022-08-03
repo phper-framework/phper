@@ -95,8 +95,8 @@ impl ExecuteData {
     /// # Safety
     ///
     /// From inner raw pointer.
-    pub unsafe fn func(&self) -> &ZendFunction {
-        ZendFunction::from_mut_ptr(self.inner.func)
+    pub fn func(&self) -> &ZendFunction {
+        unsafe { ZendFunction::from_mut_ptr(self.inner.func) }
     }
 
     pub fn get_this(&mut self) -> Option<&ZObj> {
