@@ -235,10 +235,10 @@ impl ZendFunction {
         &mut self.inner
     }
 
-    pub fn get_function_name(&self) -> &ZStr {
+    pub fn get_function_name(&self) -> Option<&ZStr> {
         unsafe {
             let s = phper_get_function_name(self.as_ptr());
-            ZStr::from_ptr(s)
+            ZStr::try_from_ptr(s)
         }
     }
 

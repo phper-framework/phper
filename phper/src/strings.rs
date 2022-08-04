@@ -34,12 +34,24 @@ pub struct ZStr {
 }
 
 impl ZStr {
+    #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_string) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    #[inline]
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_string) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
+    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    #[inline]
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_string) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     pub const fn as_ptr(&self) -> *const zend_string {

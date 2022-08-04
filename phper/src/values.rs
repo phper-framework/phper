@@ -45,6 +45,14 @@ impl ExecuteData {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_execute_data) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
     #[inline]
     pub fn as_ptr(&self) -> *const zend_execute_data {
         &self.inner
@@ -56,6 +64,14 @@ impl ExecuteData {
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     #[inline]
@@ -145,8 +161,16 @@ impl ZVal {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zval) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zval) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     pub const fn as_ptr(&self) -> *const zval {

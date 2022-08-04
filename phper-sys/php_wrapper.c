@@ -13,6 +13,7 @@
 #include <php_ini.h>
 #include <ext/standard/info.h>
 #include <zend_exceptions.h>
+#include <zend_interfaces.h>
 #include <main/SAPI.h>
 
 typedef ZEND_INI_MH(phper_zend_ini_mh);
