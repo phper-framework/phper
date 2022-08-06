@@ -14,7 +14,7 @@
 
 use crate::{
     cg,
-    classes::Visibility,
+    classes::{ClassEntry, Visibility},
     errors::{ArgumentCountError, CallFunctionError, CallMethodError},
     exceptions::Exception,
     objects::{StatefulObj, ZObj},
@@ -235,10 +235,10 @@ impl ZendFunction {
         &mut self.inner
     }
 
-    pub fn get_function_name(&self) -> &ZStr {
+    pub fn get_function_name(&self) -> Option<&ZStr> {
         unsafe {
             let s = phper_get_function_name(self.as_ptr());
-            ZStr::from_ptr(s)
+            ZStr::try_from_ptr(s)
         }
     }
 
@@ -246,6 +246,17 @@ impl ZendFunction {
         unsafe {
             let s = phper_get_function_or_method_name(self.as_ptr());
             ZString::from_raw(s)
+        }
+    }
+
+    pub fn get_class(&self) -> Option<&ClassEntry> {
+        unsafe {
+            let ptr = self.inner.common.scope;
+            if ptr.is_null() {
+                None
+            } else {
+                Some(ClassEntry::from_ptr(self.inner.common.scope))
+            }
         }
     }
 

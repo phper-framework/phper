@@ -15,7 +15,7 @@ use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
     convert::TryInto,
-    ffi::CStr,
+    ffi::{CStr, FromBytesWithNulError},
     fmt::Debug,
     marker::PhantomData,
     mem::forget,
@@ -34,12 +34,24 @@ pub struct ZStr {
 }
 
 impl ZStr {
+    #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_string) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    #[inline]
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_string) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
+    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    #[inline]
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_string) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     pub const fn as_ptr(&self) -> *const zend_string {
@@ -71,8 +83,8 @@ impl ZStr {
         unsafe { from_raw_parts(phper_zstr_val(&self.inner).cast(), self.len()) }
     }
 
-    pub fn to_c_str(&self) -> &CStr {
-        CStr::from_bytes_with_nul(self.to_bytes()).unwrap()
+    pub fn to_c_str(&self) -> Result<&CStr, FromBytesWithNulError> {
+        CStr::from_bytes_with_nul(self.to_bytes())
     }
 
     pub fn to_str(&self) -> Result<&str, Utf8Error> {
@@ -82,7 +94,7 @@ impl ZStr {
 
 impl Debug for ZStr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self.to_c_str(), f)
+        f.debug_tuple("ZStr").field(&self.to_c_str()).finish()
     }
 }
 
@@ -152,7 +164,7 @@ impl ZString {
 
 impl Debug for ZString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self.deref(), f)
+        f.debug_tuple("ZString").field(&self.to_c_str()).finish()
     }
 }
 

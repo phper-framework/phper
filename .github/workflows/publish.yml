@@ -1,0 +1,104 @@
+# Copyright (c) 2019 jmjoy
+# PHPER is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan
+# PSL v2. You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+name: Publish
+
+on:
+  push:
+    tags: [ "**" ]
+
+env:
+  RUST_LOG: debug
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+  RUSTFLAGS: "-D warnings"
+  LLVM_CONFIG_PATH: llvm-config-10
+  CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+jobs:
+  publish:
+    name: Publish
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Git config
+        shell: bash
+        run: |
+          git config --global user.email "918734043@qq.com"
+          git config --global user.name "jmjoy"
+
+      - name: Install libclang
+        run: sudo apt-get install -y llvm-10-dev libclang-10-dev
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+          tools: php-config
+
+      - name: Install Rust Stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cargo publish phper-sys
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --manifest-path phper-sys/Cargo.toml
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Cargo publish phper-build
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --manifest-path phper-build/Cargo.toml
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Cargo publish phper-macros
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --manifest-path phper-macros/Cargo.toml
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Cargo publish phper-alloc
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --manifest-path phper-alloc/Cargo.toml
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Cargo publish phper-test
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --manifest-path phper-test/Cargo.toml
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Cargo publish phper
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --manifest-path phper/Cargo.toml

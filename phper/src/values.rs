@@ -45,6 +45,14 @@ impl ExecuteData {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_execute_data) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
     #[inline]
     pub fn as_ptr(&self) -> *const zend_execute_data {
         &self.inner
@@ -56,6 +64,14 @@ impl ExecuteData {
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     #[inline]
@@ -95,8 +111,8 @@ impl ExecuteData {
     /// # Safety
     ///
     /// From inner raw pointer.
-    pub unsafe fn func(&self) -> &ZendFunction {
-        ZendFunction::from_mut_ptr(self.inner.func)
+    pub fn func(&self) -> &ZendFunction {
+        unsafe { ZendFunction::from_mut_ptr(self.inner.func) }
     }
 
     pub fn get_this(&mut self) -> Option<&ZObj> {
@@ -145,8 +161,16 @@ impl ZVal {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zval) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zval) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     pub const fn as_ptr(&self) -> *const zval {
@@ -318,12 +342,14 @@ impl ZVal {
         }
     }
 
+    /// TODO To fix assertion failed.
     pub fn convert_to_long(&mut self) {
         unsafe {
             phper_convert_to_long(self.as_mut_ptr());
         }
     }
 
+    /// TODO To fix assertion failed.
     pub fn convert_to_string(&mut self) {
         unsafe {
             phper_convert_to_string(self.as_mut_ptr());
