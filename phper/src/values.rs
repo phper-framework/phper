@@ -342,12 +342,14 @@ impl ZVal {
         }
     }
 
+    /// TODO To fix assertion failed.
     pub fn convert_to_long(&mut self) {
         unsafe {
             phper_convert_to_long(self.as_mut_ptr());
         }
     }
 
+    /// TODO To fix assertion failed.
     pub fn convert_to_string(&mut self) {
         unsafe {
             phper_convert_to_string(self.as_mut_ptr());
