@@ -116,3 +116,72 @@ jobs:
           toolchain: nightly
           command: doc
           args: --workspace --no-deps --all-features
+
+  check:
+    name: Check
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        php-version:
+          - "7.4"
+        features:
+          - ""
+          - "--all-features"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install libclang
+        run: sudo apt-get install -y llvm-10-dev libclang-10-dev
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: php-config
+
+      - name: Install Rust Stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cargo check phper-sys
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path phper-sys/Cargo.toml ${{ matrix.features }}
+
+      - name: Cargo check phper-build
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path phper-build/Cargo.toml ${{ matrix.features }}
+
+      - name: Cargo check phper-macros
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path phper-macros/Cargo.toml ${{ matrix.features }}
+
+      - name: Cargo check phper-alloc
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path phper-alloc/Cargo.toml ${{ matrix.features }}
+
+      - name: Cargo check phper-test
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path phper-test/Cargo.toml ${{ matrix.features }}
+
+      - name: Cargo check phper
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path phper/Cargo.toml ${{ matrix.features }}

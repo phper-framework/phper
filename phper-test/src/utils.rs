@@ -9,13 +9,10 @@
 // See the Mulan PSL v2 for more details.
 
 use std::{
-    convert::TryInto,
     ffi::{OsStr, OsString},
     fmt::Debug,
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
-    thread,
-    time::Duration,
+    process::Command,
 };
 
 pub(crate) fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
@@ -28,9 +25,12 @@ pub(crate) fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
     String::from_utf8(output).unwrap().trim().to_owned()
 }
 
+#[cfg(feature = "fpm")]
 pub(crate) fn spawn_command<S: AsRef<OsStr> + Debug>(
-    argv: &[S], wait_time: Option<Duration>,
-) -> Child {
+    argv: &[S], wait_time: Option<std::time::Duration>,
+) -> std::process::Child {
+    use std::{process::Stdio, thread};
+
     let mut command = Command::new(&argv[0]);
     let child = command
         .args(&argv[1..])

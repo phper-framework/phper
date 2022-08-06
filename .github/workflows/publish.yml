@@ -57,6 +57,7 @@ jobs:
         with:
           command: publish
           args: --manifest-path phper-sys/Cargo.toml
+        continue-on-error: true
 
       - name: Delay
         run: sleep 20
@@ -66,6 +67,7 @@ jobs:
         with:
           command: publish
           args: --manifest-path phper-build/Cargo.toml
+        continue-on-error: true
 
       - name: Delay
         run: sleep 20
@@ -75,6 +77,7 @@ jobs:
         with:
           command: publish
           args: --manifest-path phper-macros/Cargo.toml
+        continue-on-error: true
 
       - name: Delay
         run: sleep 20
@@ -84,6 +87,7 @@ jobs:
         with:
           command: publish
           args: --manifest-path phper-alloc/Cargo.toml
+        continue-on-error: true
 
       - name: Delay
         run: sleep 20
@@ -93,6 +97,7 @@ jobs:
         with:
           command: publish
           args: --manifest-path phper-test/Cargo.toml
+        continue-on-error: true
 
       - name: Delay
         run: sleep 20
