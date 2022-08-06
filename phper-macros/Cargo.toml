@@ -10,7 +10,7 @@
 
 [package]
 name = "phper-macros"
-version = "0.4.0-alpha.3"
+version = "0.4.0-alpha.4"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2021"
 rust-version = "1.56"

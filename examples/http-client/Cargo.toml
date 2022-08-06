@@ -32,9 +32,9 @@ crate-type = ["cdylib"]
 anyhow = "1.0.58"
 bytes = "1.1.0"
 indexmap = "1.9.1"
-phper = { version = "0.4.0-alpha.3", path = "../../phper" }
+phper = { version = "0.4.0-alpha.4", path = "../../phper" }
 reqwest = { version = "0.11.11", features = ["blocking", "cookies"] }
 thiserror = "1.0.31"
 
 [dev-dependencies]
-phper-test = { version = "0.4.0-alpha.3", path = "../../phper-test" }
+phper-test = { version = "0.4.0-alpha.4", path = "../../phper-test" }
