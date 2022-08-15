@@ -14,7 +14,7 @@ use crate::{sys::*, utils::ensure_end_with_zero};
 use std::{convert::TryInto, ptr::null};
 
 #[repr(u32)]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum LogLevel {
     Error = E_ERROR,
     Warning = E_WARNING,

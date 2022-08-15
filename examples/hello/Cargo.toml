@@ -29,10 +29,10 @@ path = "src/_reexport.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-phper = { version = "0.4.0-alpha.4", path = "../../phper" }
+phper = { version = "0.4.0", path = "../../phper" }
 
 [dev-dependencies]
-phper-test = { version = "0.4.0-alpha.4", path = "../../phper-test" }
+phper-test = { version = "0.4.0", path = "../../phper-test" }
 
 [build-dependencies]
-phper-build = { version = "0.4.0-alpha.4", path = "../../phper-build" }
+phper-build = { version = "0.4.0", path = "../../phper-build" }

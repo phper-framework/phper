@@ -8,7 +8,7 @@
 
 ## Rust ❤️ PHP
 
-A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible.
+The framework that allows us to write PHP extensions using pure and safe Rust whenever possible.
 
 ## Requirement
 

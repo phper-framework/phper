@@ -10,11 +10,11 @@
 
 [package]
 name = "phper"
-version = "0.4.0-alpha.4"
+version = "0.4.0"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2021"
 rust-version = "1.56"
-description = "A library that allows us to write PHP extensions using pure Rust and using safe Rust whenever possible."
+description = "The framework that allows us to write PHP extensions using pure and safe Rust whenever possible."
 repository = "https://github.com/jmjoy/phper.git"
 documentation = "https://docs.rs/phper"
 license = "MulanPSL-2.0"
@@ -30,11 +30,11 @@ dashmap = "5.3.4"
 derive_more = "0.99.17"
 indexmap = "1.9.1"
 once_cell = "1.13.0"
-phper-alloc = { version = "0.4.0-alpha.4", path = "../phper-alloc" }
-phper-macros = { version = "0.4.0-alpha.4", path = "../phper-macros" }
-phper-sys = { version = "0.4.0-alpha.4", path = "../phper-sys" }
+phper-alloc = { version = "0.4.0", path = "../phper-alloc" }
+phper-macros = { version = "0.4.0", path = "../phper-macros" }
+phper-sys = { version = "0.4.0", path = "../phper-sys" }
 thiserror = "1.0.31"
 
 [build-dependencies]
-phper-build = { version = "0.4.0-alpha.4", path = "../phper-build" }
-phper-sys = { version = "0.4.0-alpha.4", path = "../phper-sys" }
+phper-build = { version = "0.4.0", path = "../phper-build" }
+phper-sys = { version = "0.4.0", path = "../phper-sys" }

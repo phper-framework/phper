@@ -19,14 +19,43 @@ pub struct ZRes {
 }
 
 impl ZRes {
+    /// # Safety
+    ///
+    /// Create from raw pointer.
     pub unsafe fn from_ptr<'a>(ptr: *const zend_resource) -> &'a Self {
         (ptr as *const Self)
             .as_ref()
             .expect("ptr should not be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_resource) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_resource) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should not be null")
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_resource) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
+    }
+
+    pub const fn as_ptr(&self) -> *const zend_resource {
+        &self.inner
+    }
+
+    #[inline]
+    pub fn as_mut_ptr(&mut self) -> *mut zend_resource {
+        &mut self.inner
     }
 
     #[allow(clippy::useless_conversion)]

@@ -10,7 +10,7 @@
 
 [package]
 name = "phper-alloc"
-version = "0.4.0-alpha.4"
+version = "0.4.0"
 authors = ["jmjoy <918734043@qq.com>"]
 edition = "2021"
 rust-version = "1.56"
@@ -22,7 +22,7 @@ keywords = ["php", "alloc"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-phper-sys = { version = "0.4.0-alpha.4", path = "../phper-sys" }
+phper-sys = { version = "0.4.0", path = "../phper-sys" }
 
 [build-dependencies]
-phper-build = { version = "0.4.0-alpha.4", path = "../phper-build" }
+phper-build = { version = "0.4.0", path = "../phper-build" }
