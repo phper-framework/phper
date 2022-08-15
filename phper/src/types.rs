@@ -15,7 +15,7 @@ use derive_more::From;
 use std::{ffi::CStr, fmt::Display, os::raw::c_int};
 
 /// Wrapper of PHP type.
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TypeInfo {
     t: u32,
 }

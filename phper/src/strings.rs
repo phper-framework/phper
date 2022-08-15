@@ -34,21 +34,33 @@ pub struct ZStr {
 }
 
 impl ZStr {
+    /// # Safety
+    ///
+    /// Create from raw pointer.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_string) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_string) -> Option<&'a Self> {
         (ptr as *const Self).as_ref()
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_string) -> Option<&'a mut Self> {
         (ptr as *mut Self).as_mut()
@@ -147,6 +159,14 @@ impl ZString {
         }
     }
 
+    /// Create owned object From raw pointer, usually used in pairs with
+    /// `into_raw`.
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because improper use may lead to memory
+    /// problems. For example, a double-free may occur if the function is called
+    /// twice on the same raw pointer.
     #[inline]
     pub unsafe fn from_raw(ptr: *mut zend_string) -> Self {
         Self {

@@ -57,12 +57,36 @@ pub struct ZArr {
 }
 
 impl ZArr {
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_array) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_array) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     pub const fn as_ptr(&self) -> *const zend_array {
@@ -277,6 +301,14 @@ impl ZArray {
         }
     }
 
+    /// Create owned object From raw pointer, usually used in pairs with
+    /// `into_raw`.
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because improper use may lead to memory
+    /// problems. For example, a double-free may occur if the function is called
+    /// twice on the same raw pointer.
     #[inline]
     pub unsafe fn from_raw(ptr: *mut zend_array) -> Self {
         Self {

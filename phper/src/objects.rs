@@ -38,12 +38,36 @@ pub struct ZObj {
 }
 
 impl ZObj {
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_object) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_object) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_object) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
     }
 
     pub const fn as_ptr(&self) -> *const zend_object {
@@ -55,11 +79,35 @@ impl ZObj {
         &mut self.inner
     }
 
+    /// # Safety
+    ///
+    /// Should only call this method for the class of object defined by the
+    /// extension created by `phper`, otherwise, memory problems will caused.
+    pub unsafe fn as_stateful_obj<T: 'static>(&self) -> &StatefulObj<T> {
+        transmute(self)
+    }
+
+    /// # Safety
+    ///
+    /// Should only call this method for the class of object defined by the
+    /// extension created by `phper`, otherwise, memory problems will caused.
+    pub unsafe fn as_mut_stateful_obj<T: 'static>(&mut self) -> &mut StatefulObj<T> {
+        transmute(self)
+    }
+
+    /// # Safety
+    ///
+    /// Should only call this method for the class of object defined by the
+    /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_state<T: 'static>(&self) -> &T {
         let eo = ExtendObject::fetch(&self.inner);
         eo.state.downcast_ref().unwrap()
     }
 
+    /// # Safety
+    ///
+    /// Should only call this method for the class of object defined by the
+    /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_mut_state<T: 'static>(&mut self) -> &mut T {
         let eo = ExtendObject::fetch_mut(&mut self.inner);
         eo.state.downcast_mut().unwrap()
@@ -225,6 +273,14 @@ impl ZObject {
         Self::new_by_class_name("stdclass", &mut []).unwrap()
     }
 
+    /// Create owned object From raw pointer, usually used in pairs with
+    /// `into_raw`.
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because improper use may lead to memory
+    /// problems. For example, a double-free may occur if the function is called
+    /// twice on the same raw pointer.
     #[inline]
     pub unsafe fn from_raw(ptr: *mut zend_object) -> Self {
         Self {
@@ -303,10 +359,6 @@ pub struct StatefulObj<T> {
 }
 
 impl<T: 'static> StatefulObj<T> {
-    pub unsafe fn from_z_obj(obj: &mut ZObj) -> &mut Self {
-        transmute(obj)
-    }
-
     pub fn as_state(&self) -> &T {
         unsafe { self.inner.as_state() }
     }
@@ -344,20 +396,16 @@ impl ExtendObject {
         size_of::<ManuallyDropState>()
     }
 
-    pub(crate) fn fetch(object: &zend_object) -> &Self {
-        unsafe {
-            (((object as *const _ as usize) - ExtendObject::offset()) as *const Self)
-                .as_ref()
-                .unwrap()
-        }
+    pub(crate) unsafe fn fetch(object: &zend_object) -> &Self {
+        (((object as *const _ as usize) - ExtendObject::offset()) as *const Self)
+            .as_ref()
+            .unwrap()
     }
 
-    pub(crate) fn fetch_mut(object: &mut zend_object) -> &mut Self {
-        unsafe {
-            (((object as *mut _ as usize) - ExtendObject::offset()) as *mut Self)
-                .as_mut()
-                .unwrap()
-        }
+    pub(crate) unsafe fn fetch_mut(object: &mut zend_object) -> &mut Self {
+        (((object as *mut _ as usize) - ExtendObject::offset()) as *mut Self)
+            .as_mut()
+            .unwrap()
     }
 
     pub(crate) fn fetch_ptr(object: *mut zend_object) -> *mut Self {

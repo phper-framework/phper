@@ -26,7 +26,7 @@ use phper_alloc::RefClone;
 use std::{
     convert::TryInto,
     marker::PhantomData,
-    mem::{transmute, zeroed, MaybeUninit},
+    mem::{transmute, zeroed, ManuallyDrop, MaybeUninit},
     str,
 };
 
@@ -53,11 +53,6 @@ impl ExecuteData {
         (ptr as *const Self).as_ref()
     }
 
-    #[inline]
-    pub fn as_ptr(&self) -> *const zend_execute_data {
-        &self.inner
-    }
-
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -72,6 +67,10 @@ impl ExecuteData {
     #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> Option<&'a mut Self> {
         (ptr as *mut Self).as_mut()
+    }
+
+    pub const fn as_ptr(&self) -> *const zend_execute_data {
+        &self.inner
     }
 
     #[inline]
@@ -129,8 +128,7 @@ impl ExecuteData {
         }
     }
 
-    /// TODO Do not return owned object, because usually Val should not be drop.
-    pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<ZVal> {
+    pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
         if num_args > 0 {
@@ -148,8 +146,6 @@ impl ExecuteData {
 }
 
 /// Wrapper of [crate::sys::zval].
-///
-/// TODO Refactor `as_*`, to `to_*` or return reference.
 #[repr(transparent)]
 pub struct ZVal {
     inner: zval,
@@ -157,18 +153,34 @@ pub struct ZVal {
 }
 
 impl ZVal {
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zval) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zval) -> Option<&'a Self> {
         (ptr as *const Self).as_ref()
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zval) -> Option<&'a mut Self> {
         (ptr as *mut Self).as_mut()
     }
@@ -431,6 +443,7 @@ impl From<bool> for ZVal {
 }
 
 impl From<i64> for ZVal {
+    #[allow(clippy::useless_conversion)]
     fn from(i: i64) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
@@ -441,6 +454,7 @@ impl From<i64> for ZVal {
 }
 
 impl From<f64> for ZVal {
+    #[allow(clippy::useless_conversion)]
     fn from(f: f64) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();

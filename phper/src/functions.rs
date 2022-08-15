@@ -26,7 +26,7 @@ use crate::{
 use std::{
     convert::TryInto,
     marker::PhantomData,
-    mem::{forget, size_of, zeroed},
+    mem::{size_of, transmute, zeroed},
     os::raw::c_char,
     ptr::null_mut,
 };
@@ -93,7 +93,7 @@ where
     ) {
         unsafe {
             let this = execute_data.get_this_mut().unwrap();
-            let this = StatefulObj::from_z_obj(this);
+            let this = this.as_mut_stateful_obj();
             let r = (self.f)(this, arguments);
             *return_value = r.into();
         }
@@ -225,8 +225,7 @@ impl ZendFunction {
         ptr.as_mut().expect("ptr shouldn't be null")
     }
 
-    #[inline]
-    pub fn as_ptr(&self) -> *const zend_function {
+    pub const fn as_ptr(&self) -> *const zend_function {
         &self.inner
     }
 
@@ -368,16 +367,10 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     }
 
     let mut arguments = execute_data.get_parameters_array();
+    let arguments = arguments.as_mut_slice();
 
     // TODO catch_unwind for call, translate some panic to throwing Error.
-    handler.call(execute_data, &mut arguments, return_value);
-
-    // Do not call the drop method, because there is the `zend_vm_stack_free_args`
-    // call after executing function.
-    // TODO remove after arguments become reference.
-    for argument in arguments {
-        forget(argument);
-    }
+    handler.call(execute_data, transmute(arguments), return_value);
 }
 
 pub(crate) const fn create_zend_arg_info(

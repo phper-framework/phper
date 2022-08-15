@@ -168,12 +168,45 @@ pub struct ClassEntry {
 }
 
 impl ClassEntry {
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_ptr<'a>(ptr: *const zend_class_entry) -> Option<&'a Self> {
+        (ptr as *const Self).as_ref()
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_class_entry) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    #[inline]
+    pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_class_entry) -> Option<&'a mut Self> {
+        (ptr as *mut Self).as_mut()
+    }
+
+    pub const fn as_ptr(&self) -> *const zend_class_entry {
+        &self.inner
+    }
+
+    #[inline]
+    pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
+        &mut self.inner
     }
 
     pub fn from_globals<'a>(class_name: impl AsRef<str>) -> crate::Result<&'a Self> {
@@ -184,15 +217,6 @@ impl ClassEntry {
                 crate::Error::ClassNotFound(ClassNotFoundError::new(name.to_string()))
             })
         }
-    }
-
-    pub const fn as_ptr(&self) -> *const zend_class_entry {
-        &self.inner
-    }
-
-    #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
-        &mut self.inner
     }
 
     /// Create the object from class and call `__construct` with arguments.
@@ -382,7 +406,7 @@ impl PropertyEntity {
 }
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Visibility {
     Public = ZEND_ACC_PUBLIC,
     Protected = ZEND_ACC_PROTECTED,
