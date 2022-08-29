@@ -23,6 +23,7 @@ use crate::{
     utils::ensure_end_with_zero,
     values::{ExecuteData, ZVal},
 };
+use phper_alloc::ToRefOwned;
 use std::{
     convert::TryInto,
     marker::PhantomData,
@@ -443,11 +444,7 @@ pub(crate) fn call_internal(
     let func_ptr = func.as_mut_ptr();
     let arguments = arguments.as_mut();
 
-    let mut object_val = ZVal::from(());
-    let mut object_val = object.as_mut().map(|o| unsafe {
-        phper_zval_obj(object_val.as_mut_ptr(), o.as_mut_ptr());
-        &mut object_val
-    });
+    let mut object_val = object.as_mut().map(|obj| ZVal::from(obj.to_ref_owned()));
 
     call_raw_common(
         |ret| unsafe {
