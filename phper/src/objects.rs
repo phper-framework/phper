@@ -210,12 +210,7 @@ impl ZObj {
         &mut self, method_name: &str, arguments: impl AsMut<[ZVal]>,
     ) -> crate::Result<ZVal> {
         let mut method = method_name.into();
-
-        unsafe {
-            let mut val = ZVal::from(());
-            phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
-            call_internal(&mut method, Some(self), arguments)
-        }
+        call_internal(&mut method, Some(self), arguments)
     }
 
     /// Return bool represents whether the constructor exists.
