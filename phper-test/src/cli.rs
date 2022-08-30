@@ -27,7 +27,7 @@ use crate::{context::Context, utils};
 ///
 /// - `scripts` is the path of your php test scripts.
 ///
-/// See [example hello integration test](https://github.com/jmjoy/phper/blob/master/examples/hello/tests/integration.rs).
+/// See [example hello integration test](https://github.com/phper-framework/phper/blob/master/examples/hello/tests/integration.rs).
 pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
     let condition = |output: Output| output.status.success();
     let scripts = scripts
@@ -46,7 +46,7 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]
 ///
 /// - `scripts` is the path of your php test scripts.
 ///
-/// See [example hello integration test](https://github.com/jmjoy/phper/blob/master/examples/hello/tests/integration.rs).
+/// See [example hello integration test](https://github.com/phper-framework/phper/blob/master/examples/hello/tests/integration.rs).
 pub fn test_php_scripts_with_lib(lib_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
     let condition = |output: Output| output.status.success();
     let scripts = scripts
@@ -69,7 +69,7 @@ pub type ScriptCondition<'a> = (&'a dyn AsRef<Path>, &'a dyn Fn(Output) -> bool)
 /// - `scripts` is the slice of the tuple, format is `(path of your php test
 ///   script, checker function or closure)`.
 ///
-/// See [example logging integration test](https://github.com/jmjoy/phper/blob/master/examples/logging/tests/integration.rs).
+/// See [example logging integration test](https://github.com/phper-framework/phper/blob/master/examples/logging/tests/integration.rs).
 pub fn test_php_scripts_with_condition(
     exe_path: impl AsRef<Path>, scripts: &[ScriptCondition<'_>],
 ) {

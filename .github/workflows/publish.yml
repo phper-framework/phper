@@ -31,12 +31,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Git config
-        shell: bash
-        run: |
-          git config --global user.email "918734043@qq.com"
-          git config --global user.name "jmjoy"
-
       - name: Install libclang
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
