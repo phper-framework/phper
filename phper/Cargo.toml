@@ -11,7 +11,7 @@
 [package]
 name = "phper"
 version = "0.5.0"
-authors = ["jmjoy <918734043@qq.com>"]
+authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
 edition = "2021"
 rust-version = "1.56"
 description = "The framework that allows us to write PHP extensions using pure and safe Rust whenever possible."
