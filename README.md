@@ -1,10 +1,10 @@
 # PHPER (PHP Enjoy Rust)
 
-[![CI](https://github.com/jmjoy/phper/actions/workflows/ci.yml/badge.svg)](https://github.com/jmjoy/phper/actions/workflows/ci.yml)
+[![CI](https://github.com/phper-framework/phper/actions/workflows/ci.yml/badge.svg)](https://github.com/phper-framework/phper/actions/workflows/ci.yml)
 [![Crates](https://img.shields.io/crates/v/phper)](https://crates.io/crates/phper)
 [![Docs](https://img.shields.io/docsrs/phper)](https://docs.rs/phper)
-[![Lines](https://img.shields.io/tokei/lines/github/jmjoy/phper)](https://github.com/jmjoy/phper)
-[![License](https://img.shields.io/crates/l/phper)](https://github.com/jmjoy/phper/blob/master/LICENSE)
+[![Lines](https://img.shields.io/tokei/lines/github/phper-framework/phper)](https://github.com/phper-framework/phper)
+[![License](https://img.shields.io/crates/l/phper)](https://github.com/phper-framework/phper/blob/master/LICENSE)
 
 ## Rust ❤️ PHP
 
@@ -123,8 +123,8 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 ## Examples
 
-See [examples](https://github.com/jmjoy/phper/tree/master/examples).
+See [examples](https://github.com/phper-framework/phper/tree/master/examples).
 
 ## License
 
-[MulanPSL-2.0](https://github.com/jmjoy/phper/blob/master/LICENSE).
+[MulanPSL-2.0](https://github.com/phper-framework/phper/blob/master/LICENSE).
