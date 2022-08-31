@@ -40,4 +40,9 @@ pub fn register_configures() {
     if USING_ZTS != 0 {
         println!("cargo:rustc-cfg=phper_zts");
     }
+    #[cfg(target_os = "macos")]
+    {
+        println!("cargo:rustc-cdylib-link-arg=-undefined");
+        println!("cargo:rustc-cdylib-link-arg=dynamic_lookup");
+    }
 }
