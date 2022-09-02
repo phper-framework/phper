@@ -52,6 +52,10 @@ jobs:
         with:
           version: "10.0"
 
+      - name: Install Libxml2
+        if: matrix.os == "ubuntu-20.04"
+        run: sudo apt-get install -y libxml2-dev
+
       - name: Configure caching for PHPBrew
         id: cache-phpbrew
         uses: actions/cache@v3
@@ -68,11 +72,13 @@ jobs:
           chmod +x phpbrew.phar
           sudo mv phpbrew.phar /usr/local/bin/phpbrew
           phpbrew init
-          phpbrew install ${{ matrix.php-version }} +json +pdo +fpm
+          phpbrew install ${{ matrix.php-version }} +fpm +json +pdo
 
       - name: Link PHP and get version
         run: |
+          rm -rf /usr/local/bin/php
           ln -s ~/.phpbrew/php/php-8.1.9/bin/php /usr/local/bin/php
+          rm -rf /usr/local/sbin/php-fpm
           ln -s ~/.phpbrew/php/php-8.1.9/sbin/php-fpm /usr/local/sbin/php-fpm
           php-config || true
           php-fpm --version
@@ -90,6 +96,9 @@ jobs:
           toolchain: stable
           override: true
           components: clippy
+
+      - name: Generate Cargo Lockfile
+        run: cargo generate-lockfile
 
       - name: Configure caching for Cargo
         uses: actions/cache@v3
