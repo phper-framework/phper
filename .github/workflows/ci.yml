@@ -92,9 +92,9 @@ jobs:
 
       - name: Link PHP and get version
         run: |
-          sudo ln -sf ~/.phpbrew/php/${{ matrix.flag.php-version }}/bin/php /usr/local/bin/php
-          sudo ln -sf ~/.phpbrew/php/${{ matrix.flag.php-version }}/bin/php-config /usr/local/bin/php-config
-          sudo ln -sf ~/.phpbrew/php/${{ matrix.flag.php-version }}/sbin/php-fpm /usr/local/sbin/php-fpm
+          sudo ln -sf ~/.phpbrew/php/${{ matrix.flag.php-version }}/bin/php /usr/bin/php
+          sudo ln -sf ~/.phpbrew/php/${{ matrix.flag.php-version }}/bin/php-config /usr/bin/php-config
+          sudo ln -sf ~/.phpbrew/php/${{ matrix.flag.php-version }}/sbin/php-fpm /usr/sbin/php-fpm
 
           which php
           which php-config
