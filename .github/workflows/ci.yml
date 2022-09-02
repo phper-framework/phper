@@ -80,10 +80,10 @@ jobs:
 
       - name: Link PHP and get version
         run: |
-          rm -rf /usr/local/bin/php
-          ln -s ~/.phpbrew/php/php-8.1.9/bin/php /usr/local/bin/php
-          rm -rf /usr/local/sbin/php-fpm
-          ln -s ~/.phpbrew/php/php-8.1.9/sbin/php-fpm /usr/local/sbin/php-fpm
+          sudo rm -rf /usr/local/bin/php
+          sudo ln -s ~/.phpbrew/php/php-8.1.9/bin/php /usr/local/bin/php
+          sudo rm -rf /usr/local/sbin/php-fpm
+          sudo ln -s ~/.phpbrew/php/php-8.1.9/sbin/php-fpm /usr/local/sbin/php-fpm
           php-config || true
           php-fpm --version
 
