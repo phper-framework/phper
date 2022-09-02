@@ -31,7 +31,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-20.04
+          - macos-11
         php-version:
           - "7.0"
           - "7.1"
@@ -55,16 +56,10 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: php-config
 
-      - name: Setup php-fpm
-        run: |
-          sudo apt-get install -y php${{ matrix.php-version }}-fpm
-          sudo rm -f /usr/sbin/php-fpm
-          sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
-
       - name: PHP version
         run: |
           php-config || true
-          /usr/sbin/php-fpm --version
+          php-fpm --version
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
@@ -124,7 +119,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-20.04
         php-version:
           - "7.4"
         features:
