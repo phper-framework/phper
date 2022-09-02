@@ -58,7 +58,7 @@ jobs:
 
       - name: Install XCode
         if: matrix.os == 'macos-11'
-        run: xcode-select --install
+        run: sudo xcode-select -s /Library/Developer/CommandLineTools
 
       - name: Configure caching for PHPBrew
         id: cache-phpbrew
@@ -78,14 +78,14 @@ jobs:
           phpbrew init
           phpbrew install ${{ matrix.php-version }} +fpm +json +pdo
 
-      - name: Link PHP and get version
-        run: |
-          sudo rm -rf /usr/local/bin/php
-          sudo ln -s ~/.phpbrew/php/php-8.1.9/bin/php /usr/local/bin/php
-          sudo rm -rf /usr/local/sbin/php-fpm
-          sudo ln -s ~/.phpbrew/php/php-8.1.9/sbin/php-fpm /usr/local/sbin/php-fpm
-          php-config || true
-          php-fpm --version
+      # - name: Link PHP and get version
+      #   run: |
+      #     sudo rm -rf /usr/local/bin/php
+      #     sudo ln -s ~/.phpbrew/php/php-8.1.9/bin/php /usr/local/bin/php
+      #     sudo rm -rf /usr/local/sbin/php-fpm
+      #     sudo ln -s ~/.phpbrew/php/php-8.1.9/sbin/php-fpm /usr/local/sbin/php-fpm
+      #     php-config || true
+      #     php-fpm --version
 
       # - name: Install Rust Nightly
       #   uses: actions-rs/toolchain@v1
