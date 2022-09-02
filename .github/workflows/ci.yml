@@ -30,19 +30,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-20.04
-          - macos-11
-        php-version:
-          - "7.0.33"
-          - "7.1.33"
-          - "7.2.34"
-          - "7.3.33"
-          - "7.4.30"
-          - "8.0.22"
-          - "8.1.9"
+        flag:
+        - os: "ubuntu-20.04"
+          php-version: "7.0.33"
+        - os: "ubuntu-20.04"
+          php-version: "7.1.33"
+        - os: "ubuntu-20.04"
+          php-version: "7.2.34"
+        - os: "ubuntu-20.04"
+          php-version: "7.3.33"
+        - os: "ubuntu-20.04"
+          php-version: "7.4.30"
+        - os: "ubuntu-20.04"
+          php-version: "8.0.22"
 
-    runs-on: ${{ matrix.os }}
+        # macos build php7.2- failed, so skipped.
+        - os: "macos-11"
+          php-version: "7.3.33"
+        - os: "macos-11"
+          php-version: "7.4.30"
+        - os: "macos-11"
+          php-version: "8.0.22"
+        - os: "macos-11"
+          php-version: "8.1.9"
+
+    runs-on: ${{ matrix.flag.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -52,19 +64,19 @@ jobs:
         with:
           version: "10.0"
 
-      - name: Install Dependencies
-        if: matrix.os == 'ubuntu-20.04'
+      - name: Install dependencies
+        if: matrix.flag.os == 'ubuntu-20.04'
         run: sudo apt-get install -y libxml2-dev libxslt1-dev
 
       - name: Install XCode
-        if: matrix.os == 'macos-11'
+        if: matrix.flag.os == 'macos-11'
         run: sudo xcode-select -s /Library/Developer/CommandLineTools
 
       - name: Configure caching for PHPBrew
         id: cache-phpbrew
         uses: actions/cache@v3
         with:
-          key: ${{ matrix.os }}-phpbrew-${{ matrix.php-version }}
+          key: ${{ matrix.flag.os }}-phpbrew-${{ matrix.flag.php-version }}
           path: |
             /usr/local/bin/phpbrew
             "~/.phpbrew"
@@ -76,7 +88,12 @@ jobs:
           chmod +x phpbrew.phar
           sudo mv phpbrew.phar /usr/local/bin/phpbrew
           phpbrew init
-          phpbrew install ${{ matrix.php-version }} +fpm +json +pdo
+          phpbrew install ${{ matrix.flag.php-version }} +fpm +json +pdo
+
+      - name: Debug
+        run: |
+          echo $PATH
+          ls -alh /usr/local/sbin
 
       # - name: Link PHP and get version
       #   run: |
@@ -112,7 +129,7 @@ jobs:
       #       ~/.cargo/registry/index/
       #       ~/.cargo/registry/cache/
       #       ~/.cargo/git/db/
-      #     key: ${{ runner.os }}-cargo-${{ matrix.php-version }}-${{ hashFiles('**/Cargo.lock') }}
+      #     key: ${{ runner.os }}-cargo-${{ matrix.flag.php-version }}-${{ hashFiles('**/Cargo.lock') }}
 
       # - name: Cargo fmt
       #   uses: actions-rs/cargo@v1
@@ -151,72 +168,72 @@ jobs:
       #     command: doc
       #     args: --workspace --no-deps --all-features
 
-  # Test every features for single crate.
-  check:
-    name: Check
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-20.04
-        php-version:
-          - "7.4"
-        features:
-          - ""
-          - "--all-features"
+  # # Test every features for single crate.
+  # check:
+  #   name: Check
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os:
+  #         - ubuntu-20.04
+  #       php-version:
+  #         - "7.4"
+  #       features:
+  #         - ""
+  #         - "--all-features"
 
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+  #   runs-on: ${{ matrix.os }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
 
-      - name: Install libclang
-        run: sudo apt-get install -y llvm-10-dev libclang-10-dev
+  #     - name: Install libclang
+  #       run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          tools: php-config
+  #     - name: Setup PHP
+  #       uses: shivammathur/setup-php@v2
+  #       with:
+  #         php-version: ${{ matrix.php-version }}
+  #         tools: php-config
 
-      - name: Install Rust Stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+  #     - name: Install Rust Stable
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         override: true
 
-      - name: Cargo check phper-sys
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-sys/Cargo.toml ${{ matrix.features }}
+  #     - name: Cargo check phper-sys
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: check
+  #         args: --manifest-path phper-sys/Cargo.toml ${{ matrix.features }}
 
-      - name: Cargo check phper-build
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-build/Cargo.toml ${{ matrix.features }}
+  #     - name: Cargo check phper-build
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: check
+  #         args: --manifest-path phper-build/Cargo.toml ${{ matrix.features }}
 
-      - name: Cargo check phper-macros
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-macros/Cargo.toml ${{ matrix.features }}
+  #     - name: Cargo check phper-macros
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: check
+  #         args: --manifest-path phper-macros/Cargo.toml ${{ matrix.features }}
 
-      - name: Cargo check phper-alloc
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-alloc/Cargo.toml ${{ matrix.features }}
+  #     - name: Cargo check phper-alloc
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: check
+  #         args: --manifest-path phper-alloc/Cargo.toml ${{ matrix.features }}
 
-      - name: Cargo check phper-test
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-test/Cargo.toml ${{ matrix.features }}
+  #     - name: Cargo check phper-test
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: check
+  #         args: --manifest-path phper-test/Cargo.toml ${{ matrix.features }}
 
-      - name: Cargo check phper
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper/Cargo.toml ${{ matrix.features }}
+  #     - name: Cargo check phper
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: check
+  #         args: --manifest-path phper/Cargo.toml ${{ matrix.features }}
