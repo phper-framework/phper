@@ -34,13 +34,13 @@ jobs:
           - ubuntu-20.04
           - macos-11
         php-version:
-          - "7.0"
-          - "7.1"
-          - "7.2"
-          - "7.3"
-          - "7.4"
-          - "8.0"
-          - "8.1"
+          - "7.0.33"
+          - "7.1.33"
+          - "7.2.34"
+          - "7.3.33"
+          - "7.4.30"
+          - "8.0.22"
+          - "8.1.9"
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -50,14 +50,28 @@ jobs:
       - name: Install libclang
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - name: Configure caching for PHPBrew
+        id: cache-phpbrew
+        uses: actions/cache@v3
         with:
-          php-version: ${{ matrix.php-version }}
-          tools: php-config
+          key: ${{ matrix.os }}-phpbrew-${{ matrix.php-version }}
+          path: |
+            /usr/local/bin/phpbrew
+            "~/.phpbrew"
 
-      - name: PHP version
+      - name: Setup PHPBrew and PHP
+        if: steps.cache-phpbrew.outputs.cache-hit != 'true'
         run: |
+          curl -L -O https://github.com/phpbrew/phpbrew/releases/download/1.27.0/phpbrew.phar
+          chmod +x phpbrew.phar
+          sudo mv phpbrew.phar /usr/local/bin/phpbrew
+          phpbrew init
+          phpbrew install ${{ matrix.php-version }} +json +pdo +fpm
+
+      - name: Link PHP and get version
+        run: |
+          ln -s ~/.phpbrew/php/php-8.1.9/bin/php /usr/local/bin/php
+          ln -s ~/.phpbrew/php/php-8.1.9/sbin/php-fpm /usr/local/sbin/php-fpm
           php-config || true
           php-fpm --version
 
@@ -74,6 +88,16 @@ jobs:
           toolchain: stable
           override: true
           components: clippy
+
+      - name: Configure caching for Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ matrix.php-version }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
