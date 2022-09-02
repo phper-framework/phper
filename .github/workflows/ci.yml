@@ -89,7 +89,10 @@ jobs:
           sudo mv phpbrew.phar /usr/local/bin/phpbrew
           phpbrew init
           phpbrew install ${{ matrix.flag.php-version }} +fpm +json +pdo
-
+      
+      - name: DEBUG
+        run: ls -alh ~/.phpbrew
+ 
       - name: Get version
         env:
           PHP_CONFIG: "~/.phpbrew/php/${{ matrix.flag.php-version }}/bin/php-config"
