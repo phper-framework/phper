@@ -52,9 +52,13 @@ jobs:
         with:
           version: "10.0"
 
-      - name: Install Libxml2
+      - name: Install Dependencies
         if: matrix.os == 'ubuntu-20.04'
-        run: sudo apt-get install -y libxml2-dev
+        run: sudo apt-get install -y libxml2-dev libxslt1-dev
+
+      - name: Install XCode
+        if: matrix.os == 'macos-11'
+        run: xcode-select --install
 
       - name: Configure caching for PHPBrew
         id: cache-phpbrew
@@ -83,69 +87,69 @@ jobs:
           php-config || true
           php-fpm --version
 
-      - name: Install Rust Nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
-          components: rustfmt
+      # - name: Install Rust Nightly
+      #   uses: actions-rs/toolchain@v1
+      #   with:
+      #     toolchain: nightly
+      #     override: true
+      #     components: rustfmt
 
-      - name: Install Rust Stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          components: clippy
+      # - name: Install Rust Stable
+      #   uses: actions-rs/toolchain@v1
+      #   with:
+      #     toolchain: stable
+      #     override: true
+      #     components: clippy
 
-      - name: Generate Cargo Lockfile
-        run: cargo generate-lockfile
+      # - name: Generate Cargo Lockfile
+      #   run: cargo generate-lockfile
 
-      - name: Configure caching for Cargo
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-${{ matrix.php-version }}-${{ hashFiles('**/Cargo.lock') }}
+      # - name: Configure caching for Cargo
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.cargo/bin/
+      #       ~/.cargo/registry/index/
+      #       ~/.cargo/registry/cache/
+      #       ~/.cargo/git/db/
+      #     key: ${{ runner.os }}-cargo-${{ matrix.php-version }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: fmt
-          args: --all -- --check
+      # - name: Cargo fmt
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     toolchain: nightly
+      #     command: fmt
+      #     args: --all -- --check
 
-      - name: Cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: build
-          args: --release
+      # - name: Cargo build
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     toolchain: stable
+      #     command: build
+      #     args: --release
 
-      - name: Cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: clippy
-          args: --release
+      # - name: Cargo clippy
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     toolchain: stable
+      #     command: clippy
+      #     args: --release
 
-      - name: Cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: test
-          args: --release -- --nocapture
+      # - name: Cargo test
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     toolchain: stable
+      #     command: test
+      #     args: --release -- --nocapture
 
-      - name: Cargo doc
-        uses: actions-rs/cargo@v1
-        env:
-          RUSTDOCFLAGS: "-D warnings --cfg docsrs"
-        with:
-          toolchain: nightly
-          command: doc
-          args: --workspace --no-deps --all-features
+      # - name: Cargo doc
+      #   uses: actions-rs/cargo@v1
+      #   env:
+      #     RUSTDOCFLAGS: "-D warnings --cfg docsrs"
+      #   with:
+      #     toolchain: nightly
+      #     command: doc
+      #     args: --workspace --no-deps --all-features
 
   # Test every features for single crate.
   check:
