@@ -92,11 +92,11 @@ jobs:
 
       - name: Export PATH
         run:
-          export PATH=$HOME/.phpbrew/php/${{ matrix.flag.php-version }}/sbin:$PATH
-          export PATH=$HOME/.phpbrew/php/${{ matrix.flag.php-version }}/bin:$PATH
+          echo "~/.phpbrew/php/${{ matrix.flag.php-version }}/sbin" >> $GITHUB_PATH
+          echo "~/.phpbrew/php/${{ matrix.flag.php-version }}/bin" >> $GITHUB_PATH
           echo $PATH
 
-      - name: Link PHP and get version
+      - name: Get version
         run: |
           which php
           which php-config
