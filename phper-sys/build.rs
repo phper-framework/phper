@@ -189,6 +189,7 @@ fn main() {
         .blocklist_function("__hypotl")
         .blocklist_function("__ilogbf64x")
         .blocklist_function("__ilogbl")
+        .blocklist_function("__infl")
         .blocklist_function("__iscanonicall")
         .blocklist_function("__iseqsigl")
         .blocklist_function("__iseqsigl")
