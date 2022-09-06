@@ -28,7 +28,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 indexmap = "1.9.1"
-phper = { version = "0.5.0", path = "../../phper" }
+phper = { version = "0.5.1", path = "../../phper" }
 
 [dev-dependencies]
-phper-test = { version = "0.5.0", path = "../../phper-test", features = ["fpm"] }
+phper-test = { version = "0.5.1", path = "../../phper-test", features = ["fpm"] }

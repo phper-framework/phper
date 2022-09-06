@@ -88,6 +88,23 @@ jobs:
           override: true
           components: clippy
 
+      - name: Cargo generate lockfile
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: generate-lockfile
+
+      - name: Setup cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
         with:
@@ -158,6 +175,23 @@ jobs:
         with:
           toolchain: stable
           override: true
+
+      - name: Cargo generate lockfile
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: generate-lockfile
+
+      - name: Setup cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cargo check phper-sys
         uses: actions-rs/cargo@v1
