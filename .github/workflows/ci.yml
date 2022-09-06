@@ -94,7 +94,7 @@ jobs:
           toolchain: stable
           command: generate-lockfile
 
-      - name: Setup cache
+      - name: Setup cargo cache
         uses: actions/cache@v3
         with:
           path: |
@@ -182,7 +182,7 @@ jobs:
           toolchain: stable
           command: generate-lockfile
 
-      - name: Setup cache
+      - name: Setup cargo cache
         uses: actions/cache@v3
         with:
           path: |
@@ -191,7 +191,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.os }}-check-${{ matrix.php-version }}-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cargo check phper-sys
         uses: actions-rs/cargo@v1
