@@ -10,4 +10,10 @@
 
 fn main() {
     phper_build::register_configures();
+
+    #[cfg(target_os = "macos")]
+    {
+        println!("cargo:rustc-cdylib-link-arg=-undefined");
+        println!("cargo:rustc-cdylib-link-arg=dynamic_lookup");
+    }
 }
