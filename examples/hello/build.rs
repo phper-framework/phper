@@ -10,7 +10,4 @@
 
 fn main() {
     phper_build::register_configures();
-
-    #[cfg(target_os = "macos")]
-    println!("cargo:rustc-link-arg=-undefined dynamic_lookup");
 }
