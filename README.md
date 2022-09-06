@@ -22,7 +22,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 - **OS**
   - [x] linux
-  - [ ] macos
+  - [x] macos
   - [ ] windows
 - **PHP**
   - **version**
