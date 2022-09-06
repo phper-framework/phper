@@ -57,12 +57,17 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: php-config
 
-      - name: Setup php-fpm
+      - name: Setup php-fpm for Linux
         if: matrix.os == 'ubuntu-20.04'
         run: |
           sudo apt-get install -y php${{ matrix.php-version }}-fpm
           sudo rm -f /usr/sbin/php-fpm
           sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
+
+      - name: Setup php-fpm for Macos
+        if: matrix.os == 'macos-11'
+        run: |
+          brew install php@${{ matrix.php-version }}
 
       - name: PHP version
         run: |
