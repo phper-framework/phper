@@ -125,40 +125,42 @@ pub fn test_fpm_request(
             let local_addr = stream.local_addr().unwrap();
             let peer_addr = stream.peer_addr().unwrap();
             let local_ip = local_addr.ip().to_string();
-            let local_addr = local_addr.port().to_string();
+            let local_port = local_addr.port();
             let peer_ip = peer_addr.ip().to_string();
-            let peer_port = peer_addr.port().to_string();
+            let peer_port = peer_addr.port();
 
-            let mut client = Client::new(stream, false);
+            let client = Client::new(stream);
             let mut params = Params::default()
-                .set_request_method(method)
-                .set_script_name(request_uri)
-                .set_script_filename(script_filename)
-                .set_request_uri(request_uri)
-                .set_document_uri(script_name)
-                .set_remote_addr(&local_ip)
-                .set_remote_port(&local_addr)
-                .set_server_addr(&peer_ip)
-                .set_server_port(&peer_port)
-                .set_server_name("phper-test");
+                .request_method(method)
+                .script_name(request_uri)
+                .script_filename(script_filename)
+                .request_uri(request_uri)
+                .document_uri(script_name)
+                .remote_addr(&local_ip)
+                .remote_port(local_port)
+                .server_addr(&peer_ip)
+                .server_port(peer_port)
+                .server_name("phper-test");
             if let Some(content_type) = &content_type {
-                params = params.set_content_type(content_type);
+                params = params.content_type(content_type);
             }
-            let mut len = String::new();
             if let Some(body) = &body {
-                len += &body.len().to_string();
-                params = params.set_content_length(&len);
+                params = params.content_length(body.len());
             }
 
             let response = if let Some(body) = body {
-                client.execute(Request::new(params, body.as_ref())).await
+                client
+                    .execute_once(Request::new(params, body.as_ref()))
+                    .await
             } else {
-                client.execute(Request::new(params, &mut io::empty())).await
+                client
+                    .execute_once(Request::new(params, &mut io::empty()))
+                    .await
             };
 
             let output = response.unwrap();
-            let stdout = output.get_stdout().unwrap_or_default();
-            let stderr = output.get_stderr().unwrap_or_default();
+            let stdout = output.stdout.unwrap_or_default();
+            let stderr = output.stderr.unwrap_or_default();
 
             let no_error = stderr.is_empty();
 

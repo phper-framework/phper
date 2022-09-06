@@ -78,6 +78,18 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
    }
    ```
 
+1. Create the `build.rs` ( Adapting MacOS ).
+
+   ```rust,no_run
+   fn main() {
+      #[cfg(target_os = "macos")]
+      {
+         println!("cargo:rustc-link-arg=-undefined");
+         println!("cargo:rustc-link-arg=dynamic_lookup");
+      }
+   }
+   ```
+
 1. Write you owned extension logic in `lib.rs`.
 
    ```rust
@@ -124,6 +136,10 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 ## Examples
 
 See [examples](https://github.com/phper-framework/phper/tree/master/examples).
+
+## The projects using PHPER
+
+- [apache/skywalking-php](https://github.com/apache/skywalking-php) - The PHP Agent for Apache SkyWalking, which provides the native tracing abilities for PHP project.
 
 ## License
 
