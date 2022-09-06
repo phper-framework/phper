@@ -183,7 +183,7 @@ bool phper_object_init_ex(zval *arg, zend_class_entry *class_type) {
 }
 
 bool phper_call_user_function(HashTable *function_table, zval *object, zval *function_name, zval *retval_ptr, uint32_t param_count, zval params[]) {
-    function_table = function_table;
+    (void)function_table; // suppress "unused parameter" warnings.
     return call_user_function(function_table, object, function_name, retval_ptr, param_count, params) == SUCCESS;
 }
 

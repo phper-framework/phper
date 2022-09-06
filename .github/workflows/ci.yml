@@ -31,7 +31,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-20.04
+          - macos-11
         php-version:
           - "7.0"
           - "7.1"
@@ -47,6 +48,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install libclang
+        if: matrix.os == 'ubuntu-20.04'
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
       - name: Setup PHP
@@ -55,16 +57,22 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: php-config
 
-      - name: Setup php-fpm
+      - name: Setup php-fpm for Linux
+        if: matrix.os == 'ubuntu-20.04'
         run: |
           sudo apt-get install -y php${{ matrix.php-version }}-fpm
           sudo rm -f /usr/sbin/php-fpm
           sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
 
+      - name: Setup php-fpm for Macos
+        if: matrix.os == 'macos-11'
+        run: |
+          brew install php@${{ matrix.php-version }}
+
       - name: PHP version
         run: |
           php-config || true
-          /usr/sbin/php-fpm --version
+          php-fpm --version
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
@@ -87,18 +95,18 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - name: Cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: build
-          args: --release
-
       - name: Cargo clippy
         uses: actions-rs/cargo@v1
         with:
           toolchain: stable
           command: clippy
+          args: --release
+
+      - name: Cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: build
           args: --release
 
       - name: Cargo test
@@ -124,7 +132,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-20.04
         php-version:
           - "7.4"
         features:

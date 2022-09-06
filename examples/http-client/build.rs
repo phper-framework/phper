@@ -9,8 +9,6 @@
 // See the Mulan PSL v2 for more details.
 
 fn main() {
-    phper_build::register_configures();
-
     #[cfg(target_os = "macos")]
     {
         println!("cargo:rustc-link-arg=-undefined");
