@@ -15,6 +15,14 @@ fn main() {
     println!("cargo:rerun-if-changed=php_wrapper.c");
     println!("cargo:rerun-if-env-changed=PHP_CONFIG");
 
+    #[cfg(target_os = "macos")]
+    {
+        println!("cargo:rustc-cdylib-link-arg=-undefined");
+        println!("cargo:rustc-cdylib-link-arg=dynamic_lookup");
+        println!("cargo:rustc-link-arg=-undefined");
+        println!("cargo:rustc-link-arg=dynamic_lookup");
+    }
+
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let php_config = env::var("PHP_CONFIG").unwrap_or_else(|_| "php-config".to_string());
 

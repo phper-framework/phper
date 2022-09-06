@@ -66,8 +66,8 @@ jobs:
 
       - name: PHP version
         run: |
-          php-config${{ matrix.php-version }} || true
-          php-fpm${{ matrix.php-version }} --version
+          php-config || true
+          php-fpm --version
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
@@ -90,6 +90,13 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - name: Cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: stable
+          command: clippy
+          args: --release
+
       - name: Cargo build
         uses: actions-rs/cargo@v1
         with:
@@ -97,19 +104,8 @@ jobs:
           command: build
           args: --release
 
-      - name: Cargo clippy
-        uses: actions-rs/cargo@v1
-        env:
-          PHP_CONFIG: php-config${{ matrix.php-version }}
-        with:
-          toolchain: stable
-          command: clippy
-          args: --release
-
       - name: Cargo test
         uses: actions-rs/cargo@v1
-        env:
-          PHP_CONFIG: php-config${{ matrix.php-version }}
         with:
           toolchain: stable
           command: test
@@ -119,7 +115,6 @@ jobs:
         uses: actions-rs/cargo@v1
         env:
           RUSTDOCFLAGS: "-D warnings --cfg docsrs"
-          PHP_CONFIG: php-config${{ matrix.php-version }}
         with:
           toolchain: nightly
           command: doc
