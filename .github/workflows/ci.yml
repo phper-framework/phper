@@ -71,8 +71,13 @@ jobs:
 
       - name: PHP version
         run: |
-          php-config || true
+          php --version
           php-fpm --version
+          php-config || true
+
+          [[ `php --version` == PHP\ ${{ matrix.php-version }}.* ]]
+          [[ `php-fpm --version` == PHP\ ${{ matrix.php-version }}.* ]]
+          [[ `php-config --version` == ${{ matrix.php-version }}.* ]]
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
