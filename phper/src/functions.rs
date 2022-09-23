@@ -117,7 +117,7 @@ pub struct FunctionEntity {
 
 impl FunctionEntity {
     pub(crate) fn new(
-        name: impl ToString, handler: Box<dyn Callable>, arguments: Vec<Argument>,
+        name: impl Into<String>, handler: Box<dyn Callable>, arguments: Vec<Argument>,
         visibility: Option<Visibility>, r#static: Option<bool>,
     ) -> Self {
         let name = ensure_end_with_zero(name);
@@ -178,7 +178,7 @@ pub struct Argument {
 }
 
 impl Argument {
-    pub fn by_val(name: impl ToString) -> Self {
+    pub fn by_val(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
             name,
@@ -187,7 +187,7 @@ impl Argument {
         }
     }
 
-    pub fn by_ref(name: impl ToString) -> Self {
+    pub fn by_ref(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
             name,
@@ -196,7 +196,7 @@ impl Argument {
         }
     }
 
-    pub fn by_val_optional(name: impl ToString) -> Self {
+    pub fn by_val_optional(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
             name,
@@ -205,7 +205,7 @@ impl Argument {
         }
     }
 
-    pub fn by_ref_optional(name: impl ToString) -> Self {
+    pub fn by_ref_optional(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
             name,

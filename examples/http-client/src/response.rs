@@ -31,7 +31,7 @@ pub fn make_response_class() -> StatefulClass<Option<Response>> {
                     .ok_or(HttpClientError::ResponseHadRead)
                     .and_then(|response| response.bytes().map_err(Into::into))
             })?;
-            Ok::<_, HttpClientError>((&body).to_vec())
+            Ok::<_, HttpClientError>(body.to_vec())
         },
         vec![],
     );

@@ -13,9 +13,11 @@
 use crate::{
     c_str_ptr,
     classes::{ClassEntity, Classifiable},
+    constants::Constant,
     functions::{Argument, Function, FunctionEntity},
     ini::Ini,
     sys::*,
+    types::Scalar,
     utils::ensure_end_with_zero,
     values::ZVal,
 };
@@ -42,6 +44,9 @@ unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_in
     let args = ModuleContext::new(r#type, module_number);
     write_global_module(|module| {
         args.register_ini_entries(Ini::entries());
+        for constant in &module.constants {
+            constant.register(&args);
+        }
         for class_entity in &mut module.class_entities {
             class_entity.init();
             class_entity.declare_properties();
@@ -106,10 +111,13 @@ pub struct Module {
     request_shutdown: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity>,
+    constants: Vec<Constant>,
 }
 
 impl Module {
-    pub fn new(name: impl ToString, version: impl ToString, author: impl ToString) -> Self {
+    pub fn new(
+        name: impl Into<String>, version: impl Into<String>, author: impl Into<String>,
+    ) -> Self {
         Self {
             name: ensure_end_with_zero(name),
             version: ensure_end_with_zero(version),
@@ -120,6 +128,7 @@ impl Module {
             request_shutdown: None,
             function_entities: vec![],
             class_entities: Default::default(),
+            constants: Default::default(),
         }
     }
 
@@ -147,8 +156,9 @@ impl Module {
         self.request_shutdown = Some(Box::new(func));
     }
 
-    pub fn add_function<F, R>(&mut self, name: impl ToString, handler: F, arguments: Vec<Argument>)
-    where
+    pub fn add_function<F, R>(
+        &mut self, name: impl Into<String>, handler: F, arguments: Vec<Argument>,
+    ) where
         F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
     {
@@ -163,6 +173,10 @@ impl Module {
 
     pub fn add_class(&mut self, class: impl Classifiable + 'static) {
         self.class_entities.push(unsafe { ClassEntity::new(class) });
+    }
+
+    pub fn add_constant(&mut self, name: impl Into<String>, value: impl Into<Scalar>) {
+        self.constants.push(Constant::new(name, value));
     }
 
     /// Leak memory to generate `zend_module_entry` pointer.
@@ -223,8 +237,8 @@ impl Module {
 
 pub struct ModuleContext {
     #[allow(dead_code)]
-    r#type: c_int,
-    module_number: c_int,
+    pub(crate) r#type: c_int,
+    pub(crate) module_number: c_int,
 }
 
 impl ModuleContext {
