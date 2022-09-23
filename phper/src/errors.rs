@@ -106,9 +106,9 @@ pub enum Error {
 }
 
 impl Error {
-    /// An essy way to cause an [anyhow::Error].
-    pub fn other(message: impl ToString) -> Self {
-        let message = message.to_string();
+    /// An easy way to cause an [anyhow::Error].
+    pub fn other(message: impl Into<String>) -> Self {
+        let message = message.into();
         Other(anyhow!(message))
     }
 }

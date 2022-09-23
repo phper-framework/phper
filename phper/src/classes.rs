@@ -57,23 +57,23 @@ pub struct StatefulClass<T: Send + 'static> {
 }
 
 impl StatefulClass<()> {
-    pub fn new(class_name: impl ToString) -> Self {
+    pub fn new(class_name: impl Into<String>) -> Self {
         Self::new_with_state_constructor(class_name, || ())
     }
 }
 
 impl<T: Default + Send + 'static> StatefulClass<T> {
-    pub fn new_with_default_state(class_name: impl ToString) -> Self {
+    pub fn new_with_default_state(class_name: impl Into<String>) -> Self {
         Self::new_with_state_constructor(class_name, Default::default)
     }
 }
 
 impl<T: Send + 'static> StatefulClass<T> {
     pub fn new_with_state_constructor(
-        class_name: impl ToString, state_constructor: impl Fn() -> T + Send + Sync + 'static,
+        class_name: impl Into<String>, state_constructor: impl Fn() -> T + Send + Sync + 'static,
     ) -> Self {
         Self {
-            class_name: class_name.to_string(),
+            class_name: class_name.into(),
             state_constructor: Arc::new(state_constructor),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
@@ -86,7 +86,7 @@ impl<T: Send + 'static> StatefulClass<T> {
     }
 
     pub fn add_method<F, R>(
-        &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
+        &mut self, name: impl Into<String>, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
         F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
@@ -101,7 +101,7 @@ impl<T: Send + 'static> StatefulClass<T> {
     }
 
     pub fn add_static_method<F, R>(
-        &mut self, name: impl ToString, vis: Visibility, handler: F, arguments: Vec<Argument>,
+        &mut self, name: impl Into<String>, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
         F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
@@ -121,14 +121,14 @@ impl<T: Send + 'static> StatefulClass<T> {
     /// receive only scalar zval , otherwise will report fatal error:
     /// "Internal zvals cannot be refcounted".
     pub fn add_property(
-        &mut self, name: impl ToString, visibility: Visibility, value: impl Into<Scalar>,
+        &mut self, name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>,
     ) {
         self.property_entities
             .push(PropertyEntity::new(name, visibility, value));
     }
 
-    pub fn extends(&mut self, name: impl ToString) {
-        let name = name.to_string();
+    pub fn extends(&mut self, name: impl Into<String>) {
+        let name = name.into();
         self.parent = Some(name);
     }
 }
@@ -351,9 +351,9 @@ pub struct PropertyEntity {
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl ToString, visibility: Visibility, value: impl Into<Scalar>) -> Self {
+    pub fn new(name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             visibility,
             value: value.into(),
         }

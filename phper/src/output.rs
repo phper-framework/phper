@@ -22,7 +22,7 @@ pub enum LogLevel {
     Deprecated = E_DEPRECATED,
 }
 
-pub fn log(level: LogLevel, message: impl ToString) {
+pub fn log(level: LogLevel, message: impl Into<String>) {
     let message = ensure_end_with_zero(message);
     unsafe {
         php_error_docref1(
@@ -34,7 +34,7 @@ pub fn log(level: LogLevel, message: impl ToString) {
     }
 }
 
-pub fn echo(message: impl ToString) {
+pub fn echo(message: impl Into<String>) {
     let message = ensure_end_with_zero(message);
     unsafe {
         zend_write.expect("function zend_write can't be null")(

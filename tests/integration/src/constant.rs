@@ -8,12 +8,14 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Internal useful utils.
+use phper::modules::Module;
 
-pub(crate) fn ensure_end_with_zero(s: impl Into<String>) -> String {
-    let mut s = s.into();
-    if !s.ends_with('\0') {
-        s.push('\0');
-    }
-    s
+pub fn integrate(module: &mut Module) {
+    module.add_constant("INTEGRATE_CONST_NULL", ());
+    module.add_constant("INTEGRATE_CONST_TRUE", true);
+    module.add_constant("INTEGRATE_CONST_FALSE", false);
+    module.add_constant("INTEGRATE_CONST_LONG", 100i64);
+    module.add_constant("INTEGRATE_CONST_DOUBLE", 200.);
+    module.add_constant("INTEGRATE_CONST_STRING", "something");
+    module.add_constant("INTEGRATE_CONST_BYTES", "something".as_bytes().to_owned());
 }

@@ -21,6 +21,9 @@ fn main() {
     let includes = execute_command(&[php_config.as_str(), "--includes"]);
     let includes = includes.split(' ').collect::<Vec<_>>();
 
+    dbg!(php_config.as_str());
+    dbg!(&includes);
+
     // Generate libphpwrapper.a.
 
     let mut builder = cc::Build::new();

@@ -34,17 +34,16 @@ thread_local! {
 pub struct Ini;
 
 impl Ini {
-    pub fn add(name: impl ToString, default_value: impl TransformIniValue, policy: Policy) {
+    pub fn add(name: impl Into<String>, default_value: impl TransformIniValue, policy: Policy) {
         assert!(
             !REGISTERED.load(Ordering::SeqCst),
             "shouldn't add ini after registered"
         );
 
+        let name = name.into();
+
         INI_ENTITIES.with(|ini_entities| {
-            ini_entities.insert(
-                name.to_string(),
-                IniEntity::new(name, default_value, policy),
-            );
+            ini_entities.insert(name.clone(), IniEntity::new(name, default_value, policy));
         });
     }
 
@@ -194,11 +193,11 @@ pub(crate) struct IniEntity {
 
 impl IniEntity {
     pub(crate) fn new<T: TransformIniValue>(
-        name: impl ToString, default_value: T, policy: Policy,
+        name: impl Into<String>, default_value: T, policy: Policy,
     ) -> Self {
         assert!(<T>::arg2_size() <= size_of::<usize>());
         Self {
-            name: name.to_string(),
+            name: name.into(),
             value: 0,
             value_type_id: <T>::arg2_type(),
             default_value: default_value.to_text(),
