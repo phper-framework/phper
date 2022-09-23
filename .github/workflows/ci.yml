@@ -25,6 +25,18 @@ env:
   LLVM_CONFIG_PATH: llvm-config-10
 
 jobs:
+  required:
+    name: Required
+    needs:
+      - ci
+      - check
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check results
+        run: |
+          [[ ${{ needs.ci.result }} == 'success' ]] || exit 1;
+          [[ ${{ needs.check.result }} == 'success' ]] || exit 1;
+
   ci:
     name: CI
     strategy:
@@ -75,9 +87,9 @@ jobs:
           php-fpm --version
           php-config || true
 
-          [[ `php --version` == PHP\ ${{ matrix.php-version }}.* ]]
-          [[ `php-fpm --version` == PHP\ ${{ matrix.php-version }}.* ]]
-          [[ `php-config --version` == ${{ matrix.php-version }}.* ]]
+          [[ `php --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
+          [[ `php-fpm --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
+          [[ `php-config --version` == ${{ matrix.php-version }}.* ]] || exit 1;
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
