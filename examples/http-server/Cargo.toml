@@ -11,11 +11,11 @@
 [package]
 name = "http-server"
 version = "0.0.0"
-authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
-edition = "2021"
-rust-version = "1.56"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 publish = false
-license = "MulanPSL-2.0"
+license.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
