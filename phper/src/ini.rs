@@ -15,6 +15,7 @@ use crate::sys::{
     OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
 };
 use dashmap::DashMap;
+use once_cell::sync::Lazy;
 use std::{
     any::TypeId,
     ffi::CStr,
@@ -27,9 +28,7 @@ use std::{
 
 static REGISTERED: AtomicBool = AtomicBool::new(false);
 
-thread_local! {
-    static INI_ENTITIES: DashMap<String, IniEntity> = DashMap::new();
-}
+static INI_ENTITIES: Lazy<DashMap<String, IniEntity>> = Lazy::new(DashMap::new);
 
 pub struct Ini;
 
@@ -42,9 +41,7 @@ impl Ini {
 
         let name = name.into();
 
-        INI_ENTITIES.with(|ini_entities| {
-            ini_entities.insert(name.clone(), IniEntity::new(name, default_value, policy));
-        });
+        INI_ENTITIES.insert(name.clone(), IniEntity::new(name, default_value, policy));
     }
 
     pub fn get<T: TransformIniValue>(name: &str) -> Option<T> {
@@ -53,11 +50,9 @@ impl Ini {
             "shouldn't get ini before registered"
         );
 
-        INI_ENTITIES.with(|ini_entities| {
-            ini_entities
-                .get(name)
-                .and_then(|entity| entity.value().value())
-        })
+        INI_ENTITIES
+            .get(name)
+            .and_then(|entity| entity.value().value())
     }
 
     pub(crate) unsafe fn entries() -> *const zend_ini_entry_def {
@@ -65,11 +60,9 @@ impl Ini {
 
         let mut entries = Vec::new();
 
-        INI_ENTITIES.with(|ini_entities| {
-            for mut entity in ini_entities.iter_mut() {
-                entries.push(entity.value_mut().entry());
-            }
-        });
+        for mut entity in INI_ENTITIES.iter_mut() {
+            entries.push(entity.value_mut().entry());
+        }
 
         entries.push(zeroed::<zend_ini_entry_def>());
 
