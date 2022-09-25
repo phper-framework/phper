@@ -11,12 +11,12 @@
 [package]
 name = "phper-test"
 version = "0.5.1"
-authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
-edition = "2021"
-rust-version = "1.56"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "PHPer testing utilities."
-repository = "https://github.com/jmjoy/phper.git"
-license = "MulanPSL-2.0"
+repository.workspace = true
+license.workspace = true
 keywords = ["php", "binding"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

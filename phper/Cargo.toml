@@ -11,13 +11,13 @@
 [package]
 name = "phper"
 version = "0.5.1"
-authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
-edition = "2021"
-rust-version = "1.56"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "The framework that allows us to write PHP extensions using pure and safe Rust whenever possible."
-repository = "https://github.com/jmjoy/phper.git"
+repository.workspace = true
 documentation = "https://docs.rs/phper"
-license = "MulanPSL-2.0"
+license.workspace = true
 readme = "README.md"
 keywords = ["php", "binding", "extension", "module"]
 
