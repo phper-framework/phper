@@ -25,6 +25,7 @@ use crate::{
 use phper_alloc::RefClone;
 use std::{
     convert::TryInto,
+    ffi::CStr,
     marker::PhantomData,
     mem::{transmute, zeroed, ManuallyDrop, MaybeUninit},
     str,
@@ -487,6 +488,12 @@ impl From<Vec<u8>> for ZVal {
 impl From<&str> for ZVal {
     fn from(s: &str) -> Self {
         ZVal::from(s.as_bytes())
+    }
+}
+
+impl From<&CStr> for ZVal {
+    fn from(s: &CStr) -> Self {
+        ZVal::from(s.to_bytes())
     }
 }
 

@@ -15,6 +15,7 @@ mod arrays;
 mod classes;
 mod constants;
 mod functions;
+mod ini;
 mod objects;
 mod strings;
 mod values;
@@ -37,6 +38,7 @@ pub fn get_module() -> Module {
     strings::integrate(&mut module);
     values::integrate(&mut module);
     constants::integrate(&mut module);
+    ini::integrate(&mut module);
 
     module
 }
