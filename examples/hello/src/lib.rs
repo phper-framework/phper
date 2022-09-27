@@ -14,7 +14,7 @@ use phper::{
     arrays::ZArray,
     classes::{StatefulClass, Visibility},
     functions::Argument,
-    ini::{Policy, ini_get},
+    ini::{ini_get, Policy},
     modules::{Module, ModuleContext},
     objects::StatefulObj,
     php_get_module,

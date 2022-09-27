@@ -22,7 +22,7 @@ use crate::{
     values::ZVal,
 };
 use std::{
-    mem::{replace, size_of, zeroed, take},
+    mem::{replace, size_of, take, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     sync::atomic::{AtomicPtr, Ordering},
@@ -181,8 +181,12 @@ impl Module {
         self.constants.push(Constant::new(name, value));
     }
 
-    pub fn add_ini(&mut self, name: impl Into<String>, default_value: impl ini::IntoIniValue, policy: ini::Policy) {
-        self.ini_entities.push(ini::IniEntity::new(name, default_value, policy));
+    pub fn add_ini(
+        &mut self, name: impl Into<String>, default_value: impl ini::IntoIniValue,
+        policy: ini::Policy,
+    ) {
+        self.ini_entities
+            .push(ini::IniEntity::new(name, default_value, policy));
     }
 
     /// Leak memory to generate `zend_module_entry` pointer.

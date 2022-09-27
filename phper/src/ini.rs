@@ -13,11 +13,10 @@
 use crate::sys::*;
 use std::{
     ffi::CStr,
-    mem::{size_of, zeroed, ManuallyDrop},
-    os::raw::{c_char, c_void},
+    mem::{zeroed, ManuallyDrop},
+    os::raw::c_char,
     ptr::null_mut,
     str,
-    sync::atomic::{AtomicBool, Ordering},
 };
 
 pub fn ini_get<T: FromIniValue>(name: &str) -> T {
@@ -39,6 +38,7 @@ pub trait IntoIniValue {
 }
 
 impl IntoIniValue for bool {
+    #[inline]
     fn into_ini_value(self) -> String {
         if self {
             "1".to_owned()
@@ -49,24 +49,28 @@ impl IntoIniValue for bool {
 }
 
 impl IntoIniValue for i64 {
+    #[inline]
     fn into_ini_value(self) -> String {
         self.to_string()
     }
 }
 
 impl IntoIniValue for f64 {
+    #[inline]
     fn into_ini_value(self) -> String {
         self.to_string()
     }
 }
 
 impl IntoIniValue for String {
+    #[inline]
     fn into_ini_value(self) -> String {
         self
     }
 }
 
-/// For php7, the zend_ini_* functions receive ini name as `*mut c_char`, but I think it's immutable.
+/// For php7, the zend_ini_* functions receive ini name as `*mut c_char`, but I
+/// think it's immutable.
 pub trait FromIniValue {
     fn from_ini_value(name: &str) -> Self;
 }
@@ -97,13 +101,13 @@ impl FromIniValue for f64 {
         }
     }
 }
-    
+
 impl FromIniValue for Option<&CStr> {
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
             let ptr = zend_ini_string_ex(name_ptr, name.len().try_into().unwrap(), 0, null_mut());
-            ptr.is_null().then(|| CStr::from_ptr(ptr))
+            (!ptr.is_null()).then(|| CStr::from_ptr(ptr))
         }
     }
 }
@@ -127,11 +131,7 @@ impl IniEntity {
 
     #[inline]
     pub(crate) fn entry(&mut self) -> zend_ini_entry_def {
-        create_ini_entry_ex(
-            &self.name,
-            &self.default_value,
-            self.policy as u32,
-        )
+        create_ini_entry_ex(&self.name, &self.default_value, self.policy as u32)
     }
 }
 

@@ -25,9 +25,10 @@ use crate::{
 use phper_alloc::RefClone;
 use std::{
     convert::TryInto,
+    ffi::CStr,
     marker::PhantomData,
     mem::{transmute, zeroed, ManuallyDrop, MaybeUninit},
-    str, ffi::CStr,
+    str,
 };
 
 /// Wrapper of [crate::sys::zend_execute_data].
