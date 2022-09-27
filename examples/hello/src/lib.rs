@@ -8,7 +8,6 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use std::ffi::CStr;
 use phper::{
     arrays::ZArray,
     classes::{StatefulClass, Visibility},
@@ -19,6 +18,7 @@ use phper::{
     php_get_module,
     values::ZVal,
 };
+use std::ffi::CStr;
 
 fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
     let name = &mut arguments[0];
