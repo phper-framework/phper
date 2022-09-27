@@ -10,67 +10,19 @@
 
 //! Apis relate to [crate::sys::zend_ini_entry_def].
 
-use crate::sys::{
-    phper_zend_ini_mh, zend_ini_entry_def, OnUpdateBool, OnUpdateLong, OnUpdateReal,
-    OnUpdateString, PHP_INI_ALL, PHP_INI_PERDIR, PHP_INI_SYSTEM, PHP_INI_USER,
-};
-use dashmap::DashMap;
-use once_cell::sync::Lazy;
+use crate::sys::*;
 use std::{
-    any::TypeId,
     ffi::CStr,
-    mem::{size_of, zeroed},
+    mem::{size_of, zeroed, ManuallyDrop},
     os::raw::{c_char, c_void},
     ptr::null_mut,
     str,
     sync::atomic::{AtomicBool, Ordering},
 };
 
-static REGISTERED: AtomicBool = AtomicBool::new(false);
-
-static INI_ENTITIES: Lazy<DashMap<String, IniEntity>> = Lazy::new(DashMap::new);
-
-pub struct Ini;
-
-impl Ini {
-    pub fn add(name: impl Into<String>, default_value: impl TransformIniValue, policy: Policy) {
-        assert!(
-            !REGISTERED.load(Ordering::SeqCst),
-            "shouldn't add ini after registered"
-        );
-
-        let name = name.into();
-
-        INI_ENTITIES.insert(name.clone(), IniEntity::new(name, default_value, policy));
-    }
-
-    pub fn get<T: TransformIniValue>(name: &str) -> Option<T> {
-        assert!(
-            REGISTERED.load(Ordering::SeqCst),
-            "shouldn't get ini before registered"
-        );
-
-        INI_ENTITIES
-            .get(name)
-            .and_then(|entity| entity.value().value())
-    }
-
-    pub(crate) unsafe fn entries() -> *const zend_ini_entry_def {
-        REGISTERED.store(true, Ordering::SeqCst);
-
-        let mut entries = Vec::new();
-
-        for mut entity in INI_ENTITIES.iter_mut() {
-            entries.push(entity.value_mut().entry());
-        }
-
-        entries.push(zeroed::<zend_ini_entry_def>());
-
-        Box::into_raw(entries.into_boxed_slice()).cast()
-    }
+pub fn ini_get<T: FromIniValue>(name: &str) -> T {
+    T::from_ini_value(name)
 }
-
-pub type OnModify = phper_zend_ini_mh;
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -82,145 +34,108 @@ pub enum Policy {
 }
 
 /// The Type which can transform to an ini value.
-///
-/// Be careful that the size of `arg2` must litter than size of `usize`.
-///
-/// TODO Add a size compare with usize trait bound, after const generic
-/// supports.
-pub trait TransformIniValue: Sized + ToString + 'static {
-    fn on_modify() -> OnModify;
+pub trait IntoIniValue {
+    fn into_ini_value(self) -> String;
+}
 
-    /// # Safety
-    unsafe fn transform(data: usize) -> Option<Self>;
+impl IntoIniValue for bool {
+    fn into_ini_value(self) -> String {
+        if self {
+            "1".to_owned()
+        } else {
+            "0".to_owned()
+        }
+    }
+}
 
-    fn arg2_type() -> TypeId;
-
-    fn arg2_size() -> usize;
-
-    fn to_text(&self) -> String {
+impl IntoIniValue for i64 {
+    fn into_ini_value(self) -> String {
         self.to_string()
     }
 }
 
-impl TransformIniValue for bool {
-    fn on_modify() -> OnModify {
-        Some(OnUpdateBool)
-    }
-
-    unsafe fn transform(data: usize) -> Option<Self> {
-        Some(data != 0)
-    }
-
-    fn arg2_type() -> TypeId {
-        TypeId::of::<bool>()
-    }
-
-    fn arg2_size() -> usize {
-        size_of::<bool>()
+impl IntoIniValue for f64 {
+    fn into_ini_value(self) -> String {
+        self.to_string()
     }
 }
 
-impl TransformIniValue for i64 {
-    fn on_modify() -> OnModify {
-        Some(OnUpdateLong)
-    }
-
-    unsafe fn transform(data: usize) -> Option<Self> {
-        Some(data as i64)
-    }
-
-    fn arg2_type() -> TypeId {
-        TypeId::of::<i64>()
-    }
-
-    fn arg2_size() -> usize {
-        size_of::<i64>()
+impl IntoIniValue for String {
+    fn into_ini_value(self) -> String {
+        self
     }
 }
 
-impl TransformIniValue for f64 {
-    fn on_modify() -> OnModify {
-        Some(OnUpdateReal)
-    }
+/// For php7, the zend_ini_* functions receive ini name as `*mut c_char`, but I think it's immutable.
+pub trait FromIniValue {
+    fn from_ini_value(name: &str) -> Self;
+}
 
-    unsafe fn transform(data: usize) -> Option<Self> {
-        Some(data as f64)
-    }
-
-    fn arg2_type() -> TypeId {
-        TypeId::of::<i64>()
-    }
-
-    fn arg2_size() -> usize {
-        size_of::<i64>()
+impl FromIniValue for bool {
+    fn from_ini_value(name: &str) -> Self {
+        unsafe {
+            let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
+            zend_ini_long(name_ptr, name.len().try_into().unwrap(), 0) != 0
+        }
     }
 }
 
-impl TransformIniValue for String {
-    fn on_modify() -> OnModify {
-        Some(OnUpdateString)
+impl FromIniValue for i64 {
+    fn from_ini_value(name: &str) -> Self {
+        unsafe {
+            let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
+            zend_ini_long(name_ptr, name.len().try_into().unwrap(), 0)
+        }
     }
+}
 
-    unsafe fn transform(data: usize) -> Option<Self> {
-        let ptr = data as *mut c_char;
-        CStr::from_ptr(ptr).to_str().ok().map(|s| s.to_owned())
+impl FromIniValue for f64 {
+    fn from_ini_value(name: &str) -> Self {
+        unsafe {
+            let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
+            zend_ini_double(name_ptr, name.len().try_into().unwrap(), 0)
+        }
     }
-
-    fn arg2_type() -> TypeId {
-        TypeId::of::<*mut c_char>()
-    }
-
-    fn arg2_size() -> usize {
-        size_of::<*mut c_char>()
+}
+    
+impl FromIniValue for Option<&CStr> {
+    fn from_ini_value(name: &str) -> Self {
+        unsafe {
+            let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
+            let ptr = zend_ini_string_ex(name_ptr, name.len().try_into().unwrap(), 0, null_mut());
+            ptr.is_null().then(|| CStr::from_ptr(ptr))
+        }
     }
 }
 
 pub(crate) struct IniEntity {
     name: String,
-    value: usize,
-    value_type_id: TypeId,
     default_value: String,
-    on_modify: OnModify,
     policy: Policy,
 }
 
 impl IniEntity {
-    pub(crate) fn new<T: TransformIniValue>(
+    pub(crate) fn new<T: IntoIniValue>(
         name: impl Into<String>, default_value: T, policy: Policy,
     ) -> Self {
-        assert!(<T>::arg2_size() <= size_of::<usize>());
         Self {
             name: name.into(),
-            value: 0,
-            value_type_id: <T>::arg2_type(),
-            default_value: default_value.to_text(),
-            on_modify: <T>::on_modify(),
+            default_value: default_value.into_ini_value(),
             policy,
         }
     }
 
-    pub(crate) fn value<T: TransformIniValue>(&self) -> Option<T> {
-        if self.value_type_id != <T>::arg2_type() {
-            None
-        } else {
-            unsafe { <T>::transform(self.value) }
-        }
-    }
-
+    #[inline]
     pub(crate) fn entry(&mut self) -> zend_ini_entry_def {
         create_ini_entry_ex(
             &self.name,
             &self.default_value,
-            self.on_modify,
             self.policy as u32,
-            &mut self.value as *mut _ as *mut c_void,
         )
     }
 }
 
-pub(crate) fn create_ini_entry_ex(
-    name: &str, default_value: &str, on_modify: OnModify, modifiable: u32, arg2: *mut c_void,
-) -> zend_ini_entry_def {
+fn create_ini_entry_ex(name: &str, default_value: &str, modifiable: u32) -> zend_ini_entry_def {
     #[cfg(any(
         phper_php_version = "8.1",
         phper_php_version = "8.0",
@@ -237,9 +152,9 @@ pub(crate) fn create_ini_entry_ex(
 
     zend_ini_entry_def {
         name: name.as_ptr().cast(),
-        on_modify,
+        on_modify: None,
         mh_arg1: null_mut(),
-        mh_arg2: arg2,
+        mh_arg2: null_mut(),
         mh_arg3: null_mut(),
         value: default_value.as_ptr().cast(),
         displayer: None,
@@ -247,4 +162,18 @@ pub(crate) fn create_ini_entry_ex(
         name_length,
         value_length: default_value.len() as u32,
     }
+}
+
+pub(crate) unsafe fn entries(ini_entries: Vec<IniEntity>) -> *const zend_ini_entry_def {
+    let mut entries = Vec::with_capacity(ini_entries.len() + 1);
+
+    ini_entries.into_iter().for_each(|entity| {
+        // Ini entity will exist throughout the whole application life cycle.
+        let mut entity = ManuallyDrop::new(entity);
+        entries.push(entity.entry());
+    });
+
+    entries.push(zeroed::<zend_ini_entry_def>());
+
+    Box::into_raw(entries.into_boxed_slice()).cast()
 }

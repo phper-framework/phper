@@ -8,11 +8,13 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
+use std::ffi::CStr;
+
 use phper::{
     arrays::ZArray,
     classes::{StatefulClass, Visibility},
     functions::Argument,
-    ini::{Ini, Policy},
+    ini::{Policy, ini_get},
     modules::{Module, ModuleContext},
     objects::StatefulObj,
     php_get_module,
@@ -39,10 +41,10 @@ pub fn get_module() -> Module {
     );
 
     // register module ini
-    Ini::add("hello.enable", false, Policy::All);
-    Ini::add("hello.num", 100, Policy::All);
-    Ini::add("hello.ratio", 1.5, Policy::All);
-    Ini::add("hello.description", "hello world.".to_owned(), Policy::All);
+    module.add_ini("hello.enable", false, Policy::All);
+    module.add_ini("hello.num", 100, Policy::All);
+    module.add_ini("hello.ratio", 1.5, Policy::All);
+    module.add_ini("hello.description", "hello world.".to_owned(), Policy::All);
 
     // register hook functions
     module.on_module_init(|_: ModuleContext| true);
@@ -58,10 +60,10 @@ pub fn get_module() -> Module {
         |_: &mut [ZVal]| {
             let mut arr = ZArray::new();
 
-            let hello_enable = ZVal::from(Ini::get::<bool>("hello.enable"));
+            let hello_enable = ZVal::from(ini_get::<bool>("hello.enable"));
             arr.insert("hello.enable", hello_enable);
 
-            let hello_description = ZVal::from(Ini::get::<String>("hello.description"));
+            let hello_description = ZVal::from(ini_get::<Option<&CStr>>("hello.description"));
             arr.insert("hello.description", hello_description);
 
             arr

@@ -15,14 +15,14 @@ use crate::{
     classes::{ClassEntity, Classifiable},
     constants::Constant,
     functions::{Argument, Function, FunctionEntity},
-    ini::Ini,
+    ini,
     sys::*,
     types::Scalar,
     utils::ensure_end_with_zero,
     values::ZVal,
 };
 use std::{
-    mem::{replace, size_of, zeroed},
+    mem::{replace, size_of, zeroed, take},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     sync::atomic::{AtomicPtr, Ordering},
@@ -43,7 +43,7 @@ pub(crate) fn write_global_module<R>(f: impl FnOnce(&mut Module) -> R) -> R {
 unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_int {
     let args = ModuleContext::new(r#type, module_number);
     write_global_module(|module| {
-        args.register_ini_entries(Ini::entries());
+        args.register_ini_entries(ini::entries(take(&mut module.ini_entities)));
         for constant in &module.constants {
             constant.register(&args);
         }
@@ -112,6 +112,7 @@ pub struct Module {
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity>,
     constants: Vec<Constant>,
+    ini_entities: Vec<ini::IniEntity>,
 }
 
 impl Module {
@@ -129,6 +130,7 @@ impl Module {
             function_entities: vec![],
             class_entities: Default::default(),
             constants: Default::default(),
+            ini_entities: Default::default(),
         }
     }
 
@@ -177,6 +179,10 @@ impl Module {
 
     pub fn add_constant(&mut self, name: impl Into<String>, value: impl Into<Scalar>) {
         self.constants.push(Constant::new(name, value));
+    }
+
+    pub fn add_ini(&mut self, name: impl Into<String>, default_value: impl ini::IntoIniValue, policy: ini::Policy) {
+        self.ini_entities.push(ini::IniEntity::new(name, default_value, policy));
     }
 
     /// Leak memory to generate `zend_module_entry` pointer.

@@ -18,6 +18,7 @@ mod functions;
 mod objects;
 mod strings;
 mod values;
+mod ini;
 
 use phper::{modules::Module, php_get_module};
 
@@ -37,6 +38,7 @@ pub fn get_module() -> Module {
     strings::integrate(&mut module);
     values::integrate(&mut module);
     constant::integrate(&mut module);
+    ini::integrate(&mut module);
 
     module
 }
