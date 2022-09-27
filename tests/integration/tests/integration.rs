@@ -29,7 +29,7 @@ fn test_cli() {
             &tests_php_dir.join("objects.php"),
             &tests_php_dir.join("strings.php"),
             &tests_php_dir.join("values.php"),
-            &tests_php_dir.join("constant.php"),
+            &tests_php_dir.join("constants.php"),
         ],
     );
 }
@@ -49,5 +49,5 @@ fn test_fpm() {
     test_fpm_request("GET", &tests_php_dir, "/objects.php", None, None);
     test_fpm_request("GET", &tests_php_dir, "/strings.php", None, None);
     test_fpm_request("GET", &tests_php_dir, "/values.php", None, None);
-    test_fpm_request("GET", &tests_php_dir, "/constant.php", None, None);
+    test_fpm_request("GET", &tests_php_dir, "/constants.php", None, None);
 }
