@@ -29,12 +29,12 @@ path = "src/_reexport.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-anyhow = "1.0.58"
-bytes = "1.1.0"
+anyhow = "1.0.65"
+bytes = "1.2.1"
 indexmap = "1.9.1"
 phper = { version = "0.5.1", path = "../../phper" }
-reqwest = { version = "0.11.11", features = ["blocking", "cookies"] }
-thiserror = "1.0.31"
+reqwest = { version = "0.11.12", features = ["blocking", "cookies"] }
+thiserror = "1.0.37"
 
 [dev-dependencies]
 phper-test = { version = "0.5.1", path = "../../phper-test" }
