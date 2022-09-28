@@ -29,7 +29,7 @@ path = "src/_reexport.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-anyhow = "1.0.58"
+anyhow = "1.0.65"
 phper = { version = "0.5.1", path = "../../phper" }
 
 [dev-dependencies]
