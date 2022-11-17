@@ -39,7 +39,7 @@ fn main() {
         println!("cargo:include={}", dir);
     }
 
-    let builder = Builder::default()
+    let mut builder = Builder::default()
         .header("php_wrapper.c")
         .allowlist_file("php_wrapper\\.c")
         .clang_args(&includes)
@@ -47,10 +47,10 @@ fn main() {
 
     // iterate over the php include directories, and update the builder
     // to only create bindings from the header files in those directories
-    let builder = include_dirs.iter().fold(builder, |builder, dir| {
+    for dir in include_dirs.iter() {
         let p = PathBuf::from(dir).join(".*\\.h");
-        builder.allowlist_file(p.to_str().unwrap())
-    });
+        builder = builder.allowlist_file(p.to_str().unwrap());
+    }
 
     let generated_path = out_path.join("php_bindings.rs");
 
