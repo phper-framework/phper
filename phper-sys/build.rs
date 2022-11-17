@@ -40,6 +40,7 @@ fn main() {
 
     let builder = Builder::default()
         .header("php_wrapper.c")
+        .allowlist_file("php_wrapper\\.c")
         .clang_args(&includes)
         .derive_default(true);
 
