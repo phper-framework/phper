@@ -30,13 +30,14 @@ fn main() {
     builder.file("php_wrapper.c").compile("phpwrapper");
 
     // Generate bindgen file.
-    let include_dirs = includes.iter()
-            .map(|include| &include[2..])
-            .collect::<Vec<_>>();
+    let include_dirs = includes
+        .iter()
+        .map(|include| &include[2..])
+        .collect::<Vec<_>>();
 
     for dir in include_dirs.iter() {
         println!("cargo:include={}", dir);
-    };
+    }
 
     let builder = Builder::default()
         .header("php_wrapper.c")
@@ -46,11 +47,10 @@ fn main() {
 
     // iterate over the php include directories, and update the builder
     // to only create bindings from the header files in those directories
-    let builder = include_dirs.iter()
-        .fold(builder, |builder, dir| {
-            let p = PathBuf::from(dir).join(".*\\.h");
-            builder.allowlist_file(p.to_str().unwrap())
-        });
+    let builder = include_dirs.iter().fold(builder, |builder, dir| {
+        let p = PathBuf::from(dir).join(".*\\.h");
+        builder.allowlist_file(p.to_str().unwrap())
+    });
 
     let generated_path = out_path.join("php_bindings.rs");
 
@@ -59,7 +59,6 @@ fn main() {
         .expect("Unable to generate bindings")
         .write_to_file(&generated_path)
         .expect("Unable to write output file");
-
 }
 
 fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
