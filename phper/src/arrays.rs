@@ -109,6 +109,12 @@ impl ZArr {
         unsafe { zend_array_count(self.as_mut_ptr()).try_into().unwrap() }
     }
 
+    /// push an item.
+    #[inline]
+    pub fn push<'a>(&mut self, value: ZVal) {
+        self.insert(InsertKey::NextIndex, value)
+    }
+
     /// Add or update item by key.
     pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, mut value: ZVal) {
         let key = key.into();

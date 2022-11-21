@@ -46,7 +46,7 @@ fn parse_throwable_input(
                     Some(attr) => {
                         if attr.tokens.to_string() != "(transparent)" {
                             return Err(syn::Error::new_spanned(
-                                &attr,
+                                attr,
                                 "now only support #[throwable(transparent)] for variant",
                             ));
                         }
@@ -56,7 +56,7 @@ fn parse_throwable_input(
                             }
                             _ => {
                                 return Err(syn::Error::new_spanned(
-                                    &variant,
+                                    variant,
                                     "now only support unnamed field with one item mark attribute \
                                      #[throwable]",
                                 ));
@@ -123,7 +123,7 @@ fn parse_throwable_input(
         })
         .into()),
         Data::Union(_) => Err(syn::Error::new_spanned(
-            &input,
+            input,
             "union auto derive Throwable is not supported",
         )),
     }

@@ -34,7 +34,7 @@ pub fn test_php_scripts(exe_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]
         .iter()
         .map(|s| (*s, &condition as _))
         .collect::<Vec<_>>();
-    test_php_scripts_with_condition(exe_path, &*scripts);
+    test_php_scripts_with_condition(exe_path, &scripts);
 }
 
 /// Check your extension by executing the php script, if the all executing
@@ -53,7 +53,7 @@ pub fn test_php_scripts_with_lib(lib_path: impl AsRef<Path>, scripts: &[&dyn AsR
         .iter()
         .map(|s| (*s, &condition as _))
         .collect::<Vec<_>>();
-    test_php_scripts_with_condition_and_lib(lib_path, &*scripts);
+    test_php_scripts_with_condition_and_lib(lib_path, &scripts);
 }
 
 /// Script and condition pair.

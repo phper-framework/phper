@@ -8,31 +8,17 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
-#![doc = include_str!("../README.md")]
-
-#[macro_use]
-mod macros;
-
-pub mod arrays;
-pub mod builder;
+pub mod argument;
 pub mod classes;
-pub mod cmd;
-pub(crate) mod constants;
-pub mod errors;
-pub mod exceptions;
-pub mod functions;
-pub mod ini;
-pub mod modules;
-pub mod objects;
-pub mod output;
-pub mod resources;
-pub mod strings;
-pub mod types;
-mod utils;
-pub mod values;
-
-pub use crate::errors::{Error, Result};
-pub use phper_alloc as alloc;
-pub use phper_macros::*;
-pub use phper_sys as sys;
+pub mod classish;
+pub mod constants;
+pub mod data_type;
+pub mod describe;
+pub mod enums;
+pub mod flags;
+pub mod function;
+pub mod handler;
+pub mod interfaces;
+pub mod methods;
+pub mod traits;
+pub mod value;
