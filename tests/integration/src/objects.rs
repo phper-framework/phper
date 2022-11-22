@@ -8,9 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::{
-    classes::ClassEntry, modules::Module, objects::ZObject, types::TypeInfo, values::ZVal,
-};
+use phper::{classes::ClassEntry, modules::Module, objects::ZObject, values::ZVal};
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
@@ -46,7 +44,7 @@ pub fn integrate(module: &mut Module) {
             let o = ZObject::new_by_std_class();
             let v = &mut ZVal::default();
             *v = o.into();
-            assert_eq!(v.get_type_info().get_base_type(), TypeInfo::OBJECT);
+            assert!(v.get_type_info().get_base_type().is_object());
             Ok(())
         },
         vec![],

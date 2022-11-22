@@ -16,6 +16,10 @@
 #include <zend_interfaces.h>
 #include <main/SAPI.h>
 
+#ifndef _ZEND_TYPE_NAME_BIT
+#define _ZEND_TYPE_NAME_BIT (1u << 24)
+#endif
+
 typedef ZEND_INI_MH(phper_zend_ini_mh);
 
 zend_string *zend_new_interned_string_(zend_string *str);

@@ -34,6 +34,8 @@ assert_eq($foo->getFoo(), 100);
 $foo->setFoo("Hello");
 assert_eq($foo->getFoo(), "Hello");
 
+assert_eq(hello_what_object($foo), "FooClass");
+
 function assert_eq($left, $right) {
     if ($left !== $right) {
         throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));

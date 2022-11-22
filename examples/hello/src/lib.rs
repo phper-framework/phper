@@ -27,6 +27,12 @@ fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
     Ok(format!("Hello, {}!\n", name))
 }
 
+fn hello_what_object(arguments: &mut [ZVal]) -> phper::Result<String> {
+    let object = &mut arguments[0];
+
+    object.get_type_info().name()
+}
+
 fn throw_exception(_: &mut [ZVal]) -> phper::Result<()> {
     Err(phper::Error::other("I am sorry"))
 }
@@ -52,6 +58,11 @@ pub fn get_module() -> Module {
     module.on_request_shutdown(|_| true);
 
     // register functions
+    module.add_function(
+        "hello_what_object",
+        hello_what_object,
+        vec![Argument::by_val("object")],
+    );
     module.add_function("hello_say_hello", say_hello, vec![Argument::by_val("name")]);
     module.add_function("hello_throw_exception", throw_exception, vec![]);
     module.add_function(

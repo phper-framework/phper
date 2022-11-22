@@ -17,7 +17,7 @@ use crate::{
     objects::{ExtendObject, StatefulObj, ZObj, ZObject},
     strings::ZStr,
     sys::*,
-    types::Scalar,
+    types::{Scalar, TypeInfo},
     values::ZVal,
 };
 use dashmap::DashMap;
@@ -243,6 +243,10 @@ impl ClassEntry {
 
     pub fn get_name(&self) -> &ZStr {
         unsafe { ZStr::from_ptr(self.inner.name) }
+    }
+
+    pub fn get_type_info(&self) -> TypeInfo {
+        TypeInfo::from_class_entry(&self.inner)
     }
 
     pub fn has_method(&self, method_name: &str) -> bool {

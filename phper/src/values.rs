@@ -201,8 +201,7 @@ impl ZVal {
     }
 
     pub fn get_type_info(&self) -> TypeInfo {
-        let t = unsafe { phper_z_type_info_p(self.as_ptr()) };
-        t.into()
+        TypeInfo::from_zval(self)
     }
 
     pub fn as_null(&self) -> Option<()> {

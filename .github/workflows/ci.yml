@@ -129,12 +129,12 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - name: Cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: clippy
-          args: --release
+      # - name: Cargo clippy
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     toolchain: stable
+      #     command: clippy
+      #     args: --release
 
       - name: Cargo build
         uses: actions-rs/cargo@v1
