@@ -74,7 +74,7 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
 pub fn make_client_class() -> StatefulClass<Option<Client>> {
     let mut class = StatefulClass::<Option<Client>>::new_with_default_state(HTTP_CLIENT_CLASS_NAME);
 
-    class.add_method("__construct", Visibility::Private, |_, _| {}, vec![]);
+    class.add_constructor(Visibility::Private, |_, _| {}, vec![]);
 
     class.add_method(
         "get",

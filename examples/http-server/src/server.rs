@@ -44,8 +44,7 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
     class.add_property("port", Visibility::Private, 8080);
     class.add_property("onRequestHandle", Visibility::Private, ());
 
-    class.add_method(
-        "__construct",
+    class.add_constructor(
         Visibility::Public,
         |this, arguments| {
             let host = arguments[0].expect_z_str()?;

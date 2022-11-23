@@ -18,7 +18,7 @@ pub fn make_request_builder_class() -> StatefulClass<Option<RequestBuilder>> {
     let mut class =
         StatefulClass::<Option<RequestBuilder>>::new_with_default_state(REQUEST_BUILDER_CLASS_NAME);
 
-    class.add_method("__construct", Visibility::Private, |_, _| {}, vec![]);
+    class.add_constructor(Visibility::Private, |_, _| {}, vec![]);
 
     class.add_method(
         "send",

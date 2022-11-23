@@ -36,10 +36,13 @@ use std::{
     },
 };
 
+const CONSTRUCTOR_FUNCTION_NAME: &str = "__construct";
+
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StatefulConstructor<Box<dyn Any>>>;
     fn state_type_id(&self) -> TypeId;
     fn class_name(&self) -> &str;
+    fn constructor(&mut self) -> &mut Option<FunctionEntity>;
     fn methods(&mut self) -> &mut [FunctionEntity];
     fn properties(&mut self) -> &mut [PropertyEntity];
     fn parent(&self) -> Option<&str>;
@@ -50,6 +53,7 @@ pub type StatefulConstructor<T> = dyn Fn() -> T + Send + Sync;
 pub struct StatefulClass<T: Send + 'static> {
     class_name: String,
     state_constructor: Arc<StatefulConstructor<T>>,
+    pub(crate) constructor: Option<FunctionEntity>,
     pub(crate) method_entities: Vec<FunctionEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
     pub(crate) parent: Option<String>,
@@ -75,6 +79,7 @@ impl<T: Send + 'static> StatefulClass<T> {
         Self {
             class_name: class_name.into(),
             state_constructor: Arc::new(state_constructor),
+            constructor: None,
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
@@ -85,19 +90,38 @@ impl<T: Send + 'static> StatefulClass<T> {
         // ptr.to_string());
     }
 
+    pub fn add_constructor<F, R>(&mut self, vis: Visibility, handler: F, arguments: Vec<Argument>)
+    where
+        F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
+        R: Into<ZVal> + 'static,
+    {
+        self.constructor = Some(FunctionEntity::new(
+            CONSTRUCTOR_FUNCTION_NAME,
+            Box::new(Method::new(handler)),
+            arguments,
+            Some(vis),
+            Some(false),
+        ));
+    }
+
     pub fn add_method<F, R>(
         &mut self, name: impl Into<String>, vis: Visibility, handler: F, arguments: Vec<Argument>,
     ) where
         F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
     {
-        self.method_entities.push(FunctionEntity::new(
-            name,
-            Box::new(Method::new(handler)),
-            arguments,
-            Some(vis),
-            Some(false),
-        ));
+        let name: String = name.into();
+        if name == CONSTRUCTOR_FUNCTION_NAME {
+            self.add_constructor(vis, handler, arguments);
+        } else {
+            self.method_entities.push(FunctionEntity::new(
+                name,
+                Box::new(Method::new(handler)),
+                arguments,
+                Some(vis),
+                Some(false),
+            ));
+        }
     }
 
     pub fn add_static_method<F, R>(
@@ -145,6 +169,10 @@ impl<T: Send> Classifiable for StatefulClass<T> {
 
     fn class_name(&self) -> &str {
         &self.class_name
+    }
+
+    fn constructor(&mut self) -> &mut Option<FunctionEntity> {
+        &mut self.constructor
     }
 
     fn methods(&mut self) -> &mut [FunctionEntity] {
@@ -270,6 +298,7 @@ pub struct ClassEntity {
     pub(crate) name: String,
     pub(crate) entry: AtomicPtr<ClassEntry>,
     pub(crate) classifiable: Box<dyn Classifiable>,
+    pub(crate) constructor_entry: OnceCell<Option<AtomicPtr<FunctionEntry>>>,
     pub(crate) function_entries: OnceCell<AtomicPtr<FunctionEntry>>,
 }
 
@@ -279,6 +308,7 @@ impl ClassEntity {
             name: classifiable.class_name().to_string(),
             entry: AtomicPtr::new(null_mut()),
             classifiable: Box::new(classifiable),
+            constructor_entry: Default::default(),
             function_entries: Default::default(),
         }
     }
@@ -289,6 +319,10 @@ impl ClassEntity {
             self.name.len().try_into().unwrap(),
             self.function_entries().load(Ordering::SeqCst).cast(),
         );
+
+        if let Some(ctor) = self.constructor() {
+            class_ce.constructor = ctor.load(Ordering::SeqCst).cast();
+        }
 
         let parent: Option<&ClassEntry> = self
             .classifiable
@@ -313,6 +347,19 @@ impl ClassEntity {
         for property in properties {
             property.declare(self.entry.load(Ordering::SeqCst).cast());
         }
+    }
+
+    unsafe fn constructor(&mut self) -> &Option<AtomicPtr<FunctionEntry>> {
+        self.constructor_entry.get_or_init(|| {
+            if let Some(ctor) = self.classifiable.constructor() {
+                let function = Box::new(ctor.entry());
+                let entry = Box::into_raw(function).cast();
+
+                Some(AtomicPtr::new(entry))
+            } else {
+                None
+            }
+        })
     }
 
     unsafe fn function_entries(&mut self) -> &AtomicPtr<FunctionEntry> {
