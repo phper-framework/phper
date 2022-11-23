@@ -175,13 +175,6 @@ fn get_type_by_const(mut t: u32) -> crate::Result<String> {
         let s = zend_get_type_by_const(t as c_int);
         let mut s = CStr::from_ptr(s).to_str()?.to_string();
 
-        // Compact with PHP7.
-        if s == "boolean" {
-            s = "bool".to_string();
-        } else if s == "integer" {
-            s = "int".to_string();
-        }
-
         Ok(s)
     }
 }

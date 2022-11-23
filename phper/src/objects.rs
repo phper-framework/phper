@@ -131,30 +131,14 @@ impl ZObj {
         let name = name.as_ref();
 
         let prop = unsafe {
-            #[cfg(phper_major_version = "8")]
-            {
-                zend_read_property(
-                    self.inner.ce,
-                    &self.inner as *const _ as *mut _,
-                    name.as_ptr().cast(),
-                    name.len().try_into().unwrap(),
-                    true.into(),
-                    null_mut(),
-                )
-            }
-            #[cfg(phper_major_version = "7")]
-            {
-                let mut zv = std::mem::zeroed::<zval>();
-                phper_zval_obj(&mut zv, self.as_ptr() as *mut _);
-                zend_read_property(
-                    self.inner.ce,
-                    &mut zv,
-                    name.as_ptr().cast(),
-                    name.len().try_into().unwrap(),
-                    true.into(),
-                    null_mut(),
-                )
-            }
+            zend_read_property(
+                self.inner.ce,
+                &self.inner as *const _ as *mut _,
+                name.as_ptr().cast(),
+                name.len().try_into().unwrap(),
+                true.into(),
+                null_mut(),
+            )
         };
 
         unsafe { ZVal::from_mut_ptr(prop) }
@@ -164,28 +148,13 @@ impl ZObj {
         let name = name.as_ref();
         let val = EBox::new(val.into());
         unsafe {
-            #[cfg(phper_major_version = "8")]
-            {
-                zend_update_property(
-                    self.inner.ce,
-                    &mut self.inner,
-                    name.as_ptr().cast(),
-                    name.len().try_into().unwrap(),
-                    EBox::into_raw(val).cast(),
-                )
-            }
-            #[cfg(phper_major_version = "7")]
-            {
-                let mut zv = std::mem::zeroed::<zval>();
-                phper_zval_obj(&mut zv, self.as_mut_ptr());
-                zend_update_property(
-                    self.inner.ce,
-                    &mut zv,
-                    name.as_ptr().cast(),
-                    name.len().try_into().unwrap(),
-                    EBox::into_raw(val).cast(),
-                )
-            }
+            zend_update_property(
+                self.inner.ce,
+                &mut self.inner,
+                name.as_ptr().cast(),
+                name.len().try_into().unwrap(),
+                EBox::into_raw(val).cast(),
+            )
         }
     }
 
@@ -299,16 +268,7 @@ impl Clone for ZObject {
                 phper_zval_obj(zv.as_mut_ptr(), self.as_ptr() as *mut _);
                 let handlers = phper_z_obj_ht_p(zv.as_ptr());
 
-                let ptr = {
-                    #[cfg(phper_major_version = "7")]
-                    {
-                        zv.as_mut_ptr()
-                    }
-                    #[cfg(phper_major_version = "8")]
-                    {
-                        self.as_ptr() as *mut _
-                    }
-                };
+                let ptr = self.as_ptr() as *mut _;
 
                 match (*handlers).clone_obj {
                     Some(clone_obj) => clone_obj(ptr),

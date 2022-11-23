@@ -291,14 +291,7 @@ impl ZendFunction {
                     params: arguments.as_mut_ptr().cast(),
                     object: object_ptr,
                     param_count: arguments.len() as u32,
-                    #[cfg(phper_major_version = "8")]
                     named_params: null_mut(),
-                    #[cfg(phper_major_version = "7")]
-                    no_separation: 1,
-                    #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
-                    function_table: null_mut(),
-                    #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
-                    symbol_table: null_mut(),
                 };
 
                 let mut fcc = zend_fcall_info_cache {
@@ -306,15 +299,6 @@ impl ZendFunction {
                     calling_scope: null_mut(),
                     called_scope,
                     object: object_ptr,
-                    #[cfg(all(
-                        phper_major_version = "7",
-                        any(
-                            phper_minor_version = "0",
-                            phper_minor_version = "1",
-                            phper_minor_version = "2",
-                        )
-                    ))]
-                    initialized: 1,
                 };
 
                 zend_call_function(&mut fci, &mut fcc) == ZEND_RESULT_CODE_SUCCESS
@@ -377,43 +361,13 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 pub(crate) const fn create_zend_arg_info(
     name: *const c_char, _pass_by_ref: bool,
 ) -> zend_internal_arg_info {
-    #[cfg(any(phper_php_version = "8.1", phper_php_version = "8.0"))]
-    {
-        zend_internal_arg_info {
-            name,
-            type_: zend_type {
-                ptr: null_mut(),
-                type_mask: 0,
-            },
-            default_value: null_mut(),
-        }
-    }
-
-    #[cfg(any(
-        phper_php_version = "7.4",
-        phper_php_version = "7.3",
-        phper_php_version = "7.2"
-    ))]
-    {
-        #[allow(clippy::unnecessary_cast)]
-        zend_internal_arg_info {
-            name,
-            type_: 0 as crate::sys::zend_type,
-            pass_by_reference: _pass_by_ref as zend_uchar,
-            is_variadic: 0,
-        }
-    }
-
-    #[cfg(any(phper_php_version = "7.1", phper_php_version = "7.0"))]
-    {
-        zend_internal_arg_info {
-            name,
-            class_name: std::ptr::null(),
-            type_hint: 0,
-            allow_null: 0,
-            pass_by_reference: _pass_by_ref as zend_uchar,
-            is_variadic: 0,
-        }
+    zend_internal_arg_info {
+        name,
+        type_: zend_type {
+            ptr: null_mut(),
+            type_mask: 0,
+        },
+        default_value: null_mut(),
     }
 }
 

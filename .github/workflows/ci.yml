@@ -46,11 +46,6 @@ jobs:
           - ubuntu-20.04
           - macos-11
         php-version:
-          - "7.0"
-          - "7.1"
-          - "7.2"
-          - "7.3"
-          - "7.4"
           - "8.0"
           - "8.1"
 
@@ -68,6 +63,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           tools: php-config
+          coverage: none
 
       - name: Setup php-fpm for Linux
         if: matrix.os == 'ubuntu-20.04'
@@ -168,7 +164,7 @@ jobs:
         os:
           - ubuntu-20.04
         php-version:
-          - "7.4"
+          - "8.1"
         features:
           - ""
           - "--all-features"
@@ -186,6 +182,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           tools: php-config
+          coverage: none
 
       - name: Install Rust Stable
         uses: actions-rs/toolchain@v1
