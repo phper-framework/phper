@@ -19,8 +19,6 @@ repository.workspace = true
 license.workspace = true
 keywords = ["php", "alloc"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 phper-sys = { version = "0.5.1", path = "../phper-sys" }
 

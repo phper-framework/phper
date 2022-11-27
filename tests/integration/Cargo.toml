@@ -20,12 +20,6 @@ license.workspace = true
 [lib]
 crate-type = ["lib", "cdylib"]
 
-# This example is hack to used for integration tests.
-[[example]]
-name = "integration"
-path = "src/_reexport.rs"
-crate-type = ["cdylib"]
-
 [dependencies]
 indexmap = "1.9.1"
 phper = { version = "0.5.1", path = "../../phper" }

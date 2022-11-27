@@ -60,14 +60,6 @@ pub(crate) fn spawn_command<S: AsRef<OsStr> + Debug>(
 }
 
 pub fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
-    get_lib_path_inner(exe_path, false)
-}
-
-pub fn get_lib_path_by_example(exe_path: impl AsRef<Path>) -> PathBuf {
-    get_lib_path_inner(exe_path, true)
-}
-
-fn get_lib_path_inner(exe_path: impl AsRef<Path>, use_example: bool) -> PathBuf {
     let exe_path = exe_path.as_ref();
     let exe_stem = exe_path
         .file_stem()
@@ -88,9 +80,5 @@ fn get_lib_path_inner(exe_path: impl AsRef<Path>, use_example: bool) -> PathBuf 
     #[cfg(target_os = "windows")]
     ext_name.push(".dll");
 
-    if use_example {
-        target_dir.join("examples").join(ext_name)
-    } else {
-        target_dir.join(ext_name)
-    }
+    target_dir.join(ext_name)
 }
