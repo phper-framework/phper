@@ -8,9 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper_test::{
-    cli::test_php_scripts_with_lib, fpm, fpm::test_fpm_request, utils::get_lib_path_by_example,
-};
+use phper_test::{cli::test_php_scripts_with_lib, fpm, fpm::test_fpm_request, utils::get_lib_path};
 use std::{env, path::Path};
 
 #[test]
@@ -20,7 +18,7 @@ fn test_cli() {
         .join("php");
 
     test_php_scripts_with_lib(
-        get_lib_path_by_example(env!("CARGO_BIN_EXE_integration")),
+        get_lib_path(env!("CARGO_BIN_EXE_integration")),
         &[
             &tests_php_dir.join("arguments.php"),
             &tests_php_dir.join("arrays.php"),
@@ -41,7 +39,7 @@ fn test_fpm() {
         .join("tests")
         .join("php");
 
-    fpm::setup_lib(get_lib_path_by_example(env!("CARGO_BIN_EXE_integration")));
+    fpm::setup_lib(get_lib_path(env!("CARGO_BIN_EXE_integration")));
 
     test_fpm_request("GET", &tests_php_dir, "/arguments.php", None, None);
     test_fpm_request("GET", &tests_php_dir, "/arrays.php", None, None);

@@ -17,16 +17,8 @@ rust-version.workspace = true
 publish = false
 license.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
 crate-type = ["lib", "cdylib"]
-
-# This example is hack to used for integration tests.
-[[example]]
-name = "logging"
-path = "src/_reexport.rs"
-crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0.65"
