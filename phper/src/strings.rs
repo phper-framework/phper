@@ -147,10 +147,15 @@ pub struct ZString {
 }
 
 impl ZString {
+    #[allow(clippy::useless_conversion)]
     pub fn new(s: impl AsRef<[u8]>) -> Self {
         unsafe {
             let s = s.as_ref();
-            let ptr = phper_zend_string_init(s.as_ptr().cast(), s.len(), false.into());
+            let ptr = phper_zend_string_init(
+                s.as_ptr().cast(),
+                s.len().try_into().unwrap(),
+                false.into(),
+            );
             Self::from_raw(ptr)
         }
     }

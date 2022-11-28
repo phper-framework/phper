@@ -160,6 +160,7 @@ impl ZObj {
         unsafe { ZVal::from_mut_ptr(prop) }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub fn set_property(&mut self, name: impl AsRef<str>, val: impl Into<ZVal>) {
         let name = name.as_ref();
         let val = EBox::new(val.into());
@@ -182,7 +183,7 @@ impl ZObj {
                     self.inner.ce,
                     &mut zv,
                     name.as_ptr().cast(),
-                    name.len(),
+                    name.len().try_into().unwrap(),
                     EBox::into_raw(val).cast(),
                 )
             }

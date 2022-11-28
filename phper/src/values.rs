@@ -466,10 +466,15 @@ impl From<f64> for ZVal {
 }
 
 impl From<&[u8]> for ZVal {
+    #[allow(clippy::useless_conversion)]
     fn from(b: &[u8]) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_stringl(val.as_mut_ptr().cast(), b.as_ptr().cast(), b.len());
+            phper_zval_stringl(
+                val.as_mut_ptr().cast(),
+                b.as_ptr().cast(),
+                b.len().try_into().unwrap(),
+            );
             val.assume_init()
         }
     }

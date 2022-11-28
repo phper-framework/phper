@@ -110,6 +110,7 @@ impl ZArr {
     }
 
     /// Add or update item by key.
+    #[allow(clippy::useless_conversion)]
     pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, mut value: ZVal) {
         let key = key.into();
         let val = value.as_mut_ptr();
@@ -126,7 +127,7 @@ impl ZArr {
                     phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         s.as_ptr().cast(),
-                        s.len(),
+                        s.len().try_into().unwrap(),
                         val,
                     );
                 }
@@ -134,7 +135,7 @@ impl ZArr {
                     phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         b.as_ptr().cast(),
-                        b.len(),
+                        b.len().try_into().unwrap(),
                         val,
                     );
                 }
@@ -142,7 +143,7 @@ impl ZArr {
                     phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         s.as_c_str_ptr().cast(),
-                        s.len(),
+                        s.len().try_into().unwrap(),
                         val,
                     );
                 }
@@ -162,15 +163,26 @@ impl ZArr {
         self.inner_get(key)
     }
 
+    #[allow(clippy::useless_conversion)]
     fn inner_get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&'a mut ZVal> {
         let key = key.into();
         let ptr = self.as_ptr() as *mut _;
         unsafe {
             let value = match key {
                 Key::Index(i) => phper_zend_hash_index_find(ptr, i),
-                Key::Str(s) => phper_zend_symtable_str_find(ptr, s.as_ptr().cast(), s.len()),
-                Key::Bytes(b) => phper_zend_symtable_str_find(ptr, b.as_ptr().cast(), b.len()),
-                Key::ZStr(s) => phper_zend_symtable_str_find(ptr, s.as_c_str_ptr(), s.len()),
+                Key::Str(s) => phper_zend_symtable_str_find(
+                    ptr,
+                    s.as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
+                Key::Bytes(b) => phper_zend_symtable_str_find(
+                    ptr,
+                    b.as_ptr().cast(),
+                    b.len().try_into().unwrap(),
+                ),
+                Key::ZStr(s) => {
+                    phper_zend_symtable_str_find(ptr, s.as_c_str_ptr(), s.len().try_into().unwrap())
+                }
             };
             if value.is_null() {
                 None
@@ -180,35 +192,53 @@ impl ZArr {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
         let ptr = self.as_ptr() as *mut _;
         unsafe {
             match key {
                 Key::Index(i) => phper_zend_hash_index_exists(ptr, i),
-                Key::Str(s) => phper_zend_symtable_str_exists(ptr, s.as_ptr().cast(), s.len()),
-                Key::Bytes(b) => phper_zend_symtable_str_exists(ptr, b.as_ptr().cast(), b.len()),
-                Key::ZStr(s) => {
-                    phper_zend_symtable_str_exists(ptr, s.to_bytes().as_ptr().cast(), s.len())
-                }
+                Key::Str(s) => phper_zend_symtable_str_exists(
+                    ptr,
+                    s.as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
+                Key::Bytes(b) => phper_zend_symtable_str_exists(
+                    ptr,
+                    b.as_ptr().cast(),
+                    b.len().try_into().unwrap(),
+                ),
+                Key::ZStr(s) => phper_zend_symtable_str_exists(
+                    ptr,
+                    s.to_bytes().as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
             }
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub fn remove<'a>(&mut self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
         unsafe {
             match key {
                 Key::Index(i) => phper_zend_hash_index_del(&mut self.inner, i),
-                Key::Str(s) => {
-                    phper_zend_symtable_str_del(&mut self.inner, s.as_ptr().cast(), s.len())
-                }
-                Key::Bytes(b) => {
-                    phper_zend_symtable_str_del(&mut self.inner, b.as_ptr().cast(), b.len())
-                }
-                Key::ZStr(s) => {
-                    phper_zend_symtable_str_del(&mut self.inner, s.as_c_str_ptr().cast(), s.len())
-                }
+                Key::Str(s) => phper_zend_symtable_str_del(
+                    &mut self.inner,
+                    s.as_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
+                Key::Bytes(b) => phper_zend_symtable_str_del(
+                    &mut self.inner,
+                    b.as_ptr().cast(),
+                    b.len().try_into().unwrap(),
+                ),
+                Key::ZStr(s) => phper_zend_symtable_str_del(
+                    &mut self.inner,
+                    s.as_c_str_ptr().cast(),
+                    s.len().try_into().unwrap(),
+                ),
             }
         }
     }

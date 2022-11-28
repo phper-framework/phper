@@ -76,37 +76,41 @@ pub trait FromIniValue {
 }
 
 impl FromIniValue for bool {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_long(name_ptr, name.len(), 0) != 0
+            zend_ini_long(name_ptr, name.len().try_into().unwrap(), 0) != 0
         }
     }
 }
 
 impl FromIniValue for i64 {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_long(name_ptr, name.len(), 0)
+            zend_ini_long(name_ptr, name.len().try_into().unwrap(), 0)
         }
     }
 }
 
 impl FromIniValue for f64 {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_double(name_ptr, name.len(), 0)
+            zend_ini_double(name_ptr, name.len().try_into().unwrap(), 0)
         }
     }
 }
 
 impl FromIniValue for Option<&CStr> {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            let ptr = zend_ini_string_ex(name_ptr, name.len(), 0, null_mut());
+            let ptr = zend_ini_string_ex(name_ptr, name.len().try_into().unwrap(), 0, null_mut());
             (!ptr.is_null()).then(|| CStr::from_ptr(ptr))
         }
     }
