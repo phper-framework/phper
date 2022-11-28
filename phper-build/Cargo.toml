@@ -10,13 +10,13 @@
 
 [package]
 name = "phper-build"
-version = "0.6.0"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 description = "Generates stubs for project using phper."
-repository.workspace = true
-license.workspace = true
+repository = { workspace = true }
+license = { workspace = true }
 keywords = ["php", "binding"]
 
 [dependencies]

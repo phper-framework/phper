@@ -11,11 +11,11 @@
 [package]
 name = "integration"
 version = "0.0.0"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
-license.workspace = true
+license = { workspace = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]
