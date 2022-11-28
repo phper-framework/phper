@@ -25,7 +25,6 @@ use crate::{
 };
 use phper_alloc::ToRefOwned;
 use std::{
-    convert::TryInto,
     marker::PhantomData,
     mem::{size_of, transmute, zeroed},
     os::raw::c_char,
@@ -285,7 +284,7 @@ impl ZendFunction {
         call_raw_common(
             |ret| unsafe {
                 let mut fci = zend_fcall_info {
-                    size: size_of::<zend_fcall_info>().try_into().unwrap(),
+                    size: size_of::<zend_fcall_info>(),
                     function_name: ZVal::from(()).into_inner(),
                     retval: ret.as_mut_ptr(),
                     params: arguments.as_mut_ptr().cast(),

@@ -126,7 +126,7 @@ impl ZArr {
                     phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         s.as_ptr().cast(),
-                        s.len().try_into().unwrap(),
+                        s.len(),
                         val,
                     );
                 }
@@ -134,7 +134,7 @@ impl ZArr {
                     phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         b.as_ptr().cast(),
-                        b.len().try_into().unwrap(),
+                        b.len(),
                         val,
                     );
                 }
@@ -142,7 +142,7 @@ impl ZArr {
                     phper_zend_symtable_str_update(
                         self.as_mut_ptr(),
                         s.as_c_str_ptr().cast(),
-                        s.len().try_into().unwrap(),
+                        s.len(),
                         val,
                     );
                 }
@@ -168,19 +168,9 @@ impl ZArr {
         unsafe {
             let value = match key {
                 Key::Index(i) => phper_zend_hash_index_find(ptr, i),
-                Key::Str(s) => phper_zend_symtable_str_find(
-                    ptr,
-                    s.as_ptr().cast(),
-                    s.len().try_into().unwrap(),
-                ),
-                Key::Bytes(b) => phper_zend_symtable_str_find(
-                    ptr,
-                    b.as_ptr().cast(),
-                    b.len().try_into().unwrap(),
-                ),
-                Key::ZStr(s) => {
-                    phper_zend_symtable_str_find(ptr, s.as_c_str_ptr(), s.len().try_into().unwrap())
-                }
+                Key::Str(s) => phper_zend_symtable_str_find(ptr, s.as_ptr().cast(), s.len()),
+                Key::Bytes(b) => phper_zend_symtable_str_find(ptr, b.as_ptr().cast(), b.len()),
+                Key::ZStr(s) => phper_zend_symtable_str_find(ptr, s.as_c_str_ptr(), s.len()),
             };
             if value.is_null() {
                 None
@@ -196,21 +186,11 @@ impl ZArr {
         unsafe {
             match key {
                 Key::Index(i) => phper_zend_hash_index_exists(ptr, i),
-                Key::Str(s) => phper_zend_symtable_str_exists(
-                    ptr,
-                    s.as_ptr().cast(),
-                    s.len().try_into().unwrap(),
-                ),
-                Key::Bytes(b) => phper_zend_symtable_str_exists(
-                    ptr,
-                    b.as_ptr().cast(),
-                    b.len().try_into().unwrap(),
-                ),
-                Key::ZStr(s) => phper_zend_symtable_str_exists(
-                    ptr,
-                    s.to_bytes().as_ptr().cast(),
-                    s.len().try_into().unwrap(),
-                ),
+                Key::Str(s) => phper_zend_symtable_str_exists(ptr, s.as_ptr().cast(), s.len()),
+                Key::Bytes(b) => phper_zend_symtable_str_exists(ptr, b.as_ptr().cast(), b.len()),
+                Key::ZStr(s) => {
+                    phper_zend_symtable_str_exists(ptr, s.to_bytes().as_ptr().cast(), s.len())
+                }
             }
         }
     }
@@ -220,21 +200,15 @@ impl ZArr {
         unsafe {
             match key {
                 Key::Index(i) => phper_zend_hash_index_del(&mut self.inner, i),
-                Key::Str(s) => phper_zend_symtable_str_del(
-                    &mut self.inner,
-                    s.as_ptr().cast(),
-                    s.len().try_into().unwrap(),
-                ),
-                Key::Bytes(b) => phper_zend_symtable_str_del(
-                    &mut self.inner,
-                    b.as_ptr().cast(),
-                    b.len().try_into().unwrap(),
-                ),
-                Key::ZStr(s) => phper_zend_symtable_str_del(
-                    &mut self.inner,
-                    s.as_c_str_ptr().cast(),
-                    s.len().try_into().unwrap(),
-                ),
+                Key::Str(s) => {
+                    phper_zend_symtable_str_del(&mut self.inner, s.as_ptr().cast(), s.len())
+                }
+                Key::Bytes(b) => {
+                    phper_zend_symtable_str_del(&mut self.inner, b.as_ptr().cast(), b.len())
+                }
+                Key::ZStr(s) => {
+                    phper_zend_symtable_str_del(&mut self.inner, s.as_c_str_ptr().cast(), s.len())
+                }
             }
         }
     }

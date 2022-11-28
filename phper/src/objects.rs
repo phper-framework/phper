@@ -182,7 +182,7 @@ impl ZObj {
                     self.inner.ce,
                     &mut zv,
                     name.as_ptr().cast(),
-                    name.len().try_into().unwrap(),
+                    name.len(),
                     EBox::into_raw(val).cast(),
                 )
             }

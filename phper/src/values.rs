@@ -469,11 +469,7 @@ impl From<&[u8]> for ZVal {
     fn from(b: &[u8]) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_stringl(
-                val.as_mut_ptr().cast(),
-                b.as_ptr().cast(),
-                b.len().try_into().unwrap(),
-            );
+            phper_zval_stringl(val.as_mut_ptr().cast(), b.as_ptr().cast(), b.len());
             val.assume_init()
         }
     }
