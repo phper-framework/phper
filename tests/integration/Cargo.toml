@@ -21,8 +21,8 @@ license.workspace = true
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-indexmap = "1.9.1"
-phper = { version = "0.5.1", path = "../../phper" }
+indexmap = "1.9.2"
+phper = { version = "0.6.0", path = "../../phper" }
 
 [dev-dependencies]
-phper-test = { version = "0.5.1", path = "../../phper-test", features = ["fpm"] }
+phper-test = { version = "0.6.0", path = "../../phper-test", features = ["fpm"] }

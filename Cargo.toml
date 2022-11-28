@@ -30,4 +30,4 @@ authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
 edition = "2021"
 license = "MulanPSL-2.0"
 repository = "https://github.com/jmjoy/phper.git"
-rust-version = "1.64"
+rust-version = "1.65"
