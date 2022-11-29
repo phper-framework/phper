@@ -11,21 +11,21 @@
 [package]
 name = "http-server"
 version = "0.0.0"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
-license.workspace = true
+license = { workspace = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-hyper = { version = "0.14.20", features = ["http1", "runtime", "server"] }
-phper = { version = "0.5.1", path = "../../phper" }
+hyper = { version = "0.14.23", features = ["http1", "runtime", "server"] }
+phper = { version = "0.6.0", path = "../../phper" }
 thiserror = "1.0.37"
-tokio = { version = "1.21.2", features = ["full"] }
+tokio = { version = "1.22.0", features = ["full"] }
 
 [dev-dependencies]
-phper-test = { version = "0.5.1", path = "../../phper-test" }
-reqwest = "0.11.12"
+phper-test = { version = "0.6.0", path = "../../phper-test" }
+reqwest = "0.11.13"

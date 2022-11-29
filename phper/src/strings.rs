@@ -147,6 +147,7 @@ pub struct ZString {
 }
 
 impl ZString {
+    #[allow(clippy::useless_conversion)]
     pub fn new(s: impl AsRef<[u8]>) -> Self {
         unsafe {
             let s = s.as_ref();

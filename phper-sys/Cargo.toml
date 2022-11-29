@@ -10,15 +10,15 @@
 
 [package]
 name = "phper-sys"
-version = "0.5.1"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 description = "Low level PHP binding for Rust."
-repository.workspace = true
-license.workspace = true
+repository = { workspace = true }
+license = { workspace = true }
 keywords = ["php", "binding"]
 
 [build-dependencies]
-bindgen = "0.60.1"
-cc = "1.0.73"
+bindgen = "0.63.0"
+cc = "1.0.77"

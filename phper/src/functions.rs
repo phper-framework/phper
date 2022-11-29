@@ -260,6 +260,7 @@ impl ZendFunction {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub(crate) fn call(
         &mut self, mut object: Option<&mut ZObj>, mut arguments: impl AsMut<[ZVal]>,
     ) -> crate::Result<ZVal> {

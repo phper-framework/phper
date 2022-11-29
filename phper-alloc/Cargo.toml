@@ -10,17 +10,17 @@
 
 [package]
 name = "phper-alloc"
-version = "0.5.1"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 description = "Alloc related items for phper crate."
-repository.workspace = true
-license.workspace = true
+repository = { workspace = true }
+license = { workspace = true }
 keywords = ["php", "alloc"]
 
 [dependencies]
-phper-sys = { version = "0.5.1", path = "../phper-sys" }
+phper-sys = { version = "0.6.0", path = "../phper-sys" }
 
 [build-dependencies]
-phper-build = { version = "0.5.1", path = "../phper-build" }
+phper-build = { version = "0.6.0", path = "../phper-build" }

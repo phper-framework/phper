@@ -76,6 +76,7 @@ pub trait FromIniValue {
 }
 
 impl FromIniValue for bool {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
@@ -85,6 +86,7 @@ impl FromIniValue for bool {
 }
 
 impl FromIniValue for i64 {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
@@ -94,6 +96,7 @@ impl FromIniValue for i64 {
 }
 
 impl FromIniValue for f64 {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
@@ -103,6 +106,7 @@ impl FromIniValue for f64 {
 }
 
 impl FromIniValue for Option<&CStr> {
+    #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;

@@ -34,6 +34,7 @@ pub fn log(level: LogLevel, message: impl Into<String>) {
     }
 }
 
+#[allow(clippy::useless_conversion)]
 pub fn echo(message: impl Into<String>) {
     let message = ensure_end_with_zero(message);
     unsafe {

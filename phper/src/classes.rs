@@ -253,6 +253,7 @@ impl ClassEntry {
     }
 }
 
+#[allow(clippy::useless_conversion)]
 fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     let name = name.as_ref();
     let name = name.to_lowercase();
@@ -283,6 +284,7 @@ impl ClassEntity {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&mut self) {
         let mut class_ce = phper_init_class_entry_ex(
             self.name.as_ptr().cast(),
@@ -359,6 +361,7 @@ impl PropertyEntity {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub(crate) fn declare(&self, ce: *mut zend_class_entry) {
         let name = self.name.as_ptr().cast();
         let name_length = self.name.len().try_into().unwrap();
@@ -428,6 +431,7 @@ fn get_object_handlers() -> &'static zend_object_handlers {
     })
 }
 
+#[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
     let extend_object: *mut ExtendObject =

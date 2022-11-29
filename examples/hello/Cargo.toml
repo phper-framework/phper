@@ -11,20 +11,20 @@
 [package]
 name = "hello"
 version = "0.0.0"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
-license.workspace = true
+license = { workspace = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-phper = { version = "0.5.1", path = "../../phper" }
+phper = { version = "0.6.0", path = "../../phper" }
 
 [dev-dependencies]
-phper-test = { version = "0.5.1", path = "../../phper-test" }
+phper-test = { version = "0.6.0", path = "../../phper-test" }
 
 [build-dependencies]
-phper-build = { version = "0.5.1", path = "../../phper-build" }
+phper-build = { version = "0.6.0", path = "../../phper-build" }

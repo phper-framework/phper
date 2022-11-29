@@ -10,13 +10,13 @@
 
 [package]
 name = "phper-macros"
-version = "0.5.1"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 description = "The proc-macros for phper crate."
-repository.workspace = true
-license.workspace = true
+repository = { workspace = true }
+license = { workspace = true }
 keywords = ["php", "proc-macro"]
 
 [lib]
@@ -24,8 +24,8 @@ proc-macro = true
 
 [dependencies]
 quote = "1.0.21"
-syn = { version = "1.0.101", features = ["full"] }
-proc-macro2 = "1.0.44"
+syn = { version = "1.0.103", features = ["full"] }
+proc-macro2 = "1.0.47"
 
 [dev-dependencies]
-syn = { version = "1.0.101", features = ["full", "extra-traits"] }
+syn = { version = "1.0.103", features = ["full", "extra-traits"] }
