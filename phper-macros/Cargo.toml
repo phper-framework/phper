@@ -10,14 +10,14 @@
 
 [package]
 name = "phper-macros"
+description = "The proc-macros for phper crate."
+keywords = ["php", "proc-macro"]
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-description = "The proc-macros for phper crate."
 repository = { workspace = true }
 license = { workspace = true }
-keywords = ["php", "proc-macro"]
 
 [lib]
 proc-macro = true

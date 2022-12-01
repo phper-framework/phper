@@ -16,6 +16,7 @@ members = [
     "phper-macros",
     "phper-sys",
     "phper-test",
+    "phper-doc",
 
     # internal
     "examples/hello",

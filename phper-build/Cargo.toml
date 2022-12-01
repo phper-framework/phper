@@ -10,14 +10,14 @@
 
 [package]
 name = "phper-build"
+description = "Generates stubs for project using phper."
+keywords = ["php", "binding"]
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-description = "Generates stubs for project using phper."
 repository = { workspace = true }
 license = { workspace = true }
-keywords = ["php", "binding"]
 
 [dependencies]
 phper-sys = { version = "0.6.0", path = "../phper-sys" }
