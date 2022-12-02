@@ -26,7 +26,7 @@ fn test_cli() {
                 .join("..")
                 .join("..")
                 .join("target"),
-            env!("CARGO_CRATE_NAME"),
+            "integration",
         ),
         &[
             &tests_php_dir.join("arguments.php"),
@@ -48,7 +48,13 @@ fn test_fpm() {
         .join("tests")
         .join("php");
 
-    fpm::setup(get_lib_path("target", env!("CARGO_CRATE_NAME")));
+    fpm::setup(get_lib_path(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("target"),
+        "integration",
+    ));
 
     test_fpm_request("GET", &tests_php_dir, "/arguments.php", None, None);
     test_fpm_request("GET", &tests_php_dir, "/arrays.php", None, None);

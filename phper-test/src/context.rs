@@ -10,14 +10,16 @@
 
 use crate::utils;
 use once_cell::sync::OnceCell;
+#[cfg(feature = "fpm")]
+use std::io::Write;
 use std::{
     env,
     fs::read_to_string,
-    io::Write,
     ops::{Deref, DerefMut},
     path::Path,
     process::Command,
 };
+#[cfg(feature = "fpm")]
 use tempfile::NamedTempFile;
 
 pub struct Context {
