@@ -43,7 +43,11 @@ pub fn get_module() -> Module {
     module.add_ini("complex.enable", false, Policy::All);
     module.add_ini("complex.num", 100, Policy::All);
     module.add_ini("complex.ratio", 1.5, Policy::All);
-    module.add_ini("complex.description", "hello world.".to_owned(), Policy::All);
+    module.add_ini(
+        "complex.description",
+        "hello world.".to_owned(),
+        Policy::All,
+    );
 
     // register hook functions
     module.on_module_init(|_: ModuleContext| true);
@@ -52,7 +56,11 @@ pub fn get_module() -> Module {
     module.on_request_shutdown(|_| true);
 
     // register functions
-    module.add_function("complex_say_hello", say_hello, vec![Argument::by_val("name")]);
+    module.add_function(
+        "complex_say_hello",
+        say_hello,
+        vec![Argument::by_val("name")],
+    );
     module.add_function("complex_throw_exception", throw_exception, vec![]);
     module.add_function(
         "complex_get_all_ini",
