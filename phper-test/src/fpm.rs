@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 //! Test tools for php fpm program.
-use crate::{context::Context, utils, utils::spawn_command};
+use crate::{context::Context, utils::spawn_command};
 use fastcgi_client::{Client, Params, Request};
 use libc::{atexit, kill, pid_t, SIGTERM};
 use once_cell::sync::OnceCell;
@@ -29,19 +29,11 @@ static FPM_HANDLE: OnceCell<Mutex<FpmHandle>> = OnceCell::new();
 struct FpmHandle {
     lib_path: PathBuf,
     fpm_child: Child,
-    php_ini_file: ManuallyDrop<NamedTempFile>,
     fpm_conf_file: ManuallyDrop<NamedTempFile>,
 }
 
 /// Start php-fpm process and tokio runtime.
-pub fn setup(exe_path: impl AsRef<Path>) {
-    let exe_path = exe_path.as_ref();
-    let lib_path = utils::get_lib_path(exe_path);
-    setup_lib(lib_path)
-}
-
-/// Start php-fpm process and tokio runtime.
-pub fn setup_lib(lib_path: impl AsRef<Path>) {
+pub fn setup(lib_path: impl AsRef<Path>) {
     let lib_path = lib_path.as_ref().to_owned();
 
     let handle = FPM_HANDLE.get_or_init(|| {
@@ -63,15 +55,14 @@ pub fn setup_lib(lib_path: impl AsRef<Path>) {
         // Run php-fpm.
         let context = Context::get_global();
         let php_fpm = context.find_php_fpm().unwrap();
-        let php_ini_file = context.create_tmp_php_ini_file(&lib_path);
         let fpm_conf_file = context.create_tmp_fpm_conf_file();
 
         let argv = [
             &*php_fpm,
             "-F",
             "-n",
-            "-c",
-            php_ini_file.path().to_str().unwrap(),
+            "-d",
+            &format!("extension={}", lib_path.display()),
             "-y",
             fpm_conf_file.path().to_str().unwrap(),
         ];
@@ -85,7 +76,6 @@ pub fn setup_lib(lib_path: impl AsRef<Path>) {
         Mutex::new(FpmHandle {
             lib_path: lib_path.clone(),
             fpm_child: child,
-            php_ini_file: ManuallyDrop::new(php_ini_file),
             fpm_conf_file: ManuallyDrop::new(fpm_conf_file),
         })
     });
@@ -97,7 +87,6 @@ extern "C" fn teardown() {
     let mut fpm_handle = FPM_HANDLE.get().unwrap().lock().unwrap();
 
     unsafe {
-        ManuallyDrop::drop(&mut fpm_handle.php_ini_file);
         ManuallyDrop::drop(&mut fpm_handle.fpm_conf_file);
 
         let id = fpm_handle.fpm_child.id();

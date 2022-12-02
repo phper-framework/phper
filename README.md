@@ -68,16 +68,6 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
    phper = "<LATEST VERSION>"
    ```
 
-1. Add these code to `main.rs`.
-
-   ```rust,no_run
-   use phper::cmd::make;
-   
-   fn main() {
-       make();
-   }
-   ```
-
 1. Create the `build.rs` ( Adapting MacOS ).
 
    ```rust,no_run
@@ -98,7 +88,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
    #[php_get_module]
    pub fn get_module() -> Module {
        let mut module = Module::new(
-           env!("CARGO_PKG_NAME"),
+           env!("CARGO_CRATE_NAME"),
            env!("CARGO_PKG_VERSION"),
            env!("CARGO_PKG_AUTHORS"),
        );
@@ -119,10 +109,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
    cargo build --release
    
    # Install to php extension path.
-   cargo run --release -- install
-   # Or if you install php globally, you should use sudo.
-   # sudo ./target/release/myapp install
-   
+   cp target/release/libmyapp.so `${PHP_CONFIG:=php-config} --extension-dir`
    ```
 
 1. Edit your `php.ini`, add the below line.

@@ -10,14 +10,16 @@
 
 use crate::utils;
 use once_cell::sync::OnceCell;
+#[cfg(feature = "fpm")]
+use std::io::Write;
 use std::{
     env,
     fs::read_to_string,
-    io::Write,
     ops::{Deref, DerefMut},
     path::Path,
     process::Command,
 };
+#[cfg(feature = "fpm")]
 use tempfile::NamedTempFile;
 
 pub struct Context {
@@ -67,30 +69,15 @@ impl Context {
         })
     }
 
-    pub fn create_tmp_php_ini_file(&self, lib_path: impl AsRef<Path>) -> NamedTempFile {
-        let mut out_ini_temp_file = NamedTempFile::new().unwrap();
-        let out_ini_file = out_ini_temp_file.as_file_mut();
-
-        out_ini_file.write_all(self.ini_content.as_bytes()).unwrap();
-        out_ini_file
-            .write_fmt(format_args!(
-                "extension={}\n",
-                lib_path.as_ref().to_str().unwrap()
-            ))
-            .unwrap();
-
-        out_ini_temp_file
-    }
-
-    pub fn create_command_with_tmp_php_ini_args(
-        &self, tmp_php_ini_file: &NamedTempFile, script: impl AsRef<Path>,
+    pub fn create_command_with_lib(
+        &self, lib_path: impl AsRef<Path>, script: impl AsRef<Path>,
     ) -> ContextCommand {
         let mut cmd = Command::new(&self.php_bin);
         let args = vec![
             "-n".to_owned(),
-            "-c".to_owned(),
-            tmp_php_ini_file.path().to_str().unwrap().to_owned(),
-            script.as_ref().to_str().unwrap().to_owned(),
+            "-d".to_owned(),
+            format!("extension={}", lib_path.as_ref().display()),
+            script.as_ref().display().to_string(),
         ];
         cmd.args(&args);
         ContextCommand { cmd, args }

@@ -26,7 +26,7 @@ cargo test --release
 ## Install
 
 ```bash
-cargo run --release -- install
+cp target/release/libhttp_client.so `${PHP_CONFIG:=php-config} --extension-dir`
 ```
 
 ## License

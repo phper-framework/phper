@@ -59,26 +59,25 @@ pub(crate) fn spawn_command<S: AsRef<OsStr> + Debug>(
     child
 }
 
-pub fn get_lib_path(exe_path: impl AsRef<Path>) -> PathBuf {
-    let exe_path = exe_path.as_ref();
-    let exe_stem = exe_path
-        .file_stem()
-        .expect("failed to get current exe stem")
-        .to_str()
-        .expect("failed to convert to utf-8 str");
-    let target_dir = exe_path
-        .parent()
-        .expect("failed to get current exe directory");
-
+pub fn get_lib_path(target_path: impl AsRef<Path>, package_name: &str) -> PathBuf {
+    let target_path = target_path.as_ref();
+    let mut path = target_path.to_path_buf();
+    path.push(if cfg!(debug_assertions) {
+        "debug"
+    } else {
+        "release"
+    });
     let mut ext_name = OsString::new();
     ext_name.push("lib");
-    ext_name.push(exe_stem.replace('-', "_"));
-    #[cfg(target_os = "linux")]
-    ext_name.push(".so");
-    #[cfg(target_os = "macos")]
-    ext_name.push(".dylib");
-    #[cfg(target_os = "windows")]
-    ext_name.push(".dll");
-
-    target_dir.join(ext_name)
+    ext_name.push(package_name);
+    ext_name.push(if cfg!(target_os = "linux") {
+        ".so"
+    } else if cfg!(target_os = "macos") {
+        ".dylib"
+    } else if cfg!(target_os = "windows") {
+        ".dll"
+    } else {
+        ""
+    });
+    path.join(ext_name)
 }
