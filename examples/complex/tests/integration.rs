@@ -22,7 +22,7 @@ fn test_php() {
                 .join("..")
                 .join("..")
                 .join("target"),
-            "hello",
+            "complex",
         ),
         &[&Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")

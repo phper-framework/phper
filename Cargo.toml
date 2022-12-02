@@ -18,7 +18,7 @@ members = [
     "phper-test",
 
     # internal
-    "examples/hello",
+    "examples/complex",
     "examples/http-client",
     "examples/http-server",
     "examples/logging",
