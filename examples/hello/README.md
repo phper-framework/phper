@@ -24,7 +24,7 @@ cargo test --release
 ## Install
 
 ```bash
-cargo run --release -- install
+cp target/release/libhello.so `${PHP_CONFIG:=php-config} --extension-dir`
 ```
 
 ## License

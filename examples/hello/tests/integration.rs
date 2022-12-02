@@ -8,13 +8,22 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper_test::{cli::test_php_scripts_with_lib, utils::get_lib_path};
-use std::{env, path::Path};
+use phper_test::{cli::test_php_scripts, utils::get_lib_path};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 #[test]
 fn test_php() {
-    test_php_scripts_with_lib(
-        get_lib_path(env!("CARGO_BIN_EXE_hello")),
+    test_php_scripts(
+        get_lib_path(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+                .join("target"),
+            "hello",
+        ),
         &[&Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("php")
