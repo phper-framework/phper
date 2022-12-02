@@ -26,3 +26,56 @@ pub mod _02_quick_start {
 
 /// TODO
 pub mod _03_integrate_with_pecl {}
+
+/// TODO
+pub mod _04_zval {}
+
+/// TODO
+pub mod _05_internal_types {
+
+    /// TODO
+    pub mod _01_z_str {}
+
+    /// TODO
+    pub mod _02_z_arr {}
+
+    /// TODO
+    pub mod _03_z_arr {}
+}
+
+/// TODO
+pub mod _06_class_and_object {}
+
+/// TODO
+pub mod _07_module {
+
+    /// TODO
+    pub mod _01_hooks {}
+
+    /// TODO
+    pub mod _02_register_functions {}
+
+    /// TODO
+    pub mod _03_register_constants {}
+
+    /// TODO
+    pub mod _04_register_ini_settings {}
+
+    /// TODO
+    pub mod _05_extension_information {}
+}
+
+/// TODO
+pub mod _08_allocation {}
+
+/// TODO
+pub mod _09_handle_exception {}
+
+/// TODO
+pub mod _10_build_script {}
+
+/// TODO
+pub mod _11_integration_tests {}
+
+/// TODO
+pub mod _12_macros {}
