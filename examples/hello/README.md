@@ -18,7 +18,7 @@ cargo build --release
 ## Run
 
 ```bash
-php -d "extension=target/debug/libhello.so" -r "say_hello('Bob');"
+php -d "extension=target/release/libhello.so" -r "say_hello('Bob');"
 ```
 
 ## License
