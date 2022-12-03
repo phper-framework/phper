@@ -245,3 +245,9 @@ jobs:
         with:
           command: check
           args: --manifest-path phper/Cargo.toml ${{ matrix.features }}
+
+      - name: Cargo check phper-doc
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path phper-doc/Cargo.toml ${{ matrix.features }}

@@ -101,3 +101,13 @@ jobs:
         with:
           command: publish
           args: --manifest-path phper/Cargo.toml
+        continue-on-error: true
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Cargo publish phper-doc
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --manifest-path phper-doc/Cargo.toml
