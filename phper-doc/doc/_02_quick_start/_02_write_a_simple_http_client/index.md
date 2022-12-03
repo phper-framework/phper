@@ -104,7 +104,7 @@ Now let's begin to finish the logic.
    #[derive(Debug, thiserror::Error, phper::Throwable)]
    #[throwable_class(EXCEPTION_CLASS_NAME)]
    pub enum HttpClientError {
-       /// Generate, implement `From` for `phper::Error`.
+       /// Generally, implement `From` for `phper::Error`.
        #[error(transparent)]
        #[throwable(transparent)]
        Phper(#[from] phper::Error),
@@ -137,7 +137,7 @@ Now let's begin to finish the logic.
    > But here the `HttpClientException` hasn't state required, so the class in
    > `StatefulClass<()>`.
 
-1. Then, you create the `HttpClientBuilder` class in `src/client.rs`.
+1. Then, create the `HttpClientBuilder` class in `src/client.rs`.
 
    ```rust
    /*** src/errors.rs ***/
@@ -152,7 +152,7 @@ Now let's begin to finish the logic.
    #[derive(Debug, thiserror::Error, phper::Throwable)]
    #[throwable_class(EXCEPTION_CLASS_NAME)]
    pub enum HttpClientError {
-       /// Generate, implement `From` for `phper::Error`.
+       /// Generally, implement `From` for `phper::Error`.
        #[error(transparent)]
        #[throwable(transparent)]
        Phper(#[from] phper::Error),
@@ -220,7 +220,8 @@ Now let's begin to finish the logic.
            |this, _arguments| {
                let state = take(this.as_mut_state());
                let client = ClientBuilder::build(state)?;
-               let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
+               let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?
+                                .init_object()?;
                unsafe {
                    *object.as_mut_state() = Some(client);
                }

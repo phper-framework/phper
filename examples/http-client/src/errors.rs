@@ -18,7 +18,7 @@ const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
 #[derive(Debug, thiserror::Error, phper::Throwable)]
 #[throwable_class(EXCEPTION_CLASS_NAME)]
 pub enum HttpClientError {
-    /// Generate, implement `From` for `phper::Error`.
+    /// Generally, implement `From` for `phper::Error`.
     #[error(transparent)]
     #[throwable(transparent)]
     Phper(#[from] phper::Error),
