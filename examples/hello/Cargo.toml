@@ -8,28 +8,17 @@
 # NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-[workspace]
-members = [
-    "phper",
-    "phper-alloc",
-    "phper-build",
-    "phper-macros",
-    "phper-sys",
-    "phper-test",
+[package]
+name = "hello"
+version = "0.0.0"
+publish = false
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
 
-    # internal
-    "examples/complex",
-    "examples/hello",
-    "examples/http-client",
-    "examples/http-server",
-    "examples/logging",
-    "tests/integration",
-]
+[lib]
+crate-type = ["lib", "cdylib"]
 
-[workspace.package]
-version = "0.6.0"
-authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
-edition = "2021"
-license = "MulanPSL-2.0"
-repository = "https://github.com/jmjoy/phper.git"
-rust-version = "1.65"
+[dependencies]
+phper = { version = "0.6.0", path = "../../phper" }
