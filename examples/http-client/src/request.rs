@@ -8,9 +8,10 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME, utils::replace_and_get};
+use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME};
 use phper::classes::{ClassEntry, StatefulClass, Visibility};
 use reqwest::blocking::RequestBuilder;
+use std::mem::take;
 
 pub const REQUEST_BUILDER_CLASS_NAME: &str = "HttpClient\\RequestBuilder";
 
@@ -24,8 +25,8 @@ pub fn make_request_builder_class() -> StatefulClass<Option<RequestBuilder>> {
         "send",
         Visibility::Public,
         |this, _arguments| {
-            let state = this.as_mut_state();
-            let response = replace_and_get(state, |builder| builder.unwrap().send())?;
+            let state = take(this.as_mut_state());
+            let response = state.unwrap().send()?;
             let mut object = ClassEntry::from_globals(RESPONSE_CLASS_NAME)?.new_object([])?;
             unsafe {
                 *object.as_mut_state() = Some(response);

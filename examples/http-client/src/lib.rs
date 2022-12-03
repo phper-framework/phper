@@ -20,7 +20,6 @@ pub mod client;
 pub mod errors;
 pub mod request;
 pub mod response;
-pub mod utils;
 
 #[php_get_module]
 pub fn get_module() -> Module {

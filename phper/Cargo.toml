@@ -10,16 +10,16 @@
 
 [package]
 name = "phper"
+description = "The framework that allows us to write PHP extensions using pure and safe Rust whenever possible."
+documentation = "https://docs.rs/phper"
+readme = "README.md"
+keywords = ["php", "binding", "extension", "module"]
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-description = "The framework that allows us to write PHP extensions using pure and safe Rust whenever possible."
 repository = { workspace = true }
-documentation = "https://docs.rs/phper"
 license = { workspace = true }
-readme = "README.md"
-keywords = ["php", "binding", "extension", "module"]
 
 [dependencies]
 anyhow = "1.0.66"
