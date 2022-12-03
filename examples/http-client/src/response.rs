@@ -8,13 +8,14 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::{errors::HttpClientError, utils::replace_and_get};
+use crate::errors::HttpClientError;
 use phper::{
     arrays::{InsertKey, ZArray},
     classes::{StatefulClass, Visibility},
     values::ZVal,
 };
 use reqwest::blocking::Response;
+use std::mem::take;
 
 pub const RESPONSE_CLASS_NAME: &str = "HttpClient\\Response";
 
@@ -25,12 +26,10 @@ pub fn make_response_class() -> StatefulClass<Option<Response>> {
         "body",
         Visibility::Public,
         |this, _arguments| {
-            let response = this.as_mut_state();
-            let body = replace_and_get(response, |response| {
-                response
-                    .ok_or(HttpClientError::ResponseHadRead)
-                    .and_then(|response| response.bytes().map_err(Into::into))
-            })?;
+            let response = take(this.as_mut_state());
+            let body = response
+                .ok_or(HttpClientError::ResponseHadRead)
+                .and_then(|response| response.bytes().map_err(Into::into))?;
             Ok::<_, HttpClientError>(body.to_vec())
         },
         vec![],

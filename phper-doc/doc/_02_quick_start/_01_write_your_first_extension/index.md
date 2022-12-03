@@ -2,6 +2,10 @@
 
 Here we will write the `hello world` extension, which has a function, receive the person name and echo hello to the person.
 
+Full example is <https://github.com/phper-framework/phper/tree/master/examples/hello>.
+
+## Steps
+
 1. Make sure `libclang` is installed (required by [bindgen](https://rust-lang.github.io/rust-bindgen/requirements.html)).
 
    `phper` require libclang *9.0+*.
