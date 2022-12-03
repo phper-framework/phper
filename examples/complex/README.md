@@ -1,6 +1,6 @@
-# hello
+# complex
 
-Hello world example.
+Complex example.
 
 ## Environment
 
@@ -24,7 +24,7 @@ cargo test --release
 ## Install
 
 ```bash
-cp target/release/libhello.so `${PHP_CONFIG:=php-config} --extension-dir`
+cp target/release/libcomplex.so `${PHP_CONFIG:=php-config} --extension-dir`
 ```
 
 ## License

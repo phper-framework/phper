@@ -40,10 +40,14 @@ pub fn get_module() -> Module {
     );
 
     // register module ini
-    module.add_ini("hello.enable", false, Policy::All);
-    module.add_ini("hello.num", 100, Policy::All);
-    module.add_ini("hello.ratio", 1.5, Policy::All);
-    module.add_ini("hello.description", "hello world.".to_owned(), Policy::All);
+    module.add_ini("complex.enable", false, Policy::All);
+    module.add_ini("complex.num", 100, Policy::All);
+    module.add_ini("complex.ratio", 1.5, Policy::All);
+    module.add_ini(
+        "complex.description",
+        "hello world.".to_owned(),
+        Policy::All,
+    );
 
     // register hook functions
     module.on_module_init(|_: ModuleContext| true);
@@ -52,18 +56,22 @@ pub fn get_module() -> Module {
     module.on_request_shutdown(|_| true);
 
     // register functions
-    module.add_function("hello_say_hello", say_hello, vec![Argument::by_val("name")]);
-    module.add_function("hello_throw_exception", throw_exception, vec![]);
     module.add_function(
-        "hello_get_all_ini",
+        "complex_say_hello",
+        say_hello,
+        vec![Argument::by_val("name")],
+    );
+    module.add_function("complex_throw_exception", throw_exception, vec![]);
+    module.add_function(
+        "complex_get_all_ini",
         |_: &mut [ZVal]| {
             let mut arr = ZArray::new();
 
-            let hello_enable = ZVal::from(ini_get::<bool>("hello.enable"));
-            arr.insert("hello.enable", hello_enable);
+            let complex_enable = ZVal::from(ini_get::<bool>("complex.enable"));
+            arr.insert("complex.enable", complex_enable);
 
-            let hello_description = ZVal::from(ini_get::<Option<&CStr>>("hello.description"));
-            arr.insert("hello.description", hello_description);
+            let complex_description = ZVal::from(ini_get::<Option<&CStr>>("complex.description"));
+            arr.insert("complex.description", complex_description);
 
             arr
         },

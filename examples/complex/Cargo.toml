@@ -9,7 +9,7 @@
 # See the Mulan PSL v2 for more details.
 
 [package]
-name = "hello"
+name = "complex"
 version = "0.0.0"
 authors = { workspace = true }
 edition = { workspace = true }
