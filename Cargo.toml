@@ -19,6 +19,7 @@ members = [
     "phper-doc",
 
     # internal
+    "examples/complex",
     "examples/hello",
     "examples/http-client",
     "examples/http-server",

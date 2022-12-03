@@ -23,7 +23,6 @@ license = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.66"
-clap = { version = "4.0.27", features = ["derive"] }
 dashmap = "5.4.0"
 derive_more = "0.99.17"
 indexmap = "1.9.2"

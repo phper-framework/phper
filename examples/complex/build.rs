@@ -8,8 +8,12 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::cmd::make;
-
 fn main() {
-    make();
+    phper_build::register_configures();
+
+    #[cfg(target_os = "macos")]
+    {
+        println!("cargo:rustc-link-arg=-undefined");
+        println!("cargo:rustc-link-arg=dynamic_lookup");
+    }
 }

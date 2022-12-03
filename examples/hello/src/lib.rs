@@ -8,90 +8,33 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::{
-    arrays::ZArray,
-    classes::{StatefulClass, Visibility},
-    functions::Argument,
-    ini::{ini_get, Policy},
-    modules::{Module, ModuleContext},
-    objects::StatefulObj,
-    php_get_module,
-    values::ZVal,
-};
-use std::ffi::CStr;
+use phper::{echo, functions::Argument, modules::Module, php_get_module, values::ZVal};
 
-fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
-    let name = &mut arguments[0];
-    name.convert_to_string();
-    let name = name.as_z_str().unwrap().to_str()?;
-    Ok(format!("Hello, {}!\n", name))
+/// The php function, receive arguments with type `ZVal`.
+fn say_hello(arguments: &mut [ZVal]) -> phper::Result<()> {
+    // Get the first argument, expect the type `ZStr`, and convert to Rust utf-8
+    // str.
+    let name = arguments[0].expect_z_str()?.to_str()?;
+
+    // Macro which do php internal `echo`.
+    echo!("Hello, {}!\n", name);
+
+    Ok(())
 }
 
-fn throw_exception(_: &mut [ZVal]) -> phper::Result<()> {
-    Err(phper::Error::other("I am sorry"))
-}
-
+/// This is the entry of php extension, the attribute macro `php_get_module`
+/// will generate the `extern "C" fn`.
 #[php_get_module]
 pub fn get_module() -> Module {
+    // New `Module` with extension info.
     let mut module = Module::new(
-        env!("CARGO_PKG_NAME"),
+        env!("CARGO_CRATE_NAME"),
         env!("CARGO_PKG_VERSION"),
         env!("CARGO_PKG_AUTHORS"),
     );
 
-    // register module ini
-    module.add_ini("hello.enable", false, Policy::All);
-    module.add_ini("hello.num", 100, Policy::All);
-    module.add_ini("hello.ratio", 1.5, Policy::All);
-    module.add_ini("hello.description", "hello world.".to_owned(), Policy::All);
-
-    // register hook functions
-    module.on_module_init(|_: ModuleContext| true);
-    module.on_module_shutdown(|_| true);
-    module.on_request_init(|_| true);
-    module.on_request_shutdown(|_| true);
-
-    // register functions
-    module.add_function("hello_say_hello", say_hello, vec![Argument::by_val("name")]);
-    module.add_function("hello_throw_exception", throw_exception, vec![]);
-    module.add_function(
-        "hello_get_all_ini",
-        |_: &mut [ZVal]| {
-            let mut arr = ZArray::new();
-
-            let hello_enable = ZVal::from(ini_get::<bool>("hello.enable"));
-            arr.insert("hello.enable", hello_enable);
-
-            let hello_description = ZVal::from(ini_get::<Option<&CStr>>("hello.description"));
-            arr.insert("hello.description", hello_description);
-
-            arr
-        },
-        vec![],
-    );
-
-    // register classes
-    let mut foo_class = StatefulClass::new("FooClass");
-    foo_class.add_property("foo", Visibility::Private, 100);
-    foo_class.add_method(
-        "getFoo",
-        Visibility::Public,
-        |this: &mut StatefulObj<()>, _: &mut [ZVal]| {
-            let prop = this.get_property("foo");
-            Ok::<_, phper::Error>(prop.clone())
-        },
-        vec![],
-    );
-    foo_class.add_method(
-        "setFoo",
-        Visibility::Public,
-        |this: &mut StatefulObj<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
-            this.set_property("foo", arguments[0].clone());
-            Ok(())
-        },
-        vec![Argument::by_val("foo")],
-    );
-    module.add_class(foo_class);
+    // Register function `say_hello`, with one argument `name`.
+    module.add_function("say_hello", say_hello, vec![Argument::by_val("name")]);
 
     module
 }

@@ -9,12 +9,12 @@
 # See the Mulan PSL v2 for more details.
 
 [package]
-name = "hello"
+name = "complex"
 version = "0.0.0"
-publish = false
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
+publish = false
 license = { workspace = true }
 
 [lib]
@@ -22,3 +22,9 @@ crate-type = ["lib", "cdylib"]
 
 [dependencies]
 phper = { version = "0.6.0", path = "../../phper" }
+
+[dev-dependencies]
+phper-test = { version = "0.6.0", path = "../../phper-test" }
+
+[build-dependencies]
+phper-build = { version = "0.6.0", path = "../../phper-build" }
