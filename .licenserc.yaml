@@ -15,16 +15,17 @@ header:
     software-name: PHPER
 
   paths-ignore:
-    - 'LICENSE'
-    - 'NOTICE'
-    - '**/*.md'
     - '**/*.lock'
+    - '**/*.md'
     - '**/.gitignore'
     - '**/.gitmodules'
-    - 'vendor'
     - '.cargo'
-    - '.vscode'
     - '.idea'
+    - '.vscode'
+    - 'LICENSE'
+    - 'NOTICE'
+    - 'config.m4'
+    - 'vendor'
 
   comment: on-failure
 

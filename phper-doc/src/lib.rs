@@ -24,7 +24,7 @@ pub mod _02_quick_start {
     pub mod _02_write_a_simple_http_client {}
 }
 
-/// TODO
+#[doc = include_str!("../doc/_03_integrate_with_pecl/index.md")]
 pub mod _03_integrate_with_pecl {}
 
 /// TODO

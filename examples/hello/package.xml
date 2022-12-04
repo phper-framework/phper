@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2022 PHPER Framework Team
+PHPER is licensed under Mulan PSL v2.
+You can use this software according to the terms and conditions of the Mulan
+PSL v2. You may obtain a copy of Mulan PSL v2 at:
+         http://license.coscl.org.cn/MulanPSL2
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+See the Mulan PSL v2 for more details.
+-->
+<package version="2.0" 
+	xmlns="http://pear.php.net/dtd/package-2.0" 
+	xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+	<name>hello</name>
+	<channel>pecl.php.net</channel>
+	<summary>Hello world example.</summary>
+	<description>The Hello world example of phper.</description>
+	<lead>
+		<name>jmjoy</name>
+		<user>jmjoy</user>
+		<email>jmjoy@apache.org</email>
+		<active>yes</active>
+	</lead>
+	<date>1970-01-01</date>
+	<version>
+		<release>0.0.0</release>
+		<api>0.0.0</api>
+	</version>
+	<stability>
+		<release>stable</release>
+		<api>stable</api>
+	</stability>
+	<license uri="http://license.coscl.org.cn/MulanPSL2/">MulanPSL-2.0</license>
+	<notes>        Release notes.	</notes>
+	<contents>
+		<dir name="/">
+			<file name="Cargo.lock" role="src" />
+			<file name="Cargo.toml" role="src" />
+			<file name="README.md" role="doc" />
+			<file name="build.rs" role="src" />
+			<file name="config.m4" role="src" />
+			<file name="src/lib.rs" role="src" />
+		</dir>
+	</contents>
+	<dependencies>
+		<required>
+			<php>
+				<min>7.2.0</min>
+			</php>
+			<pearinstaller>
+				<min>1.4.0</min>
+			</pearinstaller>
+		</required>
+	</dependencies>
+	<providesextension>hello</providesextension>
+	<extsrcrelease>
+		<configureoption default="no" name="enable-cargo-debug" prompt="enable cargo debug?" />
+	</extsrcrelease>
+</package>
