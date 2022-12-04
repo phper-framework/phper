@@ -466,6 +466,7 @@ impl From<f64> for ZVal {
 }
 
 impl From<&[u8]> for ZVal {
+    #[allow(clippy::useless_conversion)]
     fn from(b: &[u8]) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();

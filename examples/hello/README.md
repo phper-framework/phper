@@ -15,16 +15,10 @@ export PHP_CONFIG=<Your path of php-config>
 cargo build --release
 ```
 
-## Test
+## Run
 
 ```bash
-cargo test --release
-```
-
-## Install
-
-```bash
-cargo run --release -- install
+php -d "extension=target/release/libhello.so" -r "say_hello('Bob');"
 ```
 
 ## License

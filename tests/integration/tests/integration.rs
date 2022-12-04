@@ -8,10 +8,11 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper_test::{
-    cli::test_php_scripts_with_lib, fpm, fpm::test_fpm_request, utils::get_lib_path_by_example,
+use phper_test::{cli::test_php_scripts, fpm, fpm::test_fpm_request, utils::get_lib_path};
+use std::{
+    env,
+    path::{Path, PathBuf},
 };
-use std::{env, path::Path};
 
 #[test]
 fn test_cli() {
@@ -19,8 +20,14 @@ fn test_cli() {
         .join("tests")
         .join("php");
 
-    test_php_scripts_with_lib(
-        get_lib_path_by_example(env!("CARGO_BIN_EXE_integration")),
+    test_php_scripts(
+        get_lib_path(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+                .join("target"),
+            "integration",
+        ),
         &[
             &tests_php_dir.join("arguments.php"),
             &tests_php_dir.join("arrays.php"),
@@ -41,7 +48,13 @@ fn test_fpm() {
         .join("tests")
         .join("php");
 
-    fpm::setup_lib(get_lib_path_by_example(env!("CARGO_BIN_EXE_integration")));
+    fpm::setup(get_lib_path(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("target"),
+        "integration",
+    ));
 
     test_fpm_request("GET", &tests_php_dir, "/arguments.php", None, None);
     test_fpm_request("GET", &tests_php_dir, "/arrays.php", None, None);

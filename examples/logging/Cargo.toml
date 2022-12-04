@@ -11,29 +11,21 @@
 [package]
 name = "logging"
 version = "0.0.0"
-authors.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+authors = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
-license.workspace = true
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = { workspace = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]
 
-# This example is hack to used for integration tests.
-[[example]]
-name = "logging"
-path = "src/_reexport.rs"
-crate-type = ["cdylib"]
-
 [dependencies]
-anyhow = "1.0.65"
-phper = { version = "0.5.1", path = "../../phper" }
+anyhow = "1.0.66"
+phper = { version = "0.7.0", path = "../../phper" }
 
 [dev-dependencies]
-phper-test = { version = "0.5.1", path = "../../phper-test" }
+phper-test = { version = "0.7.0", path = "../../phper-test" }
 
 [build-dependencies]
-phper-build = { version = "0.5.1", path = "../../phper-build" }
+phper-build = { version = "0.7.0", path = "../../phper-build" }

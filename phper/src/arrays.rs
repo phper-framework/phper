@@ -110,6 +110,7 @@ impl ZArr {
     }
 
     /// Add or update item by key.
+    #[allow(clippy::useless_conversion)]
     pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, mut value: ZVal) {
         let key = key.into();
         let val = value.as_mut_ptr();
@@ -162,6 +163,7 @@ impl ZArr {
         self.inner_get(key)
     }
 
+    #[allow(clippy::useless_conversion)]
     fn inner_get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&'a mut ZVal> {
         let key = key.into();
         let ptr = self.as_ptr() as *mut _;
@@ -190,6 +192,7 @@ impl ZArr {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
         let ptr = self.as_ptr() as *mut _;
@@ -215,6 +218,7 @@ impl ZArr {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub fn remove<'a>(&mut self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
         unsafe {

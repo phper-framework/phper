@@ -11,7 +11,7 @@
 //! Logs and echo facilities.
 
 use crate::{sys::*, utils::ensure_end_with_zero};
-use std::{convert::TryInto, ptr::null};
+use std::ptr::null;
 
 #[repr(u32)]
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -34,12 +34,13 @@ pub fn log(level: LogLevel, message: impl Into<String>) {
     }
 }
 
+#[allow(clippy::useless_conversion)]
 pub fn echo(message: impl Into<String>) {
     let message = ensure_end_with_zero(message);
     unsafe {
         zend_write.expect("function zend_write can't be null")(
             message.as_ptr().cast(),
-            (message.len() - 1).try_into().unwrap(),
+            message.as_bytes().len().try_into().unwrap(),
         );
     }
 }

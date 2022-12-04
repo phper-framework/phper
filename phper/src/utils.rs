@@ -10,10 +10,8 @@
 
 //! Internal useful utils.
 
-pub(crate) fn ensure_end_with_zero(s: impl Into<String>) -> String {
-    let mut s = s.into();
-    if !s.ends_with('\0') {
-        s.push('\0');
-    }
-    s
+use std::ffi::CString;
+
+pub(crate) fn ensure_end_with_zero(s: impl Into<String>) -> CString {
+    CString::new(s.into()).expect("CString::new failed")
 }

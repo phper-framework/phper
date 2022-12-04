@@ -24,82 +24,66 @@ fn integrate_returns(module: &mut Module) {
     module.add_function(
         "integration_values_return_null",
         integration_values_return_null,
-        vec![],
     );
     module.add_function(
         "integration_values_return_true",
         integration_values_return_true,
-        vec![],
     );
     module.add_function(
         "integration_values_return_false",
         integration_values_return_false,
-        vec![],
     );
     module.add_function(
         "integration_values_return_i64",
         integration_values_return_i64,
-        vec![],
     );
     module.add_function(
         "integration_values_return_f64",
         integration_values_return_f64,
-        vec![],
     );
     module.add_function(
         "integration_values_return_str",
         integration_values_return_str,
-        vec![],
     );
     module.add_function(
         "integration_values_return_string",
         integration_values_return_string,
-        vec![],
     );
     module.add_function(
         "integration_values_return_array",
         integration_values_return_array,
-        vec![],
     );
     module.add_function(
         "integration_values_return_kv_array",
         integration_values_return_kv_array,
-        vec![],
     );
     module.add_function(
         "integration_values_return_object",
         integration_values_return_object,
-        vec![],
     );
     module.add_function(
         "integration_values_return_option_i64_some",
         integration_values_return_option_i64_some,
-        vec![],
     );
     module.add_function(
         "integration_values_return_option_i64_none",
         integration_values_return_option_i64_none,
-        vec![],
     );
     module.add_function(
         "integration_values_return_ebox_i64",
         integration_values_return_ebox_i64,
-        vec![],
     );
     module.add_function(
         "integration_values_return_result_string_ok",
         integration_values_return_result_string_ok,
-        vec![],
     );
     module.add_function(
         "integration_values_return_result_string_err",
         integration_values_return_result_string_err,
-        vec![],
     );
     module.add_function(
         "integration_values_return_val",
         integration_values_return_val,
-        vec![],
     );
 }
 

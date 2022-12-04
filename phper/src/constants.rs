@@ -10,9 +10,8 @@
 
 //! Apis relate to [crate::sys::zend_constant].
 
-use std::ffi::{c_char, c_int};
-
 use crate::{modules::ModuleContext, sys::*, types::Scalar};
+use std::ffi::{c_char, c_int};
 
 pub(crate) struct Constant {
     name: String,
@@ -29,7 +28,7 @@ impl Constant {
 
     pub(crate) fn register(&self, module_context: &ModuleContext) {
         let name_ptr = self.name.as_ptr() as *const c_char;
-        let name_len = self.name.len() as size_t;
+        let name_len = self.name.len();
         let flags = (CONST_PERSISTENT | CONST_CS) as c_int;
         let num = module_context.module_number;
 
@@ -49,7 +48,7 @@ impl Constant {
                         name_ptr,
                         name_len,
                         s_ptr.cast(),
-                        s.len() as size_t,
+                        s.len(),
                         flags,
                         num,
                     )
@@ -60,7 +59,7 @@ impl Constant {
                         name_ptr,
                         name_len,
                         s_ptr.cast(),
-                        s.len() as size_t,
+                        s.len(),
                         flags,
                         num,
                     )

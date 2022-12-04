@@ -44,10 +44,8 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
     class.add_property("port", Visibility::Private, 8080);
     class.add_property("onRequestHandle", Visibility::Private, ());
 
-    class.add_method(
-        "__construct",
-        Visibility::Public,
-        |this, arguments| {
+    class
+        .add_method("__construct", Visibility::Public, |this, arguments| {
             let host = arguments[0].expect_z_str()?;
             let port = arguments[1].expect_long()?;
             this.set_property("host", host.to_owned());
@@ -56,77 +54,68 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
             let builder = Server::bind(&addr);
             *this.as_mut_state() = Some(builder);
             Ok::<_, HttpServerError>(())
-        },
-        vec![Argument::by_val("host"), Argument::by_val("port")],
-    );
+        })
+        .arguments([Argument::by_val("host"), Argument::by_val("port")]);
 
-    class.add_method(
-        "onRequest",
-        Visibility::Public,
-        |this, arguments| {
+    class
+        .add_method("onRequest", Visibility::Public, |this, arguments| {
             this.set_property("onRequestHandle", arguments[0].clone());
             Ok::<_, phper::Error>(())
-        },
-        vec![Argument::by_val("handle")],
-    );
+        })
+        .argument(Argument::by_val("handle"));
 
-    class.add_method(
-        "start",
-        Visibility::Public,
-        |this, _| {
-            static HANDLE: AtomicPtr<ZVal> = AtomicPtr::new(null_mut());
+    class.add_method("start", Visibility::Public, |this, _| {
+        static HANDLE: AtomicPtr<ZVal> = AtomicPtr::new(null_mut());
 
-            let builder = replace(this.as_mut_state(), None).unwrap();
-            let handle = EBox::new(this.get_mut_property("onRequestHandle").ref_clone());
-            HANDLE.store(EBox::into_raw(handle), Ordering::SeqCst);
+        let builder = replace(this.as_mut_state(), None).unwrap();
+        let handle = EBox::new(this.get_mut_property("onRequestHandle").ref_clone());
+        HANDLE.store(EBox::into_raw(handle), Ordering::SeqCst);
 
-            let make_svc = make_service_fn(move |_conn| async move {
-                Ok::<_, Infallible>(service_fn(move |_: Request<Body>| async move {
-                    match async move {
-                        let handle = unsafe { HANDLE.load(Ordering::SeqCst).as_mut().unwrap() };
+        let make_svc = make_service_fn(move |_conn| async move {
+            Ok::<_, Infallible>(service_fn(move |_: Request<Body>| async move {
+                match async move {
+                    let handle = unsafe { HANDLE.load(Ordering::SeqCst).as_mut().unwrap() };
 
-                        let request =
-                            ClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?.new_object([])?;
-                        let request = ZVal::from(request);
+                    let request =
+                        ClassEntry::from_globals(HTTP_REQUEST_CLASS_NAME)?.new_object([])?;
+                    let request = ZVal::from(request);
 
-                        let mut response =
-                            ClassEntry::from_globals(HTTP_RESPONSE_CLASS_NAME)?.new_object([])?;
-                        let response_val = response.to_ref_owned();
-                        let response_val = ZVal::from(response_val);
+                    let mut response =
+                        ClassEntry::from_globals(HTTP_RESPONSE_CLASS_NAME)?.new_object([])?;
+                    let response_val = response.to_ref_owned();
+                    let response_val = ZVal::from(response_val);
 
-                        match handle.call([request, response_val]) {
-                            Err(Throw(ex)) => {
-                                let state = unsafe { response.as_mut_state::<Response<Body>>() };
-                                *state.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                                *state.body_mut() = ex.to_string().into();
-                            }
-                            Err(e) => return Err(e.into()),
-                            _ => {}
+                    match handle.call([request, response_val]) {
+                        Err(Throw(ex)) => {
+                            let state = unsafe { response.as_mut_state::<Response<Body>>() };
+                            *state.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                            *state.body_mut() = ex.to_string().into();
                         }
-
-                        let response = replace_and_get(unsafe { response.as_mut_state() });
-                        Ok::<Response<Body>, HttpServerError>(response)
+                        Err(e) => return Err(e.into()),
+                        _ => {}
                     }
-                    .await
-                    {
-                        Ok(response) => Ok::<Response<Body>, Infallible>(response),
-                        Err(e) => {
-                            let mut response = Response::new("".into());
-                            *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                            *response.body_mut() = e.to_string().into();
-                            Ok::<Response<Body>, Infallible>(response)
-                        }
+
+                    let response = replace_and_get(unsafe { response.as_mut_state() });
+                    Ok::<Response<Body>, HttpServerError>(response)
+                }
+                .await
+                {
+                    Ok(response) => Ok::<Response<Body>, Infallible>(response),
+                    Err(e) => {
+                        let mut response = Response::new("".into());
+                        *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                        *response.body_mut() = e.to_string().into();
+                        Ok::<Response<Body>, Infallible>(response)
                     }
-                }))
-            });
+                }
+            }))
+        });
 
-            let server = builder.serve(make_svc);
-            Handle::current().block_on(server)?;
+        let server = builder.serve(make_svc);
+        Handle::current().block_on(server)?;
 
-            Ok::<_, HttpServerError>(())
-        },
-        vec![],
-    );
+        Ok::<_, HttpServerError>(())
+    });
 
     class
 }

@@ -26,18 +26,14 @@ pub fn integrate(module: &mut Module) {
         Policy::System,
     );
 
-    module.add_function(
-        "integrate_ini_assert",
-        |_| {
-            assert!(ini_get::<bool>("INTEGRATE_INI_TRUE"));
-            assert!(!ini_get::<bool>("INTEGRATE_INI_FALSE"));
-            assert_eq!(ini_get::<i64>("INTEGRATE_INI_LONG"), 100);
-            assert_eq!(ini_get::<f64>("INTEGRATE_INI_DOUBLE"), 200.);
-            assert_eq!(
-                ini_get::<Option<&CStr>>("INTEGRATE_INI_STRING"),
-                Some(c_str!("something"))
-            );
-        },
-        vec![],
-    );
+    module.add_function("integrate_ini_assert", |_| {
+        assert!(ini_get::<bool>("INTEGRATE_INI_TRUE"));
+        assert!(!ini_get::<bool>("INTEGRATE_INI_FALSE"));
+        assert_eq!(ini_get::<i64>("INTEGRATE_INI_LONG"), 100);
+        assert_eq!(ini_get::<f64>("INTEGRATE_INI_DOUBLE"), 200.);
+        assert_eq!(
+            ini_get::<Option<&CStr>>("INTEGRATE_INI_STRING"),
+            Some(c_str!("something"))
+        );
+    });
 }

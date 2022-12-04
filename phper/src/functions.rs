@@ -26,10 +26,12 @@ use crate::{
 use phper_alloc::ToRefOwned;
 use std::{
     convert::TryInto,
+    ffi::{CStr, CString},
     marker::PhantomData,
     mem::{size_of, transmute, zeroed},
     os::raw::c_char,
     ptr::null_mut,
+    rc::Rc,
 };
 
 pub(crate) trait Callable {
@@ -107,40 +109,41 @@ pub struct FunctionEntry {
     inner: zend_function_entry,
 }
 
-pub struct FunctionEntity {
-    pub(crate) name: String,
-    pub(crate) handler: Box<dyn Callable>,
-    pub(crate) arguments: Vec<Argument>,
-    pub(crate) visibility: Option<Visibility>,
-    pub(crate) r#static: Option<bool>,
-}
+impl FunctionEntry {
+    pub(crate) unsafe fn from_function_entity(entity: &FunctionEntity) -> zend_function_entry {
+        Self::entry(
+            &entity.name,
+            &entity.arguments,
+            entity.handler.clone(),
+            None,
+            None,
+        )
+    }
 
-impl FunctionEntity {
-    pub(crate) fn new(
-        name: impl Into<String>, handler: Box<dyn Callable>, arguments: Vec<Argument>,
-        visibility: Option<Visibility>, r#static: Option<bool>,
-    ) -> Self {
-        let name = ensure_end_with_zero(name);
-        FunctionEntity {
-            name,
-            handler,
-            arguments,
-            visibility,
-            r#static,
-        }
+    pub(crate) unsafe fn from_method_entity(entity: &MethodEntity) -> zend_function_entry {
+        Self::entry(
+            &entity.name,
+            &entity.arguments,
+            entity.handler.clone(),
+            Some(entity.visibility),
+            Some(entity.r#static),
+        )
     }
 
     /// Will leak memory
-    pub(crate) unsafe fn entry(&self) -> zend_function_entry {
+    unsafe fn entry(
+        name: &CStr, arguments: &[Argument], handler: Rc<dyn Callable>,
+        visibility: Option<Visibility>, r#static: Option<bool>,
+    ) -> zend_function_entry {
         let mut infos = Vec::new();
 
-        let require_arg_count = self.arguments.iter().filter(|arg| arg.required).count();
+        let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
         infos.push(create_zend_arg_info(
             require_arg_count as *const c_char,
             false,
         ));
 
-        for arg in &self.arguments {
+        for arg in arguments {
             infos.push(create_zend_arg_info(
                 arg.name.as_ptr().cast(),
                 arg.pass_by_ref,
@@ -150,31 +153,100 @@ impl FunctionEntity {
         infos.push(zeroed::<zend_internal_arg_info>());
 
         let translator = CallableTranslator {
-            callable: self.handler.as_ref(),
+            callable: Rc::into_raw(handler),
         };
         let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
         infos.push(last_arg_info);
 
-        let flags = self.visibility.map(|v| v as u32).unwrap_or_default()
-            | self
-                .r#static
+        let flags = visibility.map(|v| v as u32).unwrap_or_default()
+            | r#static
                 .and_then(|v| if v { Some(ZEND_ACC_STATIC) } else { None })
                 .unwrap_or_default();
 
         zend_function_entry {
-            fname: self.name.as_ptr().cast(),
+            fname: name.as_ptr().cast(),
             handler: Some(invoke),
             arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
-            num_args: self.arguments.len() as u32,
+            num_args: arguments.len() as u32,
             flags,
         }
     }
 }
 
+pub struct FunctionEntity {
+    name: CString,
+    handler: Rc<dyn Callable>,
+    arguments: Vec<Argument>,
+}
+
+impl FunctionEntity {
+    #[inline]
+    pub(crate) fn new(name: impl Into<String>, handler: Rc<dyn Callable>) -> Self {
+        FunctionEntity {
+            name: ensure_end_with_zero(name),
+            handler,
+            arguments: Default::default(),
+        }
+    }
+
+    #[inline]
+    pub fn argument(&mut self, argument: Argument) -> &mut Self {
+        self.arguments.push(argument);
+        self
+    }
+
+    #[inline]
+    pub fn arguments(&mut self, arguments: impl IntoIterator<Item = Argument>) -> &mut Self {
+        self.arguments.extend(arguments);
+        self
+    }
+}
+
+pub struct MethodEntity {
+    name: CString,
+    handler: Rc<dyn Callable>,
+    arguments: Vec<Argument>,
+    visibility: Visibility,
+    r#static: bool,
+}
+
+impl MethodEntity {
+    #[inline]
+    pub(crate) fn new(
+        name: impl Into<String>, handler: Rc<dyn Callable>, visibility: Visibility,
+    ) -> Self {
+        Self {
+            name: ensure_end_with_zero(name),
+            handler,
+            visibility,
+            arguments: Default::default(),
+            r#static: false,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn r#static(&mut self, s: bool) -> &mut Self {
+        self.r#static = s;
+        self
+    }
+
+    #[inline]
+    pub fn argument(&mut self, argument: Argument) -> &mut Self {
+        self.arguments.push(argument);
+        self
+    }
+
+    #[inline]
+    pub fn arguments(&mut self, arguments: impl IntoIterator<Item = Argument>) -> &mut Self {
+        self.arguments.extend(arguments);
+        self
+    }
+}
+
 pub struct Argument {
-    pub(crate) name: String,
-    pub(crate) pass_by_ref: bool,
-    pub(crate) required: bool,
+    name: CString,
+    pass_by_ref: bool,
+    required: bool,
 }
 
 impl Argument {
@@ -260,6 +332,7 @@ impl ZendFunction {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub(crate) fn call(
         &mut self, mut object: Option<&mut ZObj>, mut arguments: impl AsMut<[ZVal]>,
     ) -> crate::Result<ZVal> {

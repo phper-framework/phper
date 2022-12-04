@@ -8,13 +8,12 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use std::mem::{replace, take};
+fn main() {
+    phper_build::register_configures();
 
-pub fn replace_and_set<T: Default>(t: &mut T, f: impl FnOnce(T) -> T) {
-    let x = f(take(t));
-    let _ = replace(t, x);
-}
-
-pub fn replace_and_get<T: Default, R>(t: &mut T, f: impl FnOnce(T) -> R) -> R {
-    f(take(t))
+    #[cfg(target_os = "macos")]
+    {
+        println!("cargo:rustc-link-arg=-undefined");
+        println!("cargo:rustc-link-arg=dynamic_lookup");
+    }
 }

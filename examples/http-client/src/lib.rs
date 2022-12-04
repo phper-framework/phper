@@ -20,12 +20,11 @@ pub mod client;
 pub mod errors;
 pub mod request;
 pub mod response;
-pub mod utils;
 
 #[php_get_module]
 pub fn get_module() -> Module {
     let mut module = Module::new(
-        env!("CARGO_PKG_NAME"),
+        env!("CARGO_CRATE_NAME"),
         env!("CARGO_PKG_VERSION"),
         env!("CARGO_PKG_AUTHORS"),
     );

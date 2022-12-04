@@ -20,30 +20,24 @@ pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 pub fn make_response_class() -> StatefulClass<Response<Body>> {
     let mut class = StatefulClass::new_with_default_state(HTTP_RESPONSE_CLASS_NAME);
 
-    class.add_method(
-        "header",
-        Visibility::Public,
-        |this, arguments| {
+    class
+        .add_method("header", Visibility::Public, |this, arguments| {
             let response: &mut Response<Body> = this.as_mut_state();
             response.headers_mut().insert(
                 HeaderName::from_bytes(arguments[0].as_z_str().unwrap().to_bytes())?,
                 HeaderValue::from_bytes(arguments[1].as_z_str().unwrap().to_bytes())?,
             );
             Ok::<_, HttpServerError>(())
-        },
-        vec![Argument::by_val("data")],
-    );
+        })
+        .argument(Argument::by_val("data"));
 
-    class.add_method(
-        "end",
-        Visibility::Public,
-        |this, arguments| {
+    class
+        .add_method("end", Visibility::Public, |this, arguments| {
             let response: &mut Response<Body> = this.as_mut_state();
             *response.body_mut() = arguments[0].as_z_str().unwrap().to_bytes().to_vec().into();
             Ok::<_, phper::Error>(())
-        },
-        vec![Argument::by_val("data")],
-    );
+        })
+        .argument(Argument::by_val("data"));
 
     class
 }

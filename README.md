@@ -10,11 +10,16 @@
 
 The framework that allows us to write PHP extensions using pure and safe Rust whenever possible.
 
+## Document & Tutorial
+
+- Document: <https://docs.rs/phper>
+- Tutorial: <https://docs.rs/phper-doc/>
+
 ## Requirement
 
 ### Necessary
 
-- **rust** 1.56 or later
+- **rust** 1.65 or later
 - **libclang** 9.0 or later
 - **php** 7.0 or later
 
@@ -42,96 +47,6 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
   - **debug**
     - [x] disable
     - [ ] enable
-
-## Usage
-
-1. Make sure `libclang` and `php` is installed.
-
-   ```bash
-   # If you are using debian like linux system:
-   sudo apt install llvm-10-dev libclang-10-dev php-cli
-   ```
-
-1. Create you cargo project, suppose your application is called myapp.
-
-   ```bash
-   cargo new myapp
-   ```
-
-1. Add the dependencies and metadata to you Cargo project.
-
-   ```toml
-   [lib]
-   crate-type = ["cdylib"]
- 
-   [dependencies]
-   phper = "<LATEST VERSION>"
-   ```
-
-1. Add these code to `main.rs`.
-
-   ```rust,no_run
-   use phper::cmd::make;
-   
-   fn main() {
-       make();
-   }
-   ```
-
-1. Create the `build.rs` ( Adapting MacOS ).
-
-   ```rust,no_run
-   fn main() {
-      #[cfg(target_os = "macos")]
-      {
-         println!("cargo:rustc-link-arg=-undefined");
-         println!("cargo:rustc-link-arg=dynamic_lookup");
-      }
-   }
-   ```
-
-1. Write you owned extension logic in `lib.rs`.
-
-   ```rust
-   use phper::{php_get_module, modules::Module};
-   
-   #[php_get_module]
-   pub fn get_module() -> Module {
-       let mut module = Module::new(
-           env!("CARGO_PKG_NAME"),
-           env!("CARGO_PKG_VERSION"),
-           env!("CARGO_PKG_AUTHORS"),
-       );
-   
-       // ...
-   
-       module
-   }
-   ```
-
-1. Build and install, if your php isn't installed globally, you should specify the path of `php-config`.
-
-   ```bash
-   # Optional, specify if php isn't installed globally.
-   # export PHP_CONFIG=<Your path of php-config>
-   
-   # Build libmyapp.so.
-   cargo build --release
-   
-   # Install to php extension path.
-   cargo run --release -- install
-   # Or if you install php globally, you should use sudo.
-   # sudo ./target/release/myapp install
-   
-   ```
-
-1. Edit your `php.ini`, add the below line.
-
-   ```ini
-   extension = myapp
-   ```
-
-1. Enjoy.
 
 ## Examples
 

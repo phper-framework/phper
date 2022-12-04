@@ -16,8 +16,10 @@ members = [
     "phper-macros",
     "phper-sys",
     "phper-test",
+    "phper-doc",
 
     # internal
+    "examples/complex",
     "examples/hello",
     "examples/http-client",
     "examples/http-server",
@@ -26,14 +28,9 @@ members = [
 ]
 
 [workspace.package]
+version = "0.7.0"
 authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
 edition = "2021"
 license = "MulanPSL-2.0"
 repository = "https://github.com/jmjoy/phper.git"
-rust-version = "1.64"
-
-[profile.dev]
-lto = true
-
-[profile.release]
-lto = true
+rust-version = "1.65"
