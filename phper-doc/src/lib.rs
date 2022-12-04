@@ -11,6 +11,8 @@
 #![warn(rust_2018_idioms, clippy::dbg_macro)]
 #![doc = include_str!("../README.md")]
 
+pub use phper;
+
 #[doc = include_str!("../doc/_01_introduction/index.md")]
 pub mod _01_introduction {}
 
@@ -27,7 +29,7 @@ pub mod _02_quick_start {
 #[doc = include_str!("../doc/_03_integrate_with_pecl/index.md")]
 pub mod _03_integrate_with_pecl {}
 
-/// TODO
+#[doc = include_str!("../doc/_04_zval/index.md")]
 pub mod _04_zval {}
 
 /// TODO
