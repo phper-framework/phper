@@ -24,6 +24,5 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 }

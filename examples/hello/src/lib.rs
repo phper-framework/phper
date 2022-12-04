@@ -34,7 +34,9 @@ pub fn get_module() -> Module {
     );
 
     // Register function `say_hello`, with one argument `name`.
-    module.add_function("say_hello", say_hello, vec![Argument::by_val("name")]);
+    module
+        .add_function("say_hello", say_hello)
+        .argument(Argument::by_val("name"));
 
     module
 }

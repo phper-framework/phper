@@ -196,8 +196,7 @@ Now let's begin to finish the logic.
                *state = builder.timeout(Duration::from_millis(ms as u64));
                Ok::<_, HttpClientError>(this.to_ref_owned())
            },
-           vec![Argument::by_val("ms")],
-       );
+       ).argument(Argument::by_val("ms"));
 
        // Inner call the `ClientBuilder::cookie_store`.
        class.add_method(
@@ -210,8 +209,7 @@ Now let's begin to finish the logic.
                *state = builder.cookie_store(enable);
                Ok::<_, HttpClientError>(this.to_ref_owned())
            },
-           vec![Argument::by_val("enable")],
-       );
+       ).argument(Argument::by_val("enable"));
 
        // Inner call the `ClientBuilder::build`, and wrap the result `Client` in Object.
        class.add_method(
@@ -227,7 +225,6 @@ Now let's begin to finish the logic.
                }
                Ok::<_, HttpClientError>(object)
            },
-           vec![],
        );
 
        class

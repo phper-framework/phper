@@ -79,7 +79,7 @@ Full example is <https://github.com/phper-framework/phper/tree/master/examples/h
        );
    
        // Register function `say_hello`, with one argument `name`.
-       module.add_function("say_hello", say_hello, vec![Argument::by_val("name")]);
+       module.add_function("say_hello", say_hello).argument(Argument::by_val("name"));
    
        module
    }
