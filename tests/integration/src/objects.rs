@@ -20,7 +20,6 @@ pub fn integrate(module: &mut Module) {
             drop(o);
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -37,7 +36,6 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -49,7 +47,6 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(v.get_type_info().get_base_type(), TypeInfo::OBJECT);
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -61,6 +58,5 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(message.expect_z_str()?.to_str()?, "What's happen?");
             Ok(())
         },
-        vec![],
     );
 }

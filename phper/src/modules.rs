@@ -14,7 +14,7 @@ use crate::{
     c_str_ptr,
     classes::{ClassEntity, Classifiable},
     constants::Constant,
-    functions::{Argument, Function, FunctionEntity},
+    functions::{Function, FunctionEntity, FunctionEntry},
     ini,
     sys::*,
     types::Scalar,
@@ -25,7 +25,7 @@ use std::{
     mem::{replace, size_of, take, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
-    sync::atomic::{AtomicPtr, Ordering},
+    sync::atomic::{AtomicPtr, Ordering}, rc::Rc,
 };
 
 static GLOBAL_MODULE: AtomicPtr<Module> = AtomicPtr::new(null_mut());
@@ -158,19 +158,14 @@ impl Module {
         self.request_shutdown = Some(Box::new(func));
     }
 
-    pub fn add_function<F, R>(
-        &mut self, name: impl Into<String>, handler: F, arguments: Vec<Argument>,
-    ) where
+    pub fn add_function<F, R>(&mut self, name: impl Into<String>, handler: F) -> &mut FunctionEntity
+    where
         F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
     {
-        self.function_entities.push(FunctionEntity::new(
-            name,
-            Box::new(Function::new(handler)),
-            arguments,
-            None,
-            None,
-        ));
+        self.function_entities
+            .push(FunctionEntity::new(name, Rc::new(Function::new(handler))));
+        self.function_entities.last_mut().unwrap()
     }
 
     pub fn add_class(&mut self, class: impl Classifiable + 'static) {
@@ -237,7 +232,7 @@ impl Module {
 
         let mut entries = Vec::new();
         for f in &self.function_entities {
-            entries.push(unsafe { f.entry() });
+            entries.push(unsafe { FunctionEntry::from_function_entity(f) });
         }
         entries.push(unsafe { zeroed::<zend_function_entry>() });
 

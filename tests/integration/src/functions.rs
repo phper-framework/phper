@@ -26,18 +26,18 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(ret.expect_long()?, 3);
             Ok(())
         },
-        vec![],
     );
 
-    module.add_function(
-        "integrate_functions_call_callable",
-        |arguments: &mut [ZVal]| {
-            if let [head, tail @ ..] = arguments {
-                Ok::<_, phper::Error>(head.call(tail)?)
-            } else {
-                unreachable!()
-            }
-        },
-        vec![Argument::by_val("fn")],
-    );
+    module
+        .add_function(
+            "integrate_functions_call_callable",
+            |arguments: &mut [ZVal]| {
+                if let [head, tail @ ..] = arguments {
+                    Ok::<_, phper::Error>(head.call(tail)?)
+                } else {
+                    unreachable!()
+                }
+            },
+        )
+        .argument(Argument::by_val("fn"));
 }

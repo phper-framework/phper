@@ -32,7 +32,6 @@ pub fn integrate(module: &mut Module) {
 
             Ok(format!("{} {}", val, bar))
         },
-        vec![],
     );
 
     module.add_function(
@@ -81,7 +80,6 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -129,7 +127,6 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -144,7 +141,6 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -167,7 +163,6 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -189,7 +184,6 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 
     module.add_function(
@@ -221,6 +215,5 @@ pub fn integrate(module: &mut Module) {
 
             Ok(())
         },
-        vec![],
     );
 }

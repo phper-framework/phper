@@ -22,60 +22,53 @@ pub fn get_module() -> Module {
         env!("CARGO_PKG_AUTHORS"),
     );
 
-    module.add_function(
-        "log_say",
-        |params: &mut [ZVal]| -> phper::Result<()> {
+    module
+        .add_function("log_say", |params: &mut [ZVal]| -> phper::Result<()> {
             params[0].convert_to_string();
             let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             echo!("Hello, {}!", message);
             Ok(())
-        },
-        vec![Argument::by_val("message")],
-    );
+        })
+        .argument(Argument::by_val("message"));
 
-    module.add_function(
-        "log_notice",
-        |params: &mut [ZVal]| -> phper::Result<()> {
+    module
+        .add_function("log_notice", |params: &mut [ZVal]| -> phper::Result<()> {
             params[0].convert_to_string();
             let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             notice!("Something happened: {}", message);
             Ok(())
-        },
-        vec![Argument::by_val("message")],
-    );
+        })
+        .argument(Argument::by_val("message"));
 
-    module.add_function(
-        "log_warning",
-        |params: &mut [ZVal]| -> phper::Result<()> {
+    module
+        .add_function("log_warning", |params: &mut [ZVal]| -> phper::Result<()> {
             params[0].convert_to_string();
             let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             warning!("Something warning: {}", message);
             Ok(())
-        },
-        vec![Argument::by_val("message")],
-    );
+        })
+        .argument(Argument::by_val("message"));
 
-    module.add_function(
-        "log_error",
-        |params: &mut [ZVal]| -> phper::Result<()> {
+    module
+        .add_function("log_error", |params: &mut [ZVal]| -> phper::Result<()> {
             params[0].convert_to_string();
             let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
             error!("Something gone failed: {}", message);
             Ok(())
-        },
-        vec![Argument::by_val("message")],
-    );
+        })
+        .argument(Argument::by_val("message"));
 
-    module.add_function(
-        "log_deprecated",
-        |params: &mut [ZVal]| -> phper::Result<()> {
-            params[0].convert_to_string();
-            let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
-            deprecated!("Something deprecated: {}", message);
-            Ok(())
-        },
-        vec![Argument::by_val("message")],
-    );
+    module
+        .add_function(
+            "log_deprecated",
+            |params: &mut [ZVal]| -> phper::Result<()> {
+                params[0].convert_to_string();
+                let message = params[0].as_z_str().unwrap().to_str().context("to str")?;
+                deprecated!("Something deprecated: {}", message);
+                Ok(())
+            },
+        )
+        .argument(Argument::by_val("message"));
 
     module
 }

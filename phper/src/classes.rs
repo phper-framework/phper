@@ -13,7 +13,7 @@
 use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError},
-    functions::{Argument, Function, FunctionEntity, FunctionEntry, Method},
+    functions::{Function, FunctionEntry, Method, MethodEntity},
     objects::{ExtendObject, StatefulObj, ZObj, ZObject},
     strings::ZStr,
     sys::*,
@@ -33,14 +33,14 @@ use std::{
     sync::{
         atomic::{AtomicPtr, Ordering},
         Arc,
-    },
+    }, rc::Rc,
 };
 
 pub trait Classifiable {
     fn state_constructor(&self) -> Box<StatefulConstructor<Box<dyn Any>>>;
     fn state_type_id(&self) -> TypeId;
     fn class_name(&self) -> &str;
-    fn methods(&mut self) -> &mut [FunctionEntity];
+    fn methods(&mut self) -> &mut [MethodEntity];
     fn properties(&mut self) -> &mut [PropertyEntity];
     fn parent(&self) -> Option<&str>;
 }
@@ -50,7 +50,7 @@ pub type StatefulConstructor<T> = dyn Fn() -> T + Send + Sync;
 pub struct StatefulClass<T: Send + 'static> {
     class_name: String,
     state_constructor: Arc<StatefulConstructor<T>>,
-    pub(crate) method_entities: Vec<FunctionEntity>,
+    pub(crate) method_entities: Vec<MethodEntity>,
     pub(crate) property_entities: Vec<PropertyEntity>,
     pub(crate) parent: Option<String>,
     _p: PhantomData<T>,
@@ -86,33 +86,28 @@ impl<T: Send + 'static> StatefulClass<T> {
     }
 
     pub fn add_method<F, R>(
-        &mut self, name: impl Into<String>, vis: Visibility, handler: F, arguments: Vec<Argument>,
-    ) where
+        &mut self, name: impl Into<String>, vis: Visibility, handler: F,
+    ) -> &mut MethodEntity
+    where
         F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
     {
-        self.method_entities.push(FunctionEntity::new(
-            name,
-            Box::new(Method::new(handler)),
-            arguments,
-            Some(vis),
-            Some(false),
-        ));
+        self.method_entities
+            .push(MethodEntity::new(name, Rc::new(Method::new(handler)), vis));
+        self.method_entities.last_mut().unwrap()
     }
 
     pub fn add_static_method<F, R>(
-        &mut self, name: impl Into<String>, vis: Visibility, handler: F, arguments: Vec<Argument>,
-    ) where
+        &mut self, name: impl Into<String>, vis: Visibility, handler: F,
+    ) -> &mut MethodEntity
+    where
         F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
         R: Into<ZVal> + 'static,
     {
-        self.method_entities.push(FunctionEntity::new(
-            name,
-            Box::new(Function::new(handler)),
-            arguments,
-            Some(vis),
-            Some(true),
-        ));
+        let mut entity = MethodEntity::new(name, Rc::new(Function::new(handler)), vis);
+        entity.r#static(true);
+        self.method_entities.push(entity);
+        self.method_entities.last_mut().unwrap()
     }
 
     /// Declare property.
@@ -147,7 +142,7 @@ impl<T: Send> Classifiable for StatefulClass<T> {
         &self.class_name
     }
 
-    fn methods(&mut self) -> &mut [FunctionEntity] {
+    fn methods(&mut self) -> &mut [MethodEntity] {
         &mut self.method_entities
     }
 
@@ -324,7 +319,7 @@ impl ClassEntity {
         self.function_entries.get_or_init(|| {
             let mut methods = methods
                 .iter()
-                .map(|method| method.entry())
+                .map(|method| FunctionEntry::from_method_entity(method))
                 .collect::<Vec<_>>();
 
             methods.push(zeroed::<zend_function_entry>());
@@ -409,8 +404,9 @@ impl PropertyEntity {
 }
 
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum Visibility {
+    #[default]
     Public = ZEND_ACC_PUBLIC,
     Protected = ZEND_ACC_PROTECTED,
     Private = ZEND_ACC_PRIVATE,

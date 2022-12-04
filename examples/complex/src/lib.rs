@@ -56,27 +56,21 @@ pub fn get_module() -> Module {
     module.on_request_shutdown(|_| true);
 
     // register functions
-    module.add_function(
-        "complex_say_hello",
-        say_hello,
-        vec![Argument::by_val("name")],
-    );
-    module.add_function("complex_throw_exception", throw_exception, vec![]);
-    module.add_function(
-        "complex_get_all_ini",
-        |_: &mut [ZVal]| {
-            let mut arr = ZArray::new();
+    module
+        .add_function("complex_say_hello", say_hello)
+        .argument(Argument::by_val("name"));
+    module.add_function("complex_throw_exception", throw_exception);
+    module.add_function("complex_get_all_ini", |_: &mut [ZVal]| {
+        let mut arr = ZArray::new();
 
-            let complex_enable = ZVal::from(ini_get::<bool>("complex.enable"));
-            arr.insert("complex.enable", complex_enable);
+        let complex_enable = ZVal::from(ini_get::<bool>("complex.enable"));
+        arr.insert("complex.enable", complex_enable);
 
-            let complex_description = ZVal::from(ini_get::<Option<&CStr>>("complex.description"));
-            arr.insert("complex.description", complex_description);
+        let complex_description = ZVal::from(ini_get::<Option<&CStr>>("complex.description"));
+        arr.insert("complex.description", complex_description);
 
-            arr
-        },
-        vec![],
-    );
+        arr
+    });
 
     // register classes
     let mut foo_class = StatefulClass::new("FooClass");
@@ -88,17 +82,17 @@ pub fn get_module() -> Module {
             let prop = this.get_property("foo");
             Ok::<_, phper::Error>(prop.clone())
         },
-        vec![],
     );
-    foo_class.add_method(
-        "setFoo",
-        Visibility::Public,
-        |this: &mut StatefulObj<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
-            this.set_property("foo", arguments[0].clone());
-            Ok(())
-        },
-        vec![Argument::by_val("foo")],
-    );
+    foo_class
+        .add_method(
+            "setFoo",
+            Visibility::Public,
+            |this: &mut StatefulObj<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
+                this.set_property("foo", arguments[0].clone());
+                Ok(())
+            },
+        )
+        .argument(Argument::by_val("foo"));
     module.add_class(foo_class);
 
     module
