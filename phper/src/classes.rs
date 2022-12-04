@@ -30,10 +30,11 @@ use std::{
     mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
+    rc::Rc,
     sync::{
         atomic::{AtomicPtr, Ordering},
         Arc,
-    }, rc::Rc,
+    },
 };
 
 pub trait Classifiable {

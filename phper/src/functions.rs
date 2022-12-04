@@ -29,7 +29,8 @@ use std::{
     marker::PhantomData,
     mem::{size_of, transmute, zeroed},
     os::raw::c_char,
-    ptr::null_mut, rc::Rc,
+    ptr::null_mut,
+    rc::Rc,
 };
 
 pub(crate) trait Callable {
@@ -109,7 +110,13 @@ pub struct FunctionEntry {
 
 impl FunctionEntry {
     pub(crate) unsafe fn from_function_entity(entity: &FunctionEntity) -> zend_function_entry {
-        Self::entry(&entity.name, &entity.arguments, entity.handler.clone(), None, None)
+        Self::entry(
+            &entity.name,
+            &entity.arguments,
+            entity.handler.clone(),
+            None,
+            None,
+        )
     }
 
     pub(crate) unsafe fn from_method_entity(entity: &MethodEntity) -> zend_function_entry {
