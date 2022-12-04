@@ -8,6 +8,8 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
+//! Apis relate to [crate::sys::zend_throw_exception].
+
 use crate::{classes::ClassEntry, errors::Throwable, sys::*};
 use derive_more::Constructor;
 

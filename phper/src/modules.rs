@@ -22,6 +22,7 @@ use crate::{
     values::ZVal,
 };
 use std::{
+    ffi::CString,
     mem::{replace, size_of, take, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
@@ -91,10 +92,10 @@ unsafe extern "C" fn request_shutdown(r#type: c_int, request_number: c_int) -> c
 unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
     read_global_module(|module| {
         php_info_print_table_start();
-        if !module.version.is_empty() {
+        if !module.version.as_bytes().is_empty() {
             php_info_print_table_row(2, c_str_ptr!("version"), module.version.as_ptr());
         }
-        if !module.author.is_empty() {
+        if !module.author.as_bytes().is_empty() {
             php_info_print_table_row(2, c_str_ptr!("authors"), module.author.as_ptr());
         }
         php_info_print_table_end();
@@ -103,9 +104,9 @@ unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
 }
 
 pub struct Module {
-    name: String,
-    version: String,
-    author: String,
+    name: CString,
+    version: CString,
+    author: CString,
     module_init: Option<Box<dyn FnOnce(ModuleContext) -> bool + Send + Sync>>,
     module_shutdown: Option<Box<dyn FnOnce(ModuleContext) -> bool + Send + Sync>>,
     request_init: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
@@ -188,8 +189,11 @@ impl Module {
     /// Leak memory to generate `zend_module_entry` pointer.
     #[doc(hidden)]
     pub unsafe fn module_entry(self) -> *const zend_module_entry {
-        assert!(!self.name.is_empty(), "module name must be set");
-        assert!(!self.version.is_empty(), "module version must be set");
+        assert!(!self.name.as_bytes().is_empty(), "module name must be set");
+        assert!(
+            !self.version.as_bytes().is_empty(),
+            "module version must be set"
+        );
 
         let entry: Box<zend_module_entry> = Box::new(zend_module_entry {
             size: size_of::<zend_module_entry>() as c_ushort,

@@ -26,6 +26,7 @@ use crate::{
 use phper_alloc::ToRefOwned;
 use std::{
     convert::TryInto,
+    ffi::{CStr, CString},
     marker::PhantomData,
     mem::{size_of, transmute, zeroed},
     os::raw::c_char,
@@ -131,7 +132,7 @@ impl FunctionEntry {
 
     /// Will leak memory
     unsafe fn entry(
-        name: &str, arguments: &[Argument], handler: Rc<dyn Callable>,
+        name: &CStr, arguments: &[Argument], handler: Rc<dyn Callable>,
         visibility: Option<Visibility>, r#static: Option<bool>,
     ) -> zend_function_entry {
         let mut infos = Vec::new();
@@ -173,26 +174,28 @@ impl FunctionEntry {
 }
 
 pub struct FunctionEntity {
-    name: String,
+    name: CString,
     handler: Rc<dyn Callable>,
     arguments: Vec<Argument>,
 }
 
 impl FunctionEntity {
+    #[inline]
     pub(crate) fn new(name: impl Into<String>, handler: Rc<dyn Callable>) -> Self {
-        let name = ensure_end_with_zero(name);
         FunctionEntity {
-            name,
+            name: ensure_end_with_zero(name),
             handler,
             arguments: Default::default(),
         }
     }
 
+    #[inline]
     pub fn argument(&mut self, argument: Argument) -> &mut Self {
         self.arguments.push(argument);
         self
     }
 
+    #[inline]
     pub fn arguments(&mut self, arguments: impl IntoIterator<Item = Argument>) -> &mut Self {
         self.arguments.extend(arguments);
         self
@@ -200,7 +203,7 @@ impl FunctionEntity {
 }
 
 pub struct MethodEntity {
-    name: String,
+    name: CString,
     handler: Rc<dyn Callable>,
     arguments: Vec<Argument>,
     visibility: Visibility,
@@ -208,12 +211,12 @@ pub struct MethodEntity {
 }
 
 impl MethodEntity {
+    #[inline]
     pub(crate) fn new(
         name: impl Into<String>, handler: Rc<dyn Callable>, visibility: Visibility,
     ) -> Self {
-        let name = ensure_end_with_zero(name);
         Self {
-            name,
+            name: ensure_end_with_zero(name),
             handler,
             visibility,
             arguments: Default::default(),
@@ -221,16 +224,19 @@ impl MethodEntity {
         }
     }
 
+    #[inline]
     pub(crate) fn r#static(&mut self, s: bool) -> &mut Self {
         self.r#static = s;
         self
     }
 
+    #[inline]
     pub fn argument(&mut self, argument: Argument) -> &mut Self {
         self.arguments.push(argument);
         self
     }
 
+    #[inline]
     pub fn arguments(&mut self, arguments: impl IntoIterator<Item = Argument>) -> &mut Self {
         self.arguments.extend(arguments);
         self
@@ -238,9 +244,9 @@ impl MethodEntity {
 }
 
 pub struct Argument {
-    pub(crate) name: String,
-    pub(crate) pass_by_ref: bool,
-    pub(crate) required: bool,
+    name: CString,
+    pass_by_ref: bool,
+    required: bool,
 }
 
 impl Argument {
