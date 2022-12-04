@@ -21,19 +21,19 @@ conversion.
 
 Here is the mapping relationship of Rust type and base PHP type.
 
-| Trait           | Rust type                 | PHP type |
-| --------------- | ------------------------- | -------- |
-| `From<()>`      | ()                        | null     |
-| `From<bool>`    | bool                      | bool     |
-| `From<i64>`     | i64                       | long     |
-| `From<f64>`     | f64                       | double   |
-| `From<&str>`    | &str                      | string   |
-| `From<&CStr>`   | &CStr                     | string   |
-| `From<&[u8]>`   | &[u8]                     | string   |
-| `From<Vec<u8>>` | Vec<u8>                   | string   |
-| `From<ZString>` | [phper::strings::ZString] | string   |
-| `From<ZArray>`  | [phper::arrays::ZArray]   | array    |
-| `From<ZObject>` | [phper::objects::ZObject] | object   |
+| Trait           | Rust type                   | PHP type |
+| --------------- | --------------------------- | -------- |
+| `From<()>`      | `()`                        | null     |
+| `From<bool>`    | `bool`                      | bool     |
+| `From<i64>`     | `i64`                       | long     |
+| `From<f64>`     | `f64`                       | double   |
+| `From<&str>`    | `&str`                      | string   |
+| `From<&CStr>`   | `&CStr`                     | string   |
+| `From<&[u8]>`   | `&[u8]`                     | string   |
+| `From<Vec<u8>>` | `Vec<u8>`                   | string   |
+| `From<ZString>` | [`phper::strings::ZString`] | string   |
+| `From<ZArray>`  | [`phper::arrays::ZArray`]   | array    |
+| `From<ZObject>` | [`phper::objects::ZObject`] | object   |
 
 Otherwise, there are also composite types that implement `From`.
 
