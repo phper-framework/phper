@@ -40,7 +40,7 @@ pub fn echo(message: impl Into<String>) {
     unsafe {
         zend_write.expect("function zend_write can't be null")(
             message.as_ptr().cast(),
-            (message.as_bytes().len() - 1).try_into().unwrap(),
+            message.as_bytes().len().try_into().unwrap(),
         );
     }
 }
