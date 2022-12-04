@@ -32,7 +32,7 @@ pub mod _03_integrate_with_pecl {}
 #[doc = include_str!("../doc/_04_zval/index.md")]
 pub mod _04_zval {}
 
-/// TODO
+#[doc = include_str!("../doc/_05_internal_types/index.md")]
 pub mod _05_internal_types {
 
     /// TODO
@@ -42,7 +42,7 @@ pub mod _05_internal_types {
     pub mod _02_z_arr {}
 
     /// TODO
-    pub mod _03_z_arr {}
+    pub mod _03_z_obj {}
 }
 
 /// TODO
