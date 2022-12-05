@@ -35,7 +35,7 @@ pub mod _04_zval {}
 #[doc = include_str!("../doc/_05_internal_types/index.md")]
 pub mod _05_internal_types {
 
-    /// TODO
+    #[doc = include_str!("../doc/_05_internal_types/_01_z_str/index.md")]
     pub mod _01_z_str {}
 
     /// TODO
