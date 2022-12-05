@@ -38,17 +38,17 @@ pub mod _05_internal_types {
     #[doc = include_str!("../doc/_05_internal_types/_01_z_str/index.md")]
     pub mod _01_z_str {}
 
-    /// TODO
+    #[doc = include_str!("../doc/_05_internal_types/_02_z_arr/index.md")]
     pub mod _02_z_arr {}
 
-    /// TODO
+    #[doc = include_str!("../doc/_05_internal_types/_03_z_obj/index.md")]
     pub mod _03_z_obj {}
 }
 
-/// TODO
+#[doc = include_str!("../doc/_06_class_and_object/index.md")]
 pub mod _06_class_and_object {}
 
-/// TODO
+#[doc = include_str!("../doc/_07_module/index.md")]
 pub mod _07_module {
 
     /// TODO

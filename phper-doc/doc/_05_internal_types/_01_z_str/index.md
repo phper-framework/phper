@@ -1,5 +1,9 @@
 # Z Str
 
+> A string is series of characters, where a character is the same as a byte.
+>
+> Refer: <https://www.php.net/manual/en/language.types.string.php>
+
 The [`&ZStr`](phper::strings::ZStr) and [`ZString`](phper::strings::ZString) are
 the wrapper of [`zend_string`](phper::sys::zend_string).
 
@@ -36,7 +40,7 @@ assert_eq!(s.to_str(), Ok("Hello world!"));
 
 `ZStr` implements `ToOwned`, can upgrade to `ZString` by value copy.
 
-Because `zend_string` is reference counting type, so `ZStr` alow implements
+Because `zend_string` is reference counting type, so `ZStr` also implements
 [`ToRefOwned`](phper::alloc::ToRefOwned) (just like
 [`RefClone`](phper::alloc::RefClone) for [`ZVal`](phper::values::ZVal)), can
 upgrade to `ZString` by refcount increment.
