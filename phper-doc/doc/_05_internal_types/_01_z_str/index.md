@@ -1,1 +1,63 @@
 # Z Str
+
+The [`&ZStr`](phper::strings::ZStr) and [`ZString`](phper::strings::ZString) are
+the wrapper of [`zend_string`](phper::sys::zend_string).
+
+`ZStr` can be converted to `&[u8]`, `&CStr` and `&str`.
+
+`ZString` can be constructed from `impl AsRef<[u8]>`, has pair of `from_raw()`
+and `into_raw()`, like in [`Box`].
+
+```rust,no_run
+use phper::strings::ZString;
+
+let s = ZString::new("Hello world!");
+
+// Will leak memory.
+let ptr = s.into_raw();
+
+// retake pointer.
+let ss = unsafe { ZString::from_raw(ptr) };
+
+// `ZString` implements `PartialEq`.
+assert_eq!(ss, "Hello world!");
+```
+
+`ZString` can be dereferenced to `ZStr`.
+
+```rust,no_run
+use phper::strings::ZString;
+
+let s = ZString::new("Hello world!");
+
+// `to_str` is the method of `ZStr`.
+assert_eq!(s.to_str(), Ok("Hello world!"));
+```
+
+`ZStr` implements `ToOwned`, can upgrade to `ZString` by value copy.
+
+Because `zend_string` is reference counting type, so `ZStr` alow implements
+[`ToRefOwned`](phper::alloc::ToRefOwned) (just like
+[`RefClone`](phper::alloc::RefClone) for [`ZVal`](phper::values::ZVal)), can
+upgrade to `ZString` by refcount increment.
+
+```rust,no_run
+use phper::sys;
+use phper::strings::ZStr;
+use phper::alloc::ToRefOwned;
+
+extern "C" {
+    fn something() -> *mut sys::zend_string;
+}
+
+let s = unsafe { ZStr::from_mut_ptr(something()) };
+
+// By value copy.
+let _s = s.to_owned(); 
+
+// By refcount increment.
+let _s = s.to_ref_owned();
+```
+
+Note that neither `ZStr` nor `ZString` implement `Send` and `Sync`, because PHP
+is single-threaded.
