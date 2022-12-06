@@ -8,7 +8,8 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+#![warn(rust_2018_idioms)]
+#![warn(clippy::dbg_macro, clippy::print_stdout)]
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]

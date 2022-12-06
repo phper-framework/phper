@@ -8,7 +8,8 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+#![warn(rust_2018_idioms, missing_docs)]
+#![warn(clippy::dbg_macro, clippy::print_stdout)]
 #![doc = include_str!("../README.md")]
 
 #[macro_use]
