@@ -13,14 +13,13 @@
 use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
-    errors::{ExpectTypeError, ToThrowable},
+    errors::{ExpectTypeError, Throwable},
     functions::{call_internal, ZendFunction},
     objects::{ZObj, ZObject},
     resources::ZRes,
     strings::{ZStr, ZString},
     sys::*,
     types::TypeInfo,
-    utils::ensure_end_with_zero,
 };
 use phper_alloc::RefClone;
 use std::{
@@ -549,18 +548,18 @@ impl<T: Into<ZVal>> From<EBox<T>> for ZVal {
     }
 }
 
-impl<T: Into<ZVal>, E: ToThrowable> From<Result<T, E>> for ZVal {
+impl<T: Into<ZVal>, E: Throwable> From<Result<T, E>> for ZVal {
     fn from(r: Result<T, E>) -> Self {
         match r {
             Ok(t) => t.into(),
-            Err(e) => {
-                let mut result = e.to_throwable();
+            Err(mut e) => {
+                let mut result = e.to_object();
 
                 let obj = loop {
                     match result {
                         Ok(o) => break o,
-                        Err(e) => {
-                            result = e.to_throwable();
+                        Err(mut e) => {
+                            result = e.to_object();
                         }
                     }
                 };

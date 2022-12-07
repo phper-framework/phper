@@ -13,8 +13,8 @@
 use crate::{classes::ClassEntry, objects::{ZObject}, sys::*, types::TypeInfo};
 use derive_more::Constructor;
 use std::{
-    error, ffi::FromBytesWithNulError, fmt::{Debug, Display, self}, io, ops::Deref, result,
-    str::Utf8Error, sync::Arc, marker::PhantomData,
+    error, ffi::FromBytesWithNulError, fmt::{Debug, Display, self}, io, ops::{Deref, DerefMut}, result,
+    str::Utf8Error, marker::PhantomData
 };
 use phper_alloc::ToRefOwned;
 
@@ -81,9 +81,9 @@ pub fn division_by_zero_error<'a>() -> &'a ClassEntry {
 
 /// PHP Throwable, can cause throwing an exception when setting to
 /// [crate::values::ZVal].
-pub trait ToThrowable: error::Error {
+pub trait Throwable: error::Error {
     #[inline]
-    fn get_class(&self) -> &'static ClassEntry {
+    fn get_class(&self) -> &ClassEntry {
         error_class()
     }
 
@@ -97,7 +97,7 @@ pub trait ToThrowable: error::Error {
         Some(self.to_string())
     }
 
-    fn to_throwable(&self) -> result::Result<ZObject, Box<dyn ToThrowable>> {
+    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
         let mut object = ZObject::new(self.get_class(), []).map_err(|e| Box::new(crate::Error::from(e)) as _)?;
         if let Some(code) = self.get_code() {
             object.set_property("code", code);
@@ -109,44 +109,26 @@ pub trait ToThrowable: error::Error {
     }
 }
 
-impl<T: ToThrowable> ToThrowable for Box<T> {
-    fn get_class(&self) -> &'static ClassEntry {
-        ToThrowable::get_class(self.deref())
+impl<T: Throwable> Throwable for Box<T> {
+    fn get_class(&self) -> &ClassEntry {
+        Throwable::get_class(self.deref())
     }
 
     fn get_code(&self) -> Option<i64> {
-        ToThrowable::get_code(self.deref())
+        Throwable::get_code(self.deref())
     }
 
     fn get_message(&self) -> Option<String> {
-        ToThrowable::get_message(self.deref())
+        Throwable::get_message(self.deref())
     }
 
-    fn to_throwable(&self) -> result::Result<ZObject, Box<dyn ToThrowable>> {
-        ToThrowable::to_throwable(self.deref())
-    }
-}
-
-impl<T: ToThrowable> ToThrowable for Arc<T> {
-    fn get_class(&self) -> &'static ClassEntry {
-        ToThrowable::get_class(self.deref())
-    }
-
-    fn get_code(&self) -> Option<i64> {
-        ToThrowable::get_code(self.deref())
-    }
-
-    fn get_message(&self) -> Option<String> {
-        ToThrowable::get_message(self.deref())
-    }
-
-    fn to_throwable(&self) -> result::Result<ZObject, Box<dyn ToThrowable>> {
-        ToThrowable::to_throwable(self.deref())
+    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
+        Throwable::to_object(self.deref_mut())
     }
 }
 
-impl ToThrowable for dyn error::Error {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for dyn error::Error {
+    fn get_class(&self) -> &ClassEntry {
         error_exception_class()
     }
 }
@@ -206,86 +188,86 @@ pub enum Error {
     NotImplementThrowable(#[from] NotImplementThrowableError),
 }
 
-impl ToThrowable for Error {
+impl Throwable for Error {
     #[inline]
-    fn get_class(&self) -> &'static ClassEntry {
+    fn get_class(&self) -> &ClassEntry {
         match self {
-            Error::Io(e) => ToThrowable::get_class(e as &dyn error::Error),
-            Error::Utf8(e) => ToThrowable::get_class(e as &dyn error::Error),
-            Error::FromBytesWithNul(e) => ToThrowable::get_class(e as &dyn error::Error),
-            Error::Other(e) => ToThrowable::get_class(e.deref()),
-            Error::Throw(e) => ToThrowable::get_class(e),
-            Error::Type(e) => ToThrowable::get_class(e),
-            Error::ClassNotFound(e) => ToThrowable::get_class(e),
-            Error::ArgumentCount(e) => ToThrowable::get_class(e),
-            Error::StateType(e) => ToThrowable::get_class(e),
-            Error::CallFunction(e) => ToThrowable::get_class(e),
-            Error::CallMethod(e) => ToThrowable::get_class(e),
-            Error::InitializeObject(e) => ToThrowable::get_class(e),
-            Error::NotRefCountedType(e) => ToThrowable::get_class(e),
-            Error::ExpectType(e) => ToThrowable::get_class(e),
-            Error::NotImplementThrowable(e) => ToThrowable::get_class(e),
+            Error::Io(e) => Throwable::get_class(e as &dyn error::Error),
+            Error::Utf8(e) => Throwable::get_class(e as &dyn error::Error),
+            Error::FromBytesWithNul(e) => Throwable::get_class(e as &dyn error::Error),
+            Error::Other(e) => Throwable::get_class(e.deref()),
+            Error::Throw(e) => Throwable::get_class(e),
+            Error::Type(e) => Throwable::get_class(e),
+            Error::ClassNotFound(e) => Throwable::get_class(e),
+            Error::ArgumentCount(e) => Throwable::get_class(e),
+            Error::StateType(e) => Throwable::get_class(e),
+            Error::CallFunction(e) => Throwable::get_class(e),
+            Error::CallMethod(e) => Throwable::get_class(e),
+            Error::InitializeObject(e) => Throwable::get_class(e),
+            Error::NotRefCountedType(e) => Throwable::get_class(e),
+            Error::ExpectType(e) => Throwable::get_class(e),
+            Error::NotImplementThrowable(e) => Throwable::get_class(e),
         }
     }
 
     #[inline]
     fn get_code(&self) -> Option<i64> {
         match self {
-            Error::Io(e) => ToThrowable::get_code(e as &dyn error::Error),
-            Error::Utf8(e) => ToThrowable::get_code(e as &dyn error::Error),
-            Error::FromBytesWithNul(e) => ToThrowable::get_code(e as &dyn error::Error),
-            Error::Other(e) => ToThrowable::get_code(e.deref()),
-            Error::Throw(e) => ToThrowable::get_code(e),
-            Error::Type(e) => ToThrowable::get_code(e),
-            Error::ClassNotFound(e) => ToThrowable::get_code(e),
-            Error::ArgumentCount(e) => ToThrowable::get_code(e),
-            Error::StateType(e) => ToThrowable::get_code(e),
-            Error::CallFunction(e) => ToThrowable::get_code(e),
-            Error::CallMethod(e) => ToThrowable::get_code(e),
-            Error::InitializeObject(e) => ToThrowable::get_code(e),
-            Error::NotRefCountedType(e) => ToThrowable::get_code(e),
-            Error::ExpectType(e) => ToThrowable::get_code(e),
-            Error::NotImplementThrowable(e) => ToThrowable::get_code(e),
+            Error::Io(e) => Throwable::get_code(e as &dyn error::Error),
+            Error::Utf8(e) => Throwable::get_code(e as &dyn error::Error),
+            Error::FromBytesWithNul(e) => Throwable::get_code(e as &dyn error::Error),
+            Error::Other(e) => Throwable::get_code(e.deref()),
+            Error::Throw(e) => Throwable::get_code(e),
+            Error::Type(e) => Throwable::get_code(e),
+            Error::ClassNotFound(e) => Throwable::get_code(e),
+            Error::ArgumentCount(e) => Throwable::get_code(e),
+            Error::StateType(e) => Throwable::get_code(e),
+            Error::CallFunction(e) => Throwable::get_code(e),
+            Error::CallMethod(e) => Throwable::get_code(e),
+            Error::InitializeObject(e) => Throwable::get_code(e),
+            Error::NotRefCountedType(e) => Throwable::get_code(e),
+            Error::ExpectType(e) => Throwable::get_code(e),
+            Error::NotImplementThrowable(e) => Throwable::get_code(e),
         }
     }
 
     fn get_message(&self) -> Option<String> {
         match self {
-            Error::Io(e) => ToThrowable::get_message(e as &dyn error::Error),
-            Error::Utf8(e) => ToThrowable::get_message(e as &dyn error::Error),
-            Error::FromBytesWithNul(e) => ToThrowable::get_message(e as &dyn error::Error),
-            Error::Other(e) => ToThrowable::get_message(e.deref()),
-            Error::Throw(e) => ToThrowable::get_message(e),
-            Error::Type(e) => ToThrowable::get_message(e),
-            Error::ClassNotFound(e) => ToThrowable::get_message(e),
-            Error::ArgumentCount(e) => ToThrowable::get_message(e),
-            Error::StateType(e) => ToThrowable::get_message(e),
-            Error::CallFunction(e) => ToThrowable::get_message(e),
-            Error::CallMethod(e) => ToThrowable::get_message(e),
-            Error::InitializeObject(e) => ToThrowable::get_message(e),
-            Error::NotRefCountedType(e) => ToThrowable::get_message(e),
-            Error::ExpectType(e) => ToThrowable::get_message(e),
-            Error::NotImplementThrowable(e) => ToThrowable::get_message(e),
+            Error::Io(e) => Throwable::get_message(e as &dyn error::Error),
+            Error::Utf8(e) => Throwable::get_message(e as &dyn error::Error),
+            Error::FromBytesWithNul(e) => Throwable::get_message(e as &dyn error::Error),
+            Error::Other(e) => Throwable::get_message(e.deref()),
+            Error::Throw(e) => Throwable::get_message(e),
+            Error::Type(e) => Throwable::get_message(e),
+            Error::ClassNotFound(e) => Throwable::get_message(e),
+            Error::ArgumentCount(e) => Throwable::get_message(e),
+            Error::StateType(e) => Throwable::get_message(e),
+            Error::CallFunction(e) => Throwable::get_message(e),
+            Error::CallMethod(e) => Throwable::get_message(e),
+            Error::InitializeObject(e) => Throwable::get_message(e),
+            Error::NotRefCountedType(e) => Throwable::get_message(e),
+            Error::ExpectType(e) => Throwable::get_message(e),
+            Error::NotImplementThrowable(e) => Throwable::get_message(e),
         }
     }
 
-    fn to_throwable(&self) -> result::Result<ZObject, Box<dyn ToThrowable>> {
+    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
         match self {
-            Error::Io(e) => ToThrowable::to_throwable(e as &dyn error::Error),
-            Error::Utf8(e) => ToThrowable::to_throwable(e as &dyn error::Error),
-            Error::FromBytesWithNul(e) => ToThrowable::to_throwable(e as &dyn error::Error),
-            Error::Other(e) => ToThrowable::to_throwable(e.deref()),
-            Error::Throw(e) => ToThrowable::to_throwable(e),
-            Error::Type(e) => ToThrowable::to_throwable(e),
-            Error::ClassNotFound(e) => ToThrowable::to_throwable(e),
-            Error::ArgumentCount(e) => ToThrowable::to_throwable(e),
-            Error::StateType(e) => ToThrowable::to_throwable(e),
-            Error::CallFunction(e) => ToThrowable::to_throwable(e),
-            Error::CallMethod(e) => ToThrowable::to_throwable(e),
-            Error::InitializeObject(e) => ToThrowable::to_throwable(e),
-            Error::NotRefCountedType(e) => ToThrowable::to_throwable(e),
-            Error::ExpectType(e) => ToThrowable::to_throwable(e),
-            Error::NotImplementThrowable(e) => ToThrowable::to_throwable(e),
+            Error::Io(e) => Throwable::to_object(e as &mut dyn error::Error),
+            Error::Utf8(e) => Throwable::to_object(e as &mut dyn error::Error),
+            Error::FromBytesWithNul(e) => Throwable::to_object(e as &mut dyn error::Error),
+            Error::Other(e) => Throwable::to_object(e.deref_mut()),
+            Error::Throw(e) => Throwable::to_object(e),
+            Error::Type(e) => Throwable::to_object(e),
+            Error::ClassNotFound(e) => Throwable::to_object(e),
+            Error::ArgumentCount(e) => Throwable::to_object(e),
+            Error::StateType(e) => Throwable::to_object(e),
+            Error::CallFunction(e) => Throwable::to_object(e),
+            Error::CallMethod(e) => Throwable::to_object(e),
+            Error::InitializeObject(e) => Throwable::to_object(e),
+            Error::NotRefCountedType(e) => Throwable::to_object(e),
+            Error::ExpectType(e) => Throwable::to_object(e),
+            Error::NotImplementThrowable(e) => Throwable::to_object(e),
         }
     }
 }
@@ -318,9 +300,9 @@ impl Display for ThrowObject {
 
 impl error::Error for ThrowObject {}
 
-impl ToThrowable for ThrowObject {
+impl Throwable for ThrowObject {
     #[inline]
-    fn get_class(&self) -> &'static ClassEntry {
+    fn get_class(&self) -> &ClassEntry {
         self.0.get_class()
     }
 
@@ -335,7 +317,7 @@ impl ToThrowable for ThrowObject {
     }
 
     #[inline]
-    fn to_throwable(&self) -> result::Result<ZObject, Box<dyn ToThrowable>> {
+    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
         Ok(self.0.to_ref_owned())
     }
 }
@@ -346,9 +328,9 @@ pub struct TypeError {
     message: String,
 }
 
-impl ToThrowable for TypeError {
+impl Throwable for TypeError {
     #[inline]
-    fn get_class(&self) -> &'static ClassEntry {
+    fn get_class(&self) -> &ClassEntry {
         type_error_class()
     }
 }
@@ -360,9 +342,9 @@ pub struct ExpectTypeError {
     actual_type: TypeInfo,
 }
 
-impl ToThrowable for ExpectTypeError {
+impl Throwable for ExpectTypeError {
     #[inline]
-    fn get_class(&self) -> &'static ClassEntry {
+    fn get_class(&self) -> &ClassEntry {
         type_error_class()
     }
 }
@@ -373,8 +355,8 @@ pub struct ClassNotFoundError {
     class_name: String,
 }
 
-impl ToThrowable for ClassNotFoundError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for ClassNotFoundError {
+    fn get_class(&self) -> &ClassEntry {
         error_class()
     }
 }
@@ -386,8 +368,8 @@ impl ToThrowable for ClassNotFoundError {
 )]
 pub struct StateTypeError;
 
-impl ToThrowable for StateTypeError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for StateTypeError {
+    fn get_class(&self) -> &ClassEntry {
         error_class()
     }
 }
@@ -400,8 +382,8 @@ pub struct ArgumentCountError {
     given_count: usize,
 }
 
-impl ToThrowable for ArgumentCountError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for ArgumentCountError {
+    fn get_class(&self) -> &ClassEntry {
         #[cfg(phper_version_id_gte_70100)]
         {
             argument_count_error_class()
@@ -420,8 +402,8 @@ pub struct CallFunctionError {
     fn_name: String,
 }
 
-impl ToThrowable for CallFunctionError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for CallFunctionError {
+    fn get_class(&self) -> &ClassEntry {
         error_class()
     }
 }
@@ -433,8 +415,8 @@ pub struct CallMethodError {
     method_name: String,
 }
 
-impl ToThrowable for CallMethodError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for CallMethodError {
+    fn get_class(&self) -> &ClassEntry {
         error_class()
     }
 }
@@ -445,8 +427,8 @@ pub struct InitializeObjectError {
     class_name: String,
 }
 
-impl ToThrowable for InitializeObjectError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for InitializeObjectError {
+    fn get_class(&self) -> &ClassEntry {
         error_class()
     }
 }
@@ -455,8 +437,8 @@ impl ToThrowable for InitializeObjectError {
 #[error("the type is not refcounted")]
 pub struct NotRefCountedTypeError;
 
-impl ToThrowable for NotRefCountedTypeError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for NotRefCountedTypeError {
+    fn get_class(&self) -> &ClassEntry {
         type_error_class()
     }
 }
@@ -465,8 +447,8 @@ impl ToThrowable for NotRefCountedTypeError {
 #[error("Cannot throw objects that do not implement Throwable")]
 pub struct NotImplementThrowableError;
 
-impl ToThrowable for NotImplementThrowableError {
-    fn get_class(&self) -> &'static ClassEntry {
+impl Throwable for NotImplementThrowableError {
+    fn get_class(&self) -> &ClassEntry {
         type_error_class()
     }
 }

@@ -15,14 +15,13 @@ use crate::{
     classes::ClassEntry,
     functions::{call_internal, ZendFunction},
     sys::*,
-    values::ZVal, errors::ToThrowable,
+    values::ZVal
 };
 use phper_alloc::ToRefOwned;
 use std::{
     any::Any,
-    borrow::{Borrow, ToOwned},
+    borrow::{Borrow},
     convert::TryInto,
-    ffi::CString,
     fmt::{self, Debug},
     intrinsics::transmute,
     marker::PhantomData,
