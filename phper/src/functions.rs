@@ -15,8 +15,7 @@
 use crate::{
     cg,
     classes::{ClassEntry, Visibility},
-    errors::{ArgumentCountError, CallFunctionError, CallMethodError},
-    exceptions::Exception,
+    errors::{ArgumentCountError, CallFunctionError, CallMethodError, ThrowObject, ExceptionGuard},
     objects::{StatefulObj, ZObj},
     strings::{ZStr, ZString},
     sys::*,
@@ -550,6 +549,8 @@ pub(crate) fn call_raw_common(
     call_fn: impl FnOnce(&mut ZVal) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
     object: Option<&mut ZObj>,
 ) -> crate::Result<ZVal> {
+    let _guard = ExceptionGuard::new();
+
     let mut ret = ZVal::default();
 
     if call_fn(&mut ret) && !ret.get_type_info().is_undef() {
@@ -570,28 +571,10 @@ pub(crate) fn call_raw_common(
         }
 
         let ex = ZObj::from_mut_ptr(e);
-        eg!(exception) = null_mut();
-        let class_name = ex.get_class().get_name().to_str()?.to_string();
-        let code = ex.call("getCode", [])?.as_long().unwrap();
-        let message = ex
-            .call("getMessage", [])?
-            .as_z_str()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned();
-        let file = ex
-            .call("getFile", [])?
-            .as_z_str()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned();
-        let line = ex.call("getLine", [])?.as_long().unwrap();
-        eg!(exception) = e;
 
-        zend_clear_exception();
-
-        Err(Exception::new(class_name, code, message, file, line).into())
+        match ThrowObject::new(ex.to_ref_owned()) {
+            Ok(e) => Err(e.into()),
+            Err(e) => Err(e.into()),
+        }
     }
 }

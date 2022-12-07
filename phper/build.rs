@@ -24,4 +24,12 @@ fn main() {
         "PHPER not support ZTS mode now (php built with `--enable-maintainer-zts` or \
          `--enable-zts`)."
     );
+
+    register_version_flags();
+}
+
+fn register_version_flags() {
+    if PHP_VERSION_ID >= 70100 {
+        println!("cargo:rustc-cfg=phper_version_id_gte_70100",);
+    }
 }

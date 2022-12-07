@@ -25,7 +25,9 @@ use once_cell::sync::OnceCell;
 use phper_alloc::ToRefOwned;
 use std::{
     any::{Any, TypeId},
+    borrow::ToOwned,
     convert::TryInto,
+    fmt::Debug,
     marker::PhantomData,
     mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
@@ -246,6 +248,20 @@ impl ClassEntry {
             let function_table = ZArr::from_ptr(&self.inner.function_table);
             function_table.exists(method_name)
         }
+    }
+
+    pub fn instance_of(&self, parent: &ClassEntry) -> bool {
+        unsafe {
+            phper_instanceof_function(self.as_ptr(), parent.as_ptr()) != 0
+        }
+    }
+}
+
+impl Debug for ClassEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ClassEntry")
+            .field(&self.get_name().to_c_str())
+            .finish()
     }
 }
 

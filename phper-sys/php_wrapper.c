@@ -364,3 +364,7 @@ bool phper_zend_symtable_str_exists(HashTable *ht, const char *str, size_t len) 
 uint32_t phper_zend_num_args(const zend_execute_data *execute_data) {
     return ZEND_NUM_ARGS();
 }
+
+zend_bool phper_instanceof_function(const zend_class_entry *instance_ce, const zend_class_entry *ce) {
+    return instanceof_function(instance_ce, ce);
+}
