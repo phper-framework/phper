@@ -381,9 +381,9 @@ impl ZendFunction {
                     #[cfg(all(
                         phper_major_version = "7",
                         any(
-                            phper_minor_version = "0",
-                            phper_minor_version = "1",
                             phper_minor_version = "2",
+                            phper_minor_version = "1",
+                            phper_minor_version = "0",
                         )
                     ))]
                     initialized: 1,
@@ -449,7 +449,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 pub(crate) const fn create_zend_arg_info(
     name: *const c_char, _pass_by_ref: bool,
 ) -> zend_internal_arg_info {
-    #[cfg(any(phper_php_version = "8.1", phper_php_version = "8.0"))]
+    #[cfg(phper_major_version = "8")]
     {
         zend_internal_arg_info {
             name,
@@ -461,10 +461,13 @@ pub(crate) const fn create_zend_arg_info(
         }
     }
 
-    #[cfg(any(
-        phper_php_version = "7.4",
-        phper_php_version = "7.3",
-        phper_php_version = "7.2"
+    #[cfg(all(
+        phper_major_version = "7",
+        any(
+            phper_minor_version = "4",
+            phper_minor_version = "3",
+            phper_minor_version = "2",
+        )
     ))]
     {
         #[allow(clippy::unnecessary_cast)]
@@ -476,7 +479,13 @@ pub(crate) const fn create_zend_arg_info(
         }
     }
 
-    #[cfg(any(phper_php_version = "7.1", phper_php_version = "7.0"))]
+    #[cfg(all(
+        phper_major_version = "7",
+        any(
+            phper_minor_version = "1",
+            phper_minor_version = "0",
+        )
+    ))]
     {
         zend_internal_arg_info {
             name,

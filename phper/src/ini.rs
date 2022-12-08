@@ -140,17 +140,22 @@ impl IniEntity {
 }
 
 fn create_ini_entry_ex(name: &str, default_value: &str, modifiable: u32) -> zend_ini_entry_def {
-    #[cfg(any(
-        phper_php_version = "8.1",
-        phper_php_version = "8.0",
-        phper_php_version = "7.4",
-        phper_php_version = "7.3",
-    ))]
+    #[cfg(any(phper_major_version = "8", all(
+        phper_major_version = "7",
+        any(
+            phper_minor_version = "4",
+            phper_minor_version = "3",
+        )
+    )))]
     let (modifiable, name_length) = (modifiable as std::os::raw::c_uchar, name.len() as u16);
-    #[cfg(any(
-        phper_php_version = "7.2",
-        phper_php_version = "7.1",
-        phper_php_version = "7.0",
+
+    #[cfg(all(
+        phper_major_version = "7",
+        any(
+            phper_minor_version = "2",
+            phper_minor_version = "1",
+            phper_minor_version = "0",
+        )
     ))]
     let (modifiable, name_length) = (modifiable as std::os::raw::c_int, name.len() as u32);
 
