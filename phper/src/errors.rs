@@ -73,12 +73,6 @@ pub fn parse_error_class<'a>() -> &'a ClassEntry {
     unsafe { ClassEntry::from_ptr(zend_ce_parse_error) }
 }
 
-/// Predefined class `CompileError`.
-#[inline]
-pub fn compile_error_class<'a>() -> &'a ClassEntry {
-    unsafe { ClassEntry::from_ptr(zend_ce_compile_error) }
-}
-
 /// Predefined class `DivisionByZeroError`.
 #[inline]
 pub fn division_by_zero_error<'a>() -> &'a ClassEntry {
@@ -141,9 +135,6 @@ impl Throwable for dyn error::Error {
 pub type Result<T> = result::Result<T, self::Error>;
 
 /// Crate level Error, which also can become an exception in php.
-///
-/// As a php exception, will throw `ErrorException` when the item not implement
-/// [ToThrowable].
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
