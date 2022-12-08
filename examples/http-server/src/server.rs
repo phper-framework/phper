@@ -20,7 +20,6 @@ use hyper::{
 use phper::{
     alloc::{EBox, RefClone, ToRefOwned},
     classes::{ClassEntry, StatefulClass, Visibility},
-    errors::Error::Throw,
     functions::Argument,
     values::ZVal,
 };
@@ -90,15 +89,11 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
                     let response_val = response.to_ref_owned();
                     let response_val = ZVal::from(response_val);
 
-                    match handle.call([request, response_val]) {
-                        Err(Throw(ex)) => {
-                            let state = unsafe { response.as_mut_state::<Response<Body>>() };
-                            *state.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                            *state.body_mut() = ex.to_string().into();
-                        }
-                        Err(e) => return Err(e),
-                        _ => {}
-                    }
+                    if let Err(err) = handle.call([request, response_val]) {
+                        let state = unsafe { response.as_mut_state::<Response<Body>>() };
+                        *state.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                        *state.body_mut() = err.to_string().into();
+                    };
 
                     let response = replace_and_get(unsafe { response.as_mut_state() });
                     Ok::<Response<Body>, phper::Error>(response)

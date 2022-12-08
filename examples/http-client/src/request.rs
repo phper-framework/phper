@@ -26,10 +26,7 @@ pub fn make_request_builder_class() -> StatefulClass<Option<RequestBuilder>> {
 
     class.add_method("send", Visibility::Public, |this, _arguments| {
         let state = take(this.as_mut_state());
-        let response = state
-            .unwrap()
-            .send()
-            .map_err(HttpClientError::Reqwest)?;
+        let response = state.unwrap().send().map_err(HttpClientError::Reqwest)?;
         let mut object = ClassEntry::from_globals(RESPONSE_CLASS_NAME)
             .map_err(ThrowObject::from_throwable)?
             .new_object([])?;
