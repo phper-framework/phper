@@ -15,12 +15,12 @@ use crate::{
     classes::ClassEntry,
     functions::{call_internal, ZendFunction},
     sys::*,
-    values::ZVal
+    values::ZVal,
 };
 use phper_alloc::ToRefOwned;
 use std::{
     any::Any,
-    borrow::{Borrow},
+    borrow::Borrow,
     convert::TryInto,
     fmt::{self, Debug},
     intrinsics::transmute,
@@ -133,7 +133,9 @@ impl ZObj {
     }
 
     #[allow(clippy::useless_conversion)]
-    pub fn inner_get_property(&self, scope: *mut zend_class_entry, object: *mut zend_object, name: impl AsRef<str>) -> &mut ZVal {
+    pub fn inner_get_property(
+        &self, scope: *mut zend_class_entry, object: *mut zend_object, name: impl AsRef<str>,
+    ) -> &mut ZVal {
         let name = name.as_ref();
 
         let prop = unsafe {

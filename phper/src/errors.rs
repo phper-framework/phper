@@ -10,13 +10,19 @@
 
 //! The errors for crate and php.
 
-use crate::{classes::ClassEntry, objects::{ZObject}, sys::*, types::TypeInfo};
+use crate::{classes::ClassEntry, objects::ZObject, sys::*, types::TypeInfo};
 use derive_more::Constructor;
-use std::{
-    error, ffi::FromBytesWithNulError, fmt::{Debug, Display, self}, io, ops::{Deref, DerefMut}, result,
-    str::Utf8Error, marker::PhantomData
-};
 use phper_alloc::ToRefOwned;
+use std::{
+    error,
+    ffi::FromBytesWithNulError,
+    fmt::{self, Debug, Display},
+    io,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    result,
+    str::Utf8Error,
+};
 
 /// Predefined interface `Throwable`.
 #[inline]
@@ -82,10 +88,7 @@ pub fn division_by_zero_error<'a>() -> &'a ClassEntry {
 /// PHP Throwable, can cause throwing an exception when setting to
 /// [crate::values::ZVal].
 pub trait Throwable: error::Error {
-    #[inline]
-    fn get_class(&self) -> &ClassEntry {
-        error_class()
-    }
+    fn get_class(&self) -> &ClassEntry;
 
     #[inline]
     fn get_code(&self) -> Option<i64> {
@@ -98,7 +101,8 @@ pub trait Throwable: error::Error {
     }
 
     fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
-        let mut object = ZObject::new(self.get_class(), []).map_err(|e| Box::new(crate::Error::from(e)) as _)?;
+        let mut object =
+            ZObject::new(self.get_class(), []).map_err(|e| Box::new(e) as Box<dyn Throwable>)?;
         if let Some(code) = self.get_code() {
             object.set_property("code", code);
         }
@@ -152,7 +156,7 @@ pub enum Error {
     FromBytesWithNul(#[from] FromBytesWithNulError),
 
     #[error(transparent)]
-    Other(#[from] Box<dyn error::Error>),
+    Boxed(#[from] Box<dyn error::Error>),
 
     #[error(transparent)]
     Throw(#[from] ThrowObject),
@@ -188,6 +192,17 @@ pub enum Error {
     NotImplementThrowable(#[from] NotImplementThrowableError),
 }
 
+impl Error {
+    pub fn boxed(e: impl error::Error + 'static) -> Self {
+        Self::Boxed(Box::new(e))
+    }
+
+    pub fn throw(t: impl Throwable) -> Self {
+        let obj = ThrowObject::from_throwable(t);
+        Self::Throw(obj)
+    }
+}
+
 impl Throwable for Error {
     #[inline]
     fn get_class(&self) -> &ClassEntry {
@@ -195,7 +210,7 @@ impl Throwable for Error {
             Error::Io(e) => Throwable::get_class(e as &dyn error::Error),
             Error::Utf8(e) => Throwable::get_class(e as &dyn error::Error),
             Error::FromBytesWithNul(e) => Throwable::get_class(e as &dyn error::Error),
-            Error::Other(e) => Throwable::get_class(e.deref()),
+            Error::Boxed(e) => Throwable::get_class(e.deref()),
             Error::Throw(e) => Throwable::get_class(e),
             Error::Type(e) => Throwable::get_class(e),
             Error::ClassNotFound(e) => Throwable::get_class(e),
@@ -216,7 +231,7 @@ impl Throwable for Error {
             Error::Io(e) => Throwable::get_code(e as &dyn error::Error),
             Error::Utf8(e) => Throwable::get_code(e as &dyn error::Error),
             Error::FromBytesWithNul(e) => Throwable::get_code(e as &dyn error::Error),
-            Error::Other(e) => Throwable::get_code(e.deref()),
+            Error::Boxed(e) => Throwable::get_code(e.deref()),
             Error::Throw(e) => Throwable::get_code(e),
             Error::Type(e) => Throwable::get_code(e),
             Error::ClassNotFound(e) => Throwable::get_code(e),
@@ -236,7 +251,7 @@ impl Throwable for Error {
             Error::Io(e) => Throwable::get_message(e as &dyn error::Error),
             Error::Utf8(e) => Throwable::get_message(e as &dyn error::Error),
             Error::FromBytesWithNul(e) => Throwable::get_message(e as &dyn error::Error),
-            Error::Other(e) => Throwable::get_message(e.deref()),
+            Error::Boxed(e) => Throwable::get_message(e.deref()),
             Error::Throw(e) => Throwable::get_message(e),
             Error::Type(e) => Throwable::get_message(e),
             Error::ClassNotFound(e) => Throwable::get_message(e),
@@ -256,7 +271,7 @@ impl Throwable for Error {
             Error::Io(e) => Throwable::to_object(e as &mut dyn error::Error),
             Error::Utf8(e) => Throwable::to_object(e as &mut dyn error::Error),
             Error::FromBytesWithNul(e) => Throwable::to_object(e as &mut dyn error::Error),
-            Error::Other(e) => Throwable::to_object(e.deref_mut()),
+            Error::Boxed(e) => Throwable::to_object(e.deref_mut()),
             Error::Throw(e) => Throwable::to_object(e),
             Error::Type(e) => Throwable::to_object(e),
             Error::ClassNotFound(e) => Throwable::to_object(e),
@@ -283,12 +298,56 @@ impl ThrowObject {
         Ok(Self(obj))
     }
 
+    #[inline]
+    pub fn from_throwable(mut t: impl Throwable) -> Self {
+        Self::from_result(t.to_object())
+    }
+
+    #[inline]
+    pub fn from_error(mut e: impl error::Error + 'static) -> Self {
+        let e = &mut e as &mut dyn error::Error;
+        Self::from_result(Throwable::to_object(e))
+    }
+
+    fn from_result(mut result: result::Result<ZObject, Box<dyn Throwable>>) -> Self {
+        let mut i = 0;
+
+        let obj = loop {
+            match result {
+                Ok(o) => break o,
+                Err(mut e) => {
+                    if i > 50 {
+                        panic!("recursion limit reached");
+                    }
+                    result = e.to_object();
+                    i += 1;
+                }
+            }
+        };
+
+        Self::new(obj).unwrap()
+    }
+
+    #[inline]
+    pub fn into_inner(self) -> ZObject {
+        self.0
+    }
+
     fn inner_get_code(&self) -> i64 {
-        self.0.get_property("code").as_long().expect("code isn't long")
+        self.0
+            .get_property("code")
+            .as_long()
+            .expect("code isn't long")
     }
 
     fn inner_get_message(&self) -> String {
-        self.0.get_property("message").as_z_str().expect("message isn't string").to_str().map(ToOwned::to_owned).unwrap_or_default()
+        self.0
+            .get_property("message")
+            .as_z_str()
+            .expect("message isn't string")
+            .to_str()
+            .map(ToOwned::to_owned)
+            .unwrap_or_default()
     }
 }
 

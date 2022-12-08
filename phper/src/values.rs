@@ -13,7 +13,7 @@
 use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
-    errors::{ExpectTypeError, Throwable},
+    errors::{ExpectTypeError, ThrowObject, Throwable},
     functions::{call_internal, ZendFunction},
     objects::{ZObj, ZObject},
     resources::ZRes,
@@ -552,18 +552,8 @@ impl<T: Into<ZVal>, E: Throwable> From<Result<T, E>> for ZVal {
     fn from(r: Result<T, E>) -> Self {
         match r {
             Ok(t) => t.into(),
-            Err(mut e) => {
-                let mut result = e.to_object();
-
-                let obj = loop {
-                    match result {
-                        Ok(o) => break o,
-                        Err(mut e) => {
-                            result = e.to_object();
-                        }
-                    }
-                };
-
+            Err(e) => {
+                let obj = ThrowObject::from_throwable(e).into_inner();
                 let mut val = ManuallyDrop::new(ZVal::from(obj));
                 unsafe {
                     zend_throw_exception_object(val.as_mut_ptr());
