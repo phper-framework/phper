@@ -24,33 +24,25 @@ pub fn make_exception_class() -> StatefulClass<()> {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct ReqwestError(pub reqwest::Error);
+pub enum HttpClientError {
+    #[error(transparent)]
+    Reqwest(reqwest::Error),
 
-impl Throwable for ReqwestError {
+    #[error("should call '{method_name}()' before call 'body()'")]
+    ResponseAfterRead { method_name: String },
+
+    #[error("should not call 'body()' multi time")]
+    ResponseHadRead,
+}
+
+impl Throwable for HttpClientError {
     fn get_class(&self) -> &ClassEntry {
         ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("should call '{method_name}()' before call 'body()'")]
-pub struct ResponseAfterRead {
-    pub method_name: String,
-}
-
-impl Throwable for ResponseAfterRead {
-    fn get_class(&self) -> &ClassEntry {
-        ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("should not call 'body()' multi time")]
-pub struct ResponseHadRead;
-
-impl Throwable for ResponseHadRead {
-    fn get_class(&self) -> &ClassEntry {
-        ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
+impl From<HttpClientError> for phper::Error {
+    fn from(e: HttpClientError) -> Self {
+        phper::Error::throw(e)
     }
 }

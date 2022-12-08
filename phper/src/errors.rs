@@ -514,8 +514,8 @@ impl Throwable for NotImplementThrowableError {
 
 pub struct ExceptionGuard(PhantomData<()>);
 
-impl ExceptionGuard {
-    pub fn new() -> Self {
+impl Default for ExceptionGuard {
+    fn default() -> Self {
         unsafe {
             zend_exception_save();
         }

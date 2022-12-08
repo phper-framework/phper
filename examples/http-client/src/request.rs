@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::{errors::ReqwestError, response::RESPONSE_CLASS_NAME};
+use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME};
 use phper::{
     classes::{ClassEntry, StatefulClass, Visibility},
     errors::ThrowObject,
@@ -29,7 +29,7 @@ pub fn make_request_builder_class() -> StatefulClass<Option<RequestBuilder>> {
         let response = state
             .unwrap()
             .send()
-            .map_err(|e| ThrowObject::from_throwable(ReqwestError(e)))?;
+            .map_err(HttpClientError::Reqwest)?;
         let mut object = ClassEntry::from_globals(RESPONSE_CLASS_NAME)
             .map_err(ThrowObject::from_throwable)?
             .new_object([])?;

@@ -22,12 +22,15 @@ pub fn make_response_class() -> StatefulClass<Response<Body>> {
 
     class
         .add_method("header", Visibility::Public, |this, arguments| {
+            let name = arguments[0].expect_z_str()?.to_bytes();
+            let value = arguments[1].expect_z_str()?.to_bytes();
+
             let response: &mut Response<Body> = this.as_mut_state();
             response.headers_mut().insert(
-                HeaderName::from_bytes(arguments[0].as_z_str().unwrap().to_bytes())?,
-                HeaderValue::from_bytes(arguments[1].as_z_str().unwrap().to_bytes())?,
+                HeaderName::from_bytes(name).map_err(|e| HttpServerError(Box::new(e)))?,
+                HeaderValue::from_bytes(value).map_err(|e| HttpServerError(Box::new(e)))?,
             );
-            Ok::<_, HttpServerError>(())
+            Ok::<_, phper::Error>(())
         })
         .argument(Argument::by_val("data"));
 

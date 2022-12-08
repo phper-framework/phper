@@ -8,36 +8,28 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use hyper::header::{InvalidHeaderName, InvalidHeaderValue};
-use phper::classes::{ClassEntry, StatefulClass};
-use std::{net::AddrParseError, str::Utf8Error};
+use phper::{
+    classes::{ClassEntry, StatefulClass},
+    errors::{exception_class, Throwable},
+};
+use std::error::Error;
 
 const EXCEPTION_CLASS_NAME: &str = "HttpServer\\HttpServerException";
 
-#[derive(Debug, thiserror::Error, phper::Throwable)]
-#[throwable_class(EXCEPTION_CLASS_NAME)]
-pub enum HttpServerError {
-    #[error(transparent)]
-    #[throwable(transparent)]
-    Phper(#[from] phper::Error),
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct HttpServerError(pub Box<dyn Error>);
 
-    #[error(transparent)]
-    Utf8Error(#[from] Utf8Error),
+impl Throwable for HttpServerError {
+    fn get_class(&self) -> &ClassEntry {
+        ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
+    }
+}
 
-    #[error(transparent)]
-    AddrParse(#[from] AddrParseError),
-
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Hyper(#[from] hyper::Error),
-
-    #[error(transparent)]
-    InvalidHeaderName(#[from] InvalidHeaderName),
-
-    #[error(transparent)]
-    InvalidHeaderValue(#[from] InvalidHeaderValue),
+impl From<HttpServerError> for phper::Error {
+    fn from(e: HttpServerError) -> Self {
+        phper::Error::throw(e)
+    }
 }
 
 pub fn make_exception_class() -> StatefulClass<()> {

@@ -8,11 +8,10 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::{errors::ReqwestError, request::REQUEST_BUILDER_CLASS_NAME};
+use crate::{errors::HttpClientError, request::REQUEST_BUILDER_CLASS_NAME};
 use phper::{
     alloc::ToRefOwned,
     classes::{ClassEntry, StatefulClass, Visibility},
-    errors::ThrowObject,
     functions::Argument,
 };
 use reqwest::blocking::{Client, ClientBuilder};
@@ -52,8 +51,7 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
     // Object.
     class.add_method("build", Visibility::Public, |this, _arguments| {
         let state = take(this.as_mut_state());
-        let client = ClientBuilder::build(state)
-            .map_err(|e| ThrowObject::from_throwable(ReqwestError(e)))?;
+        let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
         let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
         unsafe {
             *object.as_mut_state() = Some(client);

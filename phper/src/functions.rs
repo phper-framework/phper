@@ -549,7 +549,7 @@ pub(crate) fn call_raw_common(
     call_fn: impl FnOnce(&mut ZVal) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
     object: Option<&mut ZObj>,
 ) -> crate::Result<ZVal> {
-    let _guard = ExceptionGuard::new();
+    let _guard = ExceptionGuard::default();
 
     let mut ret = ZVal::default();
 

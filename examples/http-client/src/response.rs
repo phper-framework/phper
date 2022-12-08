@@ -8,15 +8,14 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::errors::{ReqwestError, ResponseAfterRead, ResponseHadRead};
+use crate::errors::HttpClientError;
 use phper::{
     arrays::{InsertKey, ZArray},
     classes::{StatefulClass, Visibility},
-    errors::{ThrowObject, Throwable},
     values::ZVal,
 };
 use reqwest::blocking::Response;
-use std::{error::Error, mem::take};
+use std::mem::take;
 
 pub const RESPONSE_CLASS_NAME: &str = "HttpClient\\Response";
 
@@ -25,27 +24,29 @@ pub fn make_response_class() -> StatefulClass<Option<Response>> {
 
     class.add_method("body", Visibility::Public, |this, _arguments| {
         let response = take(this.as_mut_state());
-        let response = response
-            .ok_or(ResponseHadRead)
-            .map_err(ThrowObject::from_throwable)?;
-        let body = response
-            .bytes()
-            .map_err(|e| ThrowObject::from_throwable(ReqwestError(e)))?;
+        let response = response.ok_or(HttpClientError::ResponseHadRead)?;
+        let body = response.bytes().map_err(HttpClientError::Reqwest)?;
         Ok::<_, phper::Error>(body.to_vec())
     });
 
     class.add_method("status", Visibility::Public, |this, _arguments| {
-        let response = this.as_state().as_ref().ok_or_else(|| ResponseAfterRead {
-            method_name: "status".to_owned(),
-        })?;
+        let response =
+            this.as_state()
+                .as_ref()
+                .ok_or_else(|| HttpClientError::ResponseAfterRead {
+                    method_name: "status".to_owned(),
+                })?;
 
-        Ok::<_, ResponseAfterRead>(response.status().as_u16() as i64)
+        Ok::<_, HttpClientError>(response.status().as_u16() as i64)
     });
 
     class.add_method("headers", Visibility::Public, |this, _arguments| {
-        let response = this.as_state().as_ref().ok_or_else(|| ResponseAfterRead {
-            method_name: "headers".to_owned(),
-        })?;
+        let response =
+            this.as_state()
+                .as_ref()
+                .ok_or_else(|| HttpClientError::ResponseAfterRead {
+                    method_name: "headers".to_owned(),
+                })?;
         let headers_map = response
             .headers()
             .iter()
@@ -56,7 +57,7 @@ pub fn make_response_class() -> StatefulClass<Option<Response>> {
                     .insert(InsertKey::NextIndex, ZVal::from(value.as_bytes()));
                 acc
             });
-        Ok::<_, ResponseAfterRead>(headers_map)
+        Ok::<_, HttpClientError>(headers_map)
     });
 
     class

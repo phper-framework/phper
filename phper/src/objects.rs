@@ -124,21 +124,23 @@ impl ZObj {
 
     pub fn get_property(&self, name: impl AsRef<str>) -> &ZVal {
         let object = self.as_ptr() as *mut _;
-        self.inner_get_property(self.inner.ce, object, name)
+        let prop = Self::inner_get_property(self.inner.ce, object, name);
+        unsafe { ZVal::from_ptr(prop) }
     }
 
     pub fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut ZVal {
         let object = self.as_mut_ptr();
-        self.inner_get_property(self.inner.ce, object, name)
+        let prop = Self::inner_get_property(self.inner.ce, object, name);
+        unsafe { ZVal::from_mut_ptr(prop) }
     }
 
     #[allow(clippy::useless_conversion)]
-    pub fn inner_get_property(
-        &self, scope: *mut zend_class_entry, object: *mut zend_object, name: impl AsRef<str>,
-    ) -> &mut ZVal {
+    fn inner_get_property(
+        scope: *mut zend_class_entry, object: *mut zend_object, name: impl AsRef<str>,
+    ) -> *mut zval {
         let name = name.as_ref();
 
-        let prop = unsafe {
+        unsafe {
             #[cfg(phper_major_version = "8")]
             {
                 zend_read_property(
@@ -163,9 +165,7 @@ impl ZObj {
                     null_mut(),
                 )
             }
-        };
-
-        unsafe { ZVal::from_mut_ptr(prop) }
+        }
     }
 
     #[allow(clippy::useless_conversion)]
