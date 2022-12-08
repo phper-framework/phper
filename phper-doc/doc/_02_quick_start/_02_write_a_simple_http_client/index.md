@@ -94,23 +94,25 @@ Now let's begin to finish the logic.
    ```rust
    /*** src/errors.rs ***/
 
-   use phper::classes::{ClassEntry, StatefulClass};
+   use phper::{
+       classes::{ClassEntry, StatefulClass},
+       errors::{exception_class, Throwable},
+   };
    
    /// The exception class name of extension.
    const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
    
-   /// The struct implemented `phper::Throwable` will throw php Exception
-   /// when return as `Err(e)` in extension functions.
-   #[derive(Debug, thiserror::Error, phper::Throwable)]
-   #[throwable_class(EXCEPTION_CLASS_NAME)]
-   pub enum HttpClientError {
-       /// Generally, implement `From` for `phper::Error`.
-       #[error(transparent)]
-       #[throwable(transparent)]
-       Phper(#[from] phper::Error),
+   pub fn make_exception_class() -> StatefulClass<()> {
+       let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
+       // The `extends` is same as the PHP class `extends`.
+       exception_class.extends("Exception");
+       exception_class
+   }
    
+   #[derive(Debug, thiserror::Error)]
+   pub enum HttpClientError {
        #[error(transparent)]
-       Reqwest(#[from] reqwest::Error),
+       Reqwest(reqwest::Error),
    
        #[error("should call '{method_name}()' before call 'body()'")]
        ResponseAfterRead { method_name: String },
@@ -119,12 +121,18 @@ Now let's begin to finish the logic.
        ResponseHadRead,
    }
    
-   pub fn make_exception_class() -> StatefulClass<()> {
-       let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
-        // The `extends` is same as the PHP class `extends`.
-       exception_class.extends("Exception");
-       exception_class
+   impl Throwable for HttpClientError {
+       fn get_class(&self) -> &ClassEntry {
+           ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
+       }
    }
+   
+   impl From<HttpClientError> for phper::Error {
+       fn from(e: HttpClientError) -> Self {
+           phper::Error::throw(e)
+       }
+   }
+
    ```
 
    > The `make_*_class` functions is for registering class in `src/lib.rs` later.
@@ -142,29 +150,43 @@ Now let's begin to finish the logic.
    ```rust
    /*** src/errors.rs ***/
 
-   use phper::classes::{ClassEntry, StatefulClass};
+   use phper::{
+       classes::{ClassEntry, StatefulClass},
+       errors::{exception_class, Throwable},
+   };
    
    /// The exception class name of extension.
    const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
    
-   /// The struct implemented `phper::Throwable` will throw php Exception
-   /// when return as `Err(e)` in extension functions.
-   #[derive(Debug, thiserror::Error, phper::Throwable)]
-   #[throwable_class(EXCEPTION_CLASS_NAME)]
-   pub enum HttpClientError {
-       /// Generally, implement `From` for `phper::Error`.
-       #[error(transparent)]
-       #[throwable(transparent)]
-       Phper(#[from] phper::Error),
+   pub fn make_exception_class() -> StatefulClass<()> {
+       let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
+       // The `extends` is same as the PHP class `extends`.
+       exception_class.extends("Exception");
+       exception_class
+   }
    
+   #[derive(Debug, thiserror::Error)]
+   pub enum HttpClientError {
        #[error(transparent)]
-       Reqwest(#[from] reqwest::Error),
+       Reqwest(reqwest::Error),
    
        #[error("should call '{method_name}()' before call 'body()'")]
        ResponseAfterRead { method_name: String },
    
        #[error("should not call 'body()' multi time")]
        ResponseHadRead,
+   }
+   
+   impl Throwable for HttpClientError {
+       fn get_class(&self) -> &ClassEntry {
+           ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
+       }
+   }
+   
+   impl From<HttpClientError> for phper::Error {
+       fn from(e: HttpClientError) -> Self {
+           phper::Error::throw(e)
+       }
    }
 
    /*** src/client.rs ***/
@@ -176,57 +198,49 @@ Now let's begin to finish the logic.
    };
    use reqwest::blocking::{Client, ClientBuilder};
    use std::{mem::take, time::Duration};
-
+   
    const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
    const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
-
+   
    pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
        // `new_with_default_state` means initialize the state of `ClientBuilder` as
        // `Default::default`.
        let mut class = StatefulClass::new_with_default_state(HTTP_CLIENT_BUILDER_CLASS_NAME);
-
+   
        // Inner call the `ClientBuilder::timeout`.
-       class.add_method(
-           "timeout",
-           Visibility::Public,
-           |this, arguments| {
+       class
+           .add_method("timeout", Visibility::Public, |this, arguments| {
                let ms = arguments[0].expect_long()?;
                let state = this.as_mut_state();
                let builder: ClientBuilder = take(state);
                *state = builder.timeout(Duration::from_millis(ms as u64));
-               Ok::<_, HttpClientError>(this.to_ref_owned())
-           },
-       ).argument(Argument::by_val("ms"));
-
+               Ok::<_, phper::Error>(this.to_ref_owned())
+           })
+           .argument(Argument::by_val("ms"));
+   
        // Inner call the `ClientBuilder::cookie_store`.
-       class.add_method(
-           "cookie_store",
-           Visibility::Public,
-           |this, arguments| {
+       class
+           .add_method("cookie_store", Visibility::Public, |this, arguments| {
                let enable = arguments[0].expect_bool()?;
                let state = this.as_mut_state();
                let builder: ClientBuilder = take(state);
                *state = builder.cookie_store(enable);
-               Ok::<_, HttpClientError>(this.to_ref_owned())
-           },
-       ).argument(Argument::by_val("enable"));
-
-       // Inner call the `ClientBuilder::build`, and wrap the result `Client` in Object.
-       class.add_method(
-           "build",
-           Visibility::Public,
-           |this, _arguments| {
-               let state = take(this.as_mut_state());
-               let client = ClientBuilder::build(state)?;
-               let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?
-                                .init_object()?;
-               unsafe {
-                   *object.as_mut_state() = Some(client);
-               }
-               Ok::<_, HttpClientError>(object)
-           },
-       );
-
+               Ok::<_, phper::Error>(this.to_ref_owned())
+           })
+           .argument(Argument::by_val("enable"));
+   
+       // Inner call the `ClientBuilder::build`, and wrap the result `Client` in
+       // Object.
+       class.add_method("build", Visibility::Public, |this, _arguments| {
+           let state = take(this.as_mut_state());
+           let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
+           let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
+           unsafe {
+               *object.as_mut_state() = Some(client);
+           }
+           Ok::<_, phper::Error>(object)
+       });
+   
        class
    }
    ```
