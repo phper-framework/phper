@@ -250,8 +250,9 @@ impl ClassEntry {
         }
     }
 
+    #[allow(clippy::useless_conversion)]
     pub fn instance_of(&self, parent: &ClassEntry) -> bool {
-        unsafe { phper_instanceof_function(self.as_ptr(), parent.as_ptr()) != 0 }
+        unsafe { phper_instanceof_function(self.as_ptr(), parent.as_ptr()) != false.into() }
     }
 }
 
