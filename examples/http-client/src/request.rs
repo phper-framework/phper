@@ -9,7 +9,10 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::{errors::HttpClientError, response::RESPONSE_CLASS_NAME};
-use phper::classes::{ClassEntry, StatefulClass, Visibility};
+use phper::{
+    classes::{ClassEntry, StatefulClass, Visibility},
+    errors::ThrowObject,
+};
 use reqwest::blocking::RequestBuilder;
 use std::mem::take;
 
@@ -23,12 +26,14 @@ pub fn make_request_builder_class() -> StatefulClass<Option<RequestBuilder>> {
 
     class.add_method("send", Visibility::Public, |this, _arguments| {
         let state = take(this.as_mut_state());
-        let response = state.unwrap().send()?;
-        let mut object = ClassEntry::from_globals(RESPONSE_CLASS_NAME)?.new_object([])?;
+        let response = state.unwrap().send().map_err(HttpClientError::Reqwest)?;
+        let mut object = ClassEntry::from_globals(RESPONSE_CLASS_NAME)
+            .map_err(ThrowObject::from_throwable)?
+            .new_object([])?;
         unsafe {
             *object.as_mut_state() = Some(response);
         }
-        Ok::<_, HttpClientError>(object)
+        Ok::<_, phper::Error>(object)
     });
 
     class

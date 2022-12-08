@@ -28,7 +28,7 @@ fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
 }
 
 fn throw_exception(_: &mut [ZVal]) -> phper::Result<()> {
-    Err(phper::Error::other("I am sorry"))
+    Err(phper::Error::Boxed("I am sorry".into()))
 }
 
 #[php_get_module]

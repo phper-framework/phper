@@ -10,8 +10,6 @@
 
 //! Apis relate to [crate::sys::zend_object].
 
-use phper_alloc::ToRefOwned;
-
 use crate::{
     alloc::EBox,
     classes::ClassEntry,
@@ -19,10 +17,12 @@ use crate::{
     sys::*,
     values::ZVal,
 };
+use phper_alloc::ToRefOwned;
 use std::{
     any::Any,
     borrow::Borrow,
     convert::TryInto,
+    fmt::{self, Debug},
     intrinsics::transmute,
     marker::PhantomData,
     mem::{forget, size_of, ManuallyDrop},
@@ -122,20 +122,30 @@ impl ZObj {
         unsafe { ClassEntry::from_ptr(self.inner.ce) }
     }
 
-    pub fn get_property(&mut self, name: impl AsRef<str>) -> &ZVal {
-        self.get_mut_property(name)
+    pub fn get_property(&self, name: impl AsRef<str>) -> &ZVal {
+        let object = self.as_ptr() as *mut _;
+        let prop = Self::inner_get_property(self.inner.ce, object, name);
+        unsafe { ZVal::from_ptr(prop) }
+    }
+
+    pub fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut ZVal {
+        let object = self.as_mut_ptr();
+        let prop = Self::inner_get_property(self.inner.ce, object, name);
+        unsafe { ZVal::from_mut_ptr(prop) }
     }
 
     #[allow(clippy::useless_conversion)]
-    pub fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut ZVal {
+    fn inner_get_property(
+        scope: *mut zend_class_entry, object: *mut zend_object, name: impl AsRef<str>,
+    ) -> *mut zval {
         let name = name.as_ref();
 
-        let prop = unsafe {
+        unsafe {
             #[cfg(phper_major_version = "8")]
             {
                 zend_read_property(
-                    self.inner.ce,
-                    &self.inner as *const _ as *mut _,
+                    scope,
+                    object,
                     name.as_ptr().cast(),
                     name.len().try_into().unwrap(),
                     true.into(),
@@ -145,9 +155,9 @@ impl ZObj {
             #[cfg(phper_major_version = "7")]
             {
                 let mut zv = std::mem::zeroed::<zval>();
-                phper_zval_obj(&mut zv, self.as_ptr() as *mut _);
+                phper_zval_obj(&mut zv, object);
                 zend_read_property(
-                    self.inner.ce,
+                    scope,
                     &mut zv,
                     name.as_ptr().cast(),
                     name.len().try_into().unwrap(),
@@ -155,9 +165,7 @@ impl ZObj {
                     null_mut(),
                 )
             }
-        };
-
-        unsafe { ZVal::from_mut_ptr(prop) }
+        }
     }
 
     #[allow(clippy::useless_conversion)]
@@ -247,6 +255,15 @@ impl ToRefOwned for ZObj {
     }
 }
 
+impl Debug for ZObj {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ZObj")
+            .field("class", &self.get_class().get_name().to_c_str())
+            .field("handle", &self.handle())
+            .finish()
+    }
+}
+
 /// Wrapper of [crate::sys::zend_object].
 pub struct ZObject {
     inner: *mut ZObj,
@@ -254,7 +271,7 @@ pub struct ZObject {
 
 impl ZObject {
     /// Another way to new object like [crate::classes::ClassEntry::new_object].
-    pub fn new(class_entry: &ClassEntry, arguments: &mut [ZVal]) -> crate::Result<Self> {
+    pub fn new(class_entry: &ClassEntry, arguments: impl AsMut<[ZVal]>) -> crate::Result<Self> {
         class_entry.new_object(arguments)
     }
 
@@ -345,6 +362,15 @@ impl Drop for ZObject {
         unsafe {
             phper_zend_object_release(self.as_mut_ptr());
         }
+    }
+}
+
+impl Debug for ZObject {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ZObject")
+            .field("class", &self.get_class().get_name().to_c_str())
+            .field("handle", &self.handle())
+            .finish()
     }
 }
 

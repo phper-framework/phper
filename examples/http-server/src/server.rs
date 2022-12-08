@@ -20,7 +20,6 @@ use hyper::{
 use phper::{
     alloc::{EBox, RefClone, ToRefOwned},
     classes::{ClassEntry, StatefulClass, Visibility},
-    errors::Error::Throw,
     functions::Argument,
     values::ZVal,
 };
@@ -48,12 +47,17 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
         .add_method("__construct", Visibility::Public, |this, arguments| {
             let host = arguments[0].expect_z_str()?;
             let port = arguments[1].expect_long()?;
+
             this.set_property("host", host.to_owned());
             this.set_property("port", port);
-            let addr = format!("{}:{}", host.to_str()?, port).parse::<SocketAddr>()?;
+
+            let addr = format!("{}:{}", host.to_str()?, port)
+                .parse::<SocketAddr>()
+                .map_err(|e| HttpServerError(Box::new(e)))?;
             let builder = Server::bind(&addr);
             *this.as_mut_state() = Some(builder);
-            Ok::<_, HttpServerError>(())
+
+            Ok::<_, phper::Error>(())
         })
         .arguments([Argument::by_val("host"), Argument::by_val("port")]);
 
@@ -73,7 +77,7 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
 
         let make_svc = make_service_fn(move |_conn| async move {
             Ok::<_, Infallible>(service_fn(move |_: Request<Body>| async move {
-                match async move {
+                let fut = async move {
                     let handle = unsafe { HANDLE.load(Ordering::SeqCst).as_mut().unwrap() };
 
                     let request =
@@ -85,21 +89,16 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
                     let response_val = response.to_ref_owned();
                     let response_val = ZVal::from(response_val);
 
-                    match handle.call([request, response_val]) {
-                        Err(Throw(ex)) => {
-                            let state = unsafe { response.as_mut_state::<Response<Body>>() };
-                            *state.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                            *state.body_mut() = ex.to_string().into();
-                        }
-                        Err(e) => return Err(e.into()),
-                        _ => {}
-                    }
+                    if let Err(err) = handle.call([request, response_val]) {
+                        let state = unsafe { response.as_mut_state::<Response<Body>>() };
+                        *state.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                        *state.body_mut() = err.to_string().into();
+                    };
 
                     let response = replace_and_get(unsafe { response.as_mut_state() });
-                    Ok::<Response<Body>, HttpServerError>(response)
-                }
-                .await
-                {
+                    Ok::<Response<Body>, phper::Error>(response)
+                };
+                match fut.await {
                     Ok(response) => Ok::<Response<Body>, Infallible>(response),
                     Err(e) => {
                         let mut response = Response::new("".into());
@@ -112,9 +111,11 @@ pub fn make_server_class() -> StatefulClass<Option<Builder<AddrIncoming>>> {
         });
 
         let server = builder.serve(make_svc);
-        Handle::current().block_on(server)?;
+        Handle::current()
+            .block_on(server)
+            .map_err(|e| HttpServerError(Box::new(e)))?;
 
-        Ok::<_, HttpServerError>(())
+        Ok::<_, phper::Error>(())
     });
 
     class

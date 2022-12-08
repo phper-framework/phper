@@ -24,10 +24,9 @@ pub fn make_response_class() -> StatefulClass<Option<Response>> {
 
     class.add_method("body", Visibility::Public, |this, _arguments| {
         let response = take(this.as_mut_state());
-        let body = response
-            .ok_or(HttpClientError::ResponseHadRead)
-            .and_then(|response| response.bytes().map_err(Into::into))?;
-        Ok::<_, HttpClientError>(body.to_vec())
+        let response = response.ok_or(HttpClientError::ResponseHadRead)?;
+        let body = response.bytes().map_err(HttpClientError::Reqwest)?;
+        Ok::<_, phper::Error>(body.to_vec())
     });
 
     class.add_method("status", Visibility::Public, |this, _arguments| {

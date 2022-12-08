@@ -13,14 +13,13 @@
 use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
-    errors::{ExpectTypeError, Throwable},
+    errors::{ExpectTypeError, ThrowObject, Throwable},
     functions::{call_internal, ZendFunction},
     objects::{ZObj, ZObject},
     resources::ZRes,
     strings::{ZStr, ZString},
     sys::*,
     types::TypeInfo,
-    utils::ensure_end_with_zero,
 };
 use phper_alloc::RefClone;
 use std::{
@@ -554,14 +553,10 @@ impl<T: Into<ZVal>, E: Throwable> From<Result<T, E>> for ZVal {
         match r {
             Ok(t) => t.into(),
             Err(e) => {
-                let class_entry = e.class_entry();
-                let message = ensure_end_with_zero(e.message());
+                let obj = ThrowObject::from_throwable(e).into_inner();
+                let mut val = ManuallyDrop::new(ZVal::from(obj));
                 unsafe {
-                    zend_throw_exception(
-                        class_entry.as_ptr() as *mut _,
-                        message.as_ptr().cast(),
-                        e.code() as i64,
-                    );
+                    zend_throw_exception_object(val.as_mut_ptr());
                 }
                 ZVal::from(())
             }

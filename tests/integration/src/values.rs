@@ -151,7 +151,7 @@ fn integration_values_return_result_string_ok(_: &mut [ZVal]) -> phper::Result<S
 }
 
 fn integration_values_return_result_string_err(_: &mut [ZVal]) -> phper::Result<()> {
-    Err(phper::Error::other("a zhe"))
+    Err(phper::Error::Boxed("a zhe".into()))
 }
 
 fn integration_values_return_val(_: &mut [ZVal]) -> ZVal {

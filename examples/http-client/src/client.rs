@@ -32,7 +32,7 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
             let state = this.as_mut_state();
             let builder: ClientBuilder = take(state);
             *state = builder.timeout(Duration::from_millis(ms as u64));
-            Ok::<_, HttpClientError>(this.to_ref_owned())
+            Ok::<_, phper::Error>(this.to_ref_owned())
         })
         .argument(Argument::by_val("ms"));
 
@@ -43,7 +43,7 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
             let state = this.as_mut_state();
             let builder: ClientBuilder = take(state);
             *state = builder.cookie_store(enable);
-            Ok::<_, HttpClientError>(this.to_ref_owned())
+            Ok::<_, phper::Error>(this.to_ref_owned())
         })
         .argument(Argument::by_val("enable"));
 
@@ -51,12 +51,12 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
     // Object.
     class.add_method("build", Visibility::Public, |this, _arguments| {
         let state = take(this.as_mut_state());
-        let client = ClientBuilder::build(state)?;
+        let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
         let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
         unsafe {
             *object.as_mut_state() = Some(client);
         }
-        Ok::<_, HttpClientError>(object)
+        Ok::<_, phper::Error>(object)
     });
 
     class
@@ -76,7 +76,7 @@ pub fn make_client_class() -> StatefulClass<Option<Client>> {
             unsafe {
                 *object.as_mut_state() = Some(request_builder);
             }
-            Ok::<_, HttpClientError>(object)
+            Ok::<_, phper::Error>(object)
         })
         .argument(Argument::by_val("url"));
 
@@ -89,7 +89,7 @@ pub fn make_client_class() -> StatefulClass<Option<Client>> {
             unsafe {
                 *object.as_mut_state() = Some(request_builder);
             }
-            Ok::<_, HttpClientError>(object)
+            Ok::<_, phper::Error>(object)
         })
         .argument(Argument::by_val("url"));
 
