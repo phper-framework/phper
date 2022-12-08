@@ -481,10 +481,7 @@ pub(crate) const fn create_zend_arg_info(
 
     #[cfg(all(
         phper_major_version = "7",
-        any(
-            phper_minor_version = "1",
-            phper_minor_version = "0",
-        )
+        any(phper_minor_version = "1", phper_minor_version = "0")
     ))]
     {
         zend_internal_arg_info {
