@@ -38,6 +38,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
     - [x] 7.4
     - [x] 8.0
     - [x] 8.1
+    - [x] 8.2
   - **mode**
     - [x] nts
     - [ ] zts
