@@ -365,6 +365,26 @@ uint32_t phper_zend_num_args(const zend_execute_data *execute_data) {
     return ZEND_NUM_ARGS();
 }
 
-zend_bool phper_instanceof_function(const zend_class_entry *instance_ce, const zend_class_entry *ce) {
-    return instanceof_function(instance_ce, ce);
+bool phper_instanceof_function(const zend_class_entry *instance_ce, const zend_class_entry *ce) {
+    return instanceof_function(instance_ce, ce) != 0;
+}
+
+bool phper_zend_get_parameters_array_ex(uint32_t param_count, zval *argument_array) {
+    return zend_get_parameters_array_ex(param_count, argument_array) != 0;
+}
+
+bool phper_zend_array_is_list(zend_array *array) {
+    return zend_array_is_list(array) != 0;
+}
+
+typedef void (*phper_foreach_func_arg_t)(zend_ulong idx, zend_string *key, zval *val, void *argument);
+
+void phper_zend_hash_foreach_key_val(zend_array *array, phper_foreach_func_arg_t f, void *argument) {
+    zend_ulong idx;
+    zend_string *key;
+    zval *val;
+
+    ZEND_HASH_FOREACH_KEY_VAL(array, idx, key, val) {
+        f(idx, key, val, argument);
+    } ZEND_HASH_FOREACH_END();
 }

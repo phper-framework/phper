@@ -17,7 +17,7 @@ use std::{
     convert::TryInto,
     marker::PhantomData,
     mem::{forget, ManuallyDrop},
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut}, ffi::c_void,
 };
 
 /// Key for [ZArr].
@@ -103,10 +103,17 @@ impl ZArr {
         self.len() == 0
     }
 
-    // Get items length.
+    /// Get items length.
     #[inline]
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(self.as_mut_ptr()).try_into().unwrap() }
+    }
+
+    /// Detect wether the array is list (not map).
+    pub fn is_list(&self) -> bool {
+        unsafe {
+            phper_zend_array_is_list(self.as_ptr() as *mut _)
+        }
     }
 
     /// Add or update item by key.
@@ -243,10 +250,11 @@ impl ZArr {
         }
     }
 
-    pub fn iter(&self) -> Iter<'_> {
-        Iter {
-            index: 0,
-            array: self,
+    pub fn for_each<'a>(&self, f: impl FnMut(IterKey<'a> ,&ZVal)) {
+        let mut f: Box<dyn FnMut(IterKey<'a> ,&ZVal)> = Box::new(f);
+        let f = &mut f as *mut Box<_> as *mut c_void;
+        unsafe {
+            phper_zend_hash_foreach_key_val(self.as_ptr() as *mut _, Some(for_each_callback), f);
         }
     }
 
@@ -373,46 +381,14 @@ pub enum IterKey<'a> {
     ZStr(&'a ZStr),
 }
 
-/// Iter created by [ZArr::iter].
-pub struct Iter<'a> {
-    index: isize,
-    array: &'a ZArr,
-}
-
-impl<'a> Iterator for Iter<'a> {
-    type Item = (IterKey<'a>, &'a ZVal);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.index >= self.array.inner.nNumUsed as isize {
-                break None;
-            }
-
-            unsafe {
-                let bucket = self.array.inner.arData.offset(self.index);
-
-                let key = if (*bucket).key.is_null() {
-                    IterKey::Index((*bucket).h)
-                } else {
-                    let s = ZStr::from_ptr((*bucket).key);
-                    IterKey::ZStr(s)
-                };
-
-                let val = &mut (*bucket).val;
-                let mut val = ZVal::from_mut_ptr(val);
-                if val.get_type_info().is_indirect() {
-                    val = ZVal::from_mut_ptr((*val.as_mut_ptr()).value.zv);
-                }
-
-                self.index += 1;
-
-                if val.get_type_info().is_undef() {
-                    continue;
-                }
-                break Some((key, val));
-            }
-        }
-    }
+unsafe extern "C" fn for_each_callback(idx: zend_ulong, key: *mut zend_string, val: *mut zval, argument: *mut c_void) {
+    let f = (argument as *mut Box<dyn FnMut(IterKey<'_> ,&ZVal)>).as_mut().unwrap();
+    let iter_key = if key.is_null() {
+        IterKey::Index(idx as u64)
+    } else {
+        IterKey::ZStr(ZStr::from_ptr(key))
+    };
+    f(iter_key, ZVal::from_ptr(val));
 }
 
 pub enum Entry<'a> {

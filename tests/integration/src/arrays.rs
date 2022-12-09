@@ -187,7 +187,7 @@ pub fn integrate(module: &mut Module) {
     );
 
     module.add_function(
-        "integrate_arrays_iter",
+        "integrate_arrays_for_each",
         |_: &mut [ZVal]| -> phper::Result<()> {
             let mut a = ZArray::new();
 
@@ -195,7 +195,9 @@ pub fn integrate(module: &mut Module) {
             a.insert((), ZVal::from(1));
             a.insert("foo", ZVal::from("bar"));
 
-            for (i, (k, v)) in a.iter().enumerate() {
+            let mut i = 0;
+
+            a.for_each(|k, v| {
                 match i {
                     0 => {
                         assert_eq!(k, 0.into());
@@ -211,7 +213,27 @@ pub fn integrate(module: &mut Module) {
                     }
                     _ => unreachable!(),
                 }
-            }
+
+                i += 1;
+            });
+
+            assert_eq!(i, 3);
+
+            Ok(())
+        },
+    );
+
+    module.add_function(
+        "integrate_arrays_is_list",
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut a = ZArray::new();
+            a.insert(InsertKey::NextIndex, ZVal::default());
+            a.insert(InsertKey::NextIndex, ZVal::default());
+            a.insert(InsertKey::NextIndex, ZVal::default());
+            assert!(a.is_list());
+
+            a.insert("foo", ZVal::default());
+            assert!(!a.is_list());
 
             Ok(())
         },
