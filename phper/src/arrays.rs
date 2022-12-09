@@ -368,7 +368,7 @@ impl Drop for ZArray {
     }
 }
 
-/// Iterator key for [Iter].
+/// Iterator key for [`ZArr::for_each`].
 #[derive(Debug, Clone, PartialEq, From)]
 pub enum IterKey<'a> {
     Index(u64),
