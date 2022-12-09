@@ -25,6 +25,8 @@ use phper_alloc::RefClone;
 use std::{
     convert::TryInto,
     ffi::CStr,
+    fmt,
+    fmt::Debug,
     marker::PhantomData,
     mem::{transmute, zeroed, ManuallyDrop, MaybeUninit},
     str,
@@ -132,7 +134,10 @@ impl ExecuteData {
         let num_args = self.num_args();
         let mut arguments = vec![zeroed::<zval>(); num_args as usize];
         if num_args > 0 {
-            _zend_get_parameters_array_ex(num_args.try_into().unwrap(), arguments.as_mut_ptr());
+            phper_zend_get_parameters_array_ex(
+                num_args.try_into().unwrap(),
+                arguments.as_mut_ptr(),
+            );
         }
         transmute(arguments)
     }
@@ -375,6 +380,14 @@ impl ZVal {
     /// Return Err when self is not callable.
     pub fn call(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZVal> {
         call_internal(self, None, arguments)
+    }
+}
+
+impl Debug for ZVal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ZVal")
+            .field("type", &self.get_type_info())
+            .finish()
     }
 }
 

@@ -41,7 +41,7 @@ let _i = arr.get("10");
 arr.remove("foo");
 ```
 
-`ZArr` can be iterated by `iter()`.
+`ZArr` can be iterated by `for_each()`.
 
 ```rust,no_run
 use phper::arrays::ZArray;
@@ -49,9 +49,15 @@ use phper::values::ZVal;
 
 let arr = ZArray::new();
 
-for (_k, _v) in arr.iter() {
-}
+
+arr.for_each(|k, v| {
+    dbg!(k, v);
+});
 ```
+
+*I used to provide the `iter()` method for `ZArr`, and let `Iter` implement
+`Iterator`, but if using the PHP stable macro `ZEND_HASH_FOREACH_KEY_VAL`, it is a
+bit difficult to provide `iter`, so it is deleted.*;
 
 `ZArr` implements `ToOwned`, can upgrade to `ZArray` by value copy via
 `zend_array_dup`.
