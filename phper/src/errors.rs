@@ -55,7 +55,7 @@ pub fn type_error_class<'a>() -> &'a ClassEntry {
 }
 
 /// Predefined class `ArgumentCountError` (>= PHP 7.1.0).
-#[cfg(phper_version_id_gte_70100)]
+#[cfg(not(all(phper_major_version = "7", phper_minor_version = "0")))]
 #[inline]
 pub fn argument_count_error_class<'a>() -> &'a ClassEntry {
     unsafe { ClassEntry::from_ptr(zend_ce_argument_count_error) }
@@ -434,12 +434,12 @@ pub struct ArgumentCountError {
 
 impl Throwable for ArgumentCountError {
     fn get_class(&self) -> &ClassEntry {
-        #[cfg(phper_version_id_gte_70100)]
+        #[cfg(not(all(phper_major_version = "7", phper_minor_version = "0")))]
         {
             argument_count_error_class()
         }
 
-        #[cfg(not(phper_version_id_gte_70100))]
+        #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
         {
             type_error_class()
         }
@@ -503,7 +503,7 @@ impl Throwable for NotImplementThrowableError {
     }
 }
 
-pub struct ExceptionGuard(PhantomData<()>);
+pub struct ExceptionGuard(PhantomData<*mut ()>);
 
 impl Default for ExceptionGuard {
     fn default() -> Self {
