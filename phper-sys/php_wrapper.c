@@ -373,10 +373,6 @@ bool phper_zend_get_parameters_array_ex(uint32_t param_count, zval *argument_arr
     return zend_get_parameters_array_ex(param_count, argument_array) != 0;
 }
 
-bool phper_zend_array_is_list(zend_array *array) {
-    return zend_array_is_list(array) != 0;
-}
-
 typedef void (*phper_foreach_func_arg_t)(zend_ulong idx, zend_string *key, zval *val, void *argument);
 
 void phper_zend_hash_foreach_key_val(zend_array *array, phper_foreach_func_arg_t f, void *argument) {

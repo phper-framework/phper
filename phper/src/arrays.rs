@@ -15,9 +15,10 @@ use derive_more::From;
 use std::{
     borrow::Borrow,
     convert::TryInto,
+    ffi::c_void,
     marker::PhantomData,
     mem::{forget, ManuallyDrop},
-    ops::{Deref, DerefMut}, ffi::c_void,
+    ops::{Deref, DerefMut},
 };
 
 /// Key for [ZArr].
@@ -107,13 +108,6 @@ impl ZArr {
     #[inline]
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(self.as_mut_ptr()).try_into().unwrap() }
-    }
-
-    /// Detect wether the array is list (not map).
-    pub fn is_list(&self) -> bool {
-        unsafe {
-            phper_zend_array_is_list(self.as_ptr() as *mut _)
-        }
     }
 
     /// Add or update item by key.
@@ -250,8 +244,8 @@ impl ZArr {
         }
     }
 
-    pub fn for_each<'a>(&self, f: impl FnMut(IterKey<'a> ,&ZVal)) {
-        let mut f: Box<dyn FnMut(IterKey<'a> ,&ZVal)> = Box::new(f);
+    pub fn for_each<'a>(&self, f: impl FnMut(IterKey<'a>, &'a ZVal)) {
+        let mut f: Box<dyn FnMut(IterKey<'a>, &'a ZVal)> = Box::new(f);
         let f = &mut f as *mut Box<_> as *mut c_void;
         unsafe {
             phper_zend_hash_foreach_key_val(self.as_ptr() as *mut _, Some(for_each_callback), f);
@@ -381,8 +375,12 @@ pub enum IterKey<'a> {
     ZStr(&'a ZStr),
 }
 
-unsafe extern "C" fn for_each_callback(idx: zend_ulong, key: *mut zend_string, val: *mut zval, argument: *mut c_void) {
-    let f = (argument as *mut Box<dyn FnMut(IterKey<'_> ,&ZVal)>).as_mut().unwrap();
+unsafe extern "C" fn for_each_callback(
+    idx: zend_ulong, key: *mut zend_string, val: *mut zval, argument: *mut c_void,
+) {
+    let f = (argument as *mut Box<dyn FnMut(IterKey<'_>, &'_ ZVal)>)
+        .as_mut()
+        .unwrap();
     let iter_key = if key.is_null() {
         IterKey::Index(idx as u64)
     } else {

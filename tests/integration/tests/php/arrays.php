@@ -18,4 +18,3 @@ integrate_arrays_types();
 integrate_arrays_insert();
 integrate_arrays_exists();
 integrate_arrays_for_each();
-integrate_arrays_is_list();

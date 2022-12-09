@@ -222,20 +222,4 @@ pub fn integrate(module: &mut Module) {
             Ok(())
         },
     );
-
-    module.add_function(
-        "integrate_arrays_is_list",
-        |_: &mut [ZVal]| -> phper::Result<()> {
-            let mut a = ZArray::new();
-            a.insert(InsertKey::NextIndex, ZVal::default());
-            a.insert(InsertKey::NextIndex, ZVal::default());
-            a.insert(InsertKey::NextIndex, ZVal::default());
-            assert!(a.is_list());
-
-            a.insert("foo", ZVal::default());
-            assert!(!a.is_list());
-
-            Ok(())
-        },
-    );
 }

@@ -42,6 +42,8 @@ fn main() {
     let mut builder = Builder::default()
         .header("php_wrapper.c")
         .allowlist_file("php_wrapper\\.c")
+        // Block the `zend_ini_parse_quantity` because it's document causes the doc test to fail.
+        .blocklist_function("zend_ini_parse_quantity")
         .clang_args(&includes)
         .derive_default(true);
 
