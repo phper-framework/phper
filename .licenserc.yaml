@@ -20,6 +20,7 @@ header:
     - '**/.gitignore'
     - '**/.gitmodules'
     - '.cargo'
+    - '.clang-format'
     - '.idea'
     - '.vscode'
     - 'LICENSE'

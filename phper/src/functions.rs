@@ -16,7 +16,7 @@ use crate::{
     cg,
     classes::{ClassEntry, Visibility},
     errors::{ArgumentCountError, CallFunctionError, CallMethodError, ExceptionGuard, ThrowObject},
-    objects::{StatefulObj, ZObj},
+    objects::{StateObj, ZObj},
     strings::{ZStr, ZString},
     sys::*,
     utils::ensure_end_with_zero,
@@ -65,7 +65,7 @@ where
 
 pub(crate) struct Method<F, R, T>
 where
-    F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     f: F,
@@ -74,7 +74,7 @@ where
 
 impl<F, R, T> Method<F, R, T>
 where
-    F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     pub(crate) fn new(f: F) -> Self {
@@ -87,7 +87,7 @@ where
 
 impl<F, R, T: 'static> Callable for Method<F, R, T>
 where
-    F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync,
+    F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync,
     R: Into<ZVal>,
 {
     fn call(

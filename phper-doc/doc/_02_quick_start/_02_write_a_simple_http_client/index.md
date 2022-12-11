@@ -95,18 +95,18 @@ Now let's begin to finish the logic.
    /*** src/errors.rs ***/
 
    use phper::{
-       classes::{ClassEntry, StatefulClass},
+       classes::{ClassEntry, ClassEntity},
        errors::{exception_class, Throwable},
    };
    
    /// The exception class name of extension.
    const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
    
-   pub fn make_exception_class() -> StatefulClass<()> {
-       let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
+   pub fn make_exception_class() -> ClassEntity<()> {
+       let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
        // The `extends` is same as the PHP class `extends`.
-       exception_class.extends("Exception");
-       exception_class
+       class.extends(exception_class);
+       class
    }
    
    #[derive(Debug, thiserror::Error)]
@@ -137,13 +137,13 @@ Now let's begin to finish the logic.
 
    > The `make_*_class` functions is for registering class in `src/lib.rs` later.
 
-   > The `StatefulClass` represents the class entry hold the state as generic type,
+   > The `ClassEntity` represents the class entry hold the state as generic type,
    > so you can wrap the Rust struct as state in PHP class, which is the common usage
    > of class in php extensions (if using C/C++ to develop PHP extension, the PHP class
    > commonly wrap the C/C++ pointer).
 
    > But here the `HttpClientException` hasn't state required, so the class in
-   > `StatefulClass<()>`.
+   > `ClassEntity<()>`.
 
 1. Then, create the `HttpClientBuilder` class in `src/client.rs`.
 
@@ -151,18 +151,18 @@ Now let's begin to finish the logic.
    /*** src/errors.rs ***/
 
    use phper::{
-       classes::{ClassEntry, StatefulClass},
+       classes::{ClassEntry, ClassEntity},
        errors::{exception_class, Throwable},
    };
    
    /// The exception class name of extension.
    const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
    
-   pub fn make_exception_class() -> StatefulClass<()> {
-       let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
+   pub fn make_exception_class() -> ClassEntity<()> {
+       let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
        // The `extends` is same as the PHP class `extends`.
-       exception_class.extends("Exception");
-       exception_class
+       class.extends(exception_class);
+       class
    }
    
    #[derive(Debug, thiserror::Error)]
@@ -202,10 +202,10 @@ Now let's begin to finish the logic.
    const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
    const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
    
-   pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
-       // `new_with_default_state` means initialize the state of `ClientBuilder` as
+   pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
+       // `new_with_default_state_constructor` means initialize the state of `ClientBuilder` as
        // `Default::default`.
-       let mut class = StatefulClass::new_with_default_state(HTTP_CLIENT_BUILDER_CLASS_NAME);
+       let mut class = ClassEntity::new_with_default_state_constructor(HTTP_CLIENT_BUILDER_CLASS_NAME);
    
        // Inner call the `ClientBuilder::timeout`.
        class

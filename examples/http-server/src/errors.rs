@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::{ClassEntry, StatefulClass},
+    classes::{ClassEntity, ClassEntry},
     errors::{exception_class, Throwable},
 };
 use std::error::Error;
@@ -32,8 +32,8 @@ impl From<HttpServerError> for phper::Error {
     }
 }
 
-pub fn make_exception_class() -> StatefulClass<()> {
-    let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
-    exception_class.extends("Exception");
-    exception_class
+pub fn make_exception_class() -> ClassEntity<()> {
+    let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
+    class.extends(exception_class);
+    class
 }

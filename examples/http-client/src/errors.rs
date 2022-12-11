@@ -9,18 +9,18 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::{ClassEntry, StatefulClass},
+    classes::{ClassEntity, ClassEntry},
     errors::{exception_class, Throwable},
 };
 
 /// The exception class name of extension.
 const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
 
-pub fn make_exception_class() -> StatefulClass<()> {
-    let mut exception_class = StatefulClass::new(EXCEPTION_CLASS_NAME);
+pub fn make_exception_class() -> ClassEntity<()> {
+    let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
     // The `extends` is same as the PHP class `extends`.
-    exception_class.extends("Exception");
-    exception_class
+    class.extends(exception_class);
+    class
 }
 
 #[derive(Debug, thiserror::Error)]

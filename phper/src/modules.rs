@@ -12,7 +12,7 @@
 
 use crate::{
     c_str_ptr,
-    classes::{ClassEntity, Classifiable},
+    classes::ClassEntity,
     constants::Constant,
     functions::{Function, FunctionEntity, FunctionEntry},
     ini,
@@ -23,7 +23,7 @@ use crate::{
 };
 use std::{
     ffi::CString,
-    mem::{replace, size_of, take, zeroed},
+    mem::{replace, size_of, take, transmute, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     rc::Rc,
@@ -50,8 +50,8 @@ unsafe extern "C" fn module_startup(r#type: c_int, module_number: c_int) -> c_in
             constant.register(&args);
         }
         for class_entity in &mut module.class_entities {
-            class_entity.init();
-            class_entity.declare_properties();
+            let ce = class_entity.init();
+            class_entity.declare_properties(ce);
         }
         let module_init = replace(&mut module.module_init, None);
         match module_init {
@@ -112,7 +112,7 @@ pub struct Module {
     request_init: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
     request_shutdown: Option<Box<dyn Fn(ModuleContext) -> bool + Send + Sync>>,
     function_entities: Vec<FunctionEntity>,
-    class_entities: Vec<ClassEntity>,
+    class_entities: Vec<ClassEntity<()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
 }
@@ -170,8 +170,8 @@ impl Module {
         self.function_entities.last_mut().unwrap()
     }
 
-    pub fn add_class(&mut self, class: impl Classifiable + 'static) {
-        self.class_entities.push(unsafe { ClassEntity::new(class) });
+    pub fn add_class<T>(&mut self, class: ClassEntity<T>) {
+        self.class_entities.push(unsafe { transmute(class) });
     }
 
     pub fn add_constant(&mut self, name: impl Into<String>, value: impl Into<Scalar>) {

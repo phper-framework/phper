@@ -10,11 +10,11 @@
 
 use phper::{
     arrays::ZArray,
-    classes::{StatefulClass, Visibility},
+    classes::{ClassEntity, Visibility},
     functions::Argument,
     ini::{ini_get, Policy},
     modules::{Module, ModuleContext},
-    objects::StatefulObj,
+    objects::StateObj,
     php_get_module,
     values::ZVal,
 };
@@ -73,12 +73,12 @@ pub fn get_module() -> Module {
     });
 
     // register classes
-    let mut foo_class = StatefulClass::new("FooClass");
+    let mut foo_class = ClassEntity::new("FooClass");
     foo_class.add_property("foo", Visibility::Private, 100);
     foo_class.add_method(
         "getFoo",
         Visibility::Public,
-        |this: &mut StatefulObj<()>, _: &mut [ZVal]| {
+        |this: &mut StateObj<()>, _: &mut [ZVal]| {
             let prop = this.get_property("foo");
             Ok::<_, phper::Error>(prop.clone())
         },
@@ -87,7 +87,7 @@ pub fn get_module() -> Module {
         .add_method(
             "setFoo",
             Visibility::Public,
-            |this: &mut StatefulObj<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
+            |this: &mut StateObj<()>, arguments: &mut [ZVal]| -> phper::Result<()> {
                 this.set_property("foo", arguments[0].clone());
                 Ok(())
             },

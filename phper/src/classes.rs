@@ -14,149 +14,27 @@ use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError},
     functions::{Function, FunctionEntry, Method, MethodEntity},
-    objects::{ExtendObject, StatefulObj, ZObj, ZObject},
+    objects::{StateObj, StateObject, ZObj, ZObject},
     strings::ZStr,
     sys::*,
     types::Scalar,
+    utils::ensure_end_with_zero,
     values::ZVal,
 };
-use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use phper_alloc::ToRefOwned;
 use std::{
-    any::{Any, TypeId},
+    any::Any,
     borrow::ToOwned,
     convert::TryInto,
+    ffi::{c_void, CString},
     fmt::Debug,
     marker::PhantomData,
     mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,
-    sync::{
-        atomic::{AtomicPtr, Ordering},
-        Arc,
-    },
 };
-
-pub trait Classifiable {
-    fn state_constructor(&self) -> Box<StatefulConstructor<Box<dyn Any>>>;
-    fn state_type_id(&self) -> TypeId;
-    fn class_name(&self) -> &str;
-    fn methods(&mut self) -> &mut [MethodEntity];
-    fn properties(&mut self) -> &mut [PropertyEntity];
-    fn parent(&self) -> Option<&str>;
-}
-
-pub type StatefulConstructor<T> = dyn Fn() -> T + Send + Sync;
-
-pub struct StatefulClass<T: Send + 'static> {
-    class_name: String,
-    state_constructor: Arc<StatefulConstructor<T>>,
-    pub(crate) method_entities: Vec<MethodEntity>,
-    pub(crate) property_entities: Vec<PropertyEntity>,
-    pub(crate) parent: Option<String>,
-    _p: PhantomData<T>,
-}
-
-impl StatefulClass<()> {
-    pub fn new(class_name: impl Into<String>) -> Self {
-        Self::new_with_state_constructor(class_name, || ())
-    }
-}
-
-impl<T: Default + Send + 'static> StatefulClass<T> {
-    pub fn new_with_default_state(class_name: impl Into<String>) -> Self {
-        Self::new_with_state_constructor(class_name, Default::default)
-    }
-}
-
-impl<T: Send + 'static> StatefulClass<T> {
-    pub fn new_with_state_constructor(
-        class_name: impl Into<String>, state_constructor: impl Fn() -> T + Send + Sync + 'static,
-    ) -> Self {
-        Self {
-            class_name: class_name.into(),
-            state_constructor: Arc::new(state_constructor),
-            method_entities: Vec::new(),
-            property_entities: Vec::new(),
-            parent: None,
-            _p: Default::default(),
-        }
-        // let ptr = &dyn_class.data_constructor as *const _ as usize;
-        // dyn_class.add_property(DATA_CONSTRUCTOR_PROPERTY_NAME,
-        // ptr.to_string());
-    }
-
-    pub fn add_method<F, R>(
-        &mut self, name: impl Into<String>, vis: Visibility, handler: F,
-    ) -> &mut MethodEntity
-    where
-        F: Fn(&mut StatefulObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
-        R: Into<ZVal> + 'static,
-    {
-        self.method_entities
-            .push(MethodEntity::new(name, Rc::new(Method::new(handler)), vis));
-        self.method_entities.last_mut().unwrap()
-    }
-
-    pub fn add_static_method<F, R>(
-        &mut self, name: impl Into<String>, vis: Visibility, handler: F,
-    ) -> &mut MethodEntity
-    where
-        F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
-        R: Into<ZVal> + 'static,
-    {
-        let mut entity = MethodEntity::new(name, Rc::new(Function::new(handler)), vis);
-        entity.r#static(true);
-        self.method_entities.push(entity);
-        self.method_entities.last_mut().unwrap()
-    }
-
-    /// Declare property.
-    ///
-    /// The argument `value` should be `Copy` because 'zend_declare_property'
-    /// receive only scalar zval , otherwise will report fatal error:
-    /// "Internal zvals cannot be refcounted".
-    pub fn add_property(
-        &mut self, name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>,
-    ) {
-        self.property_entities
-            .push(PropertyEntity::new(name, visibility, value));
-    }
-
-    pub fn extends(&mut self, name: impl Into<String>) {
-        let name = name.into();
-        self.parent = Some(name);
-    }
-}
-
-impl<T: Send> Classifiable for StatefulClass<T> {
-    fn state_constructor(&self) -> Box<StatefulConstructor<Box<dyn Any>>> {
-        let sc = self.state_constructor.clone();
-        Box::new(move || Box::new(sc()))
-    }
-
-    fn state_type_id(&self) -> TypeId {
-        TypeId::of::<T>()
-    }
-
-    fn class_name(&self) -> &str {
-        &self.class_name
-    }
-
-    fn methods(&mut self) -> &mut [MethodEntity] {
-        &mut self.method_entities
-    }
-
-    fn properties(&mut self) -> &mut [PropertyEntity] {
-        &mut self.property_entities
-    }
-
-    fn parent(&self) -> Option<&str> {
-        self.parent.as_deref()
-    }
-}
 
 /// Wrapper of [crate::sys::zend_class_entry].
 #[repr(transparent)]
@@ -278,82 +156,145 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
-pub struct ClassEntity {
-    pub(crate) name: String,
-    pub(crate) entry: AtomicPtr<ClassEntry>,
-    pub(crate) classifiable: Box<dyn Classifiable>,
-    pub(crate) function_entries: OnceCell<AtomicPtr<FunctionEntry>>,
+pub(crate) type StateConstructor = Rc<dyn Fn() -> Box<dyn Any>>;
+
+pub struct ClassEntity<T> {
+    class_name: CString,
+    state_constructor: StateConstructor,
+    method_entities: Vec<MethodEntity>,
+    property_entities: Vec<PropertyEntity>,
+    parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
+    _p: PhantomData<(*mut (), T)>,
 }
 
-impl ClassEntity {
-    pub(crate) unsafe fn new(classifiable: impl Classifiable + 'static) -> Self {
+impl ClassEntity<()> {
+    pub fn new(class_name: impl Into<String>) -> Self {
+        Self::new_with_state_constructor(class_name, || ())
+    }
+}
+
+impl<T: Default + 'static> ClassEntity<T> {
+    pub fn new_with_default_state_constructor(class_name: impl Into<String>) -> Self {
+        Self::new_with_state_constructor(class_name, Default::default)
+    }
+}
+
+impl<T: 'static> ClassEntity<T> {
+    pub fn new_with_state_constructor(
+        class_name: impl Into<String>, state_constructor: impl Fn() -> T + 'static,
+    ) -> Self {
         Self {
-            name: classifiable.class_name().to_string(),
-            entry: AtomicPtr::new(null_mut()),
-            classifiable: Box::new(classifiable),
-            function_entries: Default::default(),
+            class_name: ensure_end_with_zero(class_name),
+            state_constructor: Rc::new(move || Box::new(state_constructor())),
+            method_entities: Vec::new(),
+            property_entities: Vec::new(),
+            parent: None,
+            _p: PhantomData,
         }
+    }
+
+    pub fn add_method<F, R>(
+        &mut self, name: impl Into<String>, vis: Visibility, handler: F,
+    ) -> &mut MethodEntity
+    where
+        F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
+        R: Into<ZVal> + 'static,
+    {
+        self.method_entities
+            .push(MethodEntity::new(name, Rc::new(Method::new(handler)), vis));
+        self.method_entities.last_mut().unwrap()
+    }
+
+    pub fn add_static_method<F, R>(
+        &mut self, name: impl Into<String>, vis: Visibility, handler: F,
+    ) -> &mut MethodEntity
+    where
+        F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
+        R: Into<ZVal> + 'static,
+    {
+        let mut entity = MethodEntity::new(name, Rc::new(Function::new(handler)), vis);
+        entity.r#static(true);
+        self.method_entities.push(entity);
+        self.method_entities.last_mut().unwrap()
+    }
+
+    /// Declare property.
+    ///
+    /// The argument `value` should be `Copy` because 'zend_declare_property'
+    /// receive only scalar zval , otherwise will report fatal error:
+    /// "Internal zvals cannot be refcounted".
+    pub fn add_property(
+        &mut self, name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>,
+    ) {
+        self.property_entities
+            .push(PropertyEntity::new(name, visibility, value));
+    }
+
+    pub fn extends(&mut self, parent: impl Fn() -> &'static ClassEntry + 'static) {
+        self.parent = Some(Box::new(parent));
     }
 
     #[allow(clippy::useless_conversion)]
-    pub(crate) unsafe fn init(&mut self) {
-        let mut class_ce = phper_init_class_entry_ex(
-            self.name.as_ptr().cast(),
-            self.name.len().try_into().unwrap(),
-            self.function_entries().load(Ordering::SeqCst).cast(),
+    pub(crate) unsafe fn init(&mut self) -> *mut zend_class_entry {
+        let parent: *mut zend_class_entry = self
+            .parent
+            .as_ref()
+            .map(|parent| parent())
+            .map(|entry| entry.as_ptr() as *mut _)
+            .unwrap_or(null_mut());
+
+        let class_ce = phper_init_class_entry_ex(
+            self.class_name.as_ptr().cast(),
+            self.class_name.as_bytes().len().try_into().unwrap(),
+            self.function_entries(),
+            Some(class_init_handler),
+            parent.cast(),
         );
 
-        let parent: Option<&ClassEntry> = self
-            .classifiable
-            .parent()
-            .map(|s| ClassEntry::from_globals(s).unwrap());
+        *phper_get_create_object(class_ce) = Some(create_object);
 
-        let class: *mut ClassEntry = match parent {
-            Some(parent) => {
-                zend_register_internal_class_ex(&mut class_ce, parent.as_ptr() as *mut _).cast()
-            }
-            None => zend_register_internal_class(&mut class_ce).cast(),
-        };
-        self.entry.store(class.cast(), Ordering::SeqCst);
-
-        *phper_get_create_object(class.cast()) = Some(create_object);
-
-        get_registered_class_type_map().insert(class as usize, self.classifiable.state_type_id());
+        class_ce
     }
 
-    pub(crate) unsafe fn declare_properties(&mut self) {
-        let properties = self.classifiable.properties();
-        for property in properties {
-            property.declare(self.entry.load(Ordering::SeqCst).cast());
+    pub(crate) unsafe fn declare_properties(&self, ce: *mut zend_class_entry) {
+        for property in &self.property_entities {
+            property.declare(ce);
         }
     }
 
-    unsafe fn function_entries(&mut self) -> &AtomicPtr<FunctionEntry> {
-        let last_entry = self.take_classifiable_into_function_entry();
-        let methods = &*self.classifiable.methods();
+    unsafe fn function_entries(&self) -> *const zend_function_entry {
+        let last_entry = self.take_state_constructor_into_function_entry();
+        let mut methods = self
+            .method_entities
+            .iter()
+            .map(|method| FunctionEntry::from_method_entity(method))
+            .collect::<Vec<_>>();
 
-        self.function_entries.get_or_init(|| {
-            let mut methods = methods
-                .iter()
-                .map(|method| FunctionEntry::from_method_entity(method))
-                .collect::<Vec<_>>();
+        methods.push(zeroed::<zend_function_entry>());
 
-            methods.push(zeroed::<zend_function_entry>());
+        // Store the state constructor pointer to zend_class_entry
+        methods.push(last_entry);
 
-            // Store the classifiable pointer to zend_class_entry
-            methods.push(last_entry);
-
-            let entry = Box::into_raw(methods.into_boxed_slice()).cast();
-            AtomicPtr::new(entry)
-        })
+        Box::into_raw(methods.into_boxed_slice()).cast()
     }
 
-    unsafe fn take_classifiable_into_function_entry(&self) -> zend_function_entry {
+    unsafe fn take_state_constructor_into_function_entry(&self) -> zend_function_entry {
         let mut entry = zeroed::<zend_function_entry>();
-        let ptr = &mut entry as *mut _ as *mut ManuallyDrop<Box<StatefulConstructor<Box<dyn Any>>>>;
-        let state_constructor = ManuallyDrop::new(self.classifiable.state_constructor());
+        let ptr = &mut entry as *mut _ as *mut StateConstructor;
+        let state_constructor = self.state_constructor.clone();
         ptr.write(state_constructor);
         entry
+    }
+}
+
+unsafe extern "C" fn class_init_handler(
+    class_ce: *mut zend_class_entry, argument: *mut c_void,
+) -> *mut zend_class_entry {
+    let parent = argument as *mut zend_class_entry;
+    if parent.is_null() {
+        zend_register_internal_class(class_ce)
+    } else {
+        zend_register_internal_class_ex(class_ce, parent)
     }
 }
 
@@ -428,16 +369,11 @@ pub enum Visibility {
     Private = ZEND_ACC_PRIVATE,
 }
 
-fn get_registered_class_type_map() -> &'static DashMap<usize, TypeId> {
-    static MAP: OnceCell<DashMap<usize, TypeId>> = OnceCell::new();
-    MAP.get_or_init(DashMap::new)
-}
-
 fn get_object_handlers() -> &'static zend_object_handlers {
     static HANDLERS: OnceCell<zend_object_handlers> = OnceCell::new();
     HANDLERS.get_or_init(|| unsafe {
         let mut handlers = std_object_handlers;
-        handlers.offset = ExtendObject::offset() as c_int;
+        handlers.offset = StateObject::offset() as c_int;
         handlers.free_obj = Some(free_object);
         handlers
     })
@@ -446,11 +382,11 @@ fn get_object_handlers() -> &'static zend_object_handlers {
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
-    let extend_object: *mut ExtendObject =
-        phper_zend_object_alloc(size_of::<ExtendObject>().try_into().unwrap(), ce).cast();
+    let state_object: *mut StateObject =
+        phper_zend_object_alloc(size_of::<StateObject>().try_into().unwrap(), ce).cast();
 
     // Common initialize process.
-    let object = ExtendObject::as_mut_object(extend_object);
+    let object = StateObject::as_mut_object(state_object);
     zend_object_std_init(object, ce);
     object_properties_init(object, ce);
     rebuild_object_properties(object);
@@ -462,20 +398,20 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
         func_ptr = func_ptr.offset(1);
     }
     func_ptr = func_ptr.offset(1);
-    let state_constructor = func_ptr as *const ManuallyDrop<Box<StatefulConstructor<Box<dyn Any>>>>;
+    let state_constructor = func_ptr as *const StateConstructor;
     let state_constructor = state_constructor.read();
 
     // Call the state constructor.
     let data: Box<dyn Any> = state_constructor();
-    *ExtendObject::as_mut_state(extend_object) = ManuallyDrop::new(data);
+    *StateObject::as_mut_state(state_object) = ManuallyDrop::new(data);
 
     object
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {
     // Drop the state.
-    let extend_object = ExtendObject::fetch_ptr(object);
-    ExtendObject::drop_state(extend_object);
+    let extend_object = StateObject::fetch_ptr(object);
+    StateObject::drop_state(extend_object);
 
     // Original destroy call.
     zend_object_std_dtor(object);
