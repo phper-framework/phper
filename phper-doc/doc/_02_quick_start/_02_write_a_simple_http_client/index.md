@@ -103,10 +103,10 @@ Now let's begin to finish the logic.
    const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
    
    pub fn make_exception_class() -> ClassEntity<()> {
-       let mut exception_class = ClassEntity::new(EXCEPTION_CLASS_NAME);
+       let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
        // The `extends` is same as the PHP class `extends`.
-       exception_class.extends("Exception");
-       exception_class
+       class.extends(exception_class);
+       class
    }
    
    #[derive(Debug, thiserror::Error)]
@@ -159,10 +159,10 @@ Now let's begin to finish the logic.
    const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
    
    pub fn make_exception_class() -> ClassEntity<()> {
-       let mut exception_class = ClassEntity::new(EXCEPTION_CLASS_NAME);
+       let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
        // The `extends` is same as the PHP class `extends`.
-       exception_class.extends("Exception");
-       exception_class
+       class.extends(exception_class);
+       class
    }
    
    #[derive(Debug, thiserror::Error)]

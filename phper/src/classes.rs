@@ -14,18 +14,17 @@ use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError},
     functions::{Function, FunctionEntry, Method, MethodEntity},
-    objects::{ExtendObject, StateObj, ZObj, ZObject},
+    objects::{StateObj, StateObject, ZObj, ZObject},
     strings::ZStr,
     sys::*,
     types::Scalar,
     utils::ensure_end_with_zero,
     values::ZVal,
 };
-use dashmap::DashMap;
 use once_cell::sync::OnceCell;
 use phper_alloc::ToRefOwned;
 use std::{
-    any::{Any, TypeId},
+    any::Any,
     borrow::ToOwned,
     convert::TryInto,
     ffi::{c_void, CString},
@@ -157,15 +156,15 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
-pub type StateConstructor<T> = dyn Fn() -> T;
+pub(crate) type StateConstructor = Rc<dyn Fn() -> Box<dyn Any>>;
 
 pub struct ClassEntity<T> {
     class_name: CString,
-    state_constructor: Rc<StateConstructor<T>>,
+    state_constructor: StateConstructor,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
-    parent: Option<String>,
-    _p: PhantomData<*mut ()>,
+    parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
+    _p: PhantomData<(*mut (), T)>,
 }
 
 impl ClassEntity<()> {
@@ -186,7 +185,7 @@ impl<T: 'static> ClassEntity<T> {
     ) -> Self {
         Self {
             class_name: ensure_end_with_zero(class_name),
-            state_constructor: Rc::new(state_constructor),
+            state_constructor: Rc::new(move || Box::new(state_constructor())),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
@@ -231,17 +230,16 @@ impl<T: 'static> ClassEntity<T> {
             .push(PropertyEntity::new(name, visibility, value));
     }
 
-    pub fn extends(&mut self, name: impl Into<String>) {
-        let name = name.into();
-        self.parent = Some(name);
+    pub fn extends(&mut self, parent: impl Fn() -> &'static ClassEntry + 'static) {
+        self.parent = Some(Box::new(parent));
     }
 
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&mut self) -> *mut zend_class_entry {
         let parent: *mut zend_class_entry = self
             .parent
-            .as_mut()
-            .map(|s| ClassEntry::from_globals(s).unwrap())
+            .as_ref()
+            .map(|parent| parent())
             .map(|entry| entry.as_ptr() as *mut _)
             .unwrap_or(null_mut());
 
@@ -254,8 +252,6 @@ impl<T: 'static> ClassEntity<T> {
         );
 
         *phper_get_create_object(class_ce) = Some(create_object);
-
-        get_registered_class_type_map().insert(class_ce as usize, TypeId::of::<T>());
 
         class_ce
     }
@@ -284,8 +280,8 @@ impl<T: 'static> ClassEntity<T> {
 
     unsafe fn take_state_constructor_into_function_entry(&self) -> zend_function_entry {
         let mut entry = zeroed::<zend_function_entry>();
-        let ptr = &mut entry as *mut _ as *mut ManuallyDrop<Rc<StateConstructor<T>>>;
-        let state_constructor = ManuallyDrop::new(self.state_constructor.clone());
+        let ptr = &mut entry as *mut _ as *mut StateConstructor;
+        let state_constructor = self.state_constructor.clone();
         ptr.write(state_constructor);
         entry
     }
@@ -373,16 +369,11 @@ pub enum Visibility {
     Private = ZEND_ACC_PRIVATE,
 }
 
-fn get_registered_class_type_map() -> &'static DashMap<usize, TypeId> {
-    static MAP: OnceCell<DashMap<usize, TypeId>> = OnceCell::new();
-    MAP.get_or_init(DashMap::new)
-}
-
 fn get_object_handlers() -> &'static zend_object_handlers {
     static HANDLERS: OnceCell<zend_object_handlers> = OnceCell::new();
     HANDLERS.get_or_init(|| unsafe {
         let mut handlers = std_object_handlers;
-        handlers.offset = ExtendObject::offset() as c_int;
+        handlers.offset = StateObject::offset() as c_int;
         handlers.free_obj = Some(free_object);
         handlers
     })
@@ -391,11 +382,11 @@ fn get_object_handlers() -> &'static zend_object_handlers {
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
-    let extend_object: *mut ExtendObject =
-        phper_zend_object_alloc(size_of::<ExtendObject>().try_into().unwrap(), ce).cast();
+    let state_object: *mut StateObject =
+        phper_zend_object_alloc(size_of::<StateObject>().try_into().unwrap(), ce).cast();
 
     // Common initialize process.
-    let object = ExtendObject::as_mut_object(extend_object);
+    let object = StateObject::as_mut_object(state_object);
     zend_object_std_init(object, ce);
     object_properties_init(object, ce);
     rebuild_object_properties(object);
@@ -407,20 +398,20 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
         func_ptr = func_ptr.offset(1);
     }
     func_ptr = func_ptr.offset(1);
-    let state_constructor = func_ptr as *const ManuallyDrop<Box<StateConstructor<Box<dyn Any>>>>;
+    let state_constructor = func_ptr as *const StateConstructor;
     let state_constructor = state_constructor.read();
 
     // Call the state constructor.
     let data: Box<dyn Any> = state_constructor();
-    *ExtendObject::as_mut_state(extend_object) = ManuallyDrop::new(data);
+    *StateObject::as_mut_state(state_object) = ManuallyDrop::new(data);
 
     object
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {
     // Drop the state.
-    let extend_object = ExtendObject::fetch_ptr(object);
-    ExtendObject::drop_state(extend_object);
+    let extend_object = StateObject::fetch_ptr(object);
+    StateObject::drop_state(extend_object);
 
     // Original destroy call.
     zend_object_std_dtor(object);

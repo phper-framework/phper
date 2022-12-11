@@ -33,7 +33,7 @@ impl From<HttpServerError> for phper::Error {
 }
 
 pub fn make_exception_class() -> ClassEntity<()> {
-    let mut exception_class = ClassEntity::new(EXCEPTION_CLASS_NAME);
-    exception_class.extends("Exception");
-    exception_class
+    let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
+    class.extends(exception_class);
+    class
 }

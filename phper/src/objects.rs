@@ -100,7 +100,7 @@ impl ZObj {
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_state<T: 'static>(&self) -> &T {
-        let eo = ExtendObject::fetch(&self.inner);
+        let eo = StateObject::fetch(&self.inner);
         eo.state.downcast_ref().unwrap()
     }
 
@@ -109,7 +109,7 @@ impl ZObj {
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_mut_state<T: 'static>(&mut self) -> &mut T {
-        let eo = ExtendObject::fetch_mut(&mut self.inner);
+        let eo = StateObject::fetch_mut(&mut self.inner);
         eo.state.downcast_mut().unwrap()
     }
 
@@ -408,30 +408,30 @@ pub(crate) type ManuallyDropState = ManuallyDrop<Box<dyn Any>>;
 
 /// The Object contains `zend_object` and the user defined state data.
 #[repr(C)]
-pub(crate) struct ExtendObject {
+pub(crate) struct StateObject {
     state: ManuallyDropState,
     object: zend_object,
 }
 
-impl ExtendObject {
+impl StateObject {
     pub(crate) const fn offset() -> usize {
         size_of::<ManuallyDropState>()
     }
 
     pub(crate) unsafe fn fetch(object: &zend_object) -> &Self {
-        (((object as *const _ as usize) - ExtendObject::offset()) as *const Self)
+        (((object as *const _ as usize) - StateObject::offset()) as *const Self)
             .as_ref()
             .unwrap()
     }
 
     pub(crate) unsafe fn fetch_mut(object: &mut zend_object) -> &mut Self {
-        (((object as *mut _ as usize) - ExtendObject::offset()) as *mut Self)
+        (((object as *mut _ as usize) - StateObject::offset()) as *mut Self)
             .as_mut()
             .unwrap()
     }
 
     pub(crate) fn fetch_ptr(object: *mut zend_object) -> *mut Self {
-        (object as usize - ExtendObject::offset()) as *mut Self
+        (object as usize - StateObject::offset()) as *mut Self
     }
 
     pub(crate) unsafe fn drop_state(this: *mut Self) {
