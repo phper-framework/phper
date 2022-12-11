@@ -8,12 +8,12 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::classes::{StatefulClass, Visibility};
+use phper::classes::{ClassEntity, Visibility};
 
 pub const HTTP_REQUEST_CLASS_NAME: &str = "HttpServer\\HttpRequest";
 
-pub fn make_request_class() -> StatefulClass<()> {
-    let mut class = StatefulClass::new(HTTP_REQUEST_CLASS_NAME);
+pub fn make_request_class() -> ClassEntity<()> {
+    let mut class = ClassEntity::new(HTTP_REQUEST_CLASS_NAME);
 
     class.add_property("header", Visibility::Public, ());
     class.add_property("server", Visibility::Public, ());

@@ -83,7 +83,7 @@ impl ZObj {
     ///
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_stateful_obj<T: 'static>(&self) -> &StatefulObj<T> {
+    pub unsafe fn as_stateful_obj<T: 'static>(&self) -> &StateObj<T> {
         transmute(self)
     }
 
@@ -91,7 +91,7 @@ impl ZObj {
     ///
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_mut_stateful_obj<T: 'static>(&mut self) -> &mut StatefulObj<T> {
+    pub unsafe fn as_mut_stateful_obj<T: 'static>(&mut self) -> &mut StateObj<T> {
         transmute(self)
     }
 
@@ -375,12 +375,12 @@ impl Debug for ZObject {
 }
 
 #[repr(transparent)]
-pub struct StatefulObj<T> {
+pub struct StateObj<T> {
     inner: ZObj,
     _p: PhantomData<T>,
 }
 
-impl<T: 'static> StatefulObj<T> {
+impl<T: 'static> StateObj<T> {
     pub fn as_state(&self) -> &T {
         unsafe { self.inner.as_state() }
     }
@@ -390,7 +390,7 @@ impl<T: 'static> StatefulObj<T> {
     }
 }
 
-impl<T> Deref for StatefulObj<T> {
+impl<T> Deref for StateObj<T> {
     type Target = ZObj;
 
     fn deref(&self) -> &Self::Target {
@@ -398,7 +398,7 @@ impl<T> Deref for StatefulObj<T> {
     }
 }
 
-impl<T> DerefMut for StatefulObj<T> {
+impl<T> DerefMut for StateObj<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }

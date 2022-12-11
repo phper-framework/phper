@@ -11,7 +11,7 @@
 use crate::{errors::HttpClientError, request::REQUEST_BUILDER_CLASS_NAME};
 use phper::{
     alloc::ToRefOwned,
-    classes::{ClassEntry, StatefulClass, Visibility},
+    classes::{ClassEntity, ClassEntry, Visibility},
     functions::Argument,
 };
 use reqwest::blocking::{Client, ClientBuilder};
@@ -20,10 +20,10 @@ use std::{mem::take, time::Duration};
 const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
 const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
 
-pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
-    // `new_with_default_state` means initialize the state of `ClientBuilder` as
-    // `Default::default`.
-    let mut class = StatefulClass::new_with_default_state(HTTP_CLIENT_BUILDER_CLASS_NAME);
+pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
+    // `new_with_default_state_constructor` means initialize the state of
+    // `ClientBuilder` as `Default::default`.
+    let mut class = ClassEntity::new_with_default_state_constructor(HTTP_CLIENT_BUILDER_CLASS_NAME);
 
     // Inner call the `ClientBuilder::timeout`.
     class
@@ -62,8 +62,9 @@ pub fn make_client_builder_class() -> StatefulClass<ClientBuilder> {
     class
 }
 
-pub fn make_client_class() -> StatefulClass<Option<Client>> {
-    let mut class = StatefulClass::<Option<Client>>::new_with_default_state(HTTP_CLIENT_CLASS_NAME);
+pub fn make_client_class() -> ClassEntity<Option<Client>> {
+    let mut class =
+        ClassEntity::<Option<Client>>::new_with_default_state_constructor(HTTP_CLIENT_CLASS_NAME);
 
     class.add_method("__construct", Visibility::Private, |_, _| {});
 

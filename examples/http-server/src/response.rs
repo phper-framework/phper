@@ -11,14 +11,14 @@
 use crate::errors::HttpServerError;
 use hyper::{header::HeaderName, http::HeaderValue, Body, Response};
 use phper::{
-    classes::{StatefulClass, Visibility},
+    classes::{ClassEntity, Visibility},
     functions::Argument,
 };
 
 pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 
-pub fn make_response_class() -> StatefulClass<Response<Body>> {
-    let mut class = StatefulClass::new_with_default_state(HTTP_RESPONSE_CLASS_NAME);
+pub fn make_response_class() -> ClassEntity<Response<Body>> {
+    let mut class = ClassEntity::new_with_default_state_constructor(HTTP_RESPONSE_CLASS_NAME);
 
     class
         .add_method("header", Visibility::Public, |this, arguments| {
