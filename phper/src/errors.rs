@@ -184,8 +184,8 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn boxed(e: impl error::Error + 'static) -> Self {
-        Self::Boxed(Box::new(e))
+    pub fn boxed(e: impl Into<Box<dyn error::Error>> + 'static) -> Self {
+        Self::Boxed(e.into())
     }
 
     pub fn throw(t: impl Throwable) -> Self {
@@ -283,7 +283,7 @@ pub struct ThrowObject(ZObject);
 
 impl ThrowObject {
     pub fn new(obj: ZObject) -> result::Result<Self, NotImplementThrowableError> {
-        if !obj.get_class().instance_of(throwable_class()) {
+        if !obj.get_class().is_instance_of(throwable_class()) {
             return Err(NotImplementThrowableError);
         }
         Ok(Self(obj))

@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::{ClassEntity, Visibility},
+    classes::{array_access_class, iterator_class, ClassEntity, Visibility},
     functions::Argument,
     modules::Module,
     values::ZVal,
@@ -17,6 +17,7 @@ use phper::{
 
 pub fn integrate(module: &mut Module) {
     integrate_a(module);
+    integrate_foo(module);
 }
 
 fn integrate_a(module: &mut Module) {
@@ -47,4 +48,59 @@ fn integrate_a(module: &mut Module) {
     });
 
     module.add_class(class);
+}
+
+struct Foo {
+    position: usize,
+    array: Vec<ZVal>,
+}
+
+fn integrate_foo(module: &mut Module) {
+    let mut class =
+        ClassEntity::new_with_state_constructor("IntegrationTest\\Foo", || Foo { position: 0, array: Vec::new() });
+
+    class.implements(iterator_class);
+    class.implements(array_access_class);
+
+    // Implement Iterator interface.
+    class.add_method("current", Visibility::Public, |this, _arguments| {
+        let state = this.as_state();
+        Ok::<_, phper::Error>(format!("Current: {}", state.position))
+    });
+    class.add_method("key", Visibility::Public, |this, _arguments| {
+        let state = this.as_state();
+        Ok::<_, phper::Error>(state.position as i64)
+    });
+    class.add_method("next", Visibility::Public, |this, _arguments| {
+        let state = this.as_mut_state();
+        state.position += 1;
+    });
+    class.add_method("rewind", Visibility::Public, |this, _arguments| {
+        let state = this.as_mut_state();
+        state.position = 0;
+    });
+    class.add_method("valid", Visibility::Public, |_this, _arguments| {
+        true
+    });
+
+    // Implement ArrayAccess interface.
+    class.add_method("offsetExists", Visibility::Public, |this, arguments| {
+        let offset = arr_offset(&arguments[0]);
+        let state = this.as_state();
+        state.array.get(offset).is_some()
+    });
+
+// public offsetExists(mixed $offset): bool
+// public offsetGet(mixed $offset): mixed
+// public offsetSet(mixed $offset, mixed $value): void
+// public offsetUnset(mixed $offset): void
+
+
+    module.add_class(class);
+}
+
+fn arr_offset(argument: &ZVal) -> usize {
+        let mut offset = argument.clone();
+        offset.convert_to_long();
+        offset.as_long().unwrap() as usize
 }

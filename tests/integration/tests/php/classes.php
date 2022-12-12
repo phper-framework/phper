@@ -28,3 +28,6 @@ $reflection_class = new ReflectionClass(\IntegrationTest\A::class);
 
 $property_name = $reflection_class->getProperty("name");
 assert_true($property_name->isPrivate());
+
+
+$foo = new \IntegrationTest\Foo();
