@@ -36,6 +36,18 @@ use std::{
     rc::Rc,
 };
 
+/// Predefined interface `Iterator`.
+#[inline]
+pub fn iterator_class<'a>() -> &'a ClassEntry {
+    unsafe { ClassEntry::from_ptr(zend_ce_iterator) }
+}
+
+/// Predefined interface `ArrayAccess`.
+#[inline]
+pub fn array_access_class<'a>() -> &'a ClassEntry {
+    unsafe { ClassEntry::from_ptr(zend_ce_arrayaccess) }
+}
+
 /// Wrapper of [crate::sys::zend_class_entry].
 #[repr(transparent)]
 pub struct ClassEntry {
@@ -128,9 +140,8 @@ impl ClassEntry {
         }
     }
 
-    #[allow(clippy::useless_conversion)]
-    pub fn instance_of(&self, parent: &ClassEntry) -> bool {
-        unsafe { phper_instanceof_function(self.as_ptr(), parent.as_ptr()) != false.into() }
+    pub fn is_instance_of(&self, parent: &ClassEntry) -> bool {
+        unsafe { phper_instanceof_function(self.as_ptr(), parent.as_ptr()) }
     }
 }
 
@@ -164,6 +175,7 @@ pub struct ClassEntity<T> {
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
+    interfaces: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
     _p: PhantomData<(*mut (), T)>,
 }
 
@@ -189,6 +201,7 @@ impl<T: 'static> ClassEntity<T> {
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
+            interfaces: Vec::new(),
             _p: PhantomData,
         }
     }
@@ -234,6 +247,10 @@ impl<T: 'static> ClassEntity<T> {
         self.parent = Some(Box::new(parent));
     }
 
+    pub fn implements(&mut self, interface: impl Fn() -> &'static ClassEntry + 'static) {
+        self.interfaces.push(Box::new(interface));
+    }
+
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&mut self) -> *mut zend_class_entry {
         let parent: *mut zend_class_entry = self
@@ -250,6 +267,11 @@ impl<T: 'static> ClassEntity<T> {
             Some(class_init_handler),
             parent.cast(),
         );
+
+        for interface in &self.interfaces {
+            let interface_ce = interface().as_ptr();
+            zend_class_implements(class_ce, 1, interface_ce);
+        }
 
         *phper_get_create_object(class_ce) = Some(create_object);
 
