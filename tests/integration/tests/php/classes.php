@@ -31,3 +31,17 @@ assert_true($property_name->isPrivate());
 
 
 $foo = new \IntegrationTest\Foo();
+
+// Test implementation of Iterator interface.
+$tmp_arr = [];
+foreach ($foo as $key => $value) {
+    $tmp_arr[] = [$key, $value];
+}
+assert_eq($tmp_arr, [[0, 'Current: 0'], [1, 'Current: 1'], [2, 'Current: 2']]);
+
+// Test implementation of ArrayAccess interface.
+assert_eq($foo[10], null);
+$foo[10] = "10";
+assert_eq($foo[10], "10");
+unset($foo[10]);
+assert_eq($foo[10], null);

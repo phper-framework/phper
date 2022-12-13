@@ -9,11 +9,13 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
+    alloc::RefClone,
     classes::{array_access_class, iterator_class, ClassEntity, Visibility},
     functions::Argument,
     modules::Module,
     values::ZVal,
 };
+use std::collections::HashMap;
 
 pub fn integrate(module: &mut Module) {
     integrate_a(module);
@@ -52,12 +54,14 @@ fn integrate_a(module: &mut Module) {
 
 struct Foo {
     position: usize,
-    array: Vec<ZVal>,
+    array: HashMap<i64, ZVal>,
 }
 
 fn integrate_foo(module: &mut Module) {
-    let mut class =
-        ClassEntity::new_with_state_constructor("IntegrationTest\\Foo", || Foo { position: 0, array: Vec::new() });
+    let mut class = ClassEntity::new_with_state_constructor("IntegrationTest\\Foo", || Foo {
+        position: 0,
+        array: Default::default(),
+    });
 
     class.implements(iterator_class);
     class.implements(array_access_class);
@@ -79,28 +83,47 @@ fn integrate_foo(module: &mut Module) {
         let state = this.as_mut_state();
         state.position = 0;
     });
-    class.add_method("valid", Visibility::Public, |_this, _arguments| {
-        true
+    class.add_method("valid", Visibility::Public, |this, _arguments| {
+        let state = this.as_state();
+        state.position < 3
     });
 
     // Implement ArrayAccess interface.
-    class.add_method("offsetExists", Visibility::Public, |this, arguments| {
-        let offset = arr_offset(&arguments[0]);
-        let state = this.as_state();
-        state.array.get(offset).is_some()
-    });
+    class
+        .add_method("offsetExists", Visibility::Public, |this, arguments| {
+            let offset = arguments[0].expect_long()?;
+            let state = this.as_state();
+            Ok::<_, phper::Error>(state.array.get(&offset).is_some())
+        })
+        .argument(Argument::by_val("offset"));
 
-// public offsetExists(mixed $offset): bool
-// public offsetGet(mixed $offset): mixed
-// public offsetSet(mixed $offset, mixed $value): void
-// public offsetUnset(mixed $offset): void
+    class
+        .add_method("offsetGet", Visibility::Public, |this, arguments| {
+            let offset = arguments[0].expect_long()?;
+            let state = this.as_mut_state();
+            let val = state.array.get_mut(&offset).map(|val| val.ref_clone());
+            Ok::<_, phper::Error>(val)
+        })
+        .argument(Argument::by_val("offset"));
 
+    class
+        .add_method("offsetSet", Visibility::Public, |this, arguments| {
+            let offset = arguments[0].expect_long()?;
+            let value = arguments[1].clone();
+            let state = this.as_mut_state();
+            state.array.insert(offset, value);
+            Ok::<_, phper::Error>(())
+        })
+        .arguments([Argument::by_val("offset"), Argument::by_val("value")]);
+
+    class
+        .add_method("offsetUnset", Visibility::Public, |this, arguments| {
+            let offset = arguments[0].expect_long()?;
+            let state = this.as_mut_state();
+            state.array.remove(&offset);
+            Ok::<_, phper::Error>(())
+        })
+        .argument(Argument::by_val("offset"));
 
     module.add_class(class);
-}
-
-fn arr_offset(argument: &ZVal) -> usize {
-        let mut offset = argument.clone();
-        offset.convert_to_long();
-        offset.as_long().unwrap() as usize
 }
