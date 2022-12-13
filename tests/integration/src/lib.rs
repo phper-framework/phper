@@ -14,6 +14,7 @@ mod arguments;
 mod arrays;
 mod classes;
 mod constants;
+mod errors;
 mod functions;
 mod ini;
 mod objects;
@@ -39,6 +40,7 @@ pub fn get_module() -> Module {
     values::integrate(&mut module);
     constants::integrate(&mut module);
     ini::integrate(&mut module);
+    errors::integrate(&mut module);
 
     module
 }
