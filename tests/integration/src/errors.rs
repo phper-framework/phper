@@ -8,10 +8,13 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::modules::Module;
+use phper::{
+    errors::{exception_class, ThrowObject},
+    modules::Module,
+};
 use std::io;
 
-pub fn integrate(_module: &mut Module) {
+pub fn integrate(module: &mut Module) {
     {
         let e = phper::Error::boxed("something wrong");
         assert!(matches!(e, phper::Error::Boxed(..)));
@@ -23,4 +26,14 @@ pub fn integrate(_module: &mut Module) {
         assert!(matches!(e, phper::Error::Boxed(..)));
         assert_eq!(e.to_string(), "oh no!");
     }
+
+    module.add_function("integrate_throw_boxed", |_arguments| {
+        Err::<(), _>(phper::Error::boxed("What's wrong with you?"))
+    });
+
+    module.add_function("integrate_throw_object", |_arguments| {
+        let obj = exception_class().new_object(["Forbidden".into(), 403.into()])?;
+        let obj = ThrowObject::new(obj)?;
+        Err::<(), _>(phper::Error::Throw(obj))
+    });
 }

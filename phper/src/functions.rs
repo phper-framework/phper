@@ -287,12 +287,12 @@ impl Argument {
 }
 
 #[repr(transparent)]
-pub struct ZendFunction {
+pub struct ZendFunc {
     inner: zend_function,
 }
 
-impl ZendFunction {
-    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunction {
+impl ZendFunc {
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunc {
         let ptr = ptr as *mut Self;
         ptr.as_mut().expect("ptr shouldn't be null")
     }

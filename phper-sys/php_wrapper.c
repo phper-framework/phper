@@ -308,12 +308,12 @@ zend_array *phper_z_arr_p(const zval *zv) {
     return Z_ARR_P(zv);
 }
 
-zend_long phper_z_lval_p(const zval *zv) {
-    return Z_LVAL_P(zv);
+zend_long *phper_z_lval_p(zval *zv) {
+    return &(Z_LVAL_P(zv));
 }
 
-double phper_z_dval_p(const zval *zv) {
-    return Z_DVAL_P(zv);
+double *phper_z_dval_p(zval *zv) {
+    return &(Z_DVAL_P(zv));
 }
 
 zend_string *phper_z_str_p(const zval *zv) {
@@ -322,6 +322,10 @@ zend_string *phper_z_str_p(const zval *zv) {
 
 zend_resource *phper_z_res_p(const zval *zv) {
     return Z_RES_P(zv);
+}
+
+zend_reference *phper_z_ref_p(const zval *zv) {
+    return Z_REF_P(zv);
 }
 
 zend_string *phper_zend_string_copy(zend_string *s) {

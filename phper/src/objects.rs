@@ -13,7 +13,7 @@
 use crate::{
     alloc::EBox,
     classes::ClassEntry,
-    functions::{call_internal, ZendFunction},
+    functions::{call_internal, ZendFunc},
     sys::*,
     values::ZVal,
 };
@@ -231,7 +231,7 @@ impl ZObj {
                     if f.is_null() {
                         Ok(false)
                     } else {
-                        let zend_fn = ZendFunction::from_mut_ptr(f);
+                        let zend_fn = ZendFunc::from_mut_ptr(f);
                         zend_fn.call(Some(self), arguments)?;
                         Ok(true)
                     }
