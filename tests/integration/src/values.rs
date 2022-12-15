@@ -18,6 +18,7 @@ use phper::{
 
 pub fn integrate(module: &mut Module) {
     integrate_returns(module);
+    integrate_as(module);
 }
 
 fn integrate_returns(module: &mut Module) {
@@ -156,4 +157,38 @@ fn integration_values_return_result_string_err(_: &mut [ZVal]) -> phper::Result<
 
 fn integration_values_return_val(_: &mut [ZVal]) -> ZVal {
     ZVal::from("foo")
+}
+
+fn integrate_as(_module: &mut Module) {
+    {
+        let val = ZVal::default();
+        assert_eq!(val.as_null(), Some(()));
+        assert_eq!(val.as_long(), None);
+    }
+
+    {
+        let val = ZVal::from(true);
+        assert_eq!(val.as_bool(), Some(true));
+        assert_eq!(val.as_long(), None);
+    }
+
+    {
+        let mut val = ZVal::from(100i64);
+        assert_eq!(val.as_long(), Some(100));
+        assert_eq!(val.as_double(), None);
+        if let Some(l) = val.as_mut_long() {
+            *l += 100;
+        }
+        assert_eq!(val.as_long(), Some(200));
+    }
+
+    {
+        let mut val = ZVal::from(100f64);
+        assert_eq!(val.as_double(), Some(100.));
+        assert_eq!(val.as_long(), None);
+        if let Some(d) = val.as_mut_double() {
+            *d += 100.;
+        }
+        assert_eq!(val.as_double(), Some(200.));
+    }
 }

@@ -28,7 +28,6 @@ use std::{
     ffi::{CStr, CString},
     marker::PhantomData,
     mem::{size_of, transmute, zeroed},
-    os::raw::c_char,
     ptr::null_mut,
     rc::Rc,
 };
@@ -137,15 +136,12 @@ impl FunctionEntry {
         let mut infos = Vec::new();
 
         let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
-        infos.push(create_zend_arg_info(
-            require_arg_count as *const c_char,
-            false,
-        ));
+        infos.push(phper_zend_begin_arg_info_ex(false, require_arg_count));
 
         for arg in arguments {
-            infos.push(create_zend_arg_info(
-                arg.name.as_ptr().cast(),
+            infos.push(phper_zend_arg_info(
                 arg.pass_by_ref,
+                arg.name.as_ptr().cast(),
             ));
         }
 
@@ -287,12 +283,12 @@ impl Argument {
 }
 
 #[repr(transparent)]
-pub struct ZendFunction {
+pub struct ZendFunc {
     inner: zend_function,
 }
 
-impl ZendFunction {
-    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunction {
+impl ZendFunc {
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunc {
         let ptr = ptr as *mut Self;
         ptr.as_mut().expect("ptr shouldn't be null")
     }
@@ -444,55 +440,6 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 
     // TODO catch_unwind for call, translate some panic to throwing Error.
     handler.call(execute_data, transmute(arguments), return_value);
-}
-
-pub(crate) const fn create_zend_arg_info(
-    name: *const c_char, _pass_by_ref: bool,
-) -> zend_internal_arg_info {
-    #[cfg(phper_major_version = "8")]
-    {
-        zend_internal_arg_info {
-            name,
-            type_: zend_type {
-                ptr: null_mut(),
-                type_mask: 0,
-            },
-            default_value: null_mut(),
-        }
-    }
-
-    #[cfg(all(
-        phper_major_version = "7",
-        any(
-            phper_minor_version = "4",
-            phper_minor_version = "3",
-            phper_minor_version = "2",
-        )
-    ))]
-    {
-        #[allow(clippy::unnecessary_cast)]
-        zend_internal_arg_info {
-            name,
-            type_: 0 as crate::sys::zend_type,
-            pass_by_reference: _pass_by_ref as zend_uchar,
-            is_variadic: 0,
-        }
-    }
-
-    #[cfg(all(
-        phper_major_version = "7",
-        any(phper_minor_version = "1", phper_minor_version = "0")
-    ))]
-    {
-        zend_internal_arg_info {
-            name,
-            class_name: std::ptr::null(),
-            type_hint: 0,
-            allow_null: 0,
-            pass_by_reference: _pass_by_ref as zend_uchar,
-            is_variadic: 0,
-        }
-    }
 }
 
 /// Call user function by name.

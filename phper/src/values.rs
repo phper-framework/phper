@@ -14,8 +14,9 @@ use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
     errors::{ExpectTypeError, ThrowObject, Throwable},
-    functions::{call_internal, ZendFunction},
+    functions::{call_internal, ZendFunc},
     objects::{ZObj, ZObject},
+    references::ZRef,
     resources::ZRes,
     strings::{ZStr, ZString},
     sys::*,
@@ -112,8 +113,8 @@ impl ExecuteData {
     /// # Safety
     ///
     /// From inner raw pointer.
-    pub fn func(&self) -> &ZendFunction {
-        unsafe { ZendFunction::from_mut_ptr(self.inner.func) }
+    pub fn func(&self) -> &ZendFunc {
+        unsafe { ZendFunc::from_mut_ptr(self.inner.func) }
     }
 
     pub fn get_this(&mut self) -> Option<&ZObj> {
@@ -241,8 +242,20 @@ impl ZVal {
     }
 
     pub fn expect_long(&self) -> crate::Result<i64> {
+        self.inner_expect_long().cloned()
+    }
+
+    pub fn as_mut_long(&mut self) -> Option<&mut i64> {
+        self.expect_mut_long().ok()
+    }
+
+    pub fn expect_mut_long(&self) -> crate::Result<&mut i64> {
+        self.inner_expect_long()
+    }
+
+    fn inner_expect_long(&self) -> crate::Result<&mut i64> {
         if self.get_type_info().is_long() {
-            unsafe { Ok(phper_z_lval_p(self.as_ptr())) }
+            unsafe { Ok(phper_z_lval_p(self.as_ptr() as *mut _).as_mut().unwrap()) }
         } else {
             Err(ExpectTypeError::new(TypeInfo::LONG, self.get_type_info()).into())
         }
@@ -253,8 +266,20 @@ impl ZVal {
     }
 
     pub fn expect_double(&self) -> crate::Result<f64> {
+        self.inner_expect_double().cloned()
+    }
+
+    pub fn as_mut_double(&mut self) -> Option<&mut f64> {
+        self.expect_mut_double().ok()
+    }
+
+    pub fn expect_mut_double(&mut self) -> crate::Result<&mut f64> {
+        self.inner_expect_double()
+    }
+
+    fn inner_expect_double(&self) -> crate::Result<&mut f64> {
         if self.get_type_info().is_double() {
-            unsafe { Ok(phper_z_dval_p(self.as_ptr())) }
+            unsafe { Ok(phper_z_dval_p(self.as_ptr() as *mut _).as_mut().unwrap()) }
         } else {
             Err(ExpectTypeError::new(TypeInfo::DOUBLE, self.get_type_info()).into())
         }
@@ -359,6 +384,30 @@ impl ZVal {
         }
     }
 
+    pub fn as_z_ref(&self) -> Option<&ZRef> {
+        self.expect_z_ref().ok()
+    }
+
+    pub fn expect_z_ref(&self) -> crate::Result<&ZRef> {
+        self.inner_expect_z_ref().map(|x| &*x)
+    }
+
+    pub fn as_mut_z_ref(&mut self) -> Option<&mut ZRef> {
+        self.expect_mut_z_ref().ok()
+    }
+
+    pub fn expect_mut_z_ref(&mut self) -> crate::Result<&mut ZRef> {
+        self.inner_expect_z_ref()
+    }
+
+    fn inner_expect_z_ref(&self) -> crate::Result<&mut ZRef> {
+        if self.get_type_info().is_reference() {
+            unsafe { Ok(ZRef::from_mut_ptr(phper_z_ref_p(self.as_ptr()))) }
+        } else {
+            Err(ExpectTypeError::new(TypeInfo::REFERENCE, self.get_type_info()).into())
+        }
+    }
+
     /// TODO To fix assertion failed.
     pub fn convert_to_long(&mut self) {
         unsafe {
@@ -373,11 +422,12 @@ impl ZVal {
         }
     }
 
-    /// Call only when self is a callable.
+    /// Call only when self is a callable (string or array or closure).
     ///
     /// # Errors
     ///
     /// Return Err when self is not callable.
+    #[inline]
     pub fn call(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZVal> {
         call_internal(self, None, arguments)
     }

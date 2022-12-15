@@ -308,12 +308,12 @@ zend_array *phper_z_arr_p(const zval *zv) {
     return Z_ARR_P(zv);
 }
 
-zend_long phper_z_lval_p(const zval *zv) {
-    return Z_LVAL_P(zv);
+zend_long *phper_z_lval_p(zval *zv) {
+    return &(Z_LVAL_P(zv));
 }
 
-double phper_z_dval_p(const zval *zv) {
-    return Z_DVAL_P(zv);
+double *phper_z_dval_p(zval *zv) {
+    return &(Z_DVAL_P(zv));
 }
 
 zend_string *phper_z_str_p(const zval *zv) {
@@ -322,6 +322,10 @@ zend_string *phper_z_str_p(const zval *zv) {
 
 zend_resource *phper_z_res_p(const zval *zv) {
     return Z_RES_P(zv);
+}
+
+zend_reference *phper_z_ref_p(const zval *zv) {
+    return Z_REF_P(zv);
 }
 
 zend_string *phper_zend_string_copy(zend_string *s) {
@@ -410,4 +414,22 @@ void phper_zend_hash_foreach_key_val(zend_array *array,
         f(idx, key, val, argument);
     }
     ZEND_HASH_FOREACH_END();
+}
+
+zend_internal_arg_info
+phper_zend_begin_arg_info_ex(bool return_reference,
+                             uintptr_t required_num_args) {
+#define static
+#define const
+    ZEND_BEGIN_ARG_INFO_EX(info, 0, return_reference, required_num_args)
+    ZEND_END_ARG_INFO()
+    return info[0];
+#undef static
+#undef const
+}
+
+zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name) {
+    zend_internal_arg_info info[] = {ZEND_ARG_INFO(pass_by_ref, )};
+    info[0].name = name;
+    return info[0];
 }

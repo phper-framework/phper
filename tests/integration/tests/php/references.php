@@ -1,3 +1,5 @@
+<?php
+
 // Copyright (c) 2022 PHPER Framework Team
 // PHPER is licensed under Mulan PSL v2.
 // You can use this software according to the terms and conditions of the Mulan
@@ -8,29 +10,11 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
-#![doc = include_str!("../README.md")]
 
-#[macro_use]
-mod macros;
+require_once __DIR__ . '/_common.php';
 
-pub mod arrays;
-pub mod classes;
-pub(crate) mod constants;
-pub mod errors;
-pub mod functions;
-pub mod ini;
-pub mod modules;
-pub mod objects;
-pub mod output;
-pub mod references;
-pub mod resources;
-pub mod strings;
-pub mod types;
-mod utils;
-pub mod values;
+$foo = 100;
+integrate_test_reference($foo, $bar);
 
-pub use crate::errors::{Error, Result};
-pub use phper_alloc as alloc;
-pub use phper_macros::*;
-pub use phper_sys as sys;
+assert_eq($foo, 200);
+assert_eq($bar, "hello");
