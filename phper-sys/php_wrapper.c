@@ -415,3 +415,21 @@ void phper_zend_hash_foreach_key_val(zend_array *array,
     }
     ZEND_HASH_FOREACH_END();
 }
+
+zend_internal_arg_info
+phper_zend_begin_arg_info_ex(bool return_reference,
+                             uintptr_t required_num_args) {
+#define static
+#define const
+    ZEND_BEGIN_ARG_INFO_EX(info, 0, return_reference, required_num_args)
+    ZEND_END_ARG_INFO()
+    return info[0];
+#undef static
+#undef const
+}
+
+zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name) {
+    zend_internal_arg_info info[] = {ZEND_ARG_INFO(pass_by_ref, )};
+    info[0].name = name;
+    return info[0];
+}
