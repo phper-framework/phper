@@ -18,7 +18,7 @@ use phper::{
     php_get_module,
     values::ZVal,
 };
-use std::ffi::CStr;
+use std::{convert::Infallible, ffi::CStr};
 
 fn say_hello(arguments: &mut [ZVal]) -> phper::Result<String> {
     let name = &mut arguments[0];
@@ -68,8 +68,7 @@ pub fn get_module() -> Module {
 
         let complex_description = ZVal::from(ini_get::<Option<&CStr>>("complex.description"));
         arr.insert("complex.description", complex_description);
-
-        arr
+        Ok::<_, Infallible>(arr)
     });
 
     // register classes

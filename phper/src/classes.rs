@@ -12,7 +12,7 @@
 
 use crate::{
     arrays::ZArr,
-    errors::{ClassNotFoundError, InitializeObjectError},
+    errors::{ClassNotFoundError, InitializeObjectError, Throwable},
     functions::{Function, FunctionEntry, Method, MethodEntity},
     objects::{StateObj, StateObject, ZObj, ZObject},
     strings::ZStr,
@@ -206,24 +206,26 @@ impl<T: 'static> ClassEntity<T> {
         }
     }
 
-    pub fn add_method<F, R>(
+    pub fn add_method<F, Z, E>(
         &mut self, name: impl Into<String>, vis: Visibility, handler: F,
     ) -> &mut MethodEntity
     where
-        F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync + 'static,
-        R: Into<ZVal> + 'static,
+        F: Fn(&mut StateObj<T>, &mut [ZVal]) -> Result<Z, E> + 'static,
+        Z: Into<ZVal> + 'static,
+        E: Throwable + 'static,
     {
         self.method_entities
             .push(MethodEntity::new(name, Rc::new(Method::new(handler)), vis));
         self.method_entities.last_mut().unwrap()
     }
 
-    pub fn add_static_method<F, R>(
+    pub fn add_static_method<F, Z, E>(
         &mut self, name: impl Into<String>, vis: Visibility, handler: F,
     ) -> &mut MethodEntity
     where
-        F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
-        R: Into<ZVal> + 'static,
+        F: Fn(&mut [ZVal]) -> Result<Z, E> + 'static,
+        Z: Into<ZVal> + 'static,
+        E: Throwable + 'static,
     {
         let mut entity = MethodEntity::new(name, Rc::new(Function::new(handler)), vis);
         entity.r#static(true);

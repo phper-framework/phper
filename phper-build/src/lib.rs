@@ -13,6 +13,11 @@
 
 use phper_sys::*;
 
+pub fn register_all() {
+    register_link_args();
+    register_configures();
+}
+
 /// Register useful rust cfg for project using phper.
 pub fn register_configures() {
     // versions
@@ -35,5 +40,13 @@ pub fn register_configures() {
 
     if USING_ZTS != 0 {
         println!("cargo:rustc-cfg=phper_zts");
+    }
+}
+
+pub fn register_link_args() {
+    #[cfg(target_os = "macos")]
+    {
+        println!("cargo:rustc-link-arg=-undefined");
+        println!("cargo:rustc-link-arg=dynamic_lookup");
     }
 }

@@ -15,6 +15,7 @@ use phper::{
     objects::ZObject,
     values::ZVal,
 };
+use std::convert::Infallible;
 
 pub fn integrate(module: &mut Module) {
     integrate_returns(module);
@@ -88,66 +89,68 @@ fn integrate_returns(module: &mut Module) {
     );
 }
 
-fn integration_values_return_null(_: &mut [ZVal]) {}
-
-fn integration_values_return_true(_: &mut [ZVal]) -> bool {
-    true
+fn integration_values_return_null(_: &mut [ZVal]) -> Result<(), Infallible> {
+    Ok(())
 }
 
-fn integration_values_return_false(_: &mut [ZVal]) -> bool {
-    false
+fn integration_values_return_true(_: &mut [ZVal]) -> Result<bool, Infallible> {
+    Ok(true)
 }
 
-fn integration_values_return_i64(_: &mut [ZVal]) -> i64 {
-    64
+fn integration_values_return_false(_: &mut [ZVal]) -> Result<bool, Infallible> {
+    Ok(false)
 }
 
-fn integration_values_return_f64(_: &mut [ZVal]) -> f64 {
-    64.0
+fn integration_values_return_i64(_: &mut [ZVal]) -> Result<i64, Infallible> {
+    Ok(64)
 }
 
-fn integration_values_return_str(_: &mut [ZVal]) -> &'static str {
-    "foo"
+fn integration_values_return_f64(_: &mut [ZVal]) -> Result<f64, Infallible> {
+    Ok(64.0)
 }
 
-fn integration_values_return_string(_: &mut [ZVal]) -> String {
-    "foo".to_string()
+fn integration_values_return_str(_: &mut [ZVal]) -> Result<&'static str, Infallible> {
+    Ok("foo")
 }
 
-fn integration_values_return_array(_: &mut [ZVal]) -> ZArray {
+fn integration_values_return_string(_: &mut [ZVal]) -> Result<String, Infallible> {
+    Ok("foo".to_string())
+}
+
+fn integration_values_return_array(_: &mut [ZVal]) -> Result<ZArray, Infallible> {
     let mut arr = ZArray::new();
     arr.insert(InsertKey::NextIndex, ZVal::from("a"));
     arr.insert(InsertKey::NextIndex, ZVal::from("b"));
     arr.insert(InsertKey::NextIndex, ZVal::from("c"));
-    arr
+    Ok(arr)
 }
 
-fn integration_values_return_kv_array(_: &mut [ZVal]) -> ZArray {
+fn integration_values_return_kv_array(_: &mut [ZVal]) -> Result<ZArray, Infallible> {
     let mut arr = ZArray::new();
     arr.insert("a", ZVal::from(1));
     arr.insert("b", ZVal::from("foo"));
-    arr
+    Ok(arr)
 }
 
-fn integration_values_return_object(_: &mut [ZVal]) -> ZObject {
+fn integration_values_return_object(_: &mut [ZVal]) -> Result<ZObject, Infallible> {
     let mut object = ZObject::new_by_std_class();
     object.set_property("foo", ZVal::from("bar"));
-    object
+    Ok(object)
 }
 
-fn integration_values_return_option_i64_some(_: &mut [ZVal]) -> Option<i64> {
-    Some(64)
+fn integration_values_return_option_i64_some(_: &mut [ZVal]) -> Result<Option<i64>, Infallible> {
+    Ok(Some(64))
 }
 
-fn integration_values_return_option_i64_none(_: &mut [ZVal]) -> Option<i64> {
-    None
+fn integration_values_return_option_i64_none(_: &mut [ZVal]) -> Result<Option<i64>, Infallible> {
+    Ok(None)
 }
 
-fn integration_values_return_ebox_i64(_: &mut [ZVal]) -> EBox<i64> {
-    ebox!(64)
+fn integration_values_return_ebox_i64(_: &mut [ZVal]) -> Result<EBox<i64>, Infallible> {
+    Ok(ebox!(64))
 }
 
-fn integration_values_return_result_string_ok(_: &mut [ZVal]) -> phper::Result<String> {
+fn integration_values_return_result_string_ok(_: &mut [ZVal]) -> phper::Result<impl Into<ZVal>> {
     Ok("foo".to_string())
 }
 
@@ -155,8 +158,8 @@ fn integration_values_return_result_string_err(_: &mut [ZVal]) -> phper::Result<
     Err(phper::Error::Boxed("a zhe".into()))
 }
 
-fn integration_values_return_val(_: &mut [ZVal]) -> ZVal {
-    ZVal::from("foo")
+fn integration_values_return_val(_: &mut [ZVal]) -> Result<ZVal, Infallible> {
+    Ok(ZVal::from("foo"))
 }
 
 fn integrate_as(_module: &mut Module) {

@@ -13,7 +13,7 @@
 use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
-    errors::{ExpectTypeError, ThrowObject, Throwable},
+    errors::ExpectTypeError,
     functions::{call_internal, ZendFunc},
     objects::{ZObj, ZObject},
     references::ZRef,
@@ -608,21 +608,5 @@ impl<T: Into<ZVal>> From<Option<T>> for ZVal {
 impl<T: Into<ZVal>> From<EBox<T>> for ZVal {
     fn from(t: EBox<T>) -> Self {
         t.into_inner().into()
-    }
-}
-
-impl<T: Into<ZVal>, E: Throwable> From<Result<T, E>> for ZVal {
-    fn from(r: Result<T, E>) -> Self {
-        match r {
-            Ok(t) => t.into(),
-            Err(e) => {
-                let obj = ThrowObject::from_throwable(e).into_inner();
-                let mut val = ManuallyDrop::new(ZVal::from(obj));
-                unsafe {
-                    zend_throw_exception_object(val.as_mut_ptr());
-                }
-                ZVal::from(())
-            }
-        }
     }
 }

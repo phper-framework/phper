@@ -10,10 +10,12 @@
 
 use phper::{
     arrays::ZArray,
+    errors::throw,
     functions::{call, Argument},
     modules::Module,
     values::ZVal,
 };
+use std::{convert::Infallible, io};
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
@@ -40,4 +42,21 @@ pub fn integrate(module: &mut Module) {
             },
         )
         .argument(Argument::by_val("fn"));
+
+    module.add_function(
+        "integrate_functions_throw_error_exception",
+        |_| -> phper::Result<()> { Err(phper::Error::boxed("throw error exception")) },
+    );
+
+    module.add_function("integrate_functions_exception_guard", |_| {
+        unsafe {
+            throw(phper::Error::Io(io::Error::new(
+                io::ErrorKind::Other,
+                "other io error",
+            )));
+        }
+        let e = call("integrate_functions_throw_error_exception", []).unwrap_err();
+        assert_eq!(e.to_string(), "throw error exception");
+        Ok::<_, Infallible>(())
+    });
 }

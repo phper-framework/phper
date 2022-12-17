@@ -122,6 +122,10 @@ impl ZObj {
         unsafe { ClassEntry::from_ptr(self.inner.ce) }
     }
 
+    pub fn get_mut_class(&mut self) -> &mut ClassEntry {
+        unsafe { ClassEntry::from_mut_ptr(self.inner.ce) }
+    }
+
     pub fn get_property(&self, name: impl AsRef<str>) -> &ZVal {
         let object = self.as_ptr() as *mut _;
         let prop = Self::inner_get_property(self.inner.ce, object, name);

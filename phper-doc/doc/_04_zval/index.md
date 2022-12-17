@@ -40,9 +40,6 @@ Otherwise, there are also composite types that implement `From`.
 - `From<Option<T>>`: if Some(T), T will be converted to PHP type like `From<T>`,
   or `None` wll be converted to `null`.
 
-- `From<Result<T, E>>`: if Ok(T), T will be converted to PHP type like `From<T>`,
-  or `Err(e)` will throw an Exception by calling `zend_throw_exception`.
-
 ### Example
 
 ```rust,no_run

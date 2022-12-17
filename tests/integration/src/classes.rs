@@ -15,7 +15,7 @@ use phper::{
     modules::Module,
     values::ZVal,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::Infallible};
 
 pub fn integrate(module: &mut Module) {
     integrate_a(module);
@@ -78,14 +78,16 @@ fn integrate_foo(module: &mut Module) {
     class.add_method("next", Visibility::Public, |this, _arguments| {
         let state = this.as_mut_state();
         state.position += 1;
+        Ok::<_, Infallible>(())
     });
     class.add_method("rewind", Visibility::Public, |this, _arguments| {
         let state = this.as_mut_state();
         state.position = 0;
+        Ok::<_, Infallible>(())
     });
     class.add_method("valid", Visibility::Public, |this, _arguments| {
         let state = this.as_state();
-        state.position < 3
+        Ok::<_, Infallible>(state.position < 3)
     });
 
     // Implement ArrayAccess interface.
