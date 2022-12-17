@@ -24,10 +24,9 @@ use crate::{
 };
 use phper_alloc::ToRefOwned;
 use std::{
-    convert::TryInto,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{size_of, transmute, zeroed},
+    mem::{transmute, zeroed},
     ptr::{self, null_mut},
     rc::Rc,
 };
@@ -355,6 +354,8 @@ impl ZendFunc {
             }
             #[cfg(phper_major_version = "7")]
             {
+                use std::mem::size_of;
+
                 let called_scope = {
                     let mut called_scope = object
                         .as_mut()
