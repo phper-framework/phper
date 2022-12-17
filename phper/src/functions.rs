@@ -425,8 +425,8 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     let handler = handler.as_ref().expect("handler is null");
 
     // Check arguments count.
-    let num_args = execute_data.num_args() as usize;
-    let required_num_args = execute_data.common_required_num_args() as usize;
+    let num_args = execute_data.num_args();
+    let required_num_args = execute_data.common_required_num_args();
     if num_args < required_num_args {
         let func_name = execute_data.func().get_function_or_method_name();
         let err: crate::Error = match func_name.to_str() {

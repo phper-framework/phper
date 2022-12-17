@@ -59,7 +59,7 @@ fn main() {
     builder
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file(&generated_path)
+        .write_to_file(generated_path)
         .expect("Unable to write output file");
 }
 

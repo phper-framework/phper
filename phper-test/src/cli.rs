@@ -69,7 +69,7 @@ pub fn test_php_scripts_with_condition(
             stderr.push_str("<empty>");
         }
 
-        println!(
+        eprintln!(
             "===== command =====\n{} {}\n===== stdout ======\n{}\n===== stderr ======\n{}",
             &context.php_bin,
             cmd.get_args().join(" "),
@@ -79,7 +79,7 @@ pub fn test_php_scripts_with_condition(
         #[cfg(target_os = "linux")]
         if output.status.code().is_none() {
             use std::os::unix::process::ExitStatusExt;
-            println!(
+            eprintln!(
                 "===== signal ======\nExitStatusExt is None, the signal is: {:?}",
                 output.status.signal()
             );

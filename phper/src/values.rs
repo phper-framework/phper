@@ -93,8 +93,8 @@ impl ExecuteData {
     ///
     /// Get value from union.
     #[inline]
-    pub fn common_required_num_args(&self) -> u16 {
-        unsafe { (*self.inner.func).common.required_num_args as u16 }
+    pub fn common_required_num_args(&self) -> usize {
+        unsafe { (*self.inner.func).common.required_num_args as usize }
     }
 
     /// # Safety
@@ -133,7 +133,7 @@ impl ExecuteData {
 
     pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
         let num_args = self.num_args();
-        let mut arguments = vec![zeroed::<zval>(); num_args as usize];
+        let mut arguments = vec![zeroed::<zval>(); num_args];
         if num_args > 0 {
             phper_zend_get_parameters_array_ex(
                 num_args.try_into().unwrap(),

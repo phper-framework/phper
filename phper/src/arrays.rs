@@ -375,6 +375,7 @@ pub enum IterKey<'a> {
     ZStr(&'a ZStr),
 }
 
+#[allow(clippy::unnecessary_cast)]
 unsafe extern "C" fn for_each_callback(
     idx: zend_ulong, key: *mut zend_string, val: *mut zval, argument: *mut c_void,
 ) {
