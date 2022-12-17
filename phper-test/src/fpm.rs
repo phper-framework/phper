@@ -66,11 +66,11 @@ pub fn setup(lib_path: impl AsRef<Path>) {
             "-y",
             fpm_conf_file.path().to_str().unwrap(),
         ];
-        println!("===== setup php-fpm =====\n{}", argv.join(" "));
+        eprintln!("===== setup php-fpm =====\n{}", argv.join(" "));
 
         let child = spawn_command(&argv, Some(Duration::from_secs(3)));
         let log = fs::read_to_string("/tmp/.php-fpm.log").unwrap();
-        println!("===== php-fpm log =====\n{}", log);
+        eprintln!("===== php-fpm log =====\n{}", log);
         // fs::remove_file("/tmp/.php-fpm.log").unwrap();
 
         Mutex::new(FpmHandle {
@@ -165,7 +165,7 @@ pub fn test_fpm_request(
                     .unwrap_or_else(|_| "<not utf8 string>".to_owned())
             };
 
-            println!(
+            eprintln!(
                 "===== request =====\n{}\n===== stdout ======\n{}\n===== stderr ======\n{}",
                 request_uri,
                 f(stdout),

@@ -15,8 +15,8 @@
 use crate::{
     cg,
     classes::{ClassEntry, Visibility},
-    errors::{ArgumentCountError, CallFunctionError, CallMethodError, ExceptionGuard, ThrowObject},
-    objects::{StateObj, ZObj},
+    errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable},
+    objects::{StateObj, ZObj, ZObject},
     strings::{ZStr, ZString},
     sys::*,
     utils::ensure_end_with_zero,
@@ -24,11 +24,10 @@ use crate::{
 };
 use phper_alloc::ToRefOwned;
 use std::{
-    convert::TryInto,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{size_of, transmute, zeroed},
-    ptr::null_mut,
+    mem::{transmute, zeroed},
+    ptr::{self, null_mut},
     rc::Rc,
 };
 
@@ -36,67 +35,63 @@ pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal);
 }
 
-pub(crate) struct Function<F, R>(F)
-where
-    F: Fn(&mut [ZVal]) -> R + Send + Sync,
-    R: Into<ZVal>;
+pub(crate) struct Function<F, Z, E>(F, PhantomData<(Z, E)>);
 
-impl<F, R> Function<F, R>
-where
-    F: Fn(&mut [ZVal]) -> R + Send + Sync,
-    R: Into<ZVal>,
-{
+impl<F, Z, E> Function<F, Z, E> {
     pub fn new(f: F) -> Self {
-        Self(f)
+        Self(f, PhantomData)
     }
 }
 
-impl<F, R> Callable for Function<F, R>
+impl<F, Z, E> Callable for Function<F, Z, E>
 where
-    F: Fn(&mut [ZVal]) -> R + Send + Sync,
-    R: Into<ZVal>,
+    F: Fn(&mut [ZVal]) -> Result<Z, E>,
+    Z: Into<ZVal>,
+    E: Throwable,
 {
     fn call(&self, _: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal) {
-        let r = (self.0)(arguments);
-        *return_value = r.into();
-    }
-}
-
-pub(crate) struct Method<F, R, T>
-where
-    F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync,
-    R: Into<ZVal>,
-{
-    f: F,
-    _p: PhantomData<(R, T)>,
-}
-
-impl<F, R, T> Method<F, R, T>
-where
-    F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync,
-    R: Into<ZVal>,
-{
-    pub(crate) fn new(f: F) -> Self {
-        Self {
-            f,
-            _p: Default::default(),
+        match (self.0)(arguments) {
+            Ok(z) => {
+                *return_value = z.into();
+            }
+            Err(e) => {
+                unsafe {
+                    throw(e);
+                }
+                *return_value = ().into();
+            }
         }
     }
 }
 
-impl<F, R, T: 'static> Callable for Method<F, R, T>
+pub(crate) struct Method<F, Z, E, T>(F, PhantomData<(Z, E, T)>);
+
+impl<F, Z, E, T> Method<F, Z, E, T> {
+    pub(crate) fn new(f: F) -> Self {
+        Self(f, PhantomData)
+    }
+}
+
+impl<F, Z, E, T: 'static> Callable for Method<F, Z, E, T>
 where
-    F: Fn(&mut StateObj<T>, &mut [ZVal]) -> R + Send + Sync,
-    R: Into<ZVal>,
+    F: Fn(&mut StateObj<T>, &mut [ZVal]) -> Result<Z, E>,
+    Z: Into<ZVal>,
+    E: Throwable,
 {
     fn call(
         &self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal,
     ) {
-        unsafe {
-            let this = execute_data.get_this_mut().unwrap();
-            let this = this.as_mut_stateful_obj();
-            let r = (self.f)(this, arguments);
-            *return_value = r.into();
+        let this = unsafe { execute_data.get_this_mut().unwrap().as_mut_stateful_obj() };
+        match (self.0)(this, arguments) {
+            Ok(z) => {
+                *return_value = z.into();
+            }
+            Err(e) => {
+                unsafe {
+                    throw(e);
+                }
+                *return_value = ().into();
+            }
         }
     }
 }
@@ -339,19 +334,39 @@ impl ZendFunc {
             .map(|o| o.as_mut_ptr())
             .unwrap_or(null_mut());
 
-        let called_scope = unsafe {
-            let mut called_scope = object
-                .as_mut()
-                .map(|o| o.get_class().as_ptr() as *mut zend_class_entry)
-                .unwrap_or(null_mut());
-            if called_scope.is_null() {
-                called_scope = self.inner.common.scope;
-            }
-            called_scope
-        };
+        call_raw_common(|ret| unsafe {
+            #[cfg(phper_major_version = "8")]
+            {
+                let class_ptr = object
+                    .as_mut()
+                    .map(|o| o.get_mut_class().as_mut_ptr())
+                    .unwrap_or(null_mut());
 
-        call_raw_common(
-            |ret| unsafe {
+                zend_call_known_function(
+                    function_handler,
+                    object_ptr,
+                    class_ptr,
+                    ret.as_mut_ptr(),
+                    arguments.len() as u32,
+                    arguments.as_mut_ptr().cast(),
+                    null_mut(),
+                );
+            }
+            #[cfg(phper_major_version = "7")]
+            {
+                use std::mem::size_of;
+
+                let called_scope = {
+                    let mut called_scope = object
+                        .as_mut()
+                        .map(|o| o.get_class().as_ptr() as *mut zend_class_entry)
+                        .unwrap_or(null_mut());
+                    if called_scope.is_null() {
+                        called_scope = self.inner.common.scope;
+                    }
+                    called_scope
+                };
+
                 let mut fci = zend_fcall_info {
                     size: size_of::<zend_fcall_info>().try_into().unwrap(),
                     function_name: ZVal::from(()).into_inner(),
@@ -359,9 +374,6 @@ impl ZendFunc {
                     params: arguments.as_mut_ptr().cast(),
                     object: object_ptr,
                     param_count: arguments.len() as u32,
-                    #[cfg(phper_major_version = "8")]
-                    named_params: null_mut(),
-                    #[cfg(phper_major_version = "7")]
                     no_separation: 1,
                     #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
                     function_table: null_mut(),
@@ -385,11 +397,9 @@ impl ZendFunc {
                     initialized: 1,
                 };
 
-                zend_call_function(&mut fci, &mut fcc) == ZEND_RESULT_CODE_SUCCESS
-            },
-            || Ok(self.get_function_or_method_name().to_str()?.to_owned()),
-            object,
-        )
+                zend_call_function(&mut fci, &mut fcc);
+            }
+        })
     }
 }
 
@@ -416,29 +426,24 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     let handler = handler.as_ref().expect("handler is null");
 
     // Check arguments count.
-    // TODO Use `zend_argument_count_error` rather than just throw an exception.
-    let num_args = execute_data.num_args() as usize;
-    let required_num_args = execute_data.common_required_num_args() as usize;
+    let num_args = execute_data.num_args();
+    let required_num_args = execute_data.common_required_num_args();
     if num_args < required_num_args {
         let func_name = execute_data.func().get_function_or_method_name();
-        let result = func_name
-            .to_str()
-            .map(|func_name| {
-                Err::<(), _>(ArgumentCountError::new(
-                    func_name.to_owned(),
-                    required_num_args,
-                    num_args,
-                ))
-            })
-            .map_err(crate::Error::Utf8);
-        *return_value = ZVal::from(result);
+        let err: crate::Error = match func_name.to_str() {
+            Ok(func_name) => {
+                ArgumentCountError::new(func_name.to_owned(), required_num_args, num_args).into()
+            }
+            Err(e) => e.into(),
+        };
+        throw(err);
+        *return_value = ().into();
         return;
     }
 
     let mut arguments = execute_data.get_parameters_array();
     let arguments = arguments.as_mut_slice();
 
-    // TODO catch_unwind for call, translate some panic to throwing Error.
     handler.call(execute_data, transmute(arguments), return_value);
 }
 
@@ -458,8 +463,8 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 ///     Ok(())
 /// }
 /// ```
-pub fn call(fn_name: &str, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZVal> {
-    let mut func = fn_name.into();
+pub fn call(callable: impl Into<ZVal>, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZVal> {
+    let mut func = callable.into();
     call_internal(&mut func, None, arguments)
 }
 
@@ -471,63 +476,43 @@ pub(crate) fn call_internal(
 
     let mut object_val = object.as_mut().map(|obj| ZVal::from(obj.to_ref_owned()));
 
-    call_raw_common(
-        |ret| unsafe {
-            phper_call_user_function(
-                cg!(function_table),
-                object_val
-                    .as_mut()
-                    .map(|o| o.as_mut_ptr())
-                    .unwrap_or(null_mut()),
-                func_ptr,
-                ret.as_mut_ptr(),
-                arguments.len() as u32,
-                arguments.as_mut_ptr().cast(),
-            )
-        },
-        || {
-            Ok(if func.get_type_info().is_string() {
-                func.as_z_str().unwrap().to_str()?.to_owned()
-            } else {
-                "{closure}".to_owned()
-            })
-        },
-        object,
-    )
+    call_raw_common(|ret| unsafe {
+        phper_call_user_function(
+            cg!(function_table),
+            object_val
+                .as_mut()
+                .map(|o| o.as_mut_ptr())
+                .unwrap_or(null_mut()),
+            func_ptr,
+            ret.as_mut_ptr(),
+            arguments.len() as u32,
+            arguments.as_mut_ptr().cast(),
+        );
+    })
 }
 
 /// call function with raw pointer.
 /// call_fn parameters: (return_value)
-pub(crate) fn call_raw_common(
-    call_fn: impl FnOnce(&mut ZVal) -> bool, name_fn: impl FnOnce() -> crate::Result<String>,
-    object: Option<&mut ZObj>,
-) -> crate::Result<ZVal> {
+pub(crate) fn call_raw_common(call_fn: impl FnOnce(&mut ZVal)) -> crate::Result<ZVal> {
     let _guard = ExceptionGuard::default();
 
     let mut ret = ZVal::default();
 
-    if call_fn(&mut ret) && !ret.get_type_info().is_undef() {
-        return Ok(ret);
+    call_fn(&mut ret);
+    if ret.get_type_info().is_undef() {
+        ret = ().into();
     }
 
     unsafe {
-        let e = eg!(exception);
-        if e.is_null() {
-            let fn_name = name_fn()?;
-            return match object {
-                Some(object) => {
-                    let class_name = object.get_class().get_name().to_str()?.to_owned();
-                    Err(CallMethodError::new(class_name, fn_name).into())
-                }
-                None => Err(CallFunctionError::new(fn_name).into()),
-            };
-        }
-
-        let ex = ZObj::from_mut_ptr(e);
-
-        match ThrowObject::new(ex.to_ref_owned()) {
-            Ok(e) => Err(e.into()),
-            Err(e) => Err(e.into()),
+        if !eg!(exception).is_null() {
+            let e = ptr::replace(&mut eg!(exception), null_mut());
+            let obj = ZObject::from_raw(e);
+            match ThrowObject::new(obj) {
+                Ok(e) => return Err(e.into()),
+                Err(e) => return Err(e.into()),
+            }
         }
     }
+
+    Ok(ret)
 }

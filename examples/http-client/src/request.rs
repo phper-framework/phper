@@ -14,7 +14,7 @@ use phper::{
     errors::ThrowObject,
 };
 use reqwest::blocking::RequestBuilder;
-use std::mem::take;
+use std::{convert::Infallible, mem::take};
 
 pub const REQUEST_BUILDER_CLASS_NAME: &str = "HttpClient\\RequestBuilder";
 
@@ -23,7 +23,9 @@ pub fn make_request_builder_class() -> ClassEntity<Option<RequestBuilder>> {
         REQUEST_BUILDER_CLASS_NAME,
     );
 
-    class.add_method("__construct", Visibility::Private, |_, _| {});
+    class.add_method("__construct", Visibility::Private, |_, _| {
+        Ok::<_, Infallible>(())
+    });
 
     class.add_method("send", Visibility::Public, |this, _arguments| {
         let state = take(this.as_mut_state());

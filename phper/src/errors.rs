@@ -10,18 +10,21 @@
 
 //! The errors for crate and php.
 
-use crate::{classes::ClassEntry, objects::ZObject, sys::*, types::TypeInfo};
+use crate::{classes::ClassEntry, objects::ZObject, sys::*, types::TypeInfo, values::ZVal};
 use derive_more::Constructor;
 use phper_alloc::ToRefOwned;
 use std::{
+    convert::Infallible,
     error,
     ffi::FromBytesWithNulError,
     fmt::{self, Debug, Display},
     io,
     marker::PhantomData,
+    mem::ManuallyDrop,
     ops::{Deref, DerefMut},
     result,
     str::Utf8Error,
+    sync::atomic::{self, AtomicIsize},
 };
 
 /// Predefined interface `Throwable`.
@@ -128,6 +131,24 @@ impl<T: Throwable> Throwable for Box<T> {
 impl Throwable for dyn error::Error {
     fn get_class(&self) -> &ClassEntry {
         error_exception_class()
+    }
+}
+
+impl Throwable for Infallible {
+    fn get_class(&self) -> &ClassEntry {
+        match *self {}
+    }
+
+    fn get_code(&self) -> Option<i64> {
+        match *self {}
+    }
+
+    fn get_message(&self) -> Option<String> {
+        match *self {}
+    }
+
+    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
+        match *self {}
     }
 }
 
@@ -503,10 +524,13 @@ impl Throwable for NotImplementThrowableError {
     }
 }
 
+static EXCEPTION_GUARD_COUNT: AtomicIsize = AtomicIsize::new(0);
+
 pub struct ExceptionGuard(PhantomData<*mut ()>);
 
 impl Default for ExceptionGuard {
     fn default() -> Self {
+        EXCEPTION_GUARD_COUNT.fetch_add(1, atomic::Ordering::Acquire);
         unsafe {
             zend_exception_save();
         }
@@ -516,8 +540,21 @@ impl Default for ExceptionGuard {
 
 impl Drop for ExceptionGuard {
     fn drop(&mut self) {
+        if EXCEPTION_GUARD_COUNT.fetch_sub(1, atomic::Ordering::Acquire) > 1 {
+            return;
+        }
         unsafe {
             zend_exception_restore();
         }
     }
+}
+
+/// # Safety
+///
+/// You should always return the `Result<ZVal, impl Throwable>` in the handler,
+/// rather than use this function.
+pub unsafe fn throw(e: impl Throwable) {
+    let obj = ThrowObject::from_throwable(e).into_inner();
+    let mut val = ManuallyDrop::new(ZVal::from(obj));
+    zend_throw_exception_object(val.as_mut_ptr());
 }

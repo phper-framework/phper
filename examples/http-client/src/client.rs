@@ -15,7 +15,7 @@ use phper::{
     functions::Argument,
 };
 use reqwest::blocking::{Client, ClientBuilder};
-use std::{mem::take, time::Duration};
+use std::{convert::Infallible, mem::take, time::Duration};
 
 const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
 const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
@@ -66,7 +66,9 @@ pub fn make_client_class() -> ClassEntity<Option<Client>> {
     let mut class =
         ClassEntity::<Option<Client>>::new_with_default_state_constructor(HTTP_CLIENT_CLASS_NAME);
 
-    class.add_method("__construct", Visibility::Private, |_, _| {});
+    class.add_method("__construct", Visibility::Private, |_, _| {
+        Ok::<_, Infallible>(())
+    });
 
     class
         .add_method("get", Visibility::Public, |this, arguments| {

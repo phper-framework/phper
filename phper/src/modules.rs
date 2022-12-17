@@ -14,6 +14,7 @@ use crate::{
     c_str_ptr,
     classes::ClassEntity,
     constants::Constant,
+    errors::Throwable,
     functions::{Function, FunctionEntity, FunctionEntry},
     ini,
     sys::*,
@@ -160,10 +161,13 @@ impl Module {
         self.request_shutdown = Some(Box::new(func));
     }
 
-    pub fn add_function<F, R>(&mut self, name: impl Into<String>, handler: F) -> &mut FunctionEntity
+    pub fn add_function<F, Z, E>(
+        &mut self, name: impl Into<String>, handler: F,
+    ) -> &mut FunctionEntity
     where
-        F: Fn(&mut [ZVal]) -> R + Send + Sync + 'static,
-        R: Into<ZVal> + 'static,
+        F: Fn(&mut [ZVal]) -> Result<Z, E> + 'static,
+        Z: Into<ZVal> + 'static,
+        E: Throwable + 'static,
     {
         self.function_entities
             .push(FunctionEntity::new(name, Rc::new(Function::new(handler))));

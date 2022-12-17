@@ -13,7 +13,7 @@ use phper::{
     ini::{ini_get, Policy},
     modules::Module,
 };
-use std::ffi::CStr;
+use std::{convert::Infallible, ffi::CStr};
 
 pub fn integrate(module: &mut Module) {
     module.add_ini("INTEGRATE_INI_TRUE", true, Policy::System);
@@ -35,5 +35,6 @@ pub fn integrate(module: &mut Module) {
             ini_get::<Option<&CStr>>("INTEGRATE_INI_STRING"),
             Some(c_str!("something"))
         );
+        Ok::<_, Infallible>(())
     });
 }

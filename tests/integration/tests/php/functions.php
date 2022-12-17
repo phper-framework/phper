@@ -18,3 +18,9 @@ integrate_functions_call();
 assert_eq(integrate_functions_call_callable(function () { return 1 + 1; }), 2);
 assert_eq(integrate_functions_call_callable(function ($a, $b) { return $a + $b; }, 1, 2), 3);
 assert_eq(integrate_functions_call_callable("addslashes", "Is your name O'Reilly?"), "Is your name O\'Reilly?");
+assert_eq(integrate_functions_call_callable(array(new Exception("something wrong"), "getMessage")), "something wrong");
+assert_throw(function() {
+    integrate_functions_call_callable(function () { throw new RuntimeException("oh no", 403); });
+}, "RuntimeException", 403, "oh no");
+
+assert_throw("integrate_functions_exception_guard", "ErrorException", 0, "other io error");
