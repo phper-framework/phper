@@ -195,29 +195,56 @@ pub fn integrate(module: &mut Module) {
             a.insert((), ZVal::from(1));
             a.insert("foo", ZVal::from("bar"));
 
-            let mut i = 0;
+            let mut it = a.iter();
+            {
+                let (k, v) = it.next().unwrap();
+                assert_eq!(k, 0.into());
+                assert_eq!(v.as_long(), Some(0));
+            }
+            {
+                let (k, v) = it.next().unwrap();
+                assert_eq!(k, 1.into());
+                assert_eq!(v.as_long(), Some(1));
+            }
+            {
+                let (k, v) = it.next().unwrap();
+                assert_eq!(k, IterKey::ZStr(&ZString::new("foo")));
+                assert_eq!(v.as_z_str().unwrap().to_str(), Ok("bar"));
+            }
+            {
+                assert!(it.next().is_none());
+            }
+            {
+                assert!(it.next().is_none());
+            }
 
-            a.for_each(|k, v| {
-                match i {
-                    0 => {
-                        assert_eq!(k, 0.into());
-                        assert_eq!(v.as_long(), Some(0));
-                    }
-                    1 => {
-                        assert_eq!(k, 1.into());
-                        assert_eq!(v.as_long(), Some(1));
-                    }
-                    2 => {
-                        assert_eq!(k, IterKey::ZStr(&ZString::new("foo")));
-                        assert_eq!(v.as_z_str().unwrap().to_str(), Ok("bar"));
-                    }
-                    _ => unreachable!(),
-                }
+            let mut it = a.iter_mut();
+            {
+                let (k, v) = it.next().unwrap();
+                assert_eq!(k, 0.into());
+                assert_eq!(v.as_long(), Some(0));
+                *v.as_mut_long().unwrap() += 100;
+            }
+            {
+                let (k, v) = it.next().unwrap();
+                assert_eq!(k, 1.into());
+                assert_eq!(v.as_long(), Some(1));
+                *v.as_mut_long().unwrap() += 100;
+            }
+            {
+                let (k, v) = it.next().unwrap();
+                assert_eq!(k, IterKey::ZStr(&ZString::new("foo")));
+                assert_eq!(v.as_z_str().unwrap().to_str(), Ok("bar"));
+            }
+            {
+                assert!(it.next().is_none());
+            }
+            {
+                assert!(it.next().is_none());
+            }
 
-                i += 1;
-            });
-
-            assert_eq!(i, 3);
+            assert_eq!(a.get(0).unwrap().as_long(), Some(100));
+            assert_eq!(a.get(1).unwrap().as_long(), Some(101));
 
             Ok(())
         },
