@@ -410,13 +410,15 @@ impl<'a> Iterator for RawIter<'a> {
 
             let mut str_index: *mut zend_string = null_mut();
             let mut num_index: zend_ulong = 0;
+
+            #[allow(clippy::unnecessary_mut_passed)]
             let result = zend_hash_get_current_key_ex(
                 self.arr,
                 &mut str_index,
                 &mut num_index,
-                #[allow(clippy::unnecessary_mut_passed)]
                 &mut self.pos,
             ) as u32;
+
             let iter_key = if result == HASH_KEY_IS_STRING {
                 IterKey::ZStr(ZStr::from_mut_ptr(str_index))
             } else if result == HASH_KEY_IS_LONG {
