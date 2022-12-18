@@ -414,6 +414,7 @@ impl<'a> Iterator for RawIter<'a> {
                 self.arr,
                 &mut str_index,
                 &mut num_index,
+                #[allow(clippy::unnecessary_mut_passed)]
                 &mut self.pos,
             ) as u32;
             let iter_key = if result == HASH_KEY_IS_STRING {
