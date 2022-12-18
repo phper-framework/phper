@@ -15,10 +15,10 @@ use derive_more::From;
 use std::{
     borrow::Borrow,
     convert::TryInto,
-    ffi::c_void,
     marker::PhantomData,
-    mem::{forget, ManuallyDrop},
+    mem::ManuallyDrop,
     ops::{Deref, DerefMut},
+    ptr::null_mut,
 };
 
 /// Key for [ZArr].
@@ -112,8 +112,9 @@ impl ZArr {
 
     /// Add or update item by key.
     #[allow(clippy::useless_conversion)]
-    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, mut value: ZVal) {
+    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: impl Into<ZVal>) {
         let key = key.into();
+        let mut value = ManuallyDrop::new(value.into());
         let val = value.as_mut_ptr();
 
         unsafe {
@@ -150,8 +151,6 @@ impl ZArr {
                 }
             }
         }
-
-        forget(value);
     }
 
     // Get item by key.
@@ -244,20 +243,22 @@ impl ZArr {
         }
     }
 
-    pub fn for_each<'a>(&self, f: impl FnMut(IterKey<'a>, &'a ZVal)) {
-        let mut f: Box<dyn FnMut(IterKey<'a>, &'a ZVal)> = Box::new(f);
-        let f = &mut f as *mut Box<_> as *mut c_void;
-        unsafe {
-            phper_zend_hash_foreach_key_val(self.as_ptr() as *mut _, Some(for_each_callback), f);
-        }
-    }
-
     pub fn entry<'a>(&'a mut self, key: impl Into<Key<'a>>) -> Entry<'a> {
         let key = key.into();
         match self.get_mut(key.clone()) {
             Some(val) => Entry::Occupied(val),
             None => Entry::Vacant { arr: self, key },
         }
+    }
+
+    #[inline]
+    pub fn iter(&self) -> Iter<'_> {
+        Iter::new(self)
+    }
+
+    #[inline]
+    pub fn iter_mut(&mut self) -> IterMut<'_> {
+        IterMut::new(self)
     }
 }
 
@@ -368,26 +369,114 @@ impl Drop for ZArray {
     }
 }
 
-/// Iterator key for [`ZArr::for_each`].
+/// Iterator key for [`ZArr::iter`] and [`ZArr::iter_mut`].
 #[derive(Debug, Clone, PartialEq, From)]
 pub enum IterKey<'a> {
     Index(u64),
     ZStr(&'a ZStr),
 }
 
-#[allow(clippy::unnecessary_cast)]
-unsafe extern "C" fn for_each_callback(
-    idx: zend_ulong, key: *mut zend_string, val: *mut zval, argument: *mut c_void,
-) {
-    let f = (argument as *mut Box<dyn FnMut(IterKey<'_>, &'_ ZVal)>)
-        .as_mut()
-        .unwrap();
-    let iter_key = if key.is_null() {
-        IterKey::Index(idx as u64)
-    } else {
-        IterKey::ZStr(ZStr::from_ptr(key))
-    };
-    f(iter_key, ZVal::from_ptr(val));
+struct RawIter<'a> {
+    arr: *mut zend_array,
+    pos: HashPosition,
+    finished: bool,
+    _p: PhantomData<&'a ()>,
+}
+
+impl<'a> RawIter<'a> {
+    fn new(arr: *mut zend_array) -> Self {
+        let mut pos: HashPosition = 0;
+        unsafe {
+            zend_hash_internal_pointer_reset_ex(arr, &mut pos);
+        }
+        Self {
+            arr,
+            pos,
+            finished: false,
+            _p: PhantomData,
+        }
+    }
+}
+
+impl<'a> Iterator for RawIter<'a> {
+    type Item = (IterKey<'a>, *mut zval);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if self.finished {
+                return None;
+            }
+
+            let mut str_index: *mut zend_string = null_mut();
+            let mut num_index: zend_ulong = 0;
+
+            #[allow(clippy::unnecessary_mut_passed)]
+            let result = zend_hash_get_current_key_ex(
+                self.arr,
+                &mut str_index,
+                &mut num_index,
+                &mut self.pos,
+            ) as u32;
+
+            let iter_key = if result == HASH_KEY_IS_STRING {
+                IterKey::ZStr(ZStr::from_mut_ptr(str_index))
+            } else if result == HASH_KEY_IS_LONG {
+                #[allow(clippy::unnecessary_cast)]
+                IterKey::Index(num_index as u64)
+            } else {
+                self.finished = true;
+                return None;
+            };
+
+            let val = zend_hash_get_current_data_ex(self.arr, &mut self.pos);
+            if val.is_null() {
+                self.finished = true;
+                return None;
+            }
+
+            if zend_hash_move_forward_ex(self.arr, &mut self.pos) == ZEND_RESULT_CODE_FAILURE {
+                self.finished = true;
+            }
+
+            Some((iter_key, val))
+        }
+    }
+}
+
+pub struct Iter<'a>(RawIter<'a>);
+
+impl<'a> Iter<'a> {
+    fn new(arr: &'a ZArr) -> Self {
+        Self(RawIter::new(arr.as_ptr() as *mut _))
+    }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = (IterKey<'a>, &'a ZVal);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0
+            .next()
+            .map(|(key, val)| (key, unsafe { ZVal::from_ptr(val) }))
+    }
+}
+
+pub struct IterMut<'a>(RawIter<'a>);
+
+impl<'a> IterMut<'a> {
+    fn new(arr: &'a mut ZArr) -> Self {
+        Self(RawIter::new(arr.as_mut_ptr()))
+    }
+}
+
+impl<'a> Iterator for IterMut<'a> {
+    type Item = (IterKey<'a>, &'a mut ZVal);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0
+            .next()
+            .map(|(key, val)| (key, unsafe { ZVal::from_mut_ptr(val) }))
+    }
 }
 
 pub enum Entry<'a> {
