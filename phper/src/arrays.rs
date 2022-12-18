@@ -16,7 +16,7 @@ use std::{
     borrow::Borrow,
     convert::TryInto,
     marker::PhantomData,
-    mem::{forget, ManuallyDrop},
+    mem::ManuallyDrop,
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };
@@ -112,8 +112,9 @@ impl ZArr {
 
     /// Add or update item by key.
     #[allow(clippy::useless_conversion)]
-    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, mut value: ZVal) {
+    pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: impl Into<ZVal>) {
         let key = key.into();
+        let mut value = ManuallyDrop::new(value.into());
         let val = value.as_mut_ptr();
 
         unsafe {
@@ -150,8 +151,6 @@ impl ZArr {
                 }
             }
         }
-
-        forget(value);
     }
 
     // Get item by key.
