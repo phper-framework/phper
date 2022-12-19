@@ -45,11 +45,8 @@ pub mod _05_internal_types {
     pub mod _03_z_obj {}
 }
 
-#[doc = include_str!("../doc/_06_class_and_object/index.md")]
-pub mod _06_class_and_object {}
-
 #[doc = include_str!("../doc/_07_module/index.md")]
-pub mod _07_module {
+pub mod _06_module {
 
     /// TODO
     pub mod _01_hooks {}
@@ -65,19 +62,22 @@ pub mod _07_module {
 
     /// TODO
     pub mod _05_extension_information {}
+
+    /// TODO
+    pub mod _06_register_class {}
 }
 
 /// TODO
-pub mod _08_allocation {}
+pub mod _07_allocation {}
 
 /// TODO
-pub mod _09_handle_exception {}
+pub mod _08_handle_exception {}
 
 /// TODO
-pub mod _10_build_script {}
+pub mod _09_build_script {}
 
 /// TODO
-pub mod _11_integration_tests {}
+pub mod _10_integration_tests {}
 
 /// TODO
-pub mod _12_macros {}
+pub mod _11_macros {}
