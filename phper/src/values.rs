@@ -45,9 +45,9 @@ impl ExecuteData {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_execute_data) -> &'a Self {
@@ -69,9 +69,9 @@ impl ExecuteData {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
@@ -182,9 +182,9 @@ impl ZVal {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zval) -> &'a Self {
@@ -206,9 +206,9 @@ impl ZVal {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {

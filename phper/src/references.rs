@@ -24,9 +24,9 @@ impl ZRef {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     pub unsafe fn from_ptr<'a>(ptr: *const zend_reference) -> &'a Self {
         (ptr as *const Self)
@@ -48,9 +48,9 @@ impl ZRef {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_reference) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should not be null")
@@ -76,10 +76,12 @@ impl ZRef {
         &mut self.inner
     }
 
+    /// Gets actual value reference.
     pub fn val(&self) -> &ZVal {
         unsafe { ZVal::from_ptr(&self.inner.val) }
     }
 
+    /// Gets actual value mutable reference.
     pub fn val_mut(&mut self) -> &mut ZVal {
         unsafe { ZVal::from_mut_ptr(&mut self.inner.val) }
     }

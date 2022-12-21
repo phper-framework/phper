@@ -73,9 +73,9 @@ impl ZArr {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Self {
@@ -97,9 +97,9 @@ impl ZArr {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
@@ -140,7 +140,7 @@ impl ZArr {
     }
 
     /// Add or update item by key.
-    /// 
+    ///
     /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
     /// so `insert(42)` and `insert("42")` should be considered the same.
     #[allow(clippy::useless_conversion)]
@@ -186,7 +186,7 @@ impl ZArr {
     }
 
     /// Get item by key.
-    /// 
+    ///
     /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
     /// so `get(42)` and `get("42")` should be considered the same.
     pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&'a ZVal> {
@@ -194,7 +194,7 @@ impl ZArr {
     }
 
     /// Get item by key.
-    /// 
+    ///
     /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
     /// so `get_mut(42)` and `get_mut("42")` should be considered the same.
     pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&'a mut ZVal> {
@@ -231,7 +231,7 @@ impl ZArr {
     }
 
     /// Check if the key exists.
-    /// 
+    ///
     /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
     /// so `exists(42)` and `exists("42")` should be considered the same.
     #[allow(clippy::useless_conversion)]
@@ -261,7 +261,7 @@ impl ZArr {
     }
 
     /// Remove the item under the key
-    /// 
+    ///
     /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
     /// so `remove(42)` and `remove("42")` should be considered the same.
     #[allow(clippy::useless_conversion)]
@@ -289,18 +289,19 @@ impl ZArr {
         }
     }
 
-    /// Gets the given key’s corresponding entry in the array for in-place manipulation.
-    /// 
+    /// Gets the given key’s corresponding entry in the array for in-place
+    /// manipulation.
+    ///
     /// # Examples
-    /// 
+    ///
     /// use phper::arrays::ZArray;
-    /// 
+    ///
     /// let mut arr = ZArray::new();
-    /// 
+    ///
     /// // count the number of occurrences of letters in the vec
     /// for x in ["a", "b", "a", "c", "a", "b"] {
-    ///     arr.entry(x).and_modify(|cur| *cur.as_long().unwrap() += 1).or_insert(1);
-    /// }
+    ///     arr.entry(x).and_modify(|cur| *cur.as_long().unwrap() +=
+    /// 1).or_insert(1); }
     pub fn entry<'a>(&'a mut self, key: impl Into<Key<'a>>) -> Entry<'a> {
         let key = key.into();
         match self.get_mut(key.clone()) {
@@ -361,7 +362,7 @@ impl ZArray {
     }
 
     /// Creates an empty `ZArray` with at least the specified capacity.
-    /// 
+    ///
     /// Note that the actual capacity is always a power of two, so if you have
     /// 12 elements in a hashtable the actual table capacity will be 16.
     pub fn with_capacity(n: usize) -> Self {
@@ -557,7 +558,8 @@ impl<'a> Iterator for IterMut<'a> {
     }
 }
 
-/// A view into a single entry in an array, which may either be vacant or occupied.
+/// A view into a single entry in an array, which may either be vacant or
+/// occupied.
 ///
 /// This `enum` is constructed from the [`entry`] method on [`ZArr`].
 ///
@@ -576,12 +578,17 @@ pub struct OccupiedEntry<'a>(&'a mut ZVal);
 /// A view into a vacant entry in a `ZArr`.
 /// It is part of the [`Entry`] enum.
 pub struct VacantEntry<'a> {
-    arr: &'a mut ZArr, key: Key<'a>,
+    arr: &'a mut ZArr,
+    key: Key<'a>,
 }
 
 impl<'a> Entry<'a> {
-    /// Provides in-place mutable access to an occupied entry before any potential inserts into the array.
-    pub fn and_modify<F>(self, f: F) -> Self where F: FnOnce(&mut ZVal) {
+    /// Provides in-place mutable access to an occupied entry before any
+    /// potential inserts into the array.
+    pub fn and_modify<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut ZVal),
+    {
         match self {
             Entry::Occupied(entry) => {
                 f(entry.0);
@@ -591,7 +598,8 @@ impl<'a> Entry<'a> {
         }
     }
 
-    /// Ensures a value is in the entry by inserting the default if empty, and returns a mutable reference to the value in the entry.
+    /// Ensures a value is in the entry by inserting the default if empty, and
+    /// returns a mutable reference to the value in the entry.
     pub fn or_insert(self, val: impl Into<ZVal>) -> &'a mut ZVal {
         match self {
             Entry::Occupied(entry) => entry.0,

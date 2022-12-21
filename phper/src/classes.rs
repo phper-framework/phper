@@ -61,9 +61,9 @@ impl ClassEntry {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
@@ -85,9 +85,9 @@ impl ClassEntry {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_class_entry) -> &'a mut Self {
@@ -116,12 +116,12 @@ impl ClassEntry {
     }
 
     /// Create reference from global class name.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use phper::classes::ClassEntry;
-    /// 
+    ///
     /// let std_class = ClassEntry::from_globals("stdClass");
     /// let _obj = std_class.new_object([]).unwrap();
     /// ```
@@ -142,8 +142,9 @@ impl ClassEntry {
         Ok(object)
     }
 
-    /// Create the object from class, without calling `__construct`, be careful
-    /// when `__construct` is necessary.
+    /// Create the object from class, without calling `__construct`.
+    ///
+    /// **Be careful when `__construct` is necessary.**
     pub fn init_object(&self) -> crate::Result<ZObject> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
@@ -157,10 +158,12 @@ impl ClassEntry {
         }
     }
 
+    /// Get the class name.
     pub fn get_name(&self) -> &ZStr {
         unsafe { ZStr::from_ptr(self.inner.name) }
     }
 
+    /// Detect if the method is exists in class.
     pub fn has_method(&self, method_name: &str) -> bool {
         unsafe {
             let function_table = ZArr::from_ptr(&self.inner.function_table);
@@ -168,6 +171,7 @@ impl ClassEntry {
         }
     }
 
+    /// Detect if the class is instance of parent class.
     pub fn is_instance_of(&self, parent: &ClassEntry) -> bool {
         unsafe { phper_instanceof_function(self.as_ptr(), parent.as_ptr()) }
     }
@@ -197,6 +201,12 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 
 pub(crate) type StateConstructor = Rc<dyn Fn() -> Box<dyn Any>>;
 
+/// Builder for registering class.
+///
+/// `<T>` means the type of holding state.
+///
+/// *It is a common practice for PHP extensions to use PHP objects to package
+/// third-party resources.*
 pub struct ClassEntity<T> {
     class_name: CString,
     state_constructor: StateConstructor,
@@ -208,18 +218,23 @@ pub struct ClassEntity<T> {
 }
 
 impl ClassEntity<()> {
+    /// Construct a new `ClassEntity` with class name, do not own state.
     pub fn new(class_name: impl Into<String>) -> Self {
         Self::new_with_state_constructor(class_name, || ())
     }
 }
 
 impl<T: Default + 'static> ClassEntity<T> {
+    /// Construct a new `ClassEntity` with class name and default state
+    /// constructor.
     pub fn new_with_default_state_constructor(class_name: impl Into<String>) -> Self {
         Self::new_with_state_constructor(class_name, Default::default)
     }
 }
 
 impl<T: 'static> ClassEntity<T> {
+    /// Construct a new `ClassEntity` with class name and the constructor to
+    /// build state.
     pub fn new_with_state_constructor(
         class_name: impl Into<String>, state_constructor: impl Fn() -> T + 'static,
     ) -> Self {
@@ -234,6 +249,7 @@ impl<T: 'static> ClassEntity<T> {
         }
     }
 
+    /// Add member method to class, with visibility and method handler.
     pub fn add_method<F, Z, E>(
         &mut self, name: impl Into<String>, vis: Visibility, handler: F,
     ) -> &mut MethodEntity
@@ -247,6 +263,7 @@ impl<T: 'static> ClassEntity<T> {
         self.method_entities.last_mut().unwrap()
     }
 
+    /// Add static method to class, with visibility and method handler.
     pub fn add_static_method<F, Z, E>(
         &mut self, name: impl Into<String>, vis: Visibility, handler: F,
     ) -> &mut MethodEntity
@@ -273,10 +290,43 @@ impl<T: 'static> ClassEntity<T> {
             .push(PropertyEntity::new(name, visibility, value));
     }
 
+    /// Register class to `extends` the parent class.
+    ///
+    /// *Because in the `MINIT` phase, the class starts to register, so the*
+    /// *closure is used to return the `ClassEntry` to delay the acquisition of*
+    /// *the class.*
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phper::classes::{ClassEntity, ClassEntry};
+    ///
+    /// let mut class = ClassEntity::new("MyException");
+    /// class.extends(|| ClassEntry::from_globals("Exception").unwrap());
+    /// ```
     pub fn extends(&mut self, parent: impl Fn() -> &'static ClassEntry + 'static) {
         self.parent = Some(Box::new(parent));
     }
 
+    /// Register class to `implements` the interface, due to the class can
+    /// implement multi interface, so this method can be called multi time.
+    ///
+    /// *Because in the `MINIT` phase, the class starts to register, so the*
+    /// *closure is used to return the `ClassEntry` to delay the acquisition of*
+    /// *the class.*
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phper::classes::{ClassEntity, ClassEntry};
+    ///
+    /// let mut class = ClassEntity::new("MyClass");
+    /// class.implements(|| ClassEntry::from_globals("Stringable").unwrap());
+    ///
+    /// // Here you have to the implement the method `__toString()` in `Stringable`
+    /// // for `MyClass`, otherwise `MyClass` will become abstract class.
+    /// // ...
+    /// ```
     pub fn implements(&mut self, interface: impl Fn() -> &'static ClassEntry + 'static) {
         self.interfaces.push(Box::new(interface));
     }
@@ -350,14 +400,15 @@ unsafe extern "C" fn class_init_handler(
     }
 }
 
-pub struct PropertyEntity {
+/// Builder for declare class property.
+struct PropertyEntity {
     name: String,
     visibility: Visibility,
     value: Scalar,
 }
 
 impl PropertyEntity {
-    pub fn new(name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>) -> Self {
+    fn new(name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>) -> Self {
         Self {
             name: name.into(),
             visibility,
@@ -412,12 +463,18 @@ impl PropertyEntity {
     }
 }
 
+/// Visibility of class properties and methods.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum Visibility {
+    /// Public.
     #[default]
     Public = ZEND_ACC_PUBLIC,
+
+    /// Protected.
     Protected = ZEND_ACC_PROTECTED,
+
+    /// Private.
     Private = ZEND_ACC_PRIVATE,
 }
 

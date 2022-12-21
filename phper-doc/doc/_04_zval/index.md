@@ -59,7 +59,6 @@ Now you can use `as_*` or `expect_*` methods to convert ZVal to Rust types.
   [phper::errors::ExpectTypeError] will be returned, with the message:
   `type error: must be of type {expect_type}, {actual_type} given")`.
 
-
 ### Example
 
 ```rust,no_run

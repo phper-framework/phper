@@ -81,7 +81,7 @@ where
     fn call(
         &self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal,
     ) {
-        let this = unsafe { execute_data.get_this_mut().unwrap().as_mut_stateful_obj() };
+        let this = unsafe { execute_data.get_this_mut().unwrap().as_mut_state_obj() };
         match (self.0)(this, arguments) {
             Ok(z) => {
                 *return_value = z.into();
@@ -96,6 +96,7 @@ where
     }
 }
 
+/// Wrapper of [`zend_function_entry`].
 #[repr(transparent)]
 pub struct FunctionEntry {
     #[allow(dead_code)]
@@ -163,6 +164,7 @@ impl FunctionEntry {
     }
 }
 
+/// Builder for registering php function.
 pub struct FunctionEntity {
     name: CString,
     handler: Rc<dyn Callable>,
@@ -179,12 +181,14 @@ impl FunctionEntity {
         }
     }
 
+    /// Add single function argument info.
     #[inline]
     pub fn argument(&mut self, argument: Argument) -> &mut Self {
         self.arguments.push(argument);
         self
     }
 
+    /// Add many function argument infos.
     #[inline]
     pub fn arguments(&mut self, arguments: impl IntoIterator<Item = Argument>) -> &mut Self {
         self.arguments.extend(arguments);
@@ -192,6 +196,7 @@ impl FunctionEntity {
     }
 }
 
+/// Builder for registering class method.
 pub struct MethodEntity {
     name: CString,
     handler: Rc<dyn Callable>,
@@ -220,12 +225,14 @@ impl MethodEntity {
         self
     }
 
+    /// Add single method argument info.
     #[inline]
     pub fn argument(&mut self, argument: Argument) -> &mut Self {
         self.arguments.push(argument);
         self
     }
 
+    /// Add many method argument infos.
     #[inline]
     pub fn arguments(&mut self, arguments: impl IntoIterator<Item = Argument>) -> &mut Self {
         self.arguments.extend(arguments);
@@ -233,6 +240,7 @@ impl MethodEntity {
     }
 }
 
+/// Function or method argument info.
 pub struct Argument {
     name: CString,
     pass_by_ref: bool,
@@ -240,6 +248,7 @@ pub struct Argument {
 }
 
 impl Argument {
+    /// Indicate the argument is pass by value.
     pub fn by_val(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
@@ -249,6 +258,7 @@ impl Argument {
         }
     }
 
+    /// Indicate the argument is pass by reference.
     pub fn by_ref(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
@@ -258,6 +268,7 @@ impl Argument {
         }
     }
 
+    /// Indicate the argument is pass by value and is optional.
     pub fn by_val_optional(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
@@ -267,6 +278,7 @@ impl Argument {
         }
     }
 
+    /// Indicate the argument is pass by reference nad is optional.
     pub fn by_ref_optional(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
@@ -277,6 +289,7 @@ impl Argument {
     }
 }
 
+/// Wrapper of [`zend_function`].
 #[repr(transparent)]
 pub struct ZendFunc {
     inner: zend_function,
@@ -288,9 +301,9 @@ impl ZendFunc {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunc {
         let ptr = ptr as *mut Self;
@@ -308,6 +321,7 @@ impl ZendFunc {
         &mut self.inner
     }
 
+    /// Get the function name if exists.
     pub fn get_function_name(&self) -> Option<&ZStr> {
         unsafe {
             let s = phper_get_function_name(self.as_ptr());
@@ -315,6 +329,7 @@ impl ZendFunc {
         }
     }
 
+    /// Get the function or method fully-qualified name.
     pub fn get_function_or_method_name(&self) -> ZString {
         unsafe {
             let s = phper_get_function_or_method_name(self.as_ptr());
@@ -322,6 +337,7 @@ impl ZendFunc {
         }
     }
 
+    /// Get the function related class if exists.
     pub fn get_class(&self) -> Option<&ClassEntry> {
         unsafe {
             let ptr = self.inner.common.scope;

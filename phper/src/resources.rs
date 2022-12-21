@@ -24,9 +24,9 @@ impl ZRes {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     pub unsafe fn from_ptr<'a>(ptr: *const zend_resource) -> &'a Self {
         (ptr as *const Self)
@@ -48,9 +48,9 @@ impl ZRes {
     /// # Safety
     ///
     /// Create from raw pointer.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if pointer is null.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_resource) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should not be null")
@@ -76,6 +76,7 @@ impl ZRes {
         &mut self.inner
     }
 
+    /// Gets the resource handle.
     #[allow(clippy::useless_conversion)]
     pub fn handle(&self) -> i64 {
         self.inner.handle.into()
