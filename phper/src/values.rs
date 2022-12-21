@@ -35,7 +35,7 @@ use std::{
 
 /// Wrapper of [crate::sys::zend_execute_data].
 #[repr(transparent)]
-pub struct ExecuteData {
+pub(crate) struct ExecuteData {
     inner: zend_execute_data,
 }
 
@@ -50,6 +50,7 @@ impl ExecuteData {
     ///
     /// Panics if pointer is null.
     #[inline]
+    #[allow(dead_code)]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_execute_data) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
@@ -60,6 +61,7 @@ impl ExecuteData {
     ///
     /// Create from raw pointer.
     #[inline]
+    #[allow(dead_code)]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_execute_data) -> Option<&'a Self> {
         (ptr as *const Self).as_ref()
     }
@@ -84,6 +86,7 @@ impl ExecuteData {
     ///
     /// Create from raw pointer.
     #[inline]
+    #[allow(dead_code)]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> Option<&'a mut Self> {
         (ptr as *mut Self).as_mut()
     }
@@ -95,46 +98,40 @@ impl ExecuteData {
 
     /// Returns a raw pointer wrapped.
     #[inline]
+    #[allow(dead_code)]
     pub fn as_mut_ptr(&mut self) -> *mut zend_execute_data {
         &mut self.inner
     }
 
-    /// # Safety
-    ///
-    /// Get value from union.
+    /// Gets common arguments count.
     #[inline]
     pub fn common_num_args(&self) -> u32 {
         unsafe { (*self.inner.func).common.num_args }
     }
 
-    /// # Safety
-    ///
-    /// Get value from union.
+    /// Gets common required arguments count.
     #[inline]
     pub fn common_required_num_args(&self) -> usize {
         unsafe { (*self.inner.func).common.required_num_args as usize }
     }
 
-    /// # Safety
-    ///
-    /// Get value from union.
+    /// Gets first common argument info.
     #[inline]
     pub fn common_arg_info(&self) -> *mut zend_arg_info {
         unsafe { (*self.inner.func).common.arg_info }
     }
 
+    /// Gets arguments count.
     #[inline]
     pub fn num_args(&self) -> usize {
         unsafe { phper_zend_num_args(self.as_ptr()).try_into().unwrap() }
     }
 
-    /// # Safety
-    ///
-    /// From inner raw pointer.
     pub fn func(&self) -> &ZendFunc {
         unsafe { ZendFunc::from_mut_ptr(self.inner.func) }
     }
 
+    #[allow(dead_code)]
     pub fn get_this(&mut self) -> Option<&ZObj> {
         unsafe {
             let val = ZVal::from_ptr(phper_get_this(&mut self.inner));
@@ -161,6 +158,7 @@ impl ExecuteData {
         transmute(arguments)
     }
 
+    #[allow(dead_code)]
     pub fn get_parameter(&mut self, index: usize) -> &mut ZVal {
         unsafe {
             let val = phper_zend_call_var_num(self.as_mut_ptr(), index.try_into().unwrap());
@@ -236,20 +234,25 @@ impl ZVal {
         &mut self.inner
     }
 
+    /// Consumes the `ZVal`, returning the wrapped `zval`.
     #[inline]
     pub fn into_inner(self) -> zval {
         self.inner
     }
 
+    /// Gets the type info of `ZVal`.
     pub fn get_type_info(&self) -> TypeInfo {
         let t = unsafe { phper_z_type_info_p(self.as_ptr()) };
         t.into()
     }
 
+    /// Converts to null if `ZVal` is null.
     pub fn as_null(&self) -> Option<()> {
         self.expect_null().ok()
     }
 
+    /// Converts to null if `ZVal` is null, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_null(&self) -> crate::Result<()> {
         if self.get_type_info().is_null() {
             Ok(())
@@ -258,10 +261,13 @@ impl ZVal {
         }
     }
 
+    /// Converts to bool if `ZVal` is bool.
     pub fn as_bool(&self) -> Option<bool> {
         self.expect_bool().ok()
     }
 
+    /// Converts to bool if `ZVal` is bool, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_bool(&self) -> crate::Result<bool> {
         let t = self.get_type_info();
         if t.is_true() {
@@ -273,19 +279,45 @@ impl ZVal {
         }
     }
 
+    /// Converts to long if `ZVal` is long.
     pub fn as_long(&self) -> Option<i64> {
         self.expect_long().ok()
     }
 
+    /// Converts to long if `ZVal` is long, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_long(&self) -> crate::Result<i64> {
         self.inner_expect_long().cloned()
     }
 
+    /// Converts to mutable long if `ZVal` is long.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use phper::values::ZVal;
+    ///
+    /// let mut val = ZVal::from(100);
+    /// *val.as_mut_long().unwrap() += 100;
+    /// assert_eq!(val.as_long().unwrap(), 200);
+    /// ```
     pub fn as_mut_long(&mut self) -> Option<&mut i64> {
         self.expect_mut_long().ok()
     }
 
-    pub fn expect_mut_long(&self) -> crate::Result<&mut i64> {
+    /// Converts to mutable long if `ZVal` is long, otherwise returns
+    /// [`ExpectTypeError`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use phper::values::ZVal;
+    ///
+    /// let mut val = ZVal::from(100);
+    /// *val.expect_mut_long().unwrap() += 100;
+    /// assert_eq!(val.expect_long().unwrap(), 200);
+    /// ```
+    pub fn expect_mut_long(&mut self) -> crate::Result<&mut i64> {
         self.inner_expect_long()
     }
 
@@ -297,18 +329,24 @@ impl ZVal {
         }
     }
 
+    /// Converts to double if `ZVal` is double.
     pub fn as_double(&self) -> Option<f64> {
         self.expect_double().ok()
     }
 
+    /// Converts to double if `ZVal` is double, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_double(&self) -> crate::Result<f64> {
         self.inner_expect_double().cloned()
     }
 
+    /// Converts to mutable double if `ZVal` is double.
     pub fn as_mut_double(&mut self) -> Option<&mut f64> {
         self.expect_mut_double().ok()
     }
 
+    /// Converts to mutable double if `ZVal` is double, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_mut_double(&mut self) -> crate::Result<&mut f64> {
         self.inner_expect_double()
     }
@@ -321,18 +359,24 @@ impl ZVal {
         }
     }
 
+    /// Converts to string if `ZVal` is string.
     pub fn as_z_str(&self) -> Option<&ZStr> {
         self.expect_z_str().ok()
     }
 
+    /// Converts to string if `ZVal` is string, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_z_str(&self) -> crate::Result<&ZStr> {
         self.inner_expect_z_str().map(|x| &*x)
     }
 
+    /// Converts to mutable string if `ZVal` is string.
     pub fn as_mut_z_str(&mut self) -> Option<&mut ZStr> {
         self.expect_mut_z_str().ok()
     }
 
+    /// Converts to mutable string if `ZVal` is string, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_mut_z_str(&mut self) -> crate::Result<&mut ZStr> {
         self.inner_expect_z_str()
     }
@@ -345,18 +389,24 @@ impl ZVal {
         }
     }
 
+    /// Converts to array if `ZVal` is array.
     pub fn as_z_arr(&self) -> Option<&ZArr> {
         self.expect_z_arr().ok()
     }
 
+    /// Converts to array if `ZVal` is array, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_z_arr(&self) -> crate::Result<&ZArr> {
         self.inner_expect_z_arr().map(|x| &*x)
     }
 
+    /// Converts to mutable array if `ZVal` is array.
     pub fn as_mut_z_arr(&mut self) -> Option<&mut ZArr> {
         self.expect_mut_z_arr().ok()
     }
 
+    /// Converts to mutable array if `ZVal` is array, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_mut_z_arr(&mut self) -> crate::Result<&mut ZArr> {
         self.inner_expect_z_arr()
     }
@@ -369,18 +419,24 @@ impl ZVal {
         }
     }
 
+    /// Converts to object if `ZVal` is object.
     pub fn as_z_obj(&self) -> Option<&ZObj> {
         self.expect_z_obj().ok()
     }
 
+    /// Converts to object if `ZVal` is object, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_z_obj(&self) -> crate::Result<&ZObj> {
         self.inner_expect_z_obj().map(|x| &*x)
     }
 
+    /// Converts to mutable object if `ZVal` is object.
     pub fn as_mut_z_obj(&mut self) -> Option<&mut ZObj> {
         self.expect_mut_z_obj().ok()
     }
 
+    /// Converts to mutable object if `ZVal` is object, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_mut_z_obj(&mut self) -> crate::Result<&mut ZObj> {
         self.inner_expect_z_obj()
     }
@@ -396,18 +452,24 @@ impl ZVal {
         }
     }
 
+    /// Converts to resource if `ZVal` is resource.
     pub fn as_z_res(&self) -> Option<&ZRes> {
         self.expect_z_res().ok()
     }
 
+    /// Converts to resource if `ZVal` is resource, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_z_res(&self) -> crate::Result<&ZRes> {
         self.inner_expect_z_res().map(|x| &*x)
     }
 
+    /// Converts to mutable resource if `ZVal` is null.
     pub fn as_mut_z_res(&mut self) -> Option<&mut ZRes> {
         self.expect_mut_z_res().ok()
     }
 
+    /// Converts to mutable resource if `ZVal` is resource, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_mut_z_res(&mut self) -> crate::Result<&mut ZRes> {
         self.inner_expect_z_res()
     }
@@ -420,18 +482,24 @@ impl ZVal {
         }
     }
 
+    /// Converts to reference if `ZVal` is reference.
     pub fn as_z_ref(&self) -> Option<&ZRef> {
         self.expect_z_ref().ok()
     }
 
+    /// Converts to reference if `ZVal` is reference, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_z_ref(&self) -> crate::Result<&ZRef> {
         self.inner_expect_z_ref().map(|x| &*x)
     }
 
+    /// Converts to mutable reference if `ZVal` is reference.
     pub fn as_mut_z_ref(&mut self) -> Option<&mut ZRef> {
         self.expect_mut_z_ref().ok()
     }
 
+    /// Converts to mutable reference if `ZVal` is reference, otherwise returns
+    /// [`ExpectTypeError`].
     pub fn expect_mut_z_ref(&mut self) -> crate::Result<&mut ZRef> {
         self.inner_expect_z_ref()
     }
@@ -444,6 +512,8 @@ impl ZVal {
         }
     }
 
+    /// Internally convert to long.
+    ///
     /// TODO To fix assertion failed.
     pub fn convert_to_long(&mut self) {
         unsafe {
@@ -451,6 +521,8 @@ impl ZVal {
         }
     }
 
+    /// Internally convert to string.
+    ///
     /// TODO To fix assertion failed.
     pub fn convert_to_string(&mut self) {
         unsafe {
@@ -462,7 +534,7 @@ impl ZVal {
     ///
     /// # Errors
     ///
-    /// Return Err when self is not callable.
+    /// Return Err when self is not callable, or called failed.
     #[inline]
     pub fn call(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZVal> {
         call_internal(self, None, arguments)

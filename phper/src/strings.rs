@@ -122,7 +122,7 @@ impl ZStr {
         CStr::from_bytes_with_nul(self.to_bytes())
     }
 
-    /// Yields a <code>&[str]</code> slice if the `ZStr` contains valid UTF-8.
+    /// Yields a str slice if the `ZStr` contains valid UTF-8.
     pub fn to_str(&self) -> Result<&str, Utf8Error> {
         str::from_utf8(self.to_bytes())
     }
@@ -200,7 +200,8 @@ impl ZString {
         }
     }
 
-    /// Consumes the ZString and transfers ownership of the string to a raw pointer.
+    /// Consumes the ZString and transfers ownership of the string to a raw
+    /// pointer.
     #[inline]
     pub fn into_raw(mut self) -> *mut zend_string {
         let ptr = self.as_mut_ptr();

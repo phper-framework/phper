@@ -98,7 +98,7 @@ impl ZObj {
     }
 
     /// Upgrade to state obj.
-    /// 
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
@@ -108,7 +108,7 @@ impl ZObj {
     }
 
     /// Upgrade to mutable state obj.
-    /// 
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
@@ -118,7 +118,7 @@ impl ZObj {
     }
 
     /// Get inner state.
-    /// 
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
@@ -129,7 +129,7 @@ impl ZObj {
     }
 
     /// Get inner mutable state.
-    /// 
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
@@ -238,7 +238,7 @@ impl ZObj {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// use phper::{alloc::EBox, classes::ClassEntry, values::ZVal};
     ///
     /// fn example() -> phper::Result<ZVal> {
@@ -349,7 +349,8 @@ impl ZObject {
 }
 
 impl Clone for ZObject {
-    /// The clone will do the copy like in PHP `$cloned_object = clone $some_object();`.
+    /// The clone will do the copy like in PHP `$cloned_object = clone
+    /// $some_object();`.
     fn clone(&self) -> Self {
         unsafe {
             Self::from_raw({

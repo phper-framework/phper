@@ -169,13 +169,20 @@ const fn get_base_type_by_raw(t: u32) -> u32 {
     t & !(!0 << Z_TYPE_FLAGS_SHIFT)
 }
 
+/// Copyable value, used in constant and class property.
 #[derive(From)]
 pub enum Scalar {
+    /// Null.
     Null,
+    /// Boolean.
     Bool(bool),
+    /// Long.
     I64(i64),
+    /// Double.
     F64(f64),
+    /// String
     String(String),
+    /// Binary string.
     Bytes(Vec<u8>),
 }
 

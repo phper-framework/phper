@@ -119,10 +119,10 @@ impl ClassEntry {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// use phper::classes::ClassEntry;
     ///
-    /// let std_class = ClassEntry::from_globals("stdClass");
+    /// let std_class = ClassEntry::from_globals("stdClass").unwrap();
     /// let _obj = std_class.new_object([]).unwrap();
     /// ```
     pub fn from_globals<'a>(class_name: impl AsRef<str>) -> crate::Result<&'a Self> {
@@ -298,7 +298,7 @@ impl<T: 'static> ClassEntity<T> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// use phper::classes::{ClassEntity, ClassEntry};
     ///
     /// let mut class = ClassEntity::new("MyException");
@@ -317,7 +317,7 @@ impl<T: 'static> ClassEntity<T> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// use phper::classes::{ClassEntity, ClassEntry};
     ///
     /// let mut class = ClassEntity::new("MyClass");

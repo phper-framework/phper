@@ -478,7 +478,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
 ///
 /// # Examples
 ///
-/// ```
+/// ```no_run
 /// use phper::{arrays::ZArray, functions::call, values::ZVal};
 ///
 /// fn json_encode() -> phper::Result<()> {

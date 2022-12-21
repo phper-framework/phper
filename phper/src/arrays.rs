@@ -294,14 +294,18 @@ impl ZArr {
     ///
     /// # Examples
     ///
+    /// ```no_run
     /// use phper::arrays::ZArray;
     ///
     /// let mut arr = ZArray::new();
     ///
     /// // count the number of occurrences of letters in the vec
     /// for x in ["a", "b", "a", "c", "a", "b"] {
-    ///     arr.entry(x).and_modify(|cur| *cur.as_long().unwrap() +=
-    /// 1).or_insert(1); }
+    ///     arr.entry(x)
+    ///         .and_modify(|cur| *cur.as_mut_long().unwrap() += 1)
+    ///         .or_insert(1);
+    /// }
+    /// ```
     pub fn entry<'a>(&'a mut self, key: impl Into<Key<'a>>) -> Entry<'a> {
         let key = key.into();
         match self.get_mut(key.clone()) {
