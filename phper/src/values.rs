@@ -40,14 +40,22 @@ pub struct ExecuteData {
 }
 
 impl ExecuteData {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_execute_data) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -56,14 +64,22 @@ impl ExecuteData {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -72,10 +88,12 @@ impl ExecuteData {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_execute_data {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_execute_data {
         &mut self.inner
@@ -159,14 +177,22 @@ pub struct ZVal {
 }
 
 impl ZVal {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zval) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -175,14 +201,22 @@ impl ZVal {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -191,10 +225,12 @@ impl ZVal {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zval {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zval {
         &mut self.inner

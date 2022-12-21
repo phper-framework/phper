@@ -24,19 +24,28 @@ use std::{
 /// Key for [ZArr].
 #[derive(Debug, Clone, PartialEq, From)]
 pub enum Key<'a> {
+    /// Index type key.
     Index(u64),
+    /// String type key.
     Str(&'a str),
+    /// String type key.
     Bytes(&'a [u8]),
+    /// String type key.
     ZStr(&'a ZStr),
 }
 
 /// Insert key for [ZArr].
 #[derive(Debug, Clone, PartialEq, From)]
 pub enum InsertKey<'a> {
+    /// Insert with next index type key, like `$arr[] = "foo"` in PHP.
     NextIndex,
+    /// Insert with index type key.
     Index(u64),
+    /// Insert with string type key.
     Str(&'a str),
+    /// Insert with string type key.
     Bytes(&'a [u8]),
+    /// Insert with string type key.
     ZStr(&'a ZStr),
 }
 
@@ -51,6 +60,7 @@ impl<'a> From<Key<'a>> for InsertKey<'a> {
     }
 }
 
+/// Wrapper of [crate::sys::zend_array].
 #[repr(transparent)]
 pub struct ZArr {
     inner: zend_array,
@@ -58,14 +68,22 @@ pub struct ZArr {
 }
 
 impl ZArr {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -74,14 +92,22 @@ impl ZArr {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -90,27 +116,33 @@ impl ZArr {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_array {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_array {
         &mut self.inner
     }
 
+    /// Returns true if the array has a length of 0.
     #[inline]
     pub fn is_empty(&mut self) -> bool {
         self.len() == 0
     }
 
-    /// Get items length.
+    /// Get array items length.
     #[inline]
     pub fn len(&mut self) -> usize {
         unsafe { zend_array_count(self.as_mut_ptr()).try_into().unwrap() }
     }
 
     /// Add or update item by key.
+    /// 
+    /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
+    /// so `insert(42)` and `insert("42")` should be considered the same.
     #[allow(clippy::useless_conversion)]
     pub fn insert<'a>(&mut self, key: impl Into<InsertKey<'a>>, value: impl Into<ZVal>) {
         let key = key.into();
@@ -153,12 +185,18 @@ impl ZArr {
         }
     }
 
-    // Get item by key.
+    /// Get item by key.
+    /// 
+    /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
+    /// so `get(42)` and `get("42")` should be considered the same.
     pub fn get<'a>(&self, key: impl Into<Key<'a>>) -> Option<&'a ZVal> {
         self.inner_get(key).map(|v| &*v)
     }
 
-    // Get item by key.
+    /// Get item by key.
+    /// 
+    /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
+    /// so `get_mut(42)` and `get_mut("42")` should be considered the same.
     pub fn get_mut<'a>(&mut self, key: impl Into<Key<'a>>) -> Option<&'a mut ZVal> {
         self.inner_get(key)
     }
@@ -192,6 +230,10 @@ impl ZArr {
         }
     }
 
+    /// Check if the key exists.
+    /// 
+    /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
+    /// so `exists(42)` and `exists("42")` should be considered the same.
     #[allow(clippy::useless_conversion)]
     pub fn exists<'a>(&self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
@@ -218,6 +260,10 @@ impl ZArr {
         }
     }
 
+    /// Remove the item under the key
+    /// 
+    /// Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
+    /// so `remove(42)` and `remove("42")` should be considered the same.
     #[allow(clippy::useless_conversion)]
     pub fn remove<'a>(&mut self, key: impl Into<Key<'a>>) -> bool {
         let key = key.into();
@@ -243,19 +289,33 @@ impl ZArr {
         }
     }
 
+    /// Gets the given key’s corresponding entry in the array for in-place manipulation.
+    /// 
+    /// # Examples
+    /// 
+    /// use phper::arrays::ZArray;
+    /// 
+    /// let mut arr = ZArray::new();
+    /// 
+    /// // count the number of occurrences of letters in the vec
+    /// for x in ["a", "b", "a", "c", "a", "b"] {
+    ///     arr.entry(x).and_modify(|cur| *cur.as_long().unwrap() += 1).or_insert(1);
+    /// }
     pub fn entry<'a>(&'a mut self, key: impl Into<Key<'a>>) -> Entry<'a> {
         let key = key.into();
         match self.get_mut(key.clone()) {
-            Some(val) => Entry::Occupied(val),
-            None => Entry::Vacant { arr: self, key },
+            Some(val) => Entry::Occupied(OccupiedEntry(val)),
+            None => Entry::Vacant(VacantEntry { arr: self, key }),
         }
     }
 
+    /// Provides a forward iterator.
     #[inline]
     pub fn iter(&self) -> Iter<'_> {
         Iter::new(self)
     }
 
+    /// Provides a forward iterator with mutable references.
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_> {
         IterMut::new(self)
@@ -294,11 +354,14 @@ pub struct ZArray {
 }
 
 impl ZArray {
+    /// Creates an empty `ZArray`.
     #[inline]
     pub fn new() -> Self {
         Self::with_capacity(0)
     }
 
+    /// Creates an empty `ZArray` with at least the specified capacity.
+    /// 
     /// Note that the actual capacity is always a power of two, so if you have
     /// 12 elements in a hashtable the actual table capacity will be 16.
     pub fn with_capacity(n: usize) -> Self {
@@ -323,6 +386,9 @@ impl ZArray {
         }
     }
 
+    /// Consumes the `ZArray` and transfers ownership to a raw pointer.
+    ///
+    /// Failure to call [`ZArray::from_raw`] will lead to a memory leak.
     #[inline]
     pub fn into_raw(self) -> *mut zend_array {
         ManuallyDrop::new(self).as_mut_ptr()
@@ -372,7 +438,9 @@ impl Drop for ZArray {
 /// Iterator key for [`ZArr::iter`] and [`ZArr::iter_mut`].
 #[derive(Debug, Clone, PartialEq, From)]
 pub enum IterKey<'a> {
+    /// Index type iterator key.
     Index(u64),
+    /// String type iterator key.
     ZStr(&'a ZStr),
 }
 
@@ -443,6 +511,11 @@ impl<'a> Iterator for RawIter<'a> {
     }
 }
 
+/// An iterator over the elements of a `ZArr`.
+///
+/// This is created by [`iter`].
+///
+/// [`iter`]: ZArr::iter
 pub struct Iter<'a>(RawIter<'a>);
 
 impl<'a> Iter<'a> {
@@ -461,6 +534,11 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
+/// An mutable iterator over the elements of a `ZArr`.
+///
+/// This is created by [`iter_mut`].
+///
+/// [`iter_mut`]: ZArr::iter_mut
 pub struct IterMut<'a>(RawIter<'a>);
 
 impl<'a> IterMut<'a> {
@@ -479,19 +557,48 @@ impl<'a> Iterator for IterMut<'a> {
     }
 }
 
+/// A view into a single entry in an array, which may either be vacant or occupied.
+///
+/// This `enum` is constructed from the [`entry`] method on [`ZArr`].
+///
+/// [`entry`]: ZArr::entry
 pub enum Entry<'a> {
-    Occupied(&'a mut ZVal),
-    Vacant { arr: &'a mut ZArr, key: Key<'a> },
+    /// An occupied entry.
+    Occupied(OccupiedEntry<'a>),
+    /// A vacant entry.
+    Vacant(VacantEntry<'a>),
+}
+
+/// A view into an occupied entry in a `ZArr`.
+/// It is part of the [`Entry`] enum.
+pub struct OccupiedEntry<'a>(&'a mut ZVal);
+
+/// A view into a vacant entry in a `ZArr`.
+/// It is part of the [`Entry`] enum.
+pub struct VacantEntry<'a> {
+    arr: &'a mut ZArr, key: Key<'a>,
 }
 
 impl<'a> Entry<'a> {
-    pub fn or_insert(self, val: ZVal) -> &'a mut ZVal {
+    /// Provides in-place mutable access to an occupied entry before any potential inserts into the array.
+    pub fn and_modify<F>(self, f: F) -> Self where F: FnOnce(&mut ZVal) {
         match self {
-            Entry::Occupied(val) => val,
-            Entry::Vacant { arr, key } => {
-                let insert_key: InsertKey<'_> = key.clone().into();
-                arr.insert(insert_key, val);
-                arr.get_mut(key).unwrap()
+            Entry::Occupied(entry) => {
+                f(entry.0);
+                Entry::Occupied(entry)
+            }
+            entry => entry,
+        }
+    }
+
+    /// Ensures a value is in the entry by inserting the default if empty, and returns a mutable reference to the value in the entry.
+    pub fn or_insert(self, val: impl Into<ZVal>) -> &'a mut ZVal {
+        match self {
+            Entry::Occupied(entry) => entry.0,
+            Entry::Vacant(entry) => {
+                let insert_key: InsertKey<'_> = entry.key.clone().into();
+                entry.arr.insert(insert_key, val);
+                entry.arr.get_mut(entry.key).unwrap()
             }
         }
     }

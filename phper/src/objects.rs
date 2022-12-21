@@ -38,14 +38,22 @@ pub struct ZObj {
 }
 
 impl ZObj {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_object) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -54,14 +62,22 @@ impl ZObj {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -70,10 +86,12 @@ impl ZObj {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_object {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_object {
         &mut self.inner

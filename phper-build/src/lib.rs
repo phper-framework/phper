@@ -14,6 +14,7 @@
 
 use phper_sys::*;
 
+/// Register all php build relative configure parameters, used in `build.rs`.
 pub fn register_all() {
     register_link_args();
     register_configures();
@@ -44,6 +45,7 @@ pub fn register_configures() {
     }
 }
 
+/// Register link arguments for os-specified situation.
 pub fn register_link_args() {
     #[cfg(target_os = "macos")]
     {

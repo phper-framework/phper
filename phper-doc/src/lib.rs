@@ -46,7 +46,7 @@ pub mod _05_internal_types {
     pub mod _03_z_obj {}
 }
 
-#[doc = include_str!("../doc/_07_module/index.md")]
+#[doc = include_str!("../doc/_06_module/index.md")]
 pub mod _06_module {
 
     /// TODO

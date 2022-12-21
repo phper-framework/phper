@@ -283,15 +283,26 @@ pub struct ZendFunc {
 }
 
 impl ZendFunc {
+    /// Wraps a raw pointer.
+    ///
+    /// # Safety
+    ///
+    /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunc {
         let ptr = ptr as *mut Self;
         ptr.as_mut().expect("ptr shouldn't be null")
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_function {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_function {
         &mut self.inner

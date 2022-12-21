@@ -52,7 +52,7 @@ impl<T> EBox<T> {
     ///
     /// # Safety
     ///
-    /// Make sure the pointer is created from `emalloc`.
+    /// Make sure the pointer is from `into_raw`, or created from `emalloc`.
     pub unsafe fn from_raw(raw: *mut T) -> Self {
         Self { ptr: raw }
     }
@@ -64,6 +64,7 @@ impl<T> EBox<T> {
         ManuallyDrop::new(b).ptr
     }
 
+    /// Consumes the `EBox`, returning the wrapped value.
     pub fn into_inner(self) -> T {
         unsafe { self.ptr.read() }
     }
@@ -95,13 +96,16 @@ impl<T> Drop for EBox<T> {
 /// Duplicate an object without deep copy, but to only add the refcount, for php
 /// refcount struct.
 pub trait ToRefOwned {
+    /// The resulting type after obtaining ownership.
     type Owned: Borrow<Self>;
 
+    /// Creates owned data from borrowed data, by increasing refcount.
     fn to_ref_owned(&mut self) -> Self::Owned;
 }
 
 /// Duplicate an object without deep copy, but to only add the refcount, for php
 /// refcount struct.
 pub trait RefClone {
+    /// Returns a refcount value with same reference of the value.
     fn ref_clone(&mut self) -> Self;
 }

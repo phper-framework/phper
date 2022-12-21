@@ -56,14 +56,22 @@ pub struct ClassEntry {
 }
 
 impl ClassEntry {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -72,14 +80,22 @@ impl ClassEntry {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    /// 
+    /// # Panics
+    /// 
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_class_entry) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -88,15 +104,27 @@ impl ClassEntry {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_class_entry {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_class_entry {
         &mut self.inner
     }
 
+    /// Create reference from global class name.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use phper::classes::ClassEntry;
+    /// 
+    /// let std_class = ClassEntry::from_globals("stdClass");
+    /// let _obj = std_class.new_object([]).unwrap();
+    /// ```
     pub fn from_globals<'a>(class_name: impl AsRef<str>) -> crate::Result<&'a Self> {
         let name = class_name.as_ref();
         let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
