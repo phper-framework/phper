@@ -85,18 +85,25 @@ pub fn division_by_zero_error<'a>() -> &'a ClassEntry {
 /// PHP Throwable, can cause throwing an exception when setting to
 /// [crate::values::ZVal].
 pub trait Throwable: error::Error {
+    /// Gets the class reference, implemented PHP `Throwable`.
     fn get_class(&self) -> &ClassEntry;
 
+    /// Gets the exception code.
     #[inline]
     fn get_code(&self) -> Option<i64> {
         Some(0)
     }
 
+    /// Gets the message.
     #[inline]
     fn get_message(&self) -> Option<String> {
         Some(self.to_string())
     }
 
+    /// Create Exception object.
+    ///
+    /// By default, the Exception is instance of `get_class()`, the code is
+    /// `get_code` and message is `get_message`;
     fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
         let mut object =
             ZObject::new(self.get_class(), []).map_err(|e| Box::new(e) as Box<dyn Throwable>)?;
@@ -152,63 +159,65 @@ impl Throwable for Infallible {
     }
 }
 
-/// Type of [std::result::Result]<T, [crate::Error]>.
+/// Type of [Result]<T, [crate::Error]>.
+///
+/// [Result]: std::result::Result
 pub type Result<T> = result::Result<T, self::Error>;
 
 /// Crate level Error, which also can become an exception in php.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// The error type for I/O operations.
     #[error(transparent)]
     Io(#[from] io::Error),
 
+    /// Errors which can occur when attempting to interpret a sequence of [`u8`]
+    /// as a string.
     #[error(transparent)]
     Utf8(#[from] Utf8Error),
 
+    /// An error indicating that a nul byte was not in the expected position.
     #[error(transparent)]
     FromBytesWithNul(#[from] FromBytesWithNulError),
 
+    /// Owned boxed dynamic error.
     #[error(transparent)]
     Boxed(#[from] Box<dyn error::Error>),
 
+    /// Owned exception object.
     #[error(transparent)]
     Throw(#[from] ThrowObject),
 
-    #[error(transparent)]
-    Type(#[from] TypeError),
-
+    /// Class not found, get the class by name failed, etc.
     #[error(transparent)]
     ClassNotFound(#[from] ClassNotFoundError),
 
+    /// Throw when actual arguments count is not greater than expect in calling
+    /// functions.
     #[error(transparent)]
     ArgumentCount(#[from] ArgumentCountError),
 
-    #[error(transparent)]
-    StateType(#[from] StateTypeError),
-
-    #[error(transparent)]
-    CallFunction(#[from] CallFunctionError),
-
-    #[error(transparent)]
-    CallMethod(#[from] CallMethodError),
-
+    /// Failed to initialize object.
     #[error(transparent)]
     InitializeObject(#[from] InitializeObjectError),
 
-    #[error(transparent)]
-    NotRefCountedType(#[from] NotRefCountedTypeError),
-
+    /// Expect type is not the actual type.
     #[error(transparent)]
     ExpectType(#[from] ExpectTypeError),
 
+    /// Failed when the object isn't implement PHP `Throwable`.
     #[error(transparent)]
     NotImplementThrowable(#[from] NotImplementThrowableError),
 }
 
 impl Error {
+    /// Wrap the dynamic error into `Boxed`.
     pub fn boxed(e: impl Into<Box<dyn error::Error>> + 'static) -> Self {
         Self::Boxed(e.into())
     }
 
+    /// Transfer [Throwable] item to exception object internally, and wrap it
+    /// into `Throw`.
     pub fn throw(t: impl Throwable) -> Self {
         let obj = ThrowObject::from_throwable(t);
         Self::Throw(obj)
@@ -224,14 +233,9 @@ impl Throwable for Error {
             Error::FromBytesWithNul(e) => Throwable::get_class(e as &dyn error::Error),
             Error::Boxed(e) => Throwable::get_class(e.deref()),
             Error::Throw(e) => Throwable::get_class(e),
-            Error::Type(e) => Throwable::get_class(e),
             Error::ClassNotFound(e) => Throwable::get_class(e),
             Error::ArgumentCount(e) => Throwable::get_class(e),
-            Error::StateType(e) => Throwable::get_class(e),
-            Error::CallFunction(e) => Throwable::get_class(e),
-            Error::CallMethod(e) => Throwable::get_class(e),
             Error::InitializeObject(e) => Throwable::get_class(e),
-            Error::NotRefCountedType(e) => Throwable::get_class(e),
             Error::ExpectType(e) => Throwable::get_class(e),
             Error::NotImplementThrowable(e) => Throwable::get_class(e),
         }
@@ -245,14 +249,9 @@ impl Throwable for Error {
             Error::FromBytesWithNul(e) => Throwable::get_code(e as &dyn error::Error),
             Error::Boxed(e) => Throwable::get_code(e.deref()),
             Error::Throw(e) => Throwable::get_code(e),
-            Error::Type(e) => Throwable::get_code(e),
             Error::ClassNotFound(e) => Throwable::get_code(e),
             Error::ArgumentCount(e) => Throwable::get_code(e),
-            Error::StateType(e) => Throwable::get_code(e),
-            Error::CallFunction(e) => Throwable::get_code(e),
-            Error::CallMethod(e) => Throwable::get_code(e),
             Error::InitializeObject(e) => Throwable::get_code(e),
-            Error::NotRefCountedType(e) => Throwable::get_code(e),
             Error::ExpectType(e) => Throwable::get_code(e),
             Error::NotImplementThrowable(e) => Throwable::get_code(e),
         }
@@ -265,14 +264,9 @@ impl Throwable for Error {
             Error::FromBytesWithNul(e) => Throwable::get_message(e as &dyn error::Error),
             Error::Boxed(e) => Throwable::get_message(e.deref()),
             Error::Throw(e) => Throwable::get_message(e),
-            Error::Type(e) => Throwable::get_message(e),
             Error::ClassNotFound(e) => Throwable::get_message(e),
             Error::ArgumentCount(e) => Throwable::get_message(e),
-            Error::StateType(e) => Throwable::get_message(e),
-            Error::CallFunction(e) => Throwable::get_message(e),
-            Error::CallMethod(e) => Throwable::get_message(e),
             Error::InitializeObject(e) => Throwable::get_message(e),
-            Error::NotRefCountedType(e) => Throwable::get_message(e),
             Error::ExpectType(e) => Throwable::get_message(e),
             Error::NotImplementThrowable(e) => Throwable::get_message(e),
         }
@@ -285,24 +279,23 @@ impl Throwable for Error {
             Error::FromBytesWithNul(e) => Throwable::to_object(e as &mut dyn error::Error),
             Error::Boxed(e) => Throwable::to_object(e.deref_mut()),
             Error::Throw(e) => Throwable::to_object(e),
-            Error::Type(e) => Throwable::to_object(e),
             Error::ClassNotFound(e) => Throwable::to_object(e),
             Error::ArgumentCount(e) => Throwable::to_object(e),
-            Error::StateType(e) => Throwable::to_object(e),
-            Error::CallFunction(e) => Throwable::to_object(e),
-            Error::CallMethod(e) => Throwable::to_object(e),
             Error::InitializeObject(e) => Throwable::to_object(e),
-            Error::NotRefCountedType(e) => Throwable::to_object(e),
             Error::ExpectType(e) => Throwable::to_object(e),
             Error::NotImplementThrowable(e) => Throwable::to_object(e),
         }
     }
 }
 
+/// Wrapper of Throwable object.
 #[derive(Debug)]
 pub struct ThrowObject(ZObject);
 
 impl ThrowObject {
+    /// Construct from Throwable object.
+    ///
+    /// Failed if the object is not instance of php `Throwable`.
     pub fn new(obj: ZObject) -> result::Result<Self, NotImplementThrowableError> {
         if !obj.get_class().is_instance_of(throwable_class()) {
             return Err(NotImplementThrowableError);
@@ -310,11 +303,13 @@ impl ThrowObject {
         Ok(Self(obj))
     }
 
+    /// Construct from Throwable.
     #[inline]
     pub fn from_throwable(mut t: impl Throwable) -> Self {
         Self::from_result(t.to_object())
     }
 
+    /// Construct from dynamic Error.
     #[inline]
     pub fn from_error(mut e: impl error::Error + 'static) -> Self {
         let e = &mut e as &mut dyn error::Error;
@@ -340,6 +335,7 @@ impl ThrowObject {
         Self::new(obj).unwrap()
     }
 
+    /// Consumes the `ThrowObject`, returning the wrapped object.
     #[inline]
     pub fn into_inner(self) -> ZObject {
         self.0
@@ -393,19 +389,7 @@ impl Throwable for ThrowObject {
     }
 }
 
-#[derive(Debug, thiserror::Error, Constructor)]
-#[error("type error: {message}")]
-pub struct TypeError {
-    message: String,
-}
-
-impl Throwable for TypeError {
-    #[inline]
-    fn get_class(&self) -> &ClassEntry {
-        type_error_class()
-    }
-}
-
+/// Expect type is not the actual type.
 #[derive(Debug, thiserror::Error, Constructor)]
 #[error("type error: must be of type {expect_type}, {actual_type} given")]
 pub struct ExpectTypeError {
@@ -420,6 +404,7 @@ impl Throwable for ExpectTypeError {
     }
 }
 
+/// Class not found, get the class by name failed, etc.
 #[derive(Debug, thiserror::Error, Constructor)]
 #[error("Class '{class_name}' not found")]
 pub struct ClassNotFoundError {
@@ -432,19 +417,8 @@ impl Throwable for ClassNotFoundError {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error(
-    "Actual State type in generic type parameter isn't the state type registered in the class, \
-     please confirm the real state type, or use StatelessClassEntry"
-)]
-pub struct StateTypeError;
-
-impl Throwable for StateTypeError {
-    fn get_class(&self) -> &ClassEntry {
-        error_class()
-    }
-}
-
+/// Throw when actual arguments count is not greater than expect in calling
+/// functions.
 #[derive(Debug, thiserror::Error, Constructor)]
 #[error("{function_name}(): expects at least {expect_count} parameter(s), {given_count} given")]
 pub struct ArgumentCountError {
@@ -467,31 +441,7 @@ impl Throwable for ArgumentCountError {
     }
 }
 
-#[derive(Debug, thiserror::Error, Constructor)]
-#[error("Invalid call to {fn_name}")]
-pub struct CallFunctionError {
-    fn_name: String,
-}
-
-impl Throwable for CallFunctionError {
-    fn get_class(&self) -> &ClassEntry {
-        error_class()
-    }
-}
-
-#[derive(Debug, thiserror::Error, Constructor)]
-#[error("Invalid call to {class_name}::{method_name}")]
-pub struct CallMethodError {
-    class_name: String,
-    method_name: String,
-}
-
-impl Throwable for CallMethodError {
-    fn get_class(&self) -> &ClassEntry {
-        error_class()
-    }
-}
-
+/// Failed to initialize object.
 #[derive(Debug, thiserror::Error, Constructor)]
 #[error("Cannot instantiate class {class_name}")]
 pub struct InitializeObjectError {
@@ -504,16 +454,7 @@ impl Throwable for InitializeObjectError {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("the type is not refcounted")]
-pub struct NotRefCountedTypeError;
-
-impl Throwable for NotRefCountedTypeError {
-    fn get_class(&self) -> &ClassEntry {
-        type_error_class()
-    }
-}
-
+/// Failed when the object isn't implement PHP `Throwable`.
 #[derive(Debug, thiserror::Error)]
 #[error("Cannot throw objects that do not implement Throwable")]
 pub struct NotImplementThrowableError;
@@ -526,6 +467,12 @@ impl Throwable for NotImplementThrowableError {
 
 static EXCEPTION_GUARD_COUNT: AtomicIsize = AtomicIsize::new(0);
 
+/// Guarder for preventing the thrown exception from being overwritten.
+///
+/// Normally, you don't need to use `ExceptionGuard`, unless before you call the
+/// unsafe raw php function, like `call_user_function`.
+///
+/// Can be used nested.
 pub struct ExceptionGuard(PhantomData<*mut ()>);
 
 impl Default for ExceptionGuard {

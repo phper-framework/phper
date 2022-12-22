@@ -34,14 +34,22 @@ pub struct ZStr {
 }
 
 impl ZStr {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_string) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -50,14 +58,22 @@ impl ZStr {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -66,39 +82,47 @@ impl ZStr {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_string {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_string {
         &mut self.inner
     }
 
+    /// Converts to a raw C string pointer.
     #[inline]
     pub fn as_c_str_ptr(&self) -> *const c_char {
         unsafe { phper_zstr_val(&self.inner).cast() }
     }
 
+    /// Gets the inner C string length.
     #[inline]
     pub fn len(&self) -> usize {
         unsafe { phper_zstr_len(&self.inner).try_into().unwrap() }
     }
 
+    /// Returns `true` if `self` has a length of zero bytes.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Converts inner C string to a byte slice.
     #[inline]
     pub fn to_bytes(&self) -> &[u8] {
         unsafe { from_raw_parts(phper_zstr_val(&self.inner).cast(), self.len()) }
     }
 
+    /// Extracts a [`CStr`] slice containing the inner C string.
     pub fn to_c_str(&self) -> Result<&CStr, FromBytesWithNulError> {
         CStr::from_bytes_with_nul(self.to_bytes())
     }
 
+    /// Yields a str slice if the `ZStr` contains valid UTF-8.
     pub fn to_str(&self) -> Result<&str, Utf8Error> {
         str::from_utf8(self.to_bytes())
     }
@@ -147,6 +171,7 @@ pub struct ZString {
 }
 
 impl ZString {
+    /// Creates a new zend string from a container of bytes.
     #[allow(clippy::useless_conversion)]
     pub fn new(s: impl AsRef<[u8]>) -> Self {
         unsafe {
@@ -175,6 +200,8 @@ impl ZString {
         }
     }
 
+    /// Consumes the ZString and transfers ownership of the string to a raw
+    /// pointer.
     #[inline]
     pub fn into_raw(mut self) -> *mut zend_string {
         let ptr = self.as_mut_ptr();

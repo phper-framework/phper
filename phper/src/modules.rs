@@ -104,6 +104,7 @@ unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
     display_ini_entries(zend_module);
 }
 
+/// Builder for registering PHP Module.
 pub struct Module {
     name: CString,
     version: CString,
@@ -119,6 +120,7 @@ pub struct Module {
 }
 
 impl Module {
+    /// Construct the `Module` with base metadata.
     pub fn new(
         name: impl Into<String>, version: impl Into<String>, author: impl Into<String>,
     ) -> Self {
@@ -137,30 +139,35 @@ impl Module {
         }
     }
 
+    /// Register `MINIT` hook.
     pub fn on_module_init(
         &mut self, func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.module_init = Some(Box::new(func));
     }
 
+    /// Register `MSHUTDOWN` hook.
     pub fn on_module_shutdown(
         &mut self, func: impl FnOnce(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.module_shutdown = Some(Box::new(func));
     }
 
+    /// Register `RINIT` hook.
     pub fn on_request_init(
         &mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.request_init = Some(Box::new(func));
     }
 
+    /// Register `RSHUTDOWN` hook.
     pub fn on_request_shutdown(
         &mut self, func: impl Fn(ModuleContext) -> bool + Send + Sync + 'static,
     ) {
         self.request_shutdown = Some(Box::new(func));
     }
 
+    /// Register function to module.
     pub fn add_function<F, Z, E>(
         &mut self, name: impl Into<String>, handler: F,
     ) -> &mut FunctionEntity
@@ -174,14 +181,17 @@ impl Module {
         self.function_entities.last_mut().unwrap()
     }
 
+    /// Register class to module.
     pub fn add_class<T>(&mut self, class: ClassEntity<T>) {
         self.class_entities.push(unsafe { transmute(class) });
     }
 
+    /// Register constant to module.
     pub fn add_constant(&mut self, name: impl Into<String>, value: impl Into<Scalar>) {
         self.constants.push(Constant::new(name, value));
     }
 
+    /// Register ini configuration to module.
     pub fn add_ini(
         &mut self, name: impl Into<String>, default_value: impl ini::IntoIniValue,
         policy: ini::Policy,
@@ -249,6 +259,7 @@ impl Module {
     }
 }
 
+/// Module context owned module type and number.
 pub struct ModuleContext {
     #[allow(dead_code)]
     pub(crate) r#type: c_int,
@@ -256,7 +267,7 @@ pub struct ModuleContext {
 }
 
 impl ModuleContext {
-    pub const fn new(r#type: c_int, module_number: c_int) -> Self {
+    const fn new(r#type: c_int, module_number: c_int) -> Self {
         Self {
             r#type,
             module_number,

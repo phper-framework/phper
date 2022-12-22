@@ -19,21 +19,39 @@ use std::{
     str,
 };
 
+/// Get the global registered configuration value.
+///
+/// # Examples
+///
+/// ```no_run
+/// use phper::ini::ini_get;
+/// use std::ffi::CStr;
+///
+/// let _foo = ini_get::<bool>("FOO");
+/// let _bar = ini_get::<Option<&CStr>>("BAR");
+/// ```
 pub fn ini_get<T: FromIniValue>(name: &str) -> T {
     T::from_ini_value(name)
 }
 
+/// Configuration changeable policy.
 #[repr(u32)]
 #[derive(Copy, Clone)]
 pub enum Policy {
+    /// Entry can be set anywhere.
     All = PHP_INI_ALL,
+    /// Entry can be set in user scripts (like with `ini_set()`) or in the
+    /// Windows registry. Entry can be set in `.user.ini`.
     User = PHP_INI_USER,
+    /// Entry can be set in `php.ini`, `.htaccess`, `httpd.conf` or `.user.ini`.
     Perdir = PHP_INI_PERDIR,
+    /// Entry can be set in `php.ini` or `httpd.conf`.
     System = PHP_INI_SYSTEM,
 }
 
 /// The Type which can transform to an ini value.
 pub trait IntoIniValue {
+    /// transform to an ini value.
     fn into_ini_value(self) -> String;
 }
 
@@ -69,9 +87,12 @@ impl IntoIniValue for String {
     }
 }
 
+/// The Type which can transform from an ini key name.
+///
 /// For php7, the zend_ini_* functions receive ini name as `*mut c_char`, but I
 /// think it's immutable.
 pub trait FromIniValue {
+    /// transform from an ini key name.
     fn from_ini_value(name: &str) -> Self;
 }
 

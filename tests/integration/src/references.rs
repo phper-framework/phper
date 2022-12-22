@@ -15,7 +15,7 @@ pub fn integrate(module: &mut Module) {
     module
         .add_function("integrate_test_reference", |arguments| {
             let foo = arguments[0].expect_mut_z_ref()?;
-            *foo.val().expect_mut_long()? += 100;
+            *foo.val_mut().expect_mut_long()? += 100;
 
             let bar = arguments[1].expect_z_ref()?;
             bar.val().expect_null()?;

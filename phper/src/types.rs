@@ -21,79 +21,106 @@ pub struct TypeInfo {
 }
 
 impl TypeInfo {
+    /// Array type info.
     pub const ARRAY: TypeInfo = TypeInfo::from_raw(IS_ARRAY);
+    /// Boolean type info.
     pub const BOOL: TypeInfo = TypeInfo::from_raw(_IS_BOOL);
+    /// Double number type info.
     pub const DOUBLE: TypeInfo = TypeInfo::from_raw(IS_DOUBLE);
+    /// Long number type info.
     pub const LONG: TypeInfo = TypeInfo::from_raw(IS_LONG);
+    /// Null type info.
     pub const NULL: TypeInfo = TypeInfo::from_raw(IS_NULL);
+    /// Object type info.
     pub const OBJECT: TypeInfo = TypeInfo::from_raw(IS_OBJECT);
+    /// Reference type info.
     pub const REFERENCE: TypeInfo = TypeInfo::from_raw(IS_REFERENCE);
+    /// Resource type info.
     pub const RESOURCE: TypeInfo = TypeInfo::from_raw(IS_RESOURCE);
+    /// String type info.
     pub const STRING: TypeInfo = TypeInfo::from_raw(IS_STRING);
+    /// Undefined type info.
     pub const UNDEF: TypeInfo = TypeInfo::from_raw(IS_UNDEF);
 }
 
 impl TypeInfo {
+    /// Construct [`TypeInfo`] from raw number.
     pub const fn from_raw(t: u32) -> Self {
         Self { t }
     }
 
+    /// Transfers [`TypeInfo`] to raw number.
     pub const fn into_raw(self) -> u32 {
         self.t
     }
 
+    /// Detects if the [`TypeInfo`] is undefined.
     pub const fn is_undef(self) -> bool {
         self.t == IS_UNDEF
     }
 
+    /// Detects if the [`TypeInfo`] is null.
     pub const fn is_null(self) -> bool {
         self.t == IS_NULL
     }
 
+    /// Detects if the [`TypeInfo`] is boolean.
     pub const fn is_bool(self) -> bool {
         self.is_true() || self.is_false()
     }
 
+    /// Detects if the [`TypeInfo`] is true.
     pub const fn is_true(self) -> bool {
         get_base_type_by_raw(self.t) == IS_TRUE
     }
 
+    /// Detects if the [`TypeInfo`] is false.
     pub const fn is_false(self) -> bool {
         get_base_type_by_raw(self.t) == IS_FALSE
     }
 
+    /// Detects if the [`TypeInfo`] is long.
     pub const fn is_long(self) -> bool {
         get_base_type_by_raw(self.t) == IS_LONG
     }
 
+    /// Detects if the [`TypeInfo`] is double.
     pub const fn is_double(self) -> bool {
         get_base_type_by_raw(self.t) == IS_DOUBLE
     }
 
+    /// Detects if the [`TypeInfo`] is string.
     pub const fn is_string(self) -> bool {
         get_base_type_by_raw(self.t) == IS_STRING
     }
 
+    /// Detects if the [`TypeInfo`] is array.
     pub const fn is_array(self) -> bool {
         get_base_type_by_raw(self.t) == IS_ARRAY
     }
 
+    /// Detects if the [`TypeInfo`] is object.
     pub const fn is_object(self) -> bool {
         get_base_type_by_raw(self.t) == IS_OBJECT
     }
 
+    /// Detects if the [`TypeInfo`] is resource.
     pub const fn is_resource(self) -> bool {
         get_base_type_by_raw(self.t) == IS_RESOURCE
     }
 
+    /// Detects if the [`TypeInfo`] is reference.
     pub const fn is_reference(self) -> bool {
         get_base_type_by_raw(self.t) == IS_REFERENCE
     }
 
+    /// Transfers [`TypeInfo`] to the base type info.
     pub const fn get_base_type(self) -> TypeInfo {
         Self::from_raw(get_base_type_by_raw(self.t))
     }
 
+    /// Gets the name of base type.
+    ///
     /// Can be sure, `zend_get_type_by_const` returns the const string, So this
     /// method returns `&'static CStr`.
     #[inline]
@@ -142,13 +169,20 @@ const fn get_base_type_by_raw(t: u32) -> u32 {
     t & !(!0 << Z_TYPE_FLAGS_SHIFT)
 }
 
+/// Copyable value, used in constant and class property.
 #[derive(From)]
 pub enum Scalar {
+    /// Null.
     Null,
+    /// Boolean.
     Bool(bool),
+    /// Long.
     I64(i64),
+    /// Double.
     F64(f64),
+    /// String
     String(String),
+    /// Binary string.
     Bytes(Vec<u8>),
 }
 

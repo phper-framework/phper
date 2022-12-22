@@ -1,3 +1,0 @@
-# Class and object
-
-TODO

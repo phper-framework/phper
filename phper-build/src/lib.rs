@@ -8,11 +8,13 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#![warn(rust_2018_idioms, clippy::dbg_macro)]
+#![warn(rust_2018_idioms, missing_docs)]
+#![warn(clippy::dbg_macro)]
 #![doc = include_str!("../README.md")]
 
 use phper_sys::*;
 
+/// Register all php build relative configure parameters, used in `build.rs`.
 pub fn register_all() {
     register_link_args();
     register_configures();
@@ -43,6 +45,7 @@ pub fn register_configures() {
     }
 }
 
+/// Register link arguments for os-specified situation.
 pub fn register_link_args() {
     #[cfg(target_os = "macos")]
     {

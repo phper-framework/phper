@@ -19,15 +19,23 @@ pub struct ZRes {
 }
 
 impl ZRes {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if pointer is null.
     pub unsafe fn from_ptr<'a>(ptr: *const zend_resource) -> &'a Self {
         (ptr as *const Self)
             .as_ref()
             .expect("ptr should not be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -35,13 +43,21 @@ impl ZRes {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if pointer is null.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_resource) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should not be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -49,15 +65,18 @@ impl ZRes {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_resource {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_resource {
         &mut self.inner
     }
 
+    /// Gets the resource handle.
     #[allow(clippy::useless_conversion)]
     pub fn handle(&self) -> i64 {
         self.inner.handle.into()

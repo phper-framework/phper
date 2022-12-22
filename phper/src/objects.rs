@@ -38,14 +38,22 @@ pub struct ZObj {
 }
 
 impl ZObj {
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_object) -> &'a Self {
         (ptr as *const Self).as_ref().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -54,14 +62,22 @@ impl ZObj {
         (ptr as *const Self).as_ref()
     }
 
+    /// Wraps a raw pointer.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
         (ptr as *mut Self).as_mut().expect("ptr should't be null")
     }
 
+    /// Wraps a raw pointer, return None if pointer is null.
+    ///
     /// # Safety
     ///
     /// Create from raw pointer.
@@ -70,31 +86,39 @@ impl ZObj {
         (ptr as *mut Self).as_mut()
     }
 
+    /// Returns a raw pointer wrapped.
     pub const fn as_ptr(&self) -> *const zend_object {
         &self.inner
     }
 
+    /// Returns a raw pointer wrapped.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut zend_object {
         &mut self.inner
     }
 
+    /// Upgrade to state obj.
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_stateful_obj<T: 'static>(&self) -> &StateObj<T> {
+    pub unsafe fn as_state_obj<T: 'static>(&self) -> &StateObj<T> {
         transmute(self)
     }
 
+    /// Upgrade to mutable state obj.
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_mut_stateful_obj<T: 'static>(&mut self) -> &mut StateObj<T> {
+    pub unsafe fn as_mut_state_obj<T: 'static>(&mut self) -> &mut StateObj<T> {
         transmute(self)
     }
 
+    /// Get inner state.
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
@@ -104,6 +128,8 @@ impl ZObj {
         eo.state.downcast_ref().unwrap()
     }
 
+    /// Get inner mutable state.
+    ///
     /// # Safety
     ///
     /// Should only call this method for the class of object defined by the
@@ -113,25 +139,30 @@ impl ZObj {
         eo.state.downcast_mut().unwrap()
     }
 
+    /// Get the inner handle of object.
     #[inline]
     pub fn handle(&self) -> u32 {
         self.inner.handle
     }
 
+    /// Get the class reference of object.
     pub fn get_class(&self) -> &ClassEntry {
         unsafe { ClassEntry::from_ptr(self.inner.ce) }
     }
 
+    /// Get the mutable class reference of object.
     pub fn get_mut_class(&mut self) -> &mut ClassEntry {
         unsafe { ClassEntry::from_mut_ptr(self.inner.ce) }
     }
 
+    /// Get the property by name of object.
     pub fn get_property(&self, name: impl AsRef<str>) -> &ZVal {
         let object = self.as_ptr() as *mut _;
         let prop = Self::inner_get_property(self.inner.ce, object, name);
         unsafe { ZVal::from_ptr(prop) }
     }
 
+    /// Get the mutable property by name of object.
     pub fn get_mut_property(&mut self, name: impl AsRef<str>) -> &mut ZVal {
         let object = self.as_mut_ptr();
         let prop = Self::inner_get_property(self.inner.ce, object, name);
@@ -172,6 +203,7 @@ impl ZObj {
         }
     }
 
+    /// Set the property by name of object.
     #[allow(clippy::useless_conversion)]
     pub fn set_property(&mut self, name: impl AsRef<str>, val: impl Into<ZVal>) {
         let name = name.as_ref();
@@ -206,7 +238,7 @@ impl ZObj {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// use phper::{alloc::EBox, classes::ClassEntry, values::ZVal};
     ///
     /// fn example() -> phper::Result<ZVal> {
@@ -279,6 +311,7 @@ impl ZObject {
         class_entry.new_object(arguments)
     }
 
+    /// New object, like `new`, but get class by [`ClassEntry::from_globals`].
     pub fn new_by_class_name(
         class_name: impl AsRef<str>, arguments: &mut [ZVal],
     ) -> crate::Result<Self> {
@@ -286,6 +319,7 @@ impl ZObject {
         Self::new(class_entry, arguments)
     }
 
+    /// New object with class `stdClass`.
     pub fn new_by_std_class() -> Self {
         Self::new_by_class_name("stdclass", &mut []).unwrap()
     }
@@ -305,6 +339,7 @@ impl ZObject {
         }
     }
 
+    /// Consumes and returning a wrapped raw pointer.
     #[inline]
     pub fn into_raw(mut self) -> *mut zend_object {
         let ptr = self.as_mut_ptr();
@@ -314,6 +349,8 @@ impl ZObject {
 }
 
 impl Clone for ZObject {
+    /// The clone will do the copy like in PHP `$cloned_object = clone
+    /// $some_object();`.
     fn clone(&self) -> Self {
         unsafe {
             Self::from_raw({
@@ -378,6 +415,7 @@ impl Debug for ZObject {
     }
 }
 
+/// The object owned state, usually as the parameter of method handler.
 #[repr(transparent)]
 pub struct StateObj<T> {
     inner: ZObj,
@@ -385,10 +423,12 @@ pub struct StateObj<T> {
 }
 
 impl<T: 'static> StateObj<T> {
+    /// Get inner state.
     pub fn as_state(&self) -> &T {
         unsafe { self.inner.as_state() }
     }
 
+    /// Get inner mutable state.
     pub fn as_mut_state(&mut self) -> &mut T {
         unsafe { self.inner.as_mut_state() }
     }
