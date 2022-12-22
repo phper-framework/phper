@@ -20,13 +20,13 @@ use std::{
 };
 
 /// Get the global registered configuration value.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```no_run
-/// use std::ffi::CStr;
 /// use phper::ini::ini_get;
-/// 
+/// use std::ffi::CStr;
+///
 /// let _foo = ini_get::<bool>("FOO");
 /// let _bar = ini_get::<Option<&CStr>>("BAR");
 /// ```
