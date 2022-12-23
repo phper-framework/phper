@@ -17,3 +17,6 @@ integrate_objects_new_drop();
 integrate_objects_get_set();
 integrate_objects_set_val();
 integrate_objects_call();
+integrate_objects_clone();
+integrate_objects_to_owned(new stdClass());
+integrate_objects_to_ref_owned(new stdClass());
