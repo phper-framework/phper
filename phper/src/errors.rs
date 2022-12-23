@@ -166,6 +166,7 @@ pub type Result<T> = result::Result<T, self::Error>;
 
 /// Crate level Error, which also can become an exception in php.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// The error type for I/O operations.
     #[error(transparent)]

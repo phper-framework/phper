@@ -9,7 +9,8 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::ClassEntry, modules::Module, objects::ZObject, types::TypeInfo, values::ZVal,
+    alloc::ToRefOwned, classes::ClassEntry, functions::Argument, modules::Module, objects::ZObject,
+    types::TypeInfo, values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
@@ -59,4 +60,88 @@ pub fn integrate(module: &mut Module) {
             Ok(())
         },
     );
+
+    module.add_function(
+        "integrate_objects_clone",
+        |_: &mut [ZVal]| -> phper::Result<()> {
+            let mut o1 = ZObject::new_by_std_class();
+            o1.set_property("foo", "bar");
+
+            let mut o2 = o1.clone();
+            assert_eq!(
+                o2.get_property("foo").as_z_str().unwrap().to_bytes(),
+                b"bar"
+            );
+
+            o2.set_property("foo", "baz");
+            assert_eq!(
+                o1.get_property("foo").as_z_str().unwrap().to_bytes(),
+                b"bar"
+            );
+            assert_eq!(
+                o2.get_property("foo").as_z_str().unwrap().to_bytes(),
+                b"baz"
+            );
+
+            Ok(())
+        },
+    );
+
+    module
+        .add_function(
+            "integrate_objects_to_owned",
+            |arguments: &mut [ZVal]| -> phper::Result<()> {
+                let o1 = arguments[0].expect_mut_z_obj()?;
+
+                o1.set_property("foo", "bar");
+
+                let mut o2 = o1.to_owned();
+                assert_eq!(
+                    o2.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"bar"
+                );
+
+                o2.set_property("foo", "baz");
+                assert_eq!(
+                    o1.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"bar"
+                );
+                assert_eq!(
+                    o2.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"baz"
+                );
+
+                Ok(())
+            },
+        )
+        .argument(Argument::by_val("obj"));
+
+    module
+        .add_function(
+            "integrate_objects_to_ref_owned",
+            |arguments: &mut [ZVal]| -> phper::Result<()> {
+                let o1 = arguments[0].expect_mut_z_obj()?;
+
+                o1.set_property("foo", "bar");
+
+                let mut o2 = o1.to_ref_owned();
+                assert_eq!(
+                    o2.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"bar"
+                );
+
+                o2.set_property("foo", "baz");
+                assert_eq!(
+                    o1.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"baz"
+                );
+                assert_eq!(
+                    o2.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"baz"
+                );
+
+                Ok(())
+            },
+        )
+        .argument(Argument::by_val("obj"));
 }

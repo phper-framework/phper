@@ -40,8 +40,6 @@ Otherwise, there are also composite types that implement `From`.
 - `From<Option<T>>`: if Some(T), T will be converted to PHP type like `From<T>`,
   or `None` wll be converted to `null`.
 
-### Example
-
 ```rust,no_run
 use phper::values::ZVal;
 
@@ -58,8 +56,6 @@ Now you can use `as_*` or `expect_*` methods to convert ZVal to Rust types.
 - The `expect_*` returns `phper::Result<T>`, if convert failed,
   [phper::errors::ExpectTypeError] will be returned, with the message:
   `type error: must be of type {expect_type}, {actual_type} given")`.
-
-### Example
 
 ```rust,no_run
 use phper::echo;

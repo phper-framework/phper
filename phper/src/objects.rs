@@ -25,7 +25,7 @@ use std::{
     fmt::{self, Debug},
     intrinsics::transmute,
     marker::PhantomData,
-    mem::{forget, size_of, ManuallyDrop},
+    mem::{forget, size_of, zeroed, ManuallyDrop},
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };
@@ -278,6 +278,17 @@ impl ZObj {
     }
 }
 
+impl ToOwned for ZObj {
+    type Owned = ZObject;
+
+    /// The `to_owned` will do the copy like in PHP `$cloned_object = clone
+    /// $some_object();`.
+    #[inline]
+    fn to_owned(&self) -> Self::Owned {
+        clone_obj(self.as_ptr())
+    }
+}
+
 impl ToRefOwned for ZObj {
     type Owned = ZObject;
 
@@ -351,30 +362,9 @@ impl ZObject {
 impl Clone for ZObject {
     /// The clone will do the copy like in PHP `$cloned_object = clone
     /// $some_object();`.
+    #[inline]
     fn clone(&self) -> Self {
-        unsafe {
-            Self::from_raw({
-                let mut zv = ManuallyDrop::new(ZVal::default());
-                phper_zval_obj(zv.as_mut_ptr(), self.as_ptr() as *mut _);
-                let handlers = phper_z_obj_ht_p(zv.as_ptr());
-
-                let ptr = {
-                    #[cfg(phper_major_version = "7")]
-                    {
-                        zv.as_mut_ptr()
-                    }
-                    #[cfg(phper_major_version = "8")]
-                    {
-                        self.as_ptr() as *mut _
-                    }
-                };
-
-                match (*handlers).clone_obj {
-                    Some(clone_obj) => clone_obj(ptr),
-                    None => zend_objects_clone_obj(ptr),
-                }
-            })
-        }
+        clone_obj(self.as_ptr())
     }
 }
 
@@ -412,6 +402,32 @@ impl Debug for ZObject {
             .field("class", &self.get_class().get_name().to_c_str())
             .field("handle", &self.handle())
             .finish()
+    }
+}
+
+fn clone_obj(obj: *const zend_object) -> ZObject {
+    unsafe {
+        ZObject::from_raw({
+            let mut zv = zeroed::<zval>();
+            phper_zval_obj(&mut zv, obj as *mut _);
+            let handlers = phper_z_obj_ht_p(&zv);
+
+            let ptr = {
+                #[cfg(phper_major_version = "7")]
+                {
+                    &mut zv as *mut _
+                }
+                #[cfg(phper_major_version = "8")]
+                {
+                    obj as *mut _
+                }
+            };
+
+            match (*handlers).clone_obj {
+                Some(clone_obj) => clone_obj(ptr),
+                None => zend_objects_clone_obj(ptr),
+            }
+        })
     }
 }
 
