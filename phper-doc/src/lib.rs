@@ -49,7 +49,7 @@ pub mod _05_internal_types {
 #[doc = include_str!("../doc/_06_module/index.md")]
 pub mod _06_module {
 
-    /// TODO
+    #[doc = include_str!("../doc/_06_module/_01_hooks/index.md")]
     pub mod _01_hooks {}
 
     /// TODO
