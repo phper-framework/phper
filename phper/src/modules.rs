@@ -23,14 +23,16 @@ use crate::{
     values::ZVal,
 };
 use std::{
+    collections::HashMap,
     ffi::CString,
     mem::{replace, size_of, take, transmute, zeroed},
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     rc::Rc,
-    sync::atomic::{AtomicPtr, Ordering}, collections::HashMap,
+    sync::atomic::{AtomicPtr, Ordering},
 };
 
+// TODO Should not hold global prt here.
 static GLOBAL_MODULE: AtomicPtr<Module> = AtomicPtr::new(null_mut());
 
 pub(crate) fn read_global_module<R>(f: impl FnOnce(&Module) -> R) -> R {
@@ -204,9 +206,9 @@ impl Module {
     }
 
     /// Register info item.
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panic if key or value contains '\0'.
     pub fn add_info(&mut self, key: impl Into<String>, value: impl Into<String>) {
         let key = CString::new(key.into()).expect("key contains '\0'");
