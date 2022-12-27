@@ -51,7 +51,7 @@ fn main() {
     // to only create bindings from the header files in those directories
     for dir in include_dirs.iter() {
         let p = PathBuf::from(dir).join(".*\\.h");
-        builder = builder.allowlist_file(p.to_str().unwrap());
+        builder = builder.allowlist_file(p.display().to_string());
     }
 
     let generated_path = out_path.join("php_bindings.rs");
