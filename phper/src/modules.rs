@@ -28,7 +28,7 @@ use std::{
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     rc::Rc,
-    sync::atomic::{AtomicPtr, Ordering},
+    sync::atomic::{AtomicPtr, Ordering}, collections::HashMap,
 };
 
 static GLOBAL_MODULE: AtomicPtr<Module> = AtomicPtr::new(null_mut());
@@ -75,8 +75,6 @@ unsafe extern "C" fn module_shutdown(r#type: c_int, module_number: c_int) -> c_i
 }
 
 unsafe extern "C" fn request_startup(r#type: c_int, request_number: c_int) -> c_int {
-    // TODO Catch panic.
-
     read_global_module(|module| match &module.request_init {
         Some(f) => f(ModuleContext::new(r#type, request_number)) as c_int,
         None => 1,
@@ -99,6 +97,9 @@ unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
         if !module.author.as_bytes().is_empty() {
             php_info_print_table_row(2, c_str_ptr!("authors"), module.author.as_ptr());
         }
+        for (key, value) in &module.infos {
+            php_info_print_table_row(2, key.as_ptr(), value.as_ptr());
+        }
         php_info_print_table_end();
     });
     display_ini_entries(zend_module);
@@ -117,6 +118,7 @@ pub struct Module {
     class_entities: Vec<ClassEntity<()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
+    infos: HashMap<CString, CString>,
 }
 
 impl Module {
@@ -136,6 +138,7 @@ impl Module {
             class_entities: Default::default(),
             constants: Default::default(),
             ini_entities: Default::default(),
+            infos: Default::default(),
         }
     }
 
@@ -198,6 +201,17 @@ impl Module {
     ) {
         self.ini_entities
             .push(ini::IniEntity::new(name, default_value, policy));
+    }
+
+    /// Register info item.
+    /// 
+    /// # Panics
+    /// 
+    /// Panic if key or value contains '\0'.
+    pub fn add_info(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        let key = CString::new(key.into()).expect("key contains '\0'");
+        let value = CString::new(value.into()).expect("value contains '\0'");
+        self.infos.insert(key, value);
     }
 
     /// Leak memory to generate `zend_module_entry` pointer.

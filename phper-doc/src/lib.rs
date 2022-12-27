@@ -52,19 +52,19 @@ pub mod _06_module {
     #[doc = include_str!("../doc/_06_module/_01_hooks/index.md")]
     pub mod _01_hooks {}
 
-    /// TODO
+    #[doc = include_str!("../doc/_06_module/_02_register_functions/index.md")]
     pub mod _02_register_functions {}
 
-    /// TODO
+    #[doc = include_str!("../doc/_06_module/_03_register_constants/index.md")]
     pub mod _03_register_constants {}
 
-    /// TODO
+    #[doc = include_str!("../doc/_06_module/_04_register_ini_settings/index.md")]
     pub mod _04_register_ini_settings {}
 
-    /// TODO
+    #[doc = include_str!("../doc/_06_module/_05_extension_information/index.md")]
     pub mod _05_extension_information {}
 
-    /// TODO
+    #[doc = include_str!("../doc/_06_module/_06_register_class/index.md")]
     pub mod _06_register_class {}
 }
 

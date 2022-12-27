@@ -94,5 +94,8 @@ pub fn get_module() -> Module {
         .argument(Argument::by_val("foo"));
     module.add_class(foo_class);
 
+    // register extra info
+    module.add_info("extra info key", "extra info value");
+
     module
 }
