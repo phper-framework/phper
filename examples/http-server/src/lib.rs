@@ -40,11 +40,9 @@ pub fn get_module() -> Module {
     module.on_module_init(move || {
         let guard = rt_.enter();
         forget(guard);
-        true
     });
     module.on_module_shutdown(move || {
         drop(rt);
-        true
     });
 
     module.add_class(make_exception_class());
