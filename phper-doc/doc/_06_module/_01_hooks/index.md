@@ -37,7 +37,6 @@ pub fn get_module() -> Module {
 
     module.on_module_init(|| {
         // Do somethings in `MINIT` stage.
-        true
     });
 
     module

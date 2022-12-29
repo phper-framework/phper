@@ -49,10 +49,11 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
         class_entity.declare_properties(ce);
     }
 
-    match take(&mut module.module_init) {
-        Some(f) => f() as c_int,
-        None => 1,
+    if let Some(f) = take(&mut module.module_init) {
+        f();
     }
+
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn module_shutdown(_type: c_int, module_number: c_int) -> c_int {
@@ -60,28 +61,31 @@ unsafe extern "C" fn module_shutdown(_type: c_int, module_number: c_int) -> c_in
 
     ini::unregister(module_number);
 
-    match take(&mut module.module_shutdown) {
-        Some(f) => f() as c_int,
-        None => 1,
+    if let Some(f) = take(&mut module.module_shutdown) {
+        f();
     }
+
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn request_startup(_type: c_int, _module_number: c_int) -> c_int {
     let module = GLOBAL_MODULE.as_ref().unwrap();
 
-    match &module.request_init {
-        Some(f) => f() as c_int,
-        None => 1,
+    if let Some(f) = &module.request_init {
+        f();
     }
+
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn request_shutdown(_type: c_int, _module_number: c_int) -> c_int {
     let module = GLOBAL_MODULE.as_ref().unwrap();
 
-    match &module.request_shutdown {
-        Some(f) => f() as c_int,
-        None => 1,
+    if let Some(f) = &module.request_shutdown {
+        f();
     }
+
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
@@ -108,10 +112,10 @@ pub struct Module {
     name: CString,
     version: CString,
     author: CString,
-    module_init: Option<Box<dyn FnOnce() -> bool + Send + Sync>>,
-    module_shutdown: Option<Box<dyn FnOnce() -> bool + Send + Sync>>,
-    request_init: Option<Box<dyn Fn() -> bool + Send + Sync>>,
-    request_shutdown: Option<Box<dyn Fn() -> bool + Send + Sync>>,
+    module_init: Option<Box<dyn FnOnce()>>,
+    module_shutdown: Option<Box<dyn FnOnce()>>,
+    request_init: Option<Box<dyn Fn()>>,
+    request_shutdown: Option<Box<dyn Fn()>>,
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
     constants: Vec<Constant>,
@@ -141,22 +145,22 @@ impl Module {
     }
 
     /// Register `MINIT` hook.
-    pub fn on_module_init(&mut self, func: impl FnOnce() -> bool + Send + Sync + 'static) {
+    pub fn on_module_init(&mut self, func: impl FnOnce() + 'static) {
         self.module_init = Some(Box::new(func));
     }
 
     /// Register `MSHUTDOWN` hook.
-    pub fn on_module_shutdown(&mut self, func: impl FnOnce() -> bool + Send + Sync + 'static) {
+    pub fn on_module_shutdown(&mut self, func: impl FnOnce() + 'static) {
         self.module_shutdown = Some(Box::new(func));
     }
 
     /// Register `RINIT` hook.
-    pub fn on_request_init(&mut self, func: impl Fn() -> bool + Send + Sync + 'static) {
+    pub fn on_request_init(&mut self, func: impl Fn() + 'static) {
         self.request_init = Some(Box::new(func));
     }
 
     /// Register `RSHUTDOWN` hook.
-    pub fn on_request_shutdown(&mut self, func: impl Fn() -> bool + Send + Sync + 'static) {
+    pub fn on_request_shutdown(&mut self, func: impl Fn() + 'static) {
         self.request_shutdown = Some(Box::new(func));
     }
 
