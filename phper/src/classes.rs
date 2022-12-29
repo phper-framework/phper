@@ -125,7 +125,7 @@ impl ClassEntry {
     /// let std_class = ClassEntry::from_globals("stdClass").unwrap();
     /// let _obj = std_class.new_object([]).unwrap();
     /// ```
-    pub fn from_globals<'a>(class_name: impl AsRef<str>) -> crate::Result<&'a Self> {
+    pub fn from_globals(class_name: impl AsRef<str>) -> crate::Result<&'static Self> {
         let name = class_name.as_ref();
         let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
         unsafe {
@@ -332,7 +332,7 @@ impl<T: 'static> ClassEntity<T> {
     }
 
     #[allow(clippy::useless_conversion)]
-    pub(crate) unsafe fn init(&mut self) -> *mut zend_class_entry {
+    pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
         let parent: *mut zend_class_entry = self
             .parent
             .as_ref()

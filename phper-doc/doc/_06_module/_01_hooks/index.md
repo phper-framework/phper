@@ -35,7 +35,7 @@ pub fn get_module() -> Module {
         env!("CARGO_PKG_AUTHORS"),
     );
 
-    module.on_module_init(|_| {
+    module.on_module_init(|| {
         // Do somethings in `MINIT` stage.
         true
     });
