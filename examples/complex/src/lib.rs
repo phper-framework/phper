@@ -13,7 +13,7 @@ use phper::{
     classes::{ClassEntity, Visibility},
     functions::Argument,
     ini::{ini_get, Policy},
-    modules::{Module, ModuleEntry},
+    modules::Module,
     objects::StateObj,
     php_get_module,
     values::ZVal,
@@ -50,10 +50,10 @@ pub fn get_module() -> Module {
     );
 
     // register hook functions
-    module.on_module_init(|_: &ModuleEntry| true);
-    module.on_module_shutdown(|_| true);
-    module.on_request_init(|_| true);
-    module.on_request_shutdown(|_| true);
+    module.on_module_init(|| true);
+    module.on_module_shutdown(|| true);
+    module.on_request_init(|| true);
+    module.on_request_shutdown(|| true);
 
     // register functions
     module
