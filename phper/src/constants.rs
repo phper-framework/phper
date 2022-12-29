@@ -10,7 +10,7 @@
 
 //! Apis relate to [crate::sys::zend_constant].
 
-use crate::{modules::ModuleContext, sys::*, types::Scalar};
+use crate::{sys::*, types::Scalar};
 use std::ffi::{c_char, c_int};
 
 pub(crate) struct Constant {
@@ -26,22 +26,33 @@ impl Constant {
         }
     }
 
-    pub(crate) fn register(&self, module_context: &ModuleContext) {
+    pub(crate) fn register(&self, module_number: c_int) {
         let name_ptr = self.name.as_ptr() as *const c_char;
         let name_len = self.name.len();
         let flags = (CONST_PERSISTENT | CONST_CS) as c_int;
-        let num = module_context.module_number;
 
         unsafe {
             match &self.value {
-                Scalar::Null => zend_register_null_constant(name_ptr, name_len, flags, num),
-                Scalar::Bool(b) => {
-                    zend_register_bool_constant(name_ptr, name_len, *b as zend_bool, flags, num)
+                Scalar::Null => {
+                    zend_register_null_constant(name_ptr, name_len, flags, module_number)
                 }
-                Scalar::I64(i) => {
-                    zend_register_long_constant(name_ptr, name_len, *i as zend_long, flags, num)
+                Scalar::Bool(b) => zend_register_bool_constant(
+                    name_ptr,
+                    name_len,
+                    *b as zend_bool,
+                    flags,
+                    module_number,
+                ),
+                Scalar::I64(i) => zend_register_long_constant(
+                    name_ptr,
+                    name_len,
+                    *i as zend_long,
+                    flags,
+                    module_number,
+                ),
+                Scalar::F64(f) => {
+                    zend_register_double_constant(name_ptr, name_len, *f, flags, module_number)
                 }
-                Scalar::F64(f) => zend_register_double_constant(name_ptr, name_len, *f, flags, num),
                 Scalar::String(s) => {
                     let s_ptr = s.as_ptr() as *mut u8;
                     zend_register_stringl_constant(
@@ -50,7 +61,7 @@ impl Constant {
                         s_ptr.cast(),
                         s.len(),
                         flags,
-                        num,
+                        module_number,
                     )
                 }
                 Scalar::Bytes(s) => {
@@ -61,7 +72,7 @@ impl Constant {
                         s_ptr.cast(),
                         s.len(),
                         flags,
-                        num,
+                        module_number,
                     )
                 }
             }

@@ -12,8 +12,8 @@
 
 use crate::sys::*;
 use std::{
-    ffi::CStr,
-    mem::{zeroed, ManuallyDrop},
+    ffi::{c_int, CStr},
+    mem::zeroed,
     os::raw::c_char,
     ptr::null_mut,
     str,
@@ -155,7 +155,7 @@ impl IniEntity {
     }
 
     #[inline]
-    pub(crate) fn entry(&mut self) -> zend_ini_entry_def {
+    pub(crate) fn entry(&self) -> zend_ini_entry_def {
         create_ini_entry_ex(&self.name, &self.default_value, self.policy as u32)
     }
 }
@@ -194,16 +194,27 @@ fn create_ini_entry_ex(name: &str, default_value: &str, modifiable: u32) -> zend
     }
 }
 
-pub(crate) unsafe fn entries(ini_entries: Vec<IniEntity>) -> *const zend_ini_entry_def {
+unsafe fn entries(ini_entries: &[IniEntity]) -> *const zend_ini_entry_def {
     let mut entries = Vec::with_capacity(ini_entries.len() + 1);
 
-    ini_entries.into_iter().for_each(|entity| {
+    ini_entries.iter().for_each(|entity| {
         // Ini entity will exist throughout the whole application life cycle.
-        let mut entity = ManuallyDrop::new(entity);
         entries.push(entity.entry());
     });
 
     entries.push(zeroed::<zend_ini_entry_def>());
 
     Box::into_raw(entries.into_boxed_slice()).cast()
+}
+
+pub(crate) fn register(ini_entries: &[IniEntity], module_number: c_int) {
+    unsafe {
+        zend_register_ini_entries(entries(ini_entries), module_number);
+    }
+}
+
+pub(crate) fn unregister(module_number: c_int) {
+    unsafe {
+        zend_unregister_ini_entries(module_number);
+    }
 }

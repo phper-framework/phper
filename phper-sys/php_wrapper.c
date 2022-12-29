@@ -433,3 +433,7 @@ zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name) {
     info[0].name = name;
     return info[0];
 }
+
+void *phper_z_ptr_p(const zval *zv) {
+    return Z_PTR_P(zv);
+}
