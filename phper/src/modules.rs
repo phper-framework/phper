@@ -53,7 +53,7 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
         f();
     }
 
-    1
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn module_shutdown(_type: c_int, module_number: c_int) -> c_int {
@@ -65,7 +65,7 @@ unsafe extern "C" fn module_shutdown(_type: c_int, module_number: c_int) -> c_in
         f();
     }
 
-    1
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn request_startup(_type: c_int, _module_number: c_int) -> c_int {
@@ -75,7 +75,7 @@ unsafe extern "C" fn request_startup(_type: c_int, _module_number: c_int) -> c_i
         f();
     }
 
-    1
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn request_shutdown(_type: c_int, _module_number: c_int) -> c_int {
@@ -85,7 +85,7 @@ unsafe extern "C" fn request_shutdown(_type: c_int, _module_number: c_int) -> c_
         f();
     }
 
-    1
+    ZEND_RESULT_CODE_SUCCESS
 }
 
 unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
