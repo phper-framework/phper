@@ -35,7 +35,7 @@ use std::{
 
 /// Wrapper of [crate::sys::zend_execute_data].
 #[repr(transparent)]
-pub(crate) struct ExecuteData {
+pub struct ExecuteData {
     inner: zend_execute_data,
 }
 
