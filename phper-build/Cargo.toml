@@ -20,4 +20,4 @@ repository = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
-phper-sys = { version = "0.10.1", path = "../phper-sys" }
+phper-sys = { version = "0.10.2", path = "../phper-sys" }

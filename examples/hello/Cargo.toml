@@ -21,4 +21,4 @@ license = { workspace = true }
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-phper = { version = "0.10.1", path = "../../phper" }
+phper = { version = "0.10.2", path = "../../phper" }
