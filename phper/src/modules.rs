@@ -35,6 +35,8 @@ use std::{
 /// Because PHP is single threaded, so there is no lock here.
 static mut GLOBAL_MODULE: *mut Module = null_mut();
 
+static mut GLOBAL_MODULE_ENTRY: *mut zend_module_entry = null_mut();
+
 unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int {
     let module = GLOBAL_MODULE.as_mut().unwrap();
 
@@ -211,6 +213,10 @@ impl Module {
     /// Leak memory to generate `zend_module_entry` pointer.
     #[doc(hidden)]
     pub unsafe fn module_entry(self) -> *const zend_module_entry {
+        if !GLOBAL_MODULE_ENTRY.is_null() {
+            return GLOBAL_MODULE_ENTRY;
+        }
+
         assert!(!self.name.as_bytes().is_empty(), "module name must be set");
         assert!(
             !self.version.as_bytes().is_empty(),
@@ -249,10 +255,10 @@ impl Module {
             build_id: phper_get_zend_module_build_id(),
         });
 
-        assert!(GLOBAL_MODULE.is_null(), "GLOBAL_MODULE has registered");
         GLOBAL_MODULE = Box::into_raw(module);
+        GLOBAL_MODULE_ENTRY = Box::into_raw(entry);
 
-        Box::into_raw(entry)
+        GLOBAL_MODULE_ENTRY
     }
 
     fn function_entries(&self) -> *const zend_function_entry {
