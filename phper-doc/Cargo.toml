@@ -20,7 +20,7 @@ repository = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
-phper = { version = "0.10.1", path = "../phper" }
+phper = { version = "0.10.2", path = "../phper" }
 
 [dev-dependencies]
 thiserror = "1.0.37"
