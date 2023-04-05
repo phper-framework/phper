@@ -40,12 +40,6 @@ jobs:
           php-version: 7.4
           tools: php-config
 
-      - name: Install Rust Stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
       - name: Cargo publish phper-sys
         uses: actions-rs/cargo@v1
         with:
