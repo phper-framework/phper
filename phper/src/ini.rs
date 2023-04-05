@@ -10,7 +10,7 @@
 
 //! Apis relate to [crate::sys::zend_ini_entry_def].
 
-use crate::sys::*;
+use crate::{c_str, sys::*};
 use std::{
     ffi::{c_int, CStr},
     mem::zeroed,
@@ -99,10 +99,14 @@ pub trait FromIniValue {
 impl FromIniValue for bool {
     #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
-        unsafe {
-            let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_long(name_ptr, name.len().try_into().unwrap(), 0) != 0
-        }
+        let s = <Option<&CStr>>::from_ini_value(name);
+        [
+            Some(c_str!("1")),
+            Some(c_str!("true")),
+            Some(c_str!("on")),
+            Some(c_str!("On")),
+        ]
+        .contains(&s)
     }
 }
 
