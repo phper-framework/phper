@@ -96,20 +96,11 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-          override: true
           components: rustfmt
-
-      - name: Install Rust Stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          components: clippy
 
       - name: Cargo generate lockfile
         uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: generate-lockfile
 
       - name: Setup cargo cache
@@ -133,21 +124,18 @@ jobs:
       - name: Cargo clippy
         uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: clippy
           args: --release
 
       - name: Cargo build
         uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: build
           args: --release
 
       - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
           command: test
           args: --release -- --nocapture
 
