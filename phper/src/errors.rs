@@ -478,9 +478,10 @@ pub struct ExceptionGuard(PhantomData<*mut ()>);
 
 impl Default for ExceptionGuard {
     fn default() -> Self {
-        EXCEPTION_GUARD_COUNT.fetch_add(1, atomic::Ordering::Acquire);
-        unsafe {
-            zend_exception_save();
+        if EXCEPTION_GUARD_COUNT.fetch_add(1, atomic::Ordering::Acquire) == 0 {
+            unsafe {
+                zend_exception_save();
+            }
         }
         Self(PhantomData)
     }
@@ -488,11 +489,10 @@ impl Default for ExceptionGuard {
 
 impl Drop for ExceptionGuard {
     fn drop(&mut self) {
-        if EXCEPTION_GUARD_COUNT.fetch_sub(1, atomic::Ordering::Acquire) > 1 {
-            return;
-        }
-        unsafe {
-            zend_exception_restore();
+        if EXCEPTION_GUARD_COUNT.fetch_sub(1, atomic::Ordering::Acquire) == 1 {
+            unsafe {
+                zend_exception_restore();
+            }
         }
     }
 }
