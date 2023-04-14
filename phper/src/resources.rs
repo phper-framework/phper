@@ -11,6 +11,7 @@
 //! Apis relate to [crate::sys::zend_resource].
 
 use crate::sys::*;
+use std::fmt::{self, Debug};
 
 /// Wrapper of [crate::sys::zend_resource].
 #[repr(transparent)]
@@ -80,5 +81,13 @@ impl ZRes {
     #[allow(clippy::useless_conversion)]
     pub fn handle(&self) -> i64 {
         self.inner.handle.into()
+    }
+}
+
+impl Debug for ZRes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ZRes")
+            .field("handle", &self.handle())
+            .finish()
     }
 }

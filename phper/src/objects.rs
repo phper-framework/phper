@@ -304,10 +304,7 @@ impl ToRefOwned for ZObj {
 
 impl Debug for ZObj {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ZObj")
-            .field("class", &self.get_class().get_name().to_c_str())
-            .field("handle", &self.handle())
-            .finish()
+        common_fmt(self, f, "ZObj")
     }
 }
 
@@ -398,10 +395,7 @@ impl Drop for ZObject {
 
 impl Debug for ZObject {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ZObject")
-            .field("class", &self.get_class().get_name().to_c_str())
-            .field("handle", &self.handle())
-            .finish()
+        common_fmt(self, f, "ZObject")
     }
 }
 
@@ -506,4 +500,18 @@ impl StateObject {
     pub(crate) unsafe fn as_mut_object<'a>(this: *mut Self) -> &'a mut zend_object {
         &mut (*this).object
     }
+}
+
+fn common_fmt(this: &ZObj, f: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    let mut d = f.debug_struct(name);
+    match this.get_class().get_name().to_c_str() {
+        Ok(class_name) => {
+            d.field("class", &class_name);
+        }
+        Err(e) => {
+            d.field("class", &e);
+        }
+    }
+    d.field("handle", &this.handle());
+    d.finish()
 }

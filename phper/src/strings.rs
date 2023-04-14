@@ -16,7 +16,7 @@ use std::{
     borrow::Borrow,
     convert::TryInto,
     ffi::{CStr, FromBytesWithNulError},
-    fmt::Debug,
+    fmt::{self, Debug},
     marker::PhantomData,
     mem::forget,
     ops::{Deref, DerefMut},
@@ -117,9 +117,15 @@ impl ZStr {
         unsafe { from_raw_parts(phper_zstr_val(&self.inner).cast(), self.len()) }
     }
 
+    /// Converts inner C string to a byte slice containing the trailing 0 byte..
+    #[inline]
+    fn to_bytes_with_nul(&self) -> &[u8] {
+        unsafe { from_raw_parts(phper_zstr_val(&self.inner).cast(), self.len() + 1) }
+    }
+
     /// Extracts a [`CStr`] slice containing the inner C string.
     pub fn to_c_str(&self) -> Result<&CStr, FromBytesWithNulError> {
-        CStr::from_bytes_with_nul(self.to_bytes())
+        CStr::from_bytes_with_nul(self.to_bytes_with_nul())
     }
 
     /// Yields a str slice if the `ZStr` contains valid UTF-8.
@@ -130,7 +136,7 @@ impl ZStr {
 
 impl Debug for ZStr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("ZStr").field(&self.to_c_str()).finish()
+        common_fmt(self, f, "ZStr")
     }
 }
 
@@ -212,7 +218,7 @@ impl ZString {
 
 impl Debug for ZString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("ZString").field(&self.to_c_str()).finish()
+        common_fmt(self, f, "ZString")
     }
 }
 
@@ -269,4 +275,17 @@ impl Drop for ZString {
             phper_zend_string_release(self.as_mut_ptr());
         }
     }
+}
+
+fn common_fmt(this: &ZStr, f: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    let mut d = f.debug_tuple(name);
+    match this.to_c_str() {
+        Ok(s) => {
+            d.field(&s);
+        }
+        Err(e) => {
+            d.field(&e);
+        }
+    };
+    d.finish()
 }

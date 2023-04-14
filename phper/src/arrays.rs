@@ -15,6 +15,7 @@ use derive_more::From;
 use std::{
     borrow::Borrow,
     convert::TryInto,
+    fmt::{self, Debug},
     marker::PhantomData,
     mem::ManuallyDrop,
     ops::{Deref, DerefMut},
@@ -327,6 +328,12 @@ impl ZArr {
     }
 }
 
+impl Debug for ZArr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        common_fmt(self, f, "ZArr")
+    }
+}
+
 impl ToOwned for ZArr {
     type Owned = ZArray;
 
@@ -397,6 +404,12 @@ impl ZArray {
     #[inline]
     pub fn into_raw(self) -> *mut zend_array {
         ManuallyDrop::new(self).as_mut_ptr()
+    }
+}
+
+impl Debug for ZArray {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        common_fmt(self, f, "ZArray")
     }
 }
 
@@ -614,4 +627,18 @@ impl<'a> Entry<'a> {
             }
         }
     }
+}
+
+fn common_fmt(this: &ZArr, f: &mut fmt::Formatter<'_>, name: &str) -> fmt::Result {
+    struct Debugger<'a>(&'a ZArr);
+
+    impl Debug for Debugger<'_> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_map().entries(self.0.iter()).finish()
+        }
+    }
+
+    let zd = Debugger(this);
+
+    f.debug_tuple(name).field(&zd).finish()
 }

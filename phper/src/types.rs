@@ -12,10 +12,14 @@
 
 use crate::{c_str, sys::*};
 use derive_more::From;
-use std::{ffi::CStr, fmt::Display, os::raw::c_int};
+use std::{
+    ffi::CStr,
+    fmt::{self, Debug, Display},
+    os::raw::c_int,
+};
 
 /// Wrapper of PHP type.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct TypeInfo {
     t: u32,
 }
@@ -149,6 +153,16 @@ impl TypeInfo {
 
             s
         }
+    }
+}
+
+impl Debug for TypeInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TypeInfo")
+            .field("base_name", &self.get_base_type_name())
+            .field("base", &self.get_base_type().t)
+            .field("raw", &self.t)
+            .finish()
     }
 }
 

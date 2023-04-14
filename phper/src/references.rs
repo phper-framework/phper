@@ -11,6 +11,7 @@
 //! Apis relate to [crate::sys::zend_resource].
 
 use crate::{sys::*, values::ZVal};
+use std::fmt::{self, Debug};
 
 /// Wrapper of [crate::sys::zend_resource].
 #[repr(transparent)]
@@ -84,5 +85,11 @@ impl ZRef {
     /// Gets actual value mutable reference.
     pub fn val_mut(&mut self) -> &mut ZVal {
         unsafe { ZVal::from_mut_ptr(&mut self.inner.val) }
+    }
+}
+
+impl Debug for ZRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ZRef").field("val", &self.val()).finish()
     }
 }

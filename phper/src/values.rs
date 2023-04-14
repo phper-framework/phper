@@ -553,9 +553,57 @@ impl ZVal {
 
 impl Debug for ZVal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ZVal")
-            .field("type", &self.get_type_info())
-            .finish()
+        #[derive(Debug)]
+        #[allow(non_camel_case_types)]
+        struct null;
+
+        #[derive(Debug)]
+        #[allow(non_camel_case_types)]
+        struct unknown;
+
+        let mut d = f.debug_tuple("ZVal");
+
+        let t = self.get_type_info();
+
+        if t.is_null() {
+            d.field(&null);
+        } else if t.is_bool() {
+            if let Some(v) = self.as_bool() {
+                d.field(&v);
+            }
+        } else if t.is_long() {
+            if let Some(v) = self.as_long() {
+                d.field(&v);
+            }
+        } else if t.is_double() {
+            if let Some(v) = self.as_double() {
+                d.field(&v);
+            }
+        } else if t.is_string() {
+            if let Some(v) = self.as_z_str() {
+                d.field(&v);
+            }
+        } else if t.is_array() {
+            if let Some(v) = self.as_z_arr() {
+                d.field(&v);
+            }
+        } else if t.is_object() {
+            if let Some(v) = self.as_z_obj() {
+                d.field(&v);
+            }
+        } else if t.is_resource() {
+            if let Some(v) = self.as_z_res() {
+                d.field(&v);
+            }
+        } else if t.is_reference() {
+            if let Some(v) = self.as_z_ref() {
+                d.field(&v);
+            }
+        } else {
+            d.field(&unknown);
+        }
+
+        d.finish()
     }
 }
 
