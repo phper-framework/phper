@@ -21,7 +21,7 @@ use std::{
     fmt::{self, Debug, Display},
     io,
     marker::PhantomData,
-    mem::replace,
+    mem::{replace, ManuallyDrop},
     ops::{Deref, DerefMut},
     ptr::null_mut,
     result,
@@ -504,6 +504,6 @@ impl Drop for ExceptionGuard {
 /// rather than use this function.
 pub unsafe fn throw(e: impl Throwable) {
     let obj = ThrowObject::from_throwable(e).into_inner();
-    let mut val = ZVal::from(obj);
+    let mut val = ManuallyDrop::new(ZVal::from(obj));
     zend_throw_exception_object(val.as_mut_ptr());
 }
