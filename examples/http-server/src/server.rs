@@ -31,8 +31,8 @@ thread_local! {
     static ON_REQUEST_HANDLERS: RefCell<HashMap<u32, ZVal>> = Default::default();
 }
 
-pub fn make_server_class() -> ClassEntity<Option<SocketAddr>> {
-    let mut class = ClassEntity::new_with_default_state_constructor(HTTP_SERVER_CLASS_NAME);
+pub fn make_server_class() -> ClassEntity<()> {
+    let mut class = ClassEntity::new(HTTP_SERVER_CLASS_NAME);
 
     class.add_property("host", Visibility::Private, "127.0.0.1");
     class.add_property("port", Visibility::Private, 8080);
@@ -44,11 +44,6 @@ pub fn make_server_class() -> ClassEntity<Option<SocketAddr>> {
 
             this.set_property("host", host.to_owned());
             this.set_property("port", port);
-
-            let addr = format!("{}:{}", host.to_str()?, port)
-                .parse::<SocketAddr>()
-                .map_err(|e| HttpServerError(Box::new(e)))?;
-            *this.as_mut_state() = Some(addr);
 
             Ok::<_, phper::Error>(())
         })
@@ -66,7 +61,12 @@ pub fn make_server_class() -> ClassEntity<Option<SocketAddr>> {
         .argument(Argument::by_val("handle"));
 
     class.add_method("start", Visibility::Public, |this, _| {
-        let addr = take(this.as_mut_state()).unwrap();
+        let host = this.get_property("host").expect_z_str()?.to_str()?;
+        let port = this.get_property("port").expect_long()?;
+        let addr = format!("{}:{}", host, port)
+            .parse::<SocketAddr>()
+            .map_err(|e| HttpServerError(Box::new(e)))?;
+
         let handle = this.handle();
 
         let fut = async move {
