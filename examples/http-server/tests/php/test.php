@@ -19,8 +19,13 @@ error_reporting(E_ALL);
 
 $server = new HttpServer("127.0.0.1", 9000);
 $server->onRequest(function ($request, $response) {
+    var_dump($request->headers, $request->data);
+
     $response->header('Content-Type', 'text/plain');
+    $response->header('X-Foo', 'Bar');
     $response->end("Hello World\n");
 });
+
+echo "Listening http://127.0.0.1:9000\n\n";
 
 $server->start();

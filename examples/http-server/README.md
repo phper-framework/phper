@@ -2,7 +2,12 @@
 
 Http server example.
 
-Power by [tokio](https://crates.io/crates/tokio) and [hyper](https://crates.io/crates/hyper).
+Power by [tokio](https://crates.io/crates/tokio) and [axum](https://crates.io/crates/axum).
+
+Because PHP is a single threaded model, so tokio runtime uses current thread scheduler.
+
+This is just a demo program, and if it want to be as powerful as `swoole`,
+it need to work hard on multiprocessing and asynchronous components.
 
 ## Environment
 
@@ -23,10 +28,14 @@ cargo build --release
 cargo test --release
 ```
 
-## Install
+## Run
 
 ```bash
-cp target/release/libhttp_server.so `${PHP_CONFIG:=php-config} --extension-dir`
+# Start web server:
+php -d "extension=target/release/libhttp_server.so" examples/http-server/tests/php/test.php
+
+# Request:
+curl -i http://127.0.0.1:9000/
 ```
 
 ## License

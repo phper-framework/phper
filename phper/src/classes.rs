@@ -30,7 +30,7 @@ use std::{
     ffi::{c_void, CString},
     fmt::Debug,
     marker::PhantomData,
-    mem::{size_of, zeroed, ManuallyDrop},
+    mem::{size_of, zeroed},
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,
@@ -199,7 +199,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
-pub(crate) type StateConstructor = Rc<dyn Fn() -> Box<dyn Any>>;
+pub(crate) type StateConstructor = dyn Fn() -> Box<dyn Any>;
 
 /// Builder for registering class.
 ///
@@ -209,7 +209,7 @@ pub(crate) type StateConstructor = Rc<dyn Fn() -> Box<dyn Any>>;
 /// third-party resources.*
 pub struct ClassEntity<T> {
     class_name: CString,
-    state_constructor: StateConstructor,
+    state_constructor: Rc<StateConstructor>,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
@@ -382,8 +382,8 @@ impl<T: 'static> ClassEntity<T> {
 
     unsafe fn take_state_constructor_into_function_entry(&self) -> zend_function_entry {
         let mut entry = zeroed::<zend_function_entry>();
-        let ptr = &mut entry as *mut _ as *mut StateConstructor;
-        let state_constructor = self.state_constructor.clone();
+        let ptr = &mut entry as *mut _ as *mut *const StateConstructor;
+        let state_constructor = Rc::into_raw(self.state_constructor.clone());
         ptr.write(state_constructor);
         entry
     }
@@ -507,20 +507,20 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
         func_ptr = func_ptr.offset(1);
     }
     func_ptr = func_ptr.offset(1);
-    let state_constructor = func_ptr as *const StateConstructor;
+    let state_constructor = func_ptr as *mut *const StateConstructor;
     let state_constructor = state_constructor.read();
 
     // Call the state constructor.
-    let data: Box<dyn Any> = state_constructor();
-    *StateObject::as_mut_state(state_object) = ManuallyDrop::new(data);
+    let data: Box<dyn Any> = (state_constructor.as_ref().unwrap())();
+    *StateObject::as_mut_state(state_object) = Box::into_raw(data);
 
     object
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {
     // Drop the state.
-    let extend_object = StateObject::fetch_ptr(object);
-    StateObject::drop_state(extend_object);
+    let state_object = StateObject::fetch_ptr(object);
+    StateObject::drop_state(state_object);
 
     // Original destroy call.
     zend_object_std_dtor(object);

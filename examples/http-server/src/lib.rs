@@ -13,8 +13,6 @@ use crate::{
     server::make_server_class,
 };
 use phper::{modules::Module, php_get_module};
-use std::{mem::forget, sync::Arc};
-use tokio::runtime;
 
 pub mod errors;
 pub mod request;
@@ -29,21 +27,6 @@ pub fn get_module() -> Module {
         env!("CARGO_PKG_VERSION"),
         env!("CARGO_PKG_AUTHORS"),
     );
-
-    let rt = runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-    let rt = Arc::new(rt);
-    let rt_ = rt.clone();
-
-    module.on_module_init(move || {
-        let guard = rt_.enter();
-        forget(guard);
-    });
-    module.on_module_shutdown(move || {
-        drop(rt);
-    });
 
     module.add_class(make_exception_class());
     module.add_class(make_server_class());

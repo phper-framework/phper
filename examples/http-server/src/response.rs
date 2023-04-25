@@ -9,10 +9,14 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::errors::HttpServerError;
-use hyper::{header::HeaderName, http::HeaderValue, Body, Response};
+use axum::{
+    body::Body,
+    http::{HeaderName, HeaderValue, Response},
+};
 use phper::{
-    classes::{ClassEntity, Visibility},
+    classes::{ClassEntity, ClassEntry, Visibility},
     functions::Argument,
+    objects::ZObject,
 };
 
 pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
@@ -32,7 +36,8 @@ pub fn make_response_class() -> ClassEntity<Response<Body>> {
             );
             Ok::<_, phper::Error>(())
         })
-        .argument(Argument::by_val("data"));
+        .argument(Argument::by_val("name"))
+        .argument(Argument::by_val("value"));
 
     class
         .add_method("end", Visibility::Public, |this, arguments| {
@@ -43,4 +48,8 @@ pub fn make_response_class() -> ClassEntity<Response<Body>> {
         .argument(Argument::by_val("data"));
 
     class
+}
+
+pub fn new_response_object() -> phper::Result<ZObject> {
+    ClassEntry::from_globals(HTTP_RESPONSE_CLASS_NAME)?.new_object([])
 }

@@ -125,7 +125,7 @@ impl ZObj {
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_state<T: 'static>(&self) -> &T {
         let eo = StateObject::fetch(&self.inner);
-        eo.state.downcast_ref().unwrap()
+        eo.state.as_ref().unwrap().downcast_ref().unwrap()
     }
 
     /// Get inner mutable state.
@@ -136,7 +136,7 @@ impl ZObj {
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_mut_state<T: 'static>(&mut self) -> &mut T {
         let eo = StateObject::fetch_mut(&mut self.inner);
-        eo.state.downcast_mut().unwrap()
+        eo.state.as_mut().unwrap().downcast_mut().unwrap()
     }
 
     /// Get the inner handle of object.
@@ -458,18 +458,18 @@ impl<T> DerefMut for StateObj<T> {
     }
 }
 
-pub(crate) type ManuallyDropState = ManuallyDrop<Box<dyn Any>>;
+pub(crate) type State = *mut dyn Any;
 
 /// The Object contains `zend_object` and the user defined state data.
 #[repr(C)]
 pub(crate) struct StateObject {
-    state: ManuallyDropState,
+    state: State,
     object: zend_object,
 }
 
 impl StateObject {
     pub(crate) const fn offset() -> usize {
-        size_of::<ManuallyDropState>()
+        size_of::<State>()
     }
 
     pub(crate) unsafe fn fetch(object: &zend_object) -> &Self {
@@ -489,11 +489,10 @@ impl StateObject {
     }
 
     pub(crate) unsafe fn drop_state(this: *mut Self) {
-        let state = &mut (*this).state;
-        ManuallyDrop::drop(state);
+        drop(Box::from_raw((*this).state));
     }
 
-    pub(crate) unsafe fn as_mut_state<'a>(this: *mut Self) -> &'a mut ManuallyDropState {
+    pub(crate) unsafe fn as_mut_state<'a>(this: *mut Self) -> &'a mut State {
         &mut (*this).state
     }
 

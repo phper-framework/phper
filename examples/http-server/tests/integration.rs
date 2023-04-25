@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use hyper::header::CONTENT_TYPE;
+use axum::http::header::CONTENT_TYPE;
 use phper_test::{cli::test_long_term_php_script_with_condition, utils::get_lib_path};
 use reqwest::Client;
 use std::{

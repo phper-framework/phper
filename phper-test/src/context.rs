@@ -88,6 +88,10 @@ impl Context {
     pub fn find_php_fpm(&self) -> Option<String> {
         use std::ffi::OsStr;
 
+        if let Ok(php_fpm_bin) = env::var("PHP_FPM_BIN") {
+            return Some(php_fpm_bin);
+        }
+
         let php_bin = Path::new(&self.php_bin);
         php_bin.parent().and_then(Path::parent).and_then(|p| {
             php_bin
