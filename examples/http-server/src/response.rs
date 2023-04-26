@@ -9,38 +9,56 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::errors::HttpServerError;
-use hyper::{header::HeaderName, http::HeaderValue, Body, Response};
+use axum::{
+    body::Body,
+    http::{HeaderName, HeaderValue, Response},
+};
 use phper::{
-    classes::{ClassEntity, Visibility},
+    classes::{ClassEntity, ClassEntry, Visibility},
     functions::Argument,
+    objects::ZObject,
 };
 
 pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 
+/// Register the class `HttpServer\HttpResponse` by `ClassEntity`, with the
+/// inner state `Response<Body>`.
 pub fn make_response_class() -> ClassEntity<Response<Body>> {
     let mut class = ClassEntity::new_with_default_state_constructor(HTTP_RESPONSE_CLASS_NAME);
 
+    // Register the header method with public visibility, accept `name` and `value`
+    // parameters.
     class
         .add_method("header", Visibility::Public, |this, arguments| {
             let name = arguments[0].expect_z_str()?.to_bytes();
             let value = arguments[1].expect_z_str()?.to_bytes();
 
+            // Inject the header into inner response state.
             let response: &mut Response<Body> = this.as_mut_state();
             response.headers_mut().insert(
-                HeaderName::from_bytes(name).map_err(|e| HttpServerError(Box::new(e)))?,
-                HeaderValue::from_bytes(value).map_err(|e| HttpServerError(Box::new(e)))?,
+                HeaderName::from_bytes(name).map_err(HttpServerError::new)?,
+                HeaderValue::from_bytes(value).map_err(HttpServerError::new)?,
             );
+
             Ok::<_, phper::Error>(())
         })
-        .argument(Argument::by_val("data"));
+        .argument(Argument::by_val("name"))
+        .argument(Argument::by_val("value"));
 
+    // Register the end method with public visibility, accept `data` parameters.
     class
         .add_method("end", Visibility::Public, |this, arguments| {
+            // Inject the body content into inner response state.
             let response: &mut Response<Body> = this.as_mut_state();
-            *response.body_mut() = arguments[0].as_z_str().unwrap().to_bytes().to_vec().into();
+            *response.body_mut() = arguments[0].expect_z_str()?.to_bytes().to_vec().into();
             Ok::<_, phper::Error>(())
         })
         .argument(Argument::by_val("data"));
 
     class
+}
+
+/// New the object with class `HttpServer\HttpResponse`.
+pub fn new_response_object() -> phper::Result<ZObject> {
+    ClassEntry::from_globals(HTTP_RESPONSE_CLASS_NAME)?.new_object([])
 }

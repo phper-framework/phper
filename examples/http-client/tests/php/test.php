@@ -24,7 +24,7 @@ $client = (new HttpClientBuilder())
     ->cookie_store(true)
     ->build();
 
-$response = $client->get("https://httpbin.org/ip")->send();
+$response = $client->get("https://example.com/")->send();
 var_dump([
     "status" => $response->status(),
     "headers" => $response->headers(),

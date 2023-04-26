@@ -19,8 +19,17 @@ error_reporting(E_ALL);
 
 $server = new HttpServer("127.0.0.1", 9000);
 $server->onRequest(function ($request, $response) {
+    echo "HEADERS:\n";
+    foreach ($request->headers as $key => $value) {
+        echo "$key => $value\n";
+    }
+    echo "\nBODY:\n{$request->data}\n\n";
+
     $response->header('Content-Type', 'text/plain');
+    $response->header('X-Foo', 'Bar');
     $response->end("Hello World\n");
 });
+
+echo "Listening http://127.0.0.1:9000\n\n";
 
 $server->start();
