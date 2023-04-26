@@ -10,14 +10,13 @@
 
 use axum::http::header::CONTENT_TYPE;
 use phper_test::{cli::test_long_term_php_script_with_condition, utils::get_lib_path};
-use reqwest::Client;
+use reqwest::blocking::Client;
 use std::{
     env,
     path::{Path, PathBuf},
     thread::sleep,
     time::Duration,
 };
-use tokio::runtime;
 
 #[test]
 fn test_php() {
@@ -37,18 +36,14 @@ fn test_php() {
             // wait for server startup.
             sleep(Duration::from_secs(3));
 
-            runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(async {
-                    let client = Client::new();
-                    let response = client.get("http://127.0.0.1:9000/").send().await.unwrap();
-                    let content_type = response.headers().get(CONTENT_TYPE).unwrap();
-                    assert_eq!(content_type, "text/plain");
-                    let body = response.text().await.unwrap();
-                    assert_eq!(body, "Hello World\n");
-                });
+            let client = Client::new();
+            for _ in 0..5 {
+                let response = client.get("http://127.0.0.1:9000/").send().unwrap();
+                let content_type = response.headers().get(CONTENT_TYPE).unwrap();
+                assert_eq!(content_type, "text/plain");
+                let body = response.text().unwrap();
+                assert_eq!(body, "Hello World\n");
+            }
         },
     );
 }

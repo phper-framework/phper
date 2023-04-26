@@ -18,16 +18,17 @@ pub mod errors;
 pub mod request;
 pub mod response;
 pub mod server;
-pub mod utils;
 
 #[php_get_module]
 pub fn get_module() -> Module {
+    // Add module info.
     let mut module = Module::new(
         env!("CARGO_CRATE_NAME"),
         env!("CARGO_PKG_VERSION"),
         env!("CARGO_PKG_AUTHORS"),
     );
 
+    // Register classes.
     module.add_class(make_exception_class());
     module.add_class(make_server_class());
     module.add_class(make_request_class());

@@ -16,9 +16,16 @@ use std::error::Error;
 
 const EXCEPTION_CLASS_NAME: &str = "HttpServer\\HttpServerException";
 
+/// Wraps any Error, implements `Throwable` and `Into<php::Error>`.
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub struct HttpServerError(pub Box<dyn Error>);
+
+impl HttpServerError {
+    pub fn new(e: impl Into<Box<dyn Error>>) -> Self {
+        Self(e.into())
+    }
+}
 
 impl Throwable for HttpServerError {
     fn get_class(&self) -> &ClassEntry {
@@ -32,8 +39,10 @@ impl From<HttpServerError> for phper::Error {
     }
 }
 
+/// Register the class `HttpServer\HttpServerException` by `ClassEntity`.
 pub fn make_exception_class() -> ClassEntity<()> {
     let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
+    // As an Exception class, inheriting from the base Exception class is important.
     class.extends(exception_class);
     class
 }

@@ -4,7 +4,7 @@ Http server example.
 
 Power by [tokio](https://crates.io/crates/tokio) and [axum](https://crates.io/crates/axum).
 
-Because PHP is a single threaded model, so tokio runtime uses current thread scheduler.
+Because PHP is a single threaded model (NTS), so tokio runtime uses current thread scheduler.
 
 This is just a demo program, and if it want to be as powerful as `swoole`,
 it need to work hard on multiprocessing and asynchronous components.
