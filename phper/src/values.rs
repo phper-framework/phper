@@ -14,8 +14,8 @@ use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
     errors::ExpectTypeError,
-    functions::{call_internal, ZendFunc},
-    objects::{ZObj, ZObject},
+    functions::{call_internal, ZFunc},
+    objects::{StateObject, ZObj, ZObject},
     references::ZRef,
     resources::ZRes,
     strings::{ZStr, ZString},
@@ -128,8 +128,8 @@ impl ExecuteData {
     }
 
     /// Gets associated function.
-    pub fn func(&self) -> &ZendFunc {
-        unsafe { ZendFunc::from_mut_ptr(self.inner.func) }
+    pub fn func(&self) -> &ZFunc {
+        unsafe { ZFunc::from_mut_ptr(self.inner.func) }
     }
 
     /// Gets associated `$this` object if exists.
@@ -759,6 +759,12 @@ impl From<ZObject> for ZVal {
             phper_zval_obj(val.as_mut_ptr().cast(), obj.into_raw());
             val.assume_init()
         }
+    }
+}
+
+impl<T> From<StateObject<T>> for ZVal {
+    fn from(obj: StateObject<T>) -> Self {
+        ZVal::from(obj.into_z_object())
     }
 }
 

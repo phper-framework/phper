@@ -14,7 +14,7 @@ use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError, Throwable},
     functions::{Function, FunctionEntry, Method, MethodEntity},
-    objects::{StateObj, StateObject, ZObj, ZObject},
+    objects::{CStateObject, StateObj, StateObject, ZObj, ZObject},
     strings::ZStr,
     sys::*,
     types::Scalar,
@@ -34,6 +34,7 @@ use std::{
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,
+    sync::atomic::{AtomicPtr, Ordering},
 };
 
 /// Predefined interface `Iterator`.
@@ -136,6 +137,9 @@ impl ClassEntry {
     }
 
     /// Create the object from class and call `__construct` with arguments.
+    ///
+    /// If the `__construct` is private, or protected and the called scope isn't
+    /// parent class, it will throw PHP Error.
     pub fn new_object(&self, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZObject> {
         let mut object = self.init_object()?;
         object.call_construct(arguments)?;
@@ -199,6 +203,77 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
+/// The [StateClass] holds [zend_class_entry](crate::sys::zend_class_entry) and
+/// inner state, always as the static variable, and then be bind to
+/// [ClassEntity].
+///
+/// When the class registered (module initialized), the [StateClass] will be
+/// initialized, so you can use the [StateClass] to new stateful object, etc.
+///
+/// So, You shouldn't use [StateClass] in `module_init` stage, because it hasn't
+/// initialized.
+///
+/// # Examples
+///
+/// ```rust
+/// use phper::classes::StateClass;
+///
+/// pub static FOO_CLASS: StateClass<FooState> = StateClass::new();
+///
+/// #[derive(Default)]
+/// pub struct FooState;
+///
+/// fn make_foo_class() -> ClassEntity<FooState> {
+///     let class = ClassEntity::new("Foo");
+///     class.bind(&FOO_CLASS);
+///     class
+/// }
+/// ```
+#[repr(transparent)]
+pub struct StateClass<T> {
+    inner: AtomicPtr<zend_class_entry>,
+    _p: PhantomData<T>,
+}
+
+impl<T> StateClass<T> {
+    /// Create empty [StateClass], with null
+    /// [zend_class_entry](crate::sys::zend_class_entry).
+    pub const fn new() -> Self {
+        Self {
+            inner: AtomicPtr::new(null_mut()),
+            _p: PhantomData,
+        }
+    }
+
+    fn bind(&'static self, ptr: *mut zend_class_entry) {
+        self.inner.store(ptr, Ordering::Relaxed);
+    }
+
+    /// Converts to class entry.
+    pub fn as_class_entry(&'static self) -> &'static ClassEntry {
+        unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
+    }
+
+    /// Create the object from class and call `__construct` with arguments.
+    ///
+    /// If the `__construct` is private, or protected and the called scope isn't
+    /// parent class, it will throw PHP Error.
+    pub fn new_object(
+        &'static self, arguments: impl AsMut<[ZVal]>,
+    ) -> crate::Result<StateObject<T>> {
+        self.as_class_entry()
+            .new_object(arguments)
+            .map(StateObject::new)
+    }
+
+    /// Create the object from class, without calling `__construct`.
+    ///
+    /// **Be careful when `__construct` is necessary.**
+    pub fn init_object(&'static self) -> crate::Result<StateObject<T>> {
+        self.as_class_entry().init_object().map(StateObject::new)
+    }
+}
+
 pub(crate) type StateConstructor = dyn Fn() -> Box<dyn Any>;
 
 /// Builder for registering class.
@@ -207,13 +282,14 @@ pub(crate) type StateConstructor = dyn Fn() -> Box<dyn Any>;
 ///
 /// *It is a common practice for PHP extensions to use PHP objects to package
 /// third-party resources.*
-pub struct ClassEntity<T> {
+pub struct ClassEntity<T: 'static> {
     class_name: CString,
     state_constructor: Rc<StateConstructor>,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
     interfaces: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
+    bind_class: Option<&'static StateClass<T>>,
     _p: PhantomData<(*mut (), T)>,
 }
 
@@ -245,6 +321,7 @@ impl<T: 'static> ClassEntity<T> {
             property_entities: Vec::new(),
             parent: None,
             interfaces: Vec::new(),
+            bind_class: None,
             _p: PhantomData,
         }
     }
@@ -331,6 +408,14 @@ impl<T: 'static> ClassEntity<T> {
         self.interfaces.push(Box::new(interface));
     }
 
+    /// Bind to static [StateClass].
+    ///
+    /// When the class registered, the [StateClass] will be initialized, so you
+    /// can use the [StateClass] to new stateful object, etc.
+    pub fn bind(&mut self, cls: &'static StateClass<T>) {
+        self.bind_class = Some(cls);
+    }
+
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
         let parent: *mut zend_class_entry = self
@@ -347,6 +432,10 @@ impl<T: 'static> ClassEntity<T> {
             Some(class_init_handler),
             parent.cast(),
         );
+
+        if let Some(bind_class) = self.bind_class {
+            bind_class.bind(class_ce);
+        }
 
         for interface in &self.interfaces {
             let interface_ce = interface().as_ptr();
@@ -482,7 +571,7 @@ fn get_object_handlers() -> &'static zend_object_handlers {
     static HANDLERS: OnceCell<zend_object_handlers> = OnceCell::new();
     HANDLERS.get_or_init(|| unsafe {
         let mut handlers = std_object_handlers;
-        handlers.offset = StateObject::offset() as c_int;
+        handlers.offset = CStateObject::offset() as c_int;
         handlers.free_obj = Some(free_object);
         handlers
     })
@@ -491,11 +580,11 @@ fn get_object_handlers() -> &'static zend_object_handlers {
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
-    let state_object: *mut StateObject =
-        phper_zend_object_alloc(size_of::<StateObject>().try_into().unwrap(), ce).cast();
+    let state_object: *mut CStateObject =
+        phper_zend_object_alloc(size_of::<CStateObject>().try_into().unwrap(), ce).cast();
 
     // Common initialize process.
-    let object = StateObject::as_mut_object(state_object);
+    let object = CStateObject::as_mut_object(state_object);
     zend_object_std_init(object, ce);
     object_properties_init(object, ce);
     rebuild_object_properties(object);
@@ -512,15 +601,15 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
 
     // Call the state constructor.
     let data: Box<dyn Any> = (state_constructor.as_ref().unwrap())();
-    *StateObject::as_mut_state(state_object) = Box::into_raw(data);
+    *CStateObject::as_mut_state(state_object) = Box::into_raw(data);
 
     object
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {
     // Drop the state.
-    let state_object = StateObject::fetch_ptr(object);
-    StateObject::drop_state(state_object);
+    let state_object = CStateObject::fetch_ptr(object);
+    CStateObject::drop_state(state_object);
 
     // Original destroy call.
     zend_object_std_dtor(object);

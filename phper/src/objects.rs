@@ -13,7 +13,7 @@
 use crate::{
     alloc::EBox,
     classes::ClassEntry,
-    functions::{call_internal, ZendFunc},
+    functions::{call_internal, call_raw_common, ZFunc},
     sys::*,
     values::ZVal,
 };
@@ -124,7 +124,7 @@ impl ZObj {
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_state<T: 'static>(&self) -> &T {
-        let eo = StateObject::fetch(&self.inner);
+        let eo = CStateObject::fetch(&self.inner);
         eo.state.as_ref().unwrap().downcast_ref().unwrap()
     }
 
@@ -135,7 +135,7 @@ impl ZObj {
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_mut_state<T: 'static>(&mut self) -> &mut T {
-        let eo = StateObject::fetch_mut(&mut self.inner);
+        let eo = CStateObject::fetch_mut(&mut self.inner);
         eo.state.as_mut().unwrap().downcast_mut().unwrap()
     }
 
@@ -258,22 +258,30 @@ impl ZObj {
         call_internal(&mut method, Some(self), arguments)
     }
 
-    /// Return bool represents whether the constructor exists.
-    pub(crate) fn call_construct(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<bool> {
+    pub(crate) fn call_construct(&mut self, arguments: impl AsMut<[ZVal]>) -> crate::Result<()> {
         unsafe {
-            match (*self.inner.handlers).get_constructor {
-                Some(get_constructor) => {
-                    let f = get_constructor(self.as_mut_ptr());
-                    if f.is_null() {
-                        Ok(false)
-                    } else {
-                        let zend_fn = ZendFunc::from_mut_ptr(f);
-                        zend_fn.call(Some(self), arguments)?;
-                        Ok(true)
-                    }
+            let Some(get_constructor) = (*self.inner.handlers).get_constructor else {
+                return Ok(());
+            };
+
+            // The `get_constructor` is possible to throw PHP Error, so call it inside
+            // `call_raw_common`.
+            let mut val = call_raw_common(|val| {
+                let f = get_constructor(self.as_mut_ptr());
+                if !f.is_null() {
+                    phper_zval_func(val.as_mut_ptr(), f);
                 }
-                None => Ok(false),
+            })?;
+
+            if val.get_type_info().is_null() {
+                return Ok(());
             }
+
+            let f = phper_z_func_p(val.as_mut_ptr());
+            let zend_fn = ZFunc::from_mut_ptr(f);
+            zend_fn.call(Some(self), arguments)?;
+
+            Ok(())
         }
     }
 }
@@ -354,6 +362,15 @@ impl ZObject {
         forget(self);
         ptr
     }
+
+    // pub unsafe fn into_state<T: 'static>(self) -> Option<T> {
+    //     // let eo = CStateObject::fetch_mut(&mut self.inner);
+    //     // eo.state.as_mut().unwrap().downcast_mut().unwrap()
+    //     // Detect ref count
+    //     // CStateObject::fetch_mut
+    //     // take(State)
+    //     // Any
+    // }
 }
 
 impl Clone for ZObject {
@@ -458,34 +475,70 @@ impl<T> DerefMut for StateObj<T> {
     }
 }
 
+/// The object owned state, usually crated by
+/// [StateClass](crate::classes::StateClass).
+pub struct StateObject<T> {
+    inner: ZObject,
+    _p: PhantomData<T>,
+}
+
+impl<T> StateObject<T> {
+    #[inline]
+    pub(crate) fn new(object: ZObject) -> Self {
+        Self {
+            inner: object,
+            _p: PhantomData,
+        }
+    }
+
+    /// Converts into [ZObject].
+    pub fn into_z_object(self) -> ZObject {
+        self.inner
+    }
+}
+
+impl<T> Deref for StateObject<T> {
+    type Target = ZObject;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T: 'static> DerefMut for StateObject<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 pub(crate) type State = *mut dyn Any;
 
 /// The Object contains `zend_object` and the user defined state data.
 #[repr(C)]
-pub(crate) struct StateObject {
+pub(crate) struct CStateObject {
     state: State,
     object: zend_object,
 }
 
-impl StateObject {
+impl CStateObject {
     pub(crate) const fn offset() -> usize {
         size_of::<State>()
     }
 
     pub(crate) unsafe fn fetch(object: &zend_object) -> &Self {
-        (((object as *const _ as usize) - StateObject::offset()) as *const Self)
+        (((object as *const _ as usize) - CStateObject::offset()) as *const Self)
             .as_ref()
             .unwrap()
     }
 
     pub(crate) unsafe fn fetch_mut(object: &mut zend_object) -> &mut Self {
-        (((object as *mut _ as usize) - StateObject::offset()) as *mut Self)
+        (((object as *mut _ as usize) - CStateObject::offset()) as *mut Self)
             .as_mut()
             .unwrap()
     }
 
     pub(crate) fn fetch_ptr(object: *mut zend_object) -> *mut Self {
-        (object as usize - StateObject::offset()) as *mut Self
+        (object as usize - CStateObject::offset()) as *mut Self
     }
 
     pub(crate) unsafe fn drop_state(this: *mut Self) {
