@@ -216,7 +216,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 /// # Examples
 ///
 /// ```rust
-/// use phper::classes::StateClass;
+/// use phper::classes::{ClassEntity, StateClass};
 ///
 /// pub static FOO_CLASS: StateClass<FooState> = StateClass::new();
 ///
@@ -224,7 +224,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 /// pub struct FooState;
 ///
 /// fn make_foo_class() -> ClassEntity<FooState> {
-///     let class = ClassEntity::new("Foo");
+///     let mut class = ClassEntity::new_with_default_state_constructor("Foo");
 ///     class.bind(&FOO_CLASS);
 ///     class
 /// }
