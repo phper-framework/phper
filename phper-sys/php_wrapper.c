@@ -83,6 +83,10 @@ uint32_t phper_z_addref_p(zval *zv) {
     return Z_ADDREF_P(zv);
 }
 
+zend_function *phper_z_func_p(const zval *zv) {
+    return Z_FUNC_P(zv);
+}
+
 void *phper_z_ptr_p(const zval *zv) {
     return Z_PTR_P(zv);
 }

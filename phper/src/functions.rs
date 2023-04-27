@@ -291,11 +291,11 @@ impl Argument {
 
 /// Wrapper of [`zend_function`].
 #[repr(transparent)]
-pub struct ZendFunc {
+pub struct ZFunc {
     inner: zend_function,
 }
 
-impl ZendFunc {
+impl ZFunc {
     /// Wraps a raw pointer.
     ///
     /// # Safety
@@ -305,7 +305,7 @@ impl ZendFunc {
     /// # Panics
     ///
     /// Panics if pointer is null.
-    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZendFunc {
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZFunc {
         let ptr = ptr as *mut Self;
         ptr.as_mut().expect("ptr shouldn't be null")
     }
