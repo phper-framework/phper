@@ -54,7 +54,7 @@ pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
         let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
         let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
         unsafe {
-            *object.as_mut_state() = Some(client);
+            *object.as_mut_state_obj().as_mut_state() = Some(client);
         }
         Ok::<_, phper::Error>(object)
     });
@@ -77,7 +77,7 @@ pub fn make_client_class() -> ClassEntity<Option<Client>> {
             let request_builder = client.get(url);
             let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.init_object()?;
             unsafe {
-                *object.as_mut_state() = Some(request_builder);
+                *object.as_mut_state_obj().as_mut_state() = Some(request_builder);
             }
             Ok::<_, phper::Error>(object)
         })
@@ -90,7 +90,7 @@ pub fn make_client_class() -> ClassEntity<Option<Client>> {
             let request_builder = client.post(url);
             let mut object = ClassEntry::from_globals(REQUEST_BUILDER_CLASS_NAME)?.init_object()?;
             unsafe {
-                *object.as_mut_state() = Some(request_builder);
+                *object.as_mut_state_obj().as_mut_state() = Some(request_builder);
             }
             Ok::<_, phper::Error>(object)
         })

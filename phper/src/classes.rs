@@ -14,7 +14,7 @@ use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError, Throwable},
     functions::{Function, FunctionEntry, Method, MethodEntity},
-    objects::{CStateObject, StateObj, StateObject, ZObj, ZObject},
+    objects::{StateObj, StateObject, ZObj, ZObject},
     strings::ZStr,
     sys::*,
     types::Scalar,
@@ -157,7 +157,7 @@ impl ClassEntry {
                 Err(InitializeObjectError::new(self.get_name().to_str()?.to_owned()).into())
             } else {
                 let ptr = phper_z_obj_p(val.as_mut_ptr());
-                Ok(ZObj::from_mut_ptr(ptr).to_ref_owned())
+                Ok(ZObject::from_raw(ptr))
             }
         }
     }
@@ -263,18 +263,22 @@ impl<T> StateClass<T> {
     ) -> crate::Result<StateObject<T>> {
         self.as_class_entry()
             .new_object(arguments)
-            .map(StateObject::new)
+            .map(ZObject::into_raw)
+            .map(StateObject::<T>::from_raw_object)
     }
 
     /// Create the object from class, without calling `__construct`.
     ///
     /// **Be careful when `__construct` is necessary.**
     pub fn init_object(&'static self) -> crate::Result<StateObject<T>> {
-        self.as_class_entry().init_object().map(StateObject::new)
+        self.as_class_entry()
+            .init_object()
+            .map(ZObject::into_raw)
+            .map(StateObject::<T>::from_raw_object)
     }
 }
 
-pub(crate) type StateConstructor = dyn Fn() -> Box<dyn Any>;
+pub(crate) type StateConstructor = dyn Fn() -> *mut dyn Any;
 
 /// Builder for registering class.
 ///
@@ -316,7 +320,7 @@ impl<T: 'static> ClassEntity<T> {
     ) -> Self {
         Self {
             class_name: ensure_end_with_zero(class_name),
-            state_constructor: Rc::new(move || Box::new(state_constructor())),
+            state_constructor: Rc::new(move || Box::into_raw(Box::new(state_constructor()))),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
@@ -571,7 +575,7 @@ fn get_object_handlers() -> &'static zend_object_handlers {
     static HANDLERS: OnceCell<zend_object_handlers> = OnceCell::new();
     HANDLERS.get_or_init(|| unsafe {
         let mut handlers = std_object_handlers;
-        handlers.offset = CStateObject::offset() as c_int;
+        handlers.offset = StateObj::<()>::offset() as c_int;
         handlers.free_obj = Some(free_object);
         handlers
     })
@@ -580,15 +584,15 @@ fn get_object_handlers() -> &'static zend_object_handlers {
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
-    let state_object: *mut CStateObject =
-        phper_zend_object_alloc(size_of::<CStateObject>().try_into().unwrap(), ce).cast();
+    let state_object = phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
+    let state_object = StateObj::<()>::from_mut_ptr(state_object);
 
     // Common initialize process.
-    let object = CStateObject::as_mut_object(state_object);
+    let object = state_object.as_mut_object().as_mut_ptr();
     zend_object_std_init(object, ce);
     object_properties_init(object, ce);
     rebuild_object_properties(object);
-    object.handlers = get_object_handlers();
+    (*object).handlers = get_object_handlers();
 
     // Get state constructor.
     let mut func_ptr = (*ce).info.internal.builtin_functions;
@@ -599,17 +603,18 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
     let state_constructor = func_ptr as *mut *const StateConstructor;
     let state_constructor = state_constructor.read();
 
-    // Call the state constructor.
-    let data: Box<dyn Any> = (state_constructor.as_ref().unwrap())();
-    *CStateObject::as_mut_state(state_object) = Box::into_raw(data);
+    // Call the state constructor and store the state.
+    let data = (state_constructor.as_ref().unwrap())();
+    *state_object.as_mut_any_state() = data;
 
     object
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {
+    let state_object = StateObj::<()>::from_mut_object_ptr(object);
+
     // Drop the state.
-    let state_object = CStateObject::fetch_ptr(object);
-    CStateObject::drop_state(state_object);
+    state_object.drop_state();
 
     // Original destroy call.
     zend_object_std_dtor(object);

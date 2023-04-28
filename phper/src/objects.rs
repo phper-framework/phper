@@ -22,10 +22,10 @@ use std::{
     any::Any,
     borrow::Borrow,
     convert::TryInto,
+    ffi::c_void,
     fmt::{self, Debug},
-    intrinsics::transmute,
     marker::PhantomData,
-    mem::{forget, size_of, zeroed, ManuallyDrop},
+    mem::{replace, size_of, zeroed, ManuallyDrop},
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };
@@ -103,8 +103,8 @@ impl ZObj {
     ///
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_state_obj<T: 'static>(&self) -> &StateObj<T> {
-        transmute(self)
+    pub unsafe fn as_state_obj<T>(&self) -> &StateObj<T> {
+        StateObj::from_object_ptr(self.as_ptr())
     }
 
     /// Upgrade to mutable state obj.
@@ -113,30 +113,8 @@ impl ZObj {
     ///
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_mut_state_obj<T: 'static>(&mut self) -> &mut StateObj<T> {
-        transmute(self)
-    }
-
-    /// Get inner state.
-    ///
-    /// # Safety
-    ///
-    /// Should only call this method for the class of object defined by the
-    /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_state<T: 'static>(&self) -> &T {
-        let eo = CStateObject::fetch(&self.inner);
-        eo.state.as_ref().unwrap().downcast_ref().unwrap()
-    }
-
-    /// Get inner mutable state.
-    ///
-    /// # Safety
-    ///
-    /// Should only call this method for the class of object defined by the
-    /// extension created by `phper`, otherwise, memory problems will caused.
-    pub unsafe fn as_mut_state<T: 'static>(&mut self) -> &mut T {
-        let eo = CStateObject::fetch_mut(&mut self.inner);
-        eo.state.as_mut().unwrap().downcast_mut().unwrap()
+    pub unsafe fn as_mut_state_obj<T>(&mut self) -> &mut StateObj<T> {
+        StateObj::from_mut_object_ptr(self.as_mut_ptr())
     }
 
     /// Get the inner handle of object.
@@ -284,6 +262,10 @@ impl ZObj {
             Ok(())
         }
     }
+
+    pub(crate) unsafe fn gc_refcount(&self) -> u32 {
+        phper_zend_object_gc_refcount(self.as_ptr())
+    }
 }
 
 impl ToOwned for ZObj {
@@ -357,20 +339,9 @@ impl ZObject {
 
     /// Consumes and returning a wrapped raw pointer.
     #[inline]
-    pub fn into_raw(mut self) -> *mut zend_object {
-        let ptr = self.as_mut_ptr();
-        forget(self);
-        ptr
+    pub fn into_raw(self) -> *mut zend_object {
+        ManuallyDrop::new(self).as_mut_ptr()
     }
-
-    // pub unsafe fn into_state<T: 'static>(self) -> Option<T> {
-    //     // let eo = CStateObject::fetch_mut(&mut self.inner);
-    //     // eo.state.as_mut().unwrap().downcast_mut().unwrap()
-    //     // Detect ref count
-    //     // CStateObject::fetch_mut
-    //     // take(State)
-    //     // Any
-    // }
 }
 
 impl Clone for ZObject {
@@ -442,22 +413,71 @@ fn clone_obj(obj: *const zend_object) -> ZObject {
     }
 }
 
+pub(crate) type AnyState = *mut dyn Any;
+
 /// The object owned state, usually as the parameter of method handler.
-#[repr(transparent)]
+#[repr(C)]
 pub struct StateObj<T> {
-    inner: ZObj,
+    any_state: AnyState,
+    object: ZObj,
     _p: PhantomData<T>,
 }
 
-impl<T: 'static> StateObj<T> {
-    /// Get inner state.
-    pub fn as_state(&self) -> &T {
-        unsafe { self.inner.as_state() }
+impl<T> StateObj<T> {
+    /// The `zend_object_alloc` often allocate more memory to hold the state
+    /// (usually is a pointer), and place it before `zend_object`.
+    pub(crate) const fn offset() -> usize {
+        size_of::<AnyState>()
     }
 
-    /// Get inner mutable state.
+    #[inline]
+    pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut c_void) -> &'a mut Self {
+        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+    }
+
+    pub(crate) unsafe fn from_object_ptr<'a>(ptr: *const zend_object) -> &'a Self {
+        ((ptr as usize - Self::offset()) as *const Self)
+            .as_ref()
+            .unwrap()
+    }
+
+    pub(crate) unsafe fn from_mut_object_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
+        ((ptr as usize - Self::offset()) as *mut Self)
+            .as_mut()
+            .unwrap()
+    }
+
+    pub(crate) unsafe fn drop_state(&mut self) {
+        drop(Box::from_raw(self.any_state));
+    }
+
+    #[inline]
+    pub(crate) fn as_mut_any_state(&mut self) -> &mut AnyState {
+        &mut self.any_state
+    }
+
+    /// Gets object.
+    #[inline]
+    pub fn as_object(&self) -> &ZObj {
+        &self.object
+    }
+
+    /// Gets mutable object.
+    #[inline]
+    pub fn as_mut_object(&mut self) -> &mut ZObj {
+        &mut self.object
+    }
+}
+
+impl<T: 'static> StateObj<T> {
+    /// Gets inner state.
+    pub fn as_state(&self) -> &T {
+        unsafe { self.any_state.as_ref().unwrap().downcast_ref().unwrap() }
+    }
+
+    /// Gets inner mutable state.
     pub fn as_mut_state(&mut self) -> &mut T {
-        unsafe { self.inner.as_mut_state() }
+        unsafe { self.any_state.as_mut().unwrap().downcast_mut().unwrap() }
     }
 }
 
@@ -465,92 +485,76 @@ impl<T> Deref for StateObj<T> {
     type Target = ZObj;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.object
     }
 }
 
 impl<T> DerefMut for StateObj<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
+        &mut self.object
     }
 }
 
 /// The object owned state, usually crated by
 /// [StateClass](crate::classes::StateClass).
 pub struct StateObject<T> {
-    inner: ZObject,
-    _p: PhantomData<T>,
+    inner: *mut StateObj<T>,
 }
 
 impl<T> StateObject<T> {
     #[inline]
-    pub(crate) fn new(object: ZObject) -> Self {
-        Self {
-            inner: object,
-            _p: PhantomData,
+    pub(crate) fn from_raw_object(object: *mut zend_object) -> Self {
+        unsafe {
+            Self {
+                inner: StateObj::from_mut_object_ptr(object),
+            }
         }
+    }
+
+    #[inline]
+    pub(crate) fn into_raw_object(self) -> *mut zend_object {
+        ManuallyDrop::new(self).as_mut_ptr()
     }
 
     /// Converts into [ZObject].
     pub fn into_z_object(self) -> ZObject {
-        self.inner
+        unsafe { ZObject::from_raw(self.into_raw_object()) }
+    }
+}
+
+impl<T: 'static> StateObject<T> {
+    /// Converts into state.
+    pub fn into_state(mut self) -> Option<T> {
+        unsafe {
+            if self.gc_refcount() != 1 {
+                return None;
+            }
+            let null: AnyState = Box::into_raw(Box::new(()));
+            let ptr = replace(self.as_mut_any_state(), null);
+            Some(*Box::from_raw(ptr).downcast().unwrap())
+        }
+    }
+}
+
+impl<T> Drop for StateObject<T> {
+    fn drop(&mut self) {
+        unsafe {
+            drop(ZObject::from_raw(self.as_mut_ptr()));
+        }
     }
 }
 
 impl<T> Deref for StateObject<T> {
-    type Target = ZObject;
+    type Target = StateObj<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        unsafe { self.inner.as_ref().unwrap() }
     }
 }
 
-impl<T: 'static> DerefMut for StateObject<T> {
+impl<T> DerefMut for StateObject<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
-pub(crate) type State = *mut dyn Any;
-
-/// The Object contains `zend_object` and the user defined state data.
-#[repr(C)]
-pub(crate) struct CStateObject {
-    state: State,
-    object: zend_object,
-}
-
-impl CStateObject {
-    pub(crate) const fn offset() -> usize {
-        size_of::<State>()
-    }
-
-    pub(crate) unsafe fn fetch(object: &zend_object) -> &Self {
-        (((object as *const _ as usize) - CStateObject::offset()) as *const Self)
-            .as_ref()
-            .unwrap()
-    }
-
-    pub(crate) unsafe fn fetch_mut(object: &mut zend_object) -> &mut Self {
-        (((object as *mut _ as usize) - CStateObject::offset()) as *mut Self)
-            .as_mut()
-            .unwrap()
-    }
-
-    pub(crate) fn fetch_ptr(object: *mut zend_object) -> *mut Self {
-        (object as usize - CStateObject::offset()) as *mut Self
-    }
-
-    pub(crate) unsafe fn drop_state(this: *mut Self) {
-        drop(Box::from_raw((*this).state));
-    }
-
-    pub(crate) unsafe fn as_mut_state<'a>(this: *mut Self) -> &'a mut State {
-        &mut (*this).state
-    }
-
-    pub(crate) unsafe fn as_mut_object<'a>(this: *mut Self) -> &'a mut zend_object {
-        &mut (*this).object
+        unsafe { self.inner.as_mut().unwrap() }
     }
 }
 

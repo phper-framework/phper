@@ -22,7 +22,7 @@ use phper::{
     functions::Argument,
     values::ZVal,
 };
-use std::{cell::RefCell, collections::HashMap, mem::take, net::SocketAddr};
+use std::{cell::RefCell, collections::HashMap, net::SocketAddr};
 use tokio::runtime::{self};
 
 const HTTP_SERVER_CLASS_NAME: &str = "HttpServer\\HttpServer";
@@ -128,8 +128,7 @@ pub fn make_server_class() -> ClassEntity<()> {
                             handler.call([request_val, response_val])?;
 
                             // Get the inner state.
-                            let response =
-                                take(unsafe { response.as_mut_state::<Response<Body>>() });
+                            let response = response.into_state().unwrap();
 
                             Ok::<Response<Body>, phper::Error>(response)
                         })

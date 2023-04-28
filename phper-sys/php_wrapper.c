@@ -348,6 +348,10 @@ void phper_zend_object_release(zend_object *obj) {
     zend_object_release(obj);
 }
 
+uint32_t phper_zend_object_gc_refcount(const zend_object *obj) {
+    return GC_REFCOUNT(obj);
+}
+
 // ==================================================
 // class apis:
 // ==================================================

@@ -34,7 +34,7 @@ pub fn make_request_builder_class() -> ClassEntity<Option<RequestBuilder>> {
             .map_err(ThrowObject::from_throwable)?
             .new_object([])?;
         unsafe {
-            *object.as_mut_state() = Some(response);
+            *object.as_mut_state_obj().as_mut_state() = Some(response);
         }
         Ok::<_, phper::Error>(object)
     });
