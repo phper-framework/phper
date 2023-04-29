@@ -21,7 +21,7 @@ PHPER follows this design, there are the following types:
 > It seems that there is no need to separate into two types, but `ZStr`,
 > `ZArr`, and `ZObj` are all transparent types, so the fields of the struct
 > cannot be changed. Separating an ownership struct `ZString`, `ZArray`,
-> and `ZObject`, and then we can change fields to the struct in the future.
+> and `ZObject`, and then we can change fields of the struct in the future.
 
 ## Mapping relationship
 

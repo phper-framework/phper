@@ -448,7 +448,7 @@ impl<T> StateObj<T> {
     }
 
     pub(crate) unsafe fn drop_state(&mut self) {
-        // drop(Box::from_raw(self.any_state));
+        drop(Box::from_raw(self.any_state));
     }
 
     #[inline]
