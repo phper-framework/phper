@@ -17,7 +17,7 @@ use std::convert::Infallible;
 
 pub const HTTP_REQUEST_CLASS_NAME: &str = "HttpServer\\HttpRequest";
 
-pub static HTTP_REQUEST_CLASS: StateClass<()> = StateClass::new();
+pub static HTTP_REQUEST_CLASS: StateClass<()> = StateClass::null();
 
 /// Register the class `HttpServer\HttpRequest` by `ClassEntity`.
 pub fn make_request_class() -> ClassEntity<()> {

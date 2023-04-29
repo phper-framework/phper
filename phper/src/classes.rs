@@ -240,7 +240,7 @@ pub struct StateClass<T> {
 impl<T> StateClass<T> {
     /// Create empty [StateClass], with null
     /// [zend_class_entry](crate::sys::zend_class_entry).
-    pub const fn new() -> Self {
+    pub const fn null() -> Self {
         Self {
             inner: AtomicPtr::new(null_mut()),
             _p: PhantomData,
