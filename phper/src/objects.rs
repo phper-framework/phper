@@ -536,6 +536,11 @@ impl<T> StateObject<T> {
 
 impl<T: 'static> StateObject<T> {
     /// Converts into state.
+    ///
+    /// Because the [zend_object](crate::sys::zend_object) is refcounted type,
+    /// therefore, you can only obtain state ownership when the refcount of the
+    /// [zend_object](crate::sys::zend_object) is `1`, otherwise, it will return
+    /// `None`.
     pub fn into_state(mut self) -> Option<T> {
         unsafe {
             if self.gc_refcount() != 1 {
