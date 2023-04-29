@@ -220,7 +220,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 /// ```rust
 /// use phper::classes::{ClassEntity, StateClass};
 ///
-/// pub static FOO_CLASS: StateClass<FooState> = StateClass::new();
+/// pub static FOO_CLASS: StateClass<FooState> = StateClass::null();
 ///
 /// #[derive(Default)]
 /// pub struct FooState;

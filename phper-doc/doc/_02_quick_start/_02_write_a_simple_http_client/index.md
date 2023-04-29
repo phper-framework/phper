@@ -236,7 +236,7 @@ Now let's begin to finish the logic.
            let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
            let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
            unsafe {
-               *object.as_mut_state() = Some(client);
+               *object.as_mut_state_obj().as_mut_state() = Some(client);
            }
            Ok::<_, phper::Error>(object)
        });
