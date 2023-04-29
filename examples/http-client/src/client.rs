@@ -52,7 +52,8 @@ pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
     class.add_method("build", Visibility::Public, |this, _arguments| {
         let state = take(this.as_mut_state());
         let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
-        let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
+        let class = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?;
+        let mut object = class.init_object()?;
         unsafe {
             *object.as_mut_state_obj().as_mut_state() = Some(client);
         }

@@ -448,7 +448,7 @@ impl<T> StateObj<T> {
     }
 
     pub(crate) unsafe fn drop_state(&mut self) {
-        drop(Box::from_raw(self.any_state));
+        // drop(Box::from_raw(self.any_state));
     }
 
     #[inline]
@@ -472,12 +472,18 @@ impl<T> StateObj<T> {
 impl<T: 'static> StateObj<T> {
     /// Gets inner state.
     pub fn as_state(&self) -> &T {
-        unsafe { self.any_state.as_ref().unwrap().downcast_ref().unwrap() }
+        unsafe {
+            let any_state = self.any_state.as_ref().unwrap();
+            any_state.downcast_ref().unwrap()
+        }
     }
 
     /// Gets inner mutable state.
     pub fn as_mut_state(&mut self) -> &mut T {
-        unsafe { self.any_state.as_mut().unwrap().downcast_mut().unwrap() }
+        unsafe {
+            let any_state = self.any_state.as_mut().unwrap();
+            any_state.downcast_mut().unwrap()
+        }
     }
 }
 
@@ -492,6 +498,12 @@ impl<T> Deref for StateObj<T> {
 impl<T> DerefMut for StateObj<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.object
+    }
+}
+
+impl<T> Debug for StateObj<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        common_fmt(self, f, "StateObj")
     }
 }
 
@@ -555,6 +567,12 @@ impl<T> Deref for StateObject<T> {
 impl<T> DerefMut for StateObject<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.inner.as_mut().unwrap() }
+    }
+}
+
+impl<T> Debug for StateObject<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        common_fmt(self, f, "StateObject")
     }
 }
 

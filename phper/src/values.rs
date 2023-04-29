@@ -642,7 +642,6 @@ impl RefClone for ZVal {
 impl Drop for ZVal {
     fn drop(&mut self) {
         unsafe {
-            let name = self.as_z_obj().map(|o| o.get_class().get_name().to_str());
             phper_zval_ptr_dtor(self.as_mut_ptr());
         }
     }

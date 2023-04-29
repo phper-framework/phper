@@ -14,7 +14,7 @@ use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError, Throwable},
     functions::{Function, FunctionEntry, Method, MethodEntity},
-    objects::{StateObj, StateObject, ZObj, ZObject},
+    objects::{StateObj, StateObject, ZObject},
     strings::ZStr,
     sys::*,
     types::Scalar,
@@ -22,7 +22,6 @@ use crate::{
     values::ZVal,
 };
 use once_cell::sync::OnceCell;
-use phper_alloc::ToRefOwned;
 use std::{
     any::Any,
     borrow::ToOwned,
@@ -30,7 +29,7 @@ use std::{
     ffi::{c_void, CString},
     fmt::Debug,
     marker::PhantomData,
-    mem::{size_of, zeroed},
+    mem::{size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,
@@ -156,6 +155,9 @@ impl ClassEntry {
             if !phper_object_init_ex(val.as_mut_ptr(), ptr) {
                 Err(InitializeObjectError::new(self.get_name().to_str()?.to_owned()).into())
             } else {
+                // Can't drop val here! Otherwise the object will be dropped too (wasting me a
+                // day of debugging time here).
+                let mut val = ManuallyDrop::new(val);
                 let ptr = phper_z_obj_p(val.as_mut_ptr());
                 Ok(ZObject::from_raw(ptr))
             }
@@ -320,7 +322,11 @@ impl<T: 'static> ClassEntity<T> {
     ) -> Self {
         Self {
             class_name: ensure_end_with_zero(class_name),
-            state_constructor: Rc::new(move || Box::into_raw(Box::new(state_constructor()))),
+            state_constructor: Rc::new(move || {
+                let state = state_constructor();
+                let boxed = Box::new(state) as Box<dyn Any>;
+                Box::into_raw(boxed)
+            }),
             method_entities: Vec::new(),
             property_entities: Vec::new(),
             parent: None,
