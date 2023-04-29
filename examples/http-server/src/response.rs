@@ -21,7 +21,7 @@ use phper::{
 
 pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 
-pub static HTTP_RESPONSE_CLASS: StateClass<Response<Body>> = StateClass::new();
+pub static HTTP_RESPONSE_CLASS: StateClass<Response<Body>> = StateClass::null();
 
 /// Register the class `HttpServer\HttpResponse` by `ClassEntity`, with the
 /// inner state `Response<Body>`.
