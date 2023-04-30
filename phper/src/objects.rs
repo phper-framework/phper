@@ -17,7 +17,7 @@ use crate::{
     sys::*,
     values::ZVal,
 };
-use phper_alloc::ToRefOwned;
+use phper_alloc::{RefClone, ToRefOwned};
 use std::{
     any::Any,
     borrow::Borrow,
@@ -25,7 +25,7 @@ use std::{
     ffi::c_void,
     fmt::{self, Debug},
     marker::PhantomData,
-    mem::{replace, size_of, zeroed, ManuallyDrop},
+    mem::{replace, size_of, ManuallyDrop},
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };
@@ -268,17 +268,6 @@ impl ZObj {
     }
 }
 
-impl ToOwned for ZObj {
-    type Owned = ZObject;
-
-    /// The `to_owned` will do the copy like in PHP `$cloned_object = clone
-    /// $some_object();`.
-    #[inline]
-    fn to_owned(&self) -> Self::Owned {
-        clone_obj(self.as_ptr())
-    }
-}
-
 impl ToRefOwned for ZObj {
     type Owned = ZObject;
 
@@ -344,12 +333,10 @@ impl ZObject {
     }
 }
 
-impl Clone for ZObject {
-    /// The clone will do the copy like in PHP `$cloned_object = clone
-    /// $some_object();`.
+impl RefClone for ZObject {
     #[inline]
-    fn clone(&self) -> Self {
-        clone_obj(self.as_ptr())
+    fn ref_clone(&mut self) -> Self {
+        self.to_ref_owned()
     }
 }
 
@@ -384,32 +371,6 @@ impl Drop for ZObject {
 impl Debug for ZObject {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         common_fmt(self, f, "ZObject")
-    }
-}
-
-fn clone_obj(obj: *const zend_object) -> ZObject {
-    unsafe {
-        ZObject::from_raw({
-            let mut zv = zeroed::<zval>();
-            phper_zval_obj(&mut zv, obj as *mut _);
-            let handlers = phper_z_obj_ht_p(&zv);
-
-            let ptr = {
-                #[cfg(phper_major_version = "7")]
-                {
-                    &mut zv as *mut _
-                }
-                #[cfg(phper_major_version = "8")]
-                {
-                    obj as *mut _
-                }
-            };
-
-            match (*handlers).clone_obj {
-                Some(clone_obj) => clone_obj(ptr),
-                None => zend_objects_clone_obj(ptr),
-            }
-        })
     }
 }
 

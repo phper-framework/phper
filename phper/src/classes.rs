@@ -21,7 +21,6 @@ use crate::{
     utils::ensure_end_with_zero,
     values::ZVal,
 };
-use once_cell::sync::OnceCell;
 use std::{
     any::Any,
     borrow::ToOwned,
@@ -33,6 +32,7 @@ use std::{
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,
+    slice,
     sync::atomic::{AtomicPtr, Ordering},
 };
 
@@ -282,6 +282,8 @@ impl<T> StateClass<T> {
 
 pub(crate) type StateConstructor = dyn Fn() -> *mut dyn Any;
 
+pub(crate) type StateCloner = dyn Fn(*const dyn Any) -> *mut dyn Any;
+
 /// Builder for registering class.
 ///
 /// `<T>` means the type of holding state.
@@ -296,6 +298,7 @@ pub struct ClassEntity<T: 'static> {
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
     interfaces: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
     bind_class: Option<&'static StateClass<T>>,
+    state_cloner: Option<Rc<StateCloner>>,
     _p: PhantomData<(*mut (), T)>,
 }
 
@@ -332,6 +335,7 @@ impl<T: 'static> ClassEntity<T> {
             parent: None,
             interfaces: Vec::new(),
             bind_class: None,
+            state_cloner: None,
             _p: PhantomData,
         }
     }
@@ -426,6 +430,47 @@ impl<T: 'static> ClassEntity<T> {
         self.bind_class = Some(cls);
     }
 
+    /// Add the state clone function, called when cloning PHP object.
+    ///
+    /// By default, the object registered by `phper` is uncloneable, if you
+    /// clone the object in PHP like this:
+    ///
+    /// ```php
+    /// $foo = new Foo();
+    /// $foo2 = clone $foo;
+    /// ```
+    ///
+    /// Will throw the Error: `Uncaught Error: Trying to clone an uncloneable
+    /// object of class Foo`.
+    ///
+    /// And then, if you want the object to be cloneable, you should register
+    /// the state clone method for the class.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phper::classes::ClassEntity;
+    ///
+    /// fn make_foo_class() -> ClassEntity<i64> {
+    ///     let mut class = ClassEntity::new_with_state_constructor("Foo", || 123456);
+    ///     class.state_cloner(Clone::clone);
+    ///     class
+    /// }
+    /// ```
+    pub fn state_cloner(&mut self, clone_fn: impl Fn(&T) -> T + 'static) {
+        self.state_cloner = Some(Rc::new(move |src| {
+            let src = unsafe {
+                src.as_ref()
+                    .unwrap()
+                    .downcast_ref::<T>()
+                    .expect("cast Any to T failed")
+            };
+            let dest = clone_fn(src);
+            let boxed = Box::new(dest) as Box<dyn Any>;
+            Box::into_raw(boxed)
+        }));
+    }
+
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
         let parent: *mut zend_class_entry = self
@@ -464,7 +509,6 @@ impl<T: 'static> ClassEntity<T> {
     }
 
     unsafe fn function_entries(&self) -> *const zend_function_entry {
-        let last_entry = self.take_state_constructor_into_function_entry();
         let mut methods = self
             .method_entities
             .iter()
@@ -473,8 +517,11 @@ impl<T: 'static> ClassEntity<T> {
 
         methods.push(zeroed::<zend_function_entry>());
 
-        // Store the state constructor pointer to zend_class_entry
-        methods.push(last_entry);
+        // Store the state constructor pointer to zend_class_entry.
+        methods.push(self.take_state_constructor_into_function_entry());
+
+        // Store the state cloner pointer to zend_class_entry.
+        methods.push(self.take_state_cloner_into_function_entry());
 
         Box::into_raw(methods.into_boxed_slice()).cast()
     }
@@ -484,6 +531,16 @@ impl<T: 'static> ClassEntity<T> {
         let ptr = &mut entry as *mut _ as *mut *const StateConstructor;
         let state_constructor = Rc::into_raw(self.state_constructor.clone());
         ptr.write(state_constructor);
+        entry
+    }
+
+    unsafe fn take_state_cloner_into_function_entry(&self) -> zend_function_entry {
+        let mut entry = zeroed::<zend_function_entry>();
+        let ptr = &mut entry as *mut _ as *mut *const StateCloner;
+        if let Some(state_cloner) = &self.state_cloner {
+            let state_constructor = Rc::into_raw(state_cloner.clone());
+            ptr.write(state_constructor);
+        }
         entry
     }
 }
@@ -577,43 +634,95 @@ pub enum Visibility {
     Private = ZEND_ACC_PRIVATE,
 }
 
-fn get_object_handlers() -> &'static zend_object_handlers {
-    static HANDLERS: OnceCell<zend_object_handlers> = OnceCell::new();
-    HANDLERS.get_or_init(|| unsafe {
-        let mut handlers = std_object_handlers;
-        handlers.offset = StateObj::<()>::offset() as c_int;
-        handlers.free_obj = Some(free_object);
-        handlers
-    })
-}
-
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     // Alloc more memory size to store state data.
     let state_object = phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
     let state_object = StateObj::<()>::from_mut_ptr(state_object);
 
+    // Find the hack elements hidden behind null builtin_function.
+    let mut func_ptr = (*ce).info.internal.builtin_functions;
+    while !(*func_ptr).fname.is_null() {
+        func_ptr = func_ptr.offset(1);
+    }
+
+    // Get state constructor.
+    func_ptr = func_ptr.offset(1);
+    let state_constructor = func_ptr as *mut *const StateConstructor;
+    let state_constructor = state_constructor.read().as_ref().unwrap();
+
+    // Get state cloner.
+    func_ptr = func_ptr.offset(1);
+    let has_state_cloner =
+        slice::from_raw_parts(func_ptr as *const u8, size_of::<*const StateCloner>())
+            != [0u8; size_of::<*const StateCloner>()];
+
     // Common initialize process.
     let object = state_object.as_mut_object().as_mut_ptr();
     zend_object_std_init(object, ce);
     object_properties_init(object, ce);
     rebuild_object_properties(object);
-    (*object).handlers = get_object_handlers();
 
-    // Get state constructor.
-    let mut func_ptr = (*ce).info.internal.builtin_functions;
-    while !(*func_ptr).fname.is_null() {
-        func_ptr = func_ptr.offset(1);
-    }
-    func_ptr = func_ptr.offset(1);
-    let state_constructor = func_ptr as *mut *const StateConstructor;
-    let state_constructor = state_constructor.read();
+    // Set handlers
+    let mut handlers = Box::new(std_object_handlers);
+    handlers.offset = StateObj::<()>::offset() as c_int;
+    handlers.free_obj = Some(free_object);
+    handlers.clone_obj = has_state_cloner.then_some(clone_object);
+    (*object).handlers = Box::into_raw(handlers);
 
     // Call the state constructor and store the state.
-    let data = (state_constructor.as_ref().unwrap())();
+    let data = (state_constructor)();
     *state_object.as_mut_any_state() = data;
 
     object
+}
+
+#[cfg(phper_major_version = "8")]
+unsafe extern "C" fn clone_object(object: *mut zend_object) -> *mut zend_object {
+    clone_object_common(object)
+}
+
+#[cfg(phper_major_version = "7")]
+unsafe extern "C" fn clone_object(object: *mut zval) -> *mut zend_object {
+    let object = phper_z_obj_p(object);
+    clone_object_common(object)
+}
+
+#[allow(clippy::useless_conversion)]
+unsafe fn clone_object_common(object: *mut zend_object) -> *mut zend_object {
+    let ce = (*object).ce;
+
+    // Alloc more memory size to store state data.
+    let new_state_object =
+        phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
+    let new_state_object = StateObj::<()>::from_mut_ptr(new_state_object);
+
+    // Find the hack elements hidden behind null builtin_function.
+    let mut func_ptr = (*(*object).ce).info.internal.builtin_functions;
+    while !(*func_ptr).fname.is_null() {
+        func_ptr = func_ptr.offset(1);
+    }
+
+    // Get state cloner.
+    func_ptr = func_ptr.offset(2);
+    let state_cloner = func_ptr as *mut *const StateCloner;
+    let state_cloner = state_cloner.read().as_ref().unwrap();
+
+    // Initialize and clone members
+    let new_object = new_state_object.as_mut_object().as_mut_ptr();
+    zend_object_std_init(new_object, ce);
+    object_properties_init(new_object, ce);
+    zend_objects_clone_members(new_object, object);
+
+    // Set handlers
+    (*new_object).handlers = (*object).handlers;
+
+    // Call the state cloner and store the state.
+    let state_object = StateObj::<()>::from_mut_object_ptr(object);
+    let data = (state_cloner)(*state_object.as_mut_any_state());
+    *new_state_object.as_mut_any_state() = data;
+
+    new_object
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {

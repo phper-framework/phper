@@ -17,12 +17,9 @@ e.set_property("message", "oh no");
 let _message = e.call("getMessage", []).unwrap();
 ```
 
-`ZObj` implements `ToOwned` and `ToRefOwned` to upgrade to `ZObject`.
+`ZObj` implements `ToRefOwned` to upgrade to `ZObject`, duplicate the object via increment refcount.
 
-- `ToOwned`: Duplicate the object via PHP keyword `clone`, like `$cloned_object = clone $some_object();`;
-- `ToRefOwned`: Duplicate the object via increment refcount.
-
-`ZObject` implements `Clone`, same as `ZObj::to_owned`.
+`ZObject` implements `RefClone`, same as `ZObj::to_owned`.
 
 ```rust,no_run
 use phper::sys;
@@ -34,9 +31,6 @@ extern "C" {
 }
 
 let o = unsafe { ZObj::from_mut_ptr(something()) };
-
-// By PHP `clone`.
-let _o = o.to_owned(); 
 
 // By refcount increment.
 let _o = o.to_ref_owned();

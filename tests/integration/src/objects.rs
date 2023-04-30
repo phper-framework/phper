@@ -9,9 +9,15 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    alloc::ToRefOwned, classes::ClassEntry, functions::Argument, modules::Module, objects::ZObject,
-    types::TypeInfo, values::ZVal,
+    alloc::{RefClone, ToRefOwned},
+    classes::{ClassEntity, ClassEntry, Visibility},
+    functions::Argument,
+    modules::Module,
+    objects::ZObject,
+    types::TypeInfo,
+    values::ZVal,
 };
+use std::convert::Infallible;
 
 pub fn integrate(module: &mut Module) {
     module.add_function(
@@ -61,61 +67,6 @@ pub fn integrate(module: &mut Module) {
         },
     );
 
-    module.add_function(
-        "integrate_objects_clone",
-        |_: &mut [ZVal]| -> phper::Result<()> {
-            let mut o1 = ZObject::new_by_std_class();
-            o1.set_property("foo", "bar");
-
-            let mut o2 = o1.clone();
-            assert_eq!(
-                o2.get_property("foo").as_z_str().unwrap().to_bytes(),
-                b"bar"
-            );
-
-            o2.set_property("foo", "baz");
-            assert_eq!(
-                o1.get_property("foo").as_z_str().unwrap().to_bytes(),
-                b"bar"
-            );
-            assert_eq!(
-                o2.get_property("foo").as_z_str().unwrap().to_bytes(),
-                b"baz"
-            );
-
-            Ok(())
-        },
-    );
-
-    module
-        .add_function(
-            "integrate_objects_to_owned",
-            |arguments: &mut [ZVal]| -> phper::Result<()> {
-                let o1 = arguments[0].expect_mut_z_obj()?;
-
-                o1.set_property("foo", "bar");
-
-                let mut o2 = o1.to_owned();
-                assert_eq!(
-                    o2.get_property("foo").as_z_str().unwrap().to_bytes(),
-                    b"bar"
-                );
-
-                o2.set_property("foo", "baz");
-                assert_eq!(
-                    o1.get_property("foo").as_z_str().unwrap().to_bytes(),
-                    b"bar"
-                );
-                assert_eq!(
-                    o2.get_property("foo").as_z_str().unwrap().to_bytes(),
-                    b"baz"
-                );
-
-                Ok(())
-            },
-        )
-        .argument(Argument::by_val("obj"));
-
     module
         .add_function(
             "integrate_objects_to_ref_owned",
@@ -144,4 +95,51 @@ pub fn integrate(module: &mut Module) {
             },
         )
         .argument(Argument::by_val("obj"));
+
+    module
+        .add_function(
+            "integrate_objects_to_ref_clone",
+            |arguments: &mut [ZVal]| -> phper::Result<()> {
+                let o1 = arguments[0].expect_mut_z_obj()?;
+
+                o1.set_property("foo", "bar");
+
+                let mut o2 = o1.to_ref_owned();
+                let o3 = o2.ref_clone();
+
+                o1.set_property("foo", "baz");
+
+                assert_eq!(
+                    o1.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"baz"
+                );
+                assert_eq!(
+                    o2.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"baz"
+                );
+                assert_eq!(
+                    o3.get_property("foo").as_z_str().unwrap().to_bytes(),
+                    b"baz"
+                );
+
+                Ok(())
+            },
+        )
+        .argument(Argument::by_val("obj"));
+
+    let class_a =
+        ClassEntity::new_with_state_constructor("IntegrationTest\\Objects\\A", || 123456i64);
+    module.add_class(class_a);
+
+    let mut class_b =
+        ClassEntity::new_with_state_constructor("IntegrationTest\\Objects\\B", || 123456i64);
+    class_b.state_cloner(Clone::clone);
+    class_b.add_method("incr", Visibility::Public, |this, _| {
+        *this.as_mut_state() += 1;
+        Ok::<_, Infallible>(())
+    });
+    class_b.add_method("get", Visibility::Public, |this, _| {
+        Ok::<_, Infallible>(*this.as_state())
+    });
+    module.add_class(class_b);
 }
