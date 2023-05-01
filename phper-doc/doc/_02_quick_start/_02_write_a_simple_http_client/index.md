@@ -193,14 +193,19 @@ Now let's begin to finish the logic.
 
    use phper::{
        alloc::ToRefOwned,
-       classes::Visibility,
+       classes::{StateClass, Visibility},
        functions::Argument,
    };
    use reqwest::blocking::{Client, ClientBuilder};
    use std::{mem::take, time::Duration};
    
    const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
+
    const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
+
+   // The static StateClass is bind to ClassEntity of HttpClient, When the class registered,
+   // the StateClass will be initialized, so you can use it to new stateful object, etc.
+   static HTTP_CLIENT_CLASS: StateClass<Option<Client>> = StateClass::null();
    
    pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
        // `new_with_default_state_constructor` means initialize the state of `ClientBuilder` as
@@ -234,10 +239,8 @@ Now let's begin to finish the logic.
        class.add_method("build", Visibility::Public, |this, _arguments| {
            let state = take(this.as_mut_state());
            let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
-           let mut object = ClassEntry::from_globals(HTTP_CLIENT_CLASS_NAME)?.init_object()?;
-           unsafe {
-               *object.as_mut_state_obj().as_mut_state() = Some(client);
-           }
+           let mut object = HTTP_CLIENT_CLASS.init_object()?;
+           *object.as_mut_state() = Some(client);
            Ok::<_, phper::Error>(object)
        });
    

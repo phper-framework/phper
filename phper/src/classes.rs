@@ -280,6 +280,8 @@ impl<T> StateClass<T> {
     }
 }
 
+unsafe impl<T> Sync for StateClass<T> {}
+
 pub(crate) type StateConstructor = dyn Fn() -> *mut dyn Any;
 
 pub(crate) type StateCloner = dyn Fn(*const dyn Any) -> *mut dyn Any;
