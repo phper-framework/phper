@@ -27,7 +27,6 @@ pub(crate) fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
     String::from_utf8(output).unwrap().trim().to_owned()
 }
 
-#[cfg(feature = "fpm")]
 pub(crate) fn spawn_command<S: AsRef<OsStr> + Debug>(
     argv: &[S], wait_time: Option<std::time::Duration>,
 ) -> std::process::Child {
