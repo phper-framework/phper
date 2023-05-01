@@ -15,7 +15,5 @@
 
 pub mod cli;
 mod context;
-#[cfg(feature = "fpm")]
-#[cfg_attr(docsrs, doc(cfg(feature = "fpm")))]
 pub mod fpm;
 pub mod utils;

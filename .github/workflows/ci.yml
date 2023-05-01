@@ -29,13 +29,11 @@ jobs:
     name: Required
     needs:
       - ci
-      - check
     runs-on: ubuntu-20.04
     steps:
       - name: Check results
         run: |
           [[ ${{ needs.ci.result }} == 'success' ]] || exit 1;
-          [[ ${{ needs.check.result }} == 'success' ]] || exit 1;
 
   ci:
     name: CI
@@ -147,96 +145,3 @@ jobs:
           toolchain: nightly
           command: doc
           args: --workspace --no-deps --all-features
-
-  # Test every features for single crate.
-  check:
-    name: Check
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-20.04
-        php-version:
-          - "7.4"
-        features:
-          - ""
-          - "--all-features"
-
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Install libclang
-        run: sudo apt-get install -y llvm-10-dev libclang-10-dev
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          tools: php-config
-
-      - name: Install Rust Stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Cargo generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: stable
-          command: generate-lockfile
-
-      - name: Setup cargo cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ matrix.os }}-check-${{ matrix.php-version }}-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cargo check phper-sys
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-sys/Cargo.toml ${{ matrix.features }}
-
-      - name: Cargo check phper-build
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-build/Cargo.toml ${{ matrix.features }}
-
-      - name: Cargo check phper-macros
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-macros/Cargo.toml ${{ matrix.features }}
-
-      - name: Cargo check phper-alloc
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-alloc/Cargo.toml ${{ matrix.features }}
-
-      - name: Cargo check phper-test
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-test/Cargo.toml ${{ matrix.features }}
-
-      - name: Cargo check phper
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper/Cargo.toml ${{ matrix.features }}
-
-      - name: Cargo check phper-doc
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path phper-doc/Cargo.toml ${{ matrix.features }}

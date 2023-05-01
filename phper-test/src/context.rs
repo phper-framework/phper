@@ -10,16 +10,14 @@
 
 use crate::utils;
 use once_cell::sync::OnceCell;
-#[cfg(feature = "fpm")]
-use std::io::Write;
 use std::{
     env,
     fs::read_to_string,
+    io::Write,
     ops::{Deref, DerefMut},
     path::Path,
     process::Command,
 };
-#[cfg(feature = "fpm")]
 use tempfile::NamedTempFile;
 
 pub struct Context {
@@ -83,7 +81,6 @@ impl Context {
         ContextCommand { cmd, args }
     }
 
-    #[cfg(feature = "fpm")]
     #[cfg_attr(docsrs, doc(cfg(feature = "fpm")))]
     pub fn find_php_fpm(&self) -> Option<String> {
         use std::ffi::OsStr;
@@ -113,8 +110,6 @@ impl Context {
         })
     }
 
-    #[cfg(feature = "fpm")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "fpm")))]
     pub fn create_tmp_fpm_conf_file(&self) -> NamedTempFile {
         let mut tmp = NamedTempFile::new().unwrap();
         let file = tmp.as_file_mut();
