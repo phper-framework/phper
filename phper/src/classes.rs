@@ -205,22 +205,23 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
-/// The [StateClass] holds [zend_class_entry](crate::sys::zend_class_entry) and
-/// inner state, always as the static variable, and then be bind to
-/// [ClassEntity].
+/// The [StaticStateClass] holds
+/// [zend_class_entry](crate::sys::zend_class_entry) and inner state, always as
+/// the static variable, and then be bind to [ClassEntity].
 ///
-/// When the class registered (module initialized), the [StateClass] will be
-/// initialized, so you can use the [StateClass] to new stateful object, etc.
+/// When the class registered (module initialized), the [StaticStateClass] will
+/// be initialized, so you can use the [StaticStateClass] to new stateful
+/// object, etc.
 ///
-/// So, You shouldn't use [StateClass] in `module_init` stage, because it hasn't
-/// initialized.
+/// So, You shouldn't use [StaticStateClass] in `module_init` stage, because it
+/// hasn't initialized.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use phper::classes::{ClassEntity, StateClass};
+/// use phper::classes::{ClassEntity, StaticStateClass};
 ///
-/// pub static FOO_CLASS: StateClass<FooState> = StateClass::null();
+/// pub static FOO_CLASS: StaticStateClass<FooState> = StaticStateClass::null();
 ///
 /// #[derive(Default)]
 /// pub struct FooState;
@@ -238,7 +239,7 @@ pub struct StaticStateClass<T> {
 }
 
 impl<T> StaticStateClass<T> {
-    /// Create empty [StateClass], with null
+    /// Create empty [StaticStateClass], with null
     /// [zend_class_entry](crate::sys::zend_class_entry).
     pub const fn null() -> Self {
         Self {
@@ -282,6 +283,29 @@ impl<T> StaticStateClass<T> {
 
 unsafe impl<T> Sync for StaticStateClass<T> {}
 
+/// The [StaticInterface]  holds
+/// [zend_class_entry](crate::sys::zend_class_entry), always as the static
+/// variable, and then be bind to [InterfaceEntity].
+///
+/// When the interface registered (module initialized), the [StaticInterface]
+/// will be initialized.
+///
+/// So, You shouldn't use [StaticInterface] in `module_init` stage, because it
+/// hasn't initialized.
+///
+/// # Examples
+///
+/// ```rust
+/// use phper::classes::{InterfaceEntity, StaticInterface};
+///
+/// pub static FOO_INTERFACE: StaticInterface = StaticInterface::null();
+///
+/// fn make_foo_interface() -> InterfaceEntity {
+///     let mut interface = InterfaceEntity::new("Foo");
+///     interface.bind(&FOO_INTERFACE);
+///     interface
+/// }
+/// ```
 #[repr(transparent)]
 pub struct StaticInterface {
     inner: AtomicPtr<zend_class_entry>,
@@ -461,10 +485,10 @@ impl<T: 'static> ClassEntity<T> {
         self.interfaces.push(Box::new(interface));
     }
 
-    /// Bind to static [StateClass].
+    /// Bind to static [StaticStateClass].
     ///
-    /// When the class registered, the [StateClass] will be initialized, so you
-    /// can use the [StateClass] to new stateful object, etc.
+    /// When the class registered, the [StaticStateClass] will be initialized,
+    /// so you can use the [StaticStateClass] to new stateful object, etc.
     pub fn bind(&mut self, cls: &'static StaticStateClass<T>) {
         self.bind_class = Some(cls);
     }
@@ -642,12 +666,13 @@ impl InterfaceEntity {
         self.extends.push(Box::new(interface));
     }
 
-    /// Bind to static [Interface].
+    /// Bind to static [StaticInterface].
     ///
-    /// When the interface registered, the [Interface] will be initialized, so
-    /// you can use the [Interface] to be implemented by other class.
-    pub fn bind(&mut self, cls: &'static StaticInterface) {
-        self.bind_interface = Some(cls);
+    /// When the interface registered, the [StaticInterface] will be
+    /// initialized, so you can use the [StaticInterface] to be implemented
+    /// by other class.
+    pub fn bind(&mut self, i: &'static StaticInterface) {
+        self.bind_interface = Some(i);
     }
 
     #[allow(clippy::useless_conversion)]
