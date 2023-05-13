@@ -21,10 +21,10 @@ license = { workspace = true }
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-phper = { version = "0.11.0", path = "../../phper" }
+phper = { workspace = true }
 
 [dev-dependencies]
-phper-test = { version = "0.11.0", path = "../../phper-test" }
+phper-test = { workspace = true }
 
 [build-dependencies]
-phper-build = { version = "0.11.0", path = "../../phper-build" }
+phper-build = { workspace = true }
