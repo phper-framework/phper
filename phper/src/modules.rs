@@ -12,7 +12,7 @@
 
 use crate::{
     c_str_ptr,
-    classes::ClassEntity,
+    classes::{ClassEntity, InterfaceEntity},
     constants::Constant,
     errors::Throwable,
     functions::{Function, FunctionEntity, FunctionEntry},
@@ -49,6 +49,10 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
     for class_entity in &module.class_entities {
         let ce = class_entity.init();
         class_entity.declare_properties(ce);
+    }
+
+    for interface_entity in &module.interface_entities {
+        interface_entity.init();
     }
 
     if let Some(f) = take(&mut module.module_init) {
@@ -120,6 +124,7 @@ pub struct Module {
     request_shutdown: Option<Box<dyn Fn()>>,
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
+    interface_entities: Vec<InterfaceEntity>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
     infos: HashMap<CString, CString>,
@@ -140,6 +145,7 @@ impl Module {
             request_shutdown: None,
             function_entities: vec![],
             class_entities: Default::default(),
+            interface_entities: Default::default(),
             constants: Default::default(),
             ini_entities: Default::default(),
             infos: Default::default(),
@@ -183,6 +189,11 @@ impl Module {
     /// Register class to module.
     pub fn add_class<T>(&mut self, class: ClassEntity<T>) {
         self.class_entities.push(unsafe { transmute(class) });
+    }
+
+    /// Register interface to module.
+    pub fn add_interface(&mut self, interface: InterfaceEntity) {
+        self.interface_entities.push(interface);
     }
 
     /// Register constant to module.

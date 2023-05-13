@@ -11,7 +11,7 @@
 use crate::errors::HttpClientError;
 use phper::{
     arrays::{InsertKey, ZArray},
-    classes::{ClassEntity, StateClass, Visibility},
+    classes::{ClassEntity, StaticStateClass, Visibility},
     values::ZVal,
 };
 use reqwest::blocking::Response;
@@ -19,7 +19,7 @@ use std::mem::take;
 
 pub const RESPONSE_CLASS_NAME: &str = "HttpClient\\Response";
 
-pub static RESPONSE_CLASS: StateClass<Option<Response>> = StateClass::null();
+pub static RESPONSE_CLASS: StaticStateClass<Option<Response>> = StaticStateClass::null();
 
 pub fn make_response_class() -> ClassEntity<Option<Response>> {
     let mut class =

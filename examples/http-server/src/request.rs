@@ -10,14 +10,14 @@
 
 use phper::{
     arrays::ZArray,
-    classes::{ClassEntity, StateClass, Visibility},
+    classes::{ClassEntity, StaticStateClass, Visibility},
     objects::StateObject,
 };
 use std::convert::Infallible;
 
 pub const HTTP_REQUEST_CLASS_NAME: &str = "HttpServer\\HttpRequest";
 
-pub static HTTP_REQUEST_CLASS: StateClass<()> = StateClass::null();
+pub static HTTP_REQUEST_CLASS: StaticStateClass<()> = StaticStateClass::null();
 
 /// Register the class `HttpServer\HttpRequest` by `ClassEntity`.
 pub fn make_request_class() -> ClassEntity<()> {

@@ -11,7 +11,7 @@
 use crate::{errors::HttpClientError, request::REQUEST_BUILDER_CLASS};
 use phper::{
     alloc::ToRefOwned,
-    classes::{ClassEntity, StateClass, Visibility},
+    classes::{ClassEntity, StaticStateClass, Visibility},
     functions::Argument,
 };
 use reqwest::blocking::{Client, ClientBuilder};
@@ -21,7 +21,7 @@ const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
 
 const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
 
-static HTTP_CLIENT_CLASS: StateClass<Option<Client>> = StateClass::null();
+static HTTP_CLIENT_CLASS: StaticStateClass<Option<Client>> = StaticStateClass::null();
 
 pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
     // `new_with_default_state_constructor` means initialize the state of
