@@ -34,3 +34,11 @@ edition = "2021"
 license = "MulanPSL-2.0"
 repository = "https://github.com/jmjoy/phper.git"
 rust-version = "1.65"
+
+[workspace.dependencies]
+phper = { version = "0.11.0", path = "./phper" }
+phper-alloc = { version = "0.11.0", path = "./phper-alloc" }
+phper-build = { version = "0.11.0", path = "./phper-build" }
+phper-macros = { version = "0.11.0", path = "./phper-macros" }
+phper-sys = { version = "0.11.0", path = "./phper-sys" }
+phper-test = { version = "0.11.0", path = "./phper-test" }

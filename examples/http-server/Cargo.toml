@@ -23,11 +23,11 @@ crate-type = ["lib", "cdylib"]
 [dependencies]
 hyper = { version = "0.14.26", features = ["http1", "runtime", "server"] }
 axum = "0.6.16"
-phper = { version = "0.11.0", path = "../../phper" }
+phper = { workspace = true }
 thiserror = "1.0.40"
 tokio = { version = "1.27.0", features = ["full"] }
 reqwest = { version = "0.11.16", features = ["blocking"] }
 
 [dev-dependencies]
-phper-test = { version = "0.11.0", path = "../../phper-test" }
+phper-test = { workspace = true }
 reqwest = "0.11.16"

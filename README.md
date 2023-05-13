@@ -28,7 +28,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 - **OS**
   - [x] linux
   - [x] macos
-  - [ ] windows
+  - [ ] ~~windows~~
 - **PHP**
   - **version**
     - [x] 7.0
@@ -41,13 +41,13 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
     - [x] 8.2
   - **mode**
     - [x] nts
-    - [ ] zts
+    - [ ] ~~zts~~
   - **sapi**
     - [x] cli
     - [x] fpm
   - **debug**
     - [x] disable
-    - [ ] enable
+    - [ ] ~~enable~~
 
 ## Examples
 
