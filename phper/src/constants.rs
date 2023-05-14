@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [crate::sys::zend_constant].
+//! Apis relate to [zend_constant](crate::sys::zend_constant).
 
 use crate::{sys::*, types::Scalar};
 use std::ffi::{c_char, c_int};

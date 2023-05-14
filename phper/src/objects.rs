@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [crate::sys::zend_object].
+//! Apis relate to [zend_object](crate::sys::zend_object).
 
 use crate::{
     alloc::EBox,
@@ -30,7 +30,7 @@ use std::{
     ptr::null_mut,
 };
 
-/// Wrapper of [crate::sys::zend_object].
+/// Wrapper of [zend_object](crate::sys::zend_object).
 #[repr(transparent)]
 pub struct ZObj {
     inner: zend_object,
@@ -287,7 +287,7 @@ impl Debug for ZObj {
     }
 }
 
-/// Wrapper of [crate::sys::zend_object].
+/// Wrapper of [zend_object](crate::sys::zend_object).
 pub struct ZObject {
     inner: *mut ZObj,
 }
