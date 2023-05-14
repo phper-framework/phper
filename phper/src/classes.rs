@@ -205,22 +205,23 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
-/// The [StateClass] holds [zend_class_entry](crate::sys::zend_class_entry) and
-/// inner state, always as the static variable, and then be bind to
-/// [ClassEntity].
+/// The [StaticStateClass] holds
+/// [zend_class_entry](crate::sys::zend_class_entry) and inner state, always as
+/// the static variable, and then be bind to [ClassEntity].
 ///
-/// When the class registered (module initialized), the [StateClass] will be
-/// initialized, so you can use the [StateClass] to new stateful object, etc.
+/// When the class registered (module initialized), the [StaticStateClass] will
+/// be initialized, so you can use the [StaticStateClass] to new stateful
+/// object, etc.
 ///
-/// So, You shouldn't use [StateClass] in `module_init` stage, because it hasn't
-/// initialized.
+/// So, You shouldn't use [StaticStateClass] in `module_init` stage, because it
+/// hasn't initialized.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use phper::classes::{ClassEntity, StateClass};
+/// use phper::classes::{ClassEntity, StaticStateClass};
 ///
-/// pub static FOO_CLASS: StateClass<FooState> = StateClass::null();
+/// pub static FOO_CLASS: StaticStateClass<FooState> = StaticStateClass::null();
 ///
 /// #[derive(Default)]
 /// pub struct FooState;
@@ -232,13 +233,13 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 /// }
 /// ```
 #[repr(transparent)]
-pub struct StateClass<T> {
+pub struct StaticStateClass<T> {
     inner: AtomicPtr<zend_class_entry>,
     _p: PhantomData<T>,
 }
 
-impl<T> StateClass<T> {
-    /// Create empty [StateClass], with null
+impl<T> StaticStateClass<T> {
+    /// Create empty [StaticStateClass], with null
     /// [zend_class_entry](crate::sys::zend_class_entry).
     pub const fn null() -> Self {
         Self {
@@ -280,7 +281,54 @@ impl<T> StateClass<T> {
     }
 }
 
-unsafe impl<T> Sync for StateClass<T> {}
+unsafe impl<T> Sync for StaticStateClass<T> {}
+
+/// The [StaticInterface]  holds
+/// [zend_class_entry](crate::sys::zend_class_entry), always as the static
+/// variable, and then be bind to [InterfaceEntity].
+///
+/// When the interface registered (module initialized), the [StaticInterface]
+/// will be initialized.
+///
+/// So, You shouldn't use [StaticInterface] in `module_init` stage, because it
+/// hasn't initialized.
+///
+/// # Examples
+///
+/// ```rust
+/// use phper::classes::{InterfaceEntity, StaticInterface};
+///
+/// pub static FOO_INTERFACE: StaticInterface = StaticInterface::null();
+///
+/// fn make_foo_interface() -> InterfaceEntity {
+///     let mut interface = InterfaceEntity::new("Foo");
+///     interface.bind(&FOO_INTERFACE);
+///     interface
+/// }
+/// ```
+#[repr(transparent)]
+pub struct StaticInterface {
+    inner: AtomicPtr<zend_class_entry>,
+}
+
+impl StaticInterface {
+    /// Create empty [StaticInterface], with null
+    /// [zend_class_entry](crate::sys::zend_class_entry).
+    pub const fn null() -> Self {
+        Self {
+            inner: AtomicPtr::new(null_mut()),
+        }
+    }
+
+    fn bind(&'static self, ptr: *mut zend_class_entry) {
+        self.inner.store(ptr, Ordering::Relaxed);
+    }
+
+    /// Converts to class entry.
+    pub fn as_class_entry(&'static self) -> &'static ClassEntry {
+        unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
+    }
+}
 
 pub(crate) type StateConstructor = dyn Fn() -> *mut dyn Any;
 
@@ -299,7 +347,7 @@ pub struct ClassEntity<T: 'static> {
     property_entities: Vec<PropertyEntity>,
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
     interfaces: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
-    bind_class: Option<&'static StateClass<T>>,
+    bind_class: Option<&'static StaticStateClass<T>>,
     state_cloner: Option<Rc<StateCloner>>,
     _p: PhantomData<(*mut (), T)>,
 }
@@ -351,8 +399,11 @@ impl<T: 'static> ClassEntity<T> {
         Z: Into<ZVal> + 'static,
         E: Throwable + 'static,
     {
-        self.method_entities
-            .push(MethodEntity::new(name, Rc::new(Method::new(handler)), vis));
+        self.method_entities.push(MethodEntity::new(
+            name,
+            Some(Rc::new(Method::new(handler))),
+            vis,
+        ));
         self.method_entities.last_mut().unwrap()
     }
 
@@ -365,8 +416,18 @@ impl<T: 'static> ClassEntity<T> {
         Z: Into<ZVal> + 'static,
         E: Throwable + 'static,
     {
-        let mut entity = MethodEntity::new(name, Rc::new(Function::new(handler)), vis);
-        entity.r#static(true);
+        let mut entity = MethodEntity::new(name, Some(Rc::new(Function::new(handler))), vis);
+        entity.set_vis_static();
+        self.method_entities.push(entity);
+        self.method_entities.last_mut().unwrap()
+    }
+
+    /// Add abstract method to class, with visibility (shouldn't be private).
+    pub fn add_abstract_method(
+        &mut self, name: impl Into<String>, vis: Visibility,
+    ) -> &mut MethodEntity {
+        let mut entity = MethodEntity::new(name, None, vis);
+        entity.set_vis_abstract();
         self.method_entities.push(entity);
         self.method_entities.last_mut().unwrap()
     }
@@ -424,11 +485,11 @@ impl<T: 'static> ClassEntity<T> {
         self.interfaces.push(Box::new(interface));
     }
 
-    /// Bind to static [StateClass].
+    /// Bind to static [StaticStateClass].
     ///
-    /// When the class registered, the [StateClass] will be initialized, so you
-    /// can use the [StateClass] to new stateful object, etc.
-    pub fn bind(&mut self, cls: &'static StateClass<T>) {
+    /// When the class registered, the [StaticStateClass] will be initialized,
+    /// so you can use the [StaticStateClass] to new stateful object, etc.
+    pub fn bind(&mut self, cls: &'static StaticStateClass<T>) {
         self.bind_class = Some(cls);
     }
 
@@ -558,6 +619,103 @@ unsafe extern "C" fn class_init_handler(
     }
 }
 
+/// Builder for registering interface.
+pub struct InterfaceEntity {
+    interface_name: CString,
+    method_entities: Vec<MethodEntity>,
+    extends: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
+    bind_interface: Option<&'static StaticInterface>,
+}
+
+impl InterfaceEntity {
+    /// Construct a new `InterfaceEntity` with interface name.
+    pub fn new(interface_name: impl Into<String>) -> Self {
+        Self {
+            interface_name: ensure_end_with_zero(interface_name.into()),
+            method_entities: Vec::new(),
+            extends: Vec::new(),
+            bind_interface: None,
+        }
+    }
+
+    /// Add member method to interface, with mandatory visibility public
+    /// abstract.
+    pub fn add_method(&mut self, name: impl Into<String>) -> &mut MethodEntity {
+        let mut entity = MethodEntity::new(name, None, Visibility::Public);
+        entity.set_vis_abstract();
+        self.method_entities.push(entity);
+        self.method_entities.last_mut().unwrap()
+    }
+
+    /// Register interface to `extends` the interfaces, due to the interface can
+    /// extends multi interface, so this method can be called multi time.
+    ///
+    /// *Because in the `MINIT` phase, the class starts to register, so the*
+    /// *closure is used to return the `ClassEntry` to delay the acquisition of*
+    /// *the class.*
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use phper::classes::{ClassEntry, InterfaceEntity};
+    ///
+    /// let mut interface = InterfaceEntity::new("MyInterface");
+    /// interface.extends(|| ClassEntry::from_globals("Stringable").unwrap());
+    /// ```
+    pub fn extends(&mut self, interface: impl Fn() -> &'static ClassEntry + 'static) {
+        self.extends.push(Box::new(interface));
+    }
+
+    /// Bind to static [StaticInterface].
+    ///
+    /// When the interface registered, the [StaticInterface] will be
+    /// initialized, so you can use the [StaticInterface] to be implemented
+    /// by other class.
+    pub fn bind(&mut self, i: &'static StaticInterface) {
+        self.bind_interface = Some(i);
+    }
+
+    #[allow(clippy::useless_conversion)]
+    pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
+        let class_ce = phper_init_class_entry_ex(
+            self.interface_name.as_ptr().cast(),
+            self.interface_name.as_bytes().len().try_into().unwrap(),
+            self.function_entries(),
+            Some(interface_init_handler),
+            null_mut(),
+        );
+
+        if let Some(bind_interface) = self.bind_interface {
+            bind_interface.bind(class_ce);
+        }
+
+        for interface in &self.extends {
+            let interface_ce = interface().as_ptr();
+            zend_class_implements(class_ce, 1, interface_ce);
+        }
+
+        class_ce
+    }
+
+    unsafe fn function_entries(&self) -> *const zend_function_entry {
+        let mut methods = self
+            .method_entities
+            .iter()
+            .map(|method| FunctionEntry::from_method_entity(method))
+            .collect::<Vec<_>>();
+
+        methods.push(zeroed::<zend_function_entry>());
+
+        Box::into_raw(methods.into_boxed_slice()).cast()
+    }
+}
+
+unsafe extern "C" fn interface_init_handler(
+    class_ce: *mut zend_class_entry, _argument: *mut c_void,
+) -> *mut zend_class_entry {
+    zend_register_internal_interface(class_ce)
+}
+
 /// Builder for declare class property.
 struct PropertyEntity {
     name: String,
@@ -635,6 +793,9 @@ pub enum Visibility {
     /// Private.
     Private = ZEND_ACC_PRIVATE,
 }
+
+/// Raw visibility flag.
+pub(crate) type RawVisibility = u32;
 
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {

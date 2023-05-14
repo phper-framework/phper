@@ -66,6 +66,9 @@ pub mod _06_module {
 
     #[doc = include_str!("../doc/_06_module/_06_register_class/index.md")]
     pub mod _06_register_class {}
+
+    #[doc = include_str!("../doc/_06_module/_07_register_interface/index.md")]
+    pub mod _07_register_interface {}
 }
 
 /// TODO

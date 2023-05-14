@@ -29,7 +29,7 @@ $reflection_class = new ReflectionClass(\IntegrationTest\A::class);
 $property_name = $reflection_class->getProperty("name");
 assert_true($property_name->isPrivate());
 
-
+// Test registering class;
 $foo = new \IntegrationTest\Foo();
 
 // Test implementation of Iterator interface.
@@ -45,3 +45,18 @@ $foo[10] = "10";
 assert_eq($foo[10], "10");
 unset($foo[10]);
 assert_eq($foo[10], null);
+
+// Test registering interface;
+assert_true(interface_exists("\\IntegrationTest\\IBar"));
+
+$interface = new ReflectionClass("\\IntegrationTest\\IBar");
+
+assert_true($interface->isInterface());
+assert_true($interface->isInternal());
+
+assert_true($interface->implementsInterface("ArrayAccess"));
+assert_true($interface->implementsInterface("Iterator"));
+
+$doSomethings = $interface->getMethod("doSomethings");
+assert_true($doSomethings->isPublic());
+assert_true($doSomethings->isAbstract());

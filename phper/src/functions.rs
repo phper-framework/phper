@@ -14,7 +14,7 @@
 
 use crate::{
     cg,
-    classes::{ClassEntry, Visibility},
+    classes::{ClassEntry, RawVisibility, Visibility},
     errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable},
     objects::{StateObj, ZObj, ZObject},
     strings::{ZStr, ZString},
@@ -108,8 +108,7 @@ impl FunctionEntry {
         Self::entry(
             &entity.name,
             &entity.arguments,
-            entity.handler.clone(),
-            None,
+            Some(entity.handler.clone()),
             None,
         )
     }
@@ -120,14 +119,13 @@ impl FunctionEntry {
             &entity.arguments,
             entity.handler.clone(),
             Some(entity.visibility),
-            Some(entity.r#static),
         )
     }
 
     /// Will leak memory
     unsafe fn entry(
-        name: &CStr, arguments: &[Argument], handler: Rc<dyn Callable>,
-        visibility: Option<Visibility>, r#static: Option<bool>,
+        name: &CStr, arguments: &[Argument], handler: Option<Rc<dyn Callable>>,
+        visibility: Option<RawVisibility>,
     ) -> zend_function_entry {
         let mut infos = Vec::new();
 
@@ -143,20 +141,23 @@ impl FunctionEntry {
 
         infos.push(zeroed::<zend_internal_arg_info>());
 
-        let translator = CallableTranslator {
-            callable: Rc::into_raw(handler),
-        };
-        let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
-        infos.push(last_arg_info);
+        let raw_handler = handler.as_ref().map(|_| invoke as _);
 
-        let flags = visibility.map(|v| v as u32).unwrap_or_default()
-            | r#static
-                .and_then(|v| if v { Some(ZEND_ACC_STATIC) } else { None })
-                .unwrap_or_default();
+        if let Some(handler) = handler {
+            let translator = CallableTranslator {
+                callable: Rc::into_raw(handler),
+            };
+            let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
+            infos.push(last_arg_info);
+        }
+
+        let flags = visibility
+            .map(|v| v as u32)
+            .unwrap_or(Visibility::default() as u32);
 
         zend_function_entry {
             fname: name.as_ptr().cast(),
-            handler: Some(invoke),
+            handler: raw_handler,
             arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
             num_args: arguments.len() as u32,
             flags,
@@ -199,29 +200,33 @@ impl FunctionEntity {
 /// Builder for registering class method.
 pub struct MethodEntity {
     name: CString,
-    handler: Rc<dyn Callable>,
+    handler: Option<Rc<dyn Callable>>,
     arguments: Vec<Argument>,
-    visibility: Visibility,
-    r#static: bool,
+    visibility: RawVisibility,
 }
 
 impl MethodEntity {
     #[inline]
     pub(crate) fn new(
-        name: impl Into<String>, handler: Rc<dyn Callable>, visibility: Visibility,
+        name: impl Into<String>, handler: Option<Rc<dyn Callable>>, visibility: Visibility,
     ) -> Self {
         Self {
             name: ensure_end_with_zero(name),
             handler,
-            visibility,
+            visibility: visibility as RawVisibility,
             arguments: Default::default(),
-            r#static: false,
         }
     }
 
     #[inline]
-    pub(crate) fn r#static(&mut self, s: bool) -> &mut Self {
-        self.r#static = s;
+    pub(crate) fn set_vis_static(&mut self) -> &mut Self {
+        self.visibility |= ZEND_ACC_STATIC;
+        self
+    }
+
+    #[inline]
+    pub(crate) fn set_vis_abstract(&mut self) -> &mut Self {
+        self.visibility |= ZEND_ACC_ABSTRACT;
         self
     }
 

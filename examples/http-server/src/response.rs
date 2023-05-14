@@ -14,14 +14,14 @@ use axum::{
     http::{HeaderName, HeaderValue, Response},
 };
 use phper::{
-    classes::{ClassEntity, StateClass, Visibility},
+    classes::{ClassEntity, StaticStateClass, Visibility},
     functions::Argument,
     objects::StateObject,
 };
 
 pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 
-pub static HTTP_RESPONSE_CLASS: StateClass<Response<Body>> = StateClass::null();
+pub static HTTP_RESPONSE_CLASS: StaticStateClass<Response<Body>> = StaticStateClass::null();
 
 /// Register the class `HttpServer\HttpResponse` by `ClassEntity`, with the
 /// inner state `Response<Body>`.

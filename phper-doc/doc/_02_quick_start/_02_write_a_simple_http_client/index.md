@@ -193,7 +193,7 @@ Now let's begin to finish the logic.
 
    use phper::{
        alloc::ToRefOwned,
-       classes::{StateClass, Visibility},
+       classes::{StaticStateClass, Visibility},
        functions::Argument,
    };
    use reqwest::blocking::{Client, ClientBuilder};
@@ -203,9 +203,9 @@ Now let's begin to finish the logic.
 
    const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
 
-   // The static StateClass is bind to ClassEntity of HttpClient, When the class registered,
-   // the StateClass will be initialized, so you can use it to new stateful object, etc.
-   static HTTP_CLIENT_CLASS: StateClass<Option<Client>> = StateClass::null();
+   // The static StaticStateClass is bind to ClassEntity of HttpClient, When the class registered,
+   // the StaticStateClass will be initialized, so you can use it to new stateful object, etc.
+   static HTTP_CLIENT_CLASS:StaticStateClass<Option<Client>> =StaticStateClass::null();
    
    pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
        // `new_with_default_state_constructor` means initialize the state of `ClientBuilder` as

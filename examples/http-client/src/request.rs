@@ -9,13 +9,14 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::{errors::HttpClientError, response::RESPONSE_CLASS};
-use phper::classes::{ClassEntity, StateClass, Visibility};
+use phper::classes::{ClassEntity, StaticStateClass, Visibility};
 use reqwest::blocking::RequestBuilder;
 use std::{convert::Infallible, mem::take};
 
 pub const REQUEST_BUILDER_CLASS_NAME: &str = "HttpClient\\RequestBuilder";
 
-pub static REQUEST_BUILDER_CLASS: StateClass<Option<RequestBuilder>> = StateClass::null();
+pub static REQUEST_BUILDER_CLASS: StaticStateClass<Option<RequestBuilder>> =
+    StaticStateClass::null();
 
 pub fn make_request_builder_class() -> ClassEntity<Option<RequestBuilder>> {
     let mut class = ClassEntity::<Option<RequestBuilder>>::new_with_default_state_constructor(
