@@ -26,7 +26,7 @@ Full example is <https://github.com/phper-framework/phper/tree/master/examples/h
 1. Add the metadata to the `Cargo.toml` to build the `.so` file.
 
    ```toml
-   ## Cargo.toml
+   # Cargo.toml
 
    [lib]
    crate-type = ["cdylib"]
@@ -88,12 +88,12 @@ Full example is <https://github.com/phper-framework/phper/tree/master/examples/h
 1. Build, if your php isn't installed globally, you should specify the path of `php-config`.
 
    ```bash
-   ## Optional, specify if php isn't installed globally,
-   ## this environment is used by `phper-sys`.
-   ##
-   ## export PHP_CONFIG=<Your path of php-config>
+   # Optional, specify if php isn't installed globally,
+   # this environment is used by `phper-sys`.
+   #
+   # export PHP_CONFIG=<Your path of php-config>
    
-   ## Build libhello.so.
+   # Build libhello.so.
    cargo build
    ```
 

@@ -61,7 +61,7 @@ Before writing the code, we first prepare the dependency and startup code.
 1. Add the metadata to the `Cargo.toml` to build the `.so` file.
 
    ```toml
-   ## Cargo.toml
+   # Cargo.toml
 
    [lib]
    crate-type = ["cdylib"]

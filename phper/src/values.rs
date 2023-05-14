@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [crate::sys::zval].
+//! Apis relate to [zval](crate::sys::zval).
 
 use crate::{
     alloc::EBox,
@@ -33,7 +33,7 @@ use std::{
     str,
 };
 
-/// Wrapper of [crate::sys::zend_execute_data].
+/// Wrapper of [zend_execute_data](crate::sys::zend_execute_data).
 #[repr(transparent)]
 pub struct ExecuteData {
     inner: zend_execute_data,
@@ -177,7 +177,7 @@ impl ExecuteData {
     }
 }
 
-/// Wrapper of [crate::sys::zval].
+/// Wrapper of [zval](crate::sys::zval).
 #[repr(transparent)]
 pub struct ZVal {
     inner: zval,

@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [crate::sys::zend_class_entry].
+//! Apis relate to [zend_class_entry](crate::sys::zend_class_entry).
 
 use crate::{
     arrays::ZArr,
@@ -48,7 +48,7 @@ pub fn array_access_class<'a>() -> &'a ClassEntry {
     unsafe { ClassEntry::from_ptr(zend_ce_arrayaccess) }
 }
 
-/// Wrapper of [crate::sys::zend_class_entry].
+/// Wrapper of [zend_class_entry](crate::sys::zend_class_entry).
 #[repr(transparent)]
 pub struct ClassEntry {
     inner: zend_class_entry,
