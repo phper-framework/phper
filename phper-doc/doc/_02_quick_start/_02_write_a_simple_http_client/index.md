@@ -61,8 +61,6 @@ Before writing the code, we first prepare the dependency and startup code.
 1. Add the metadata to the `Cargo.toml` to build the `.so` file.
 
    ```toml
-   # Cargo.toml
-
    [lib]
    crate-type = ["cdylib"]
    ```
@@ -92,8 +90,6 @@ Now let's begin to finish the logic.
 1. First, we create `src/errors.rs` to make the `HttpClientException` class:
 
    ```rust
-   /*** src/errors.rs ***/
-
    use phper::{
        classes::{ClassEntry, ClassEntity},
        errors::{exception_class, Throwable},
@@ -148,49 +144,45 @@ Now let's begin to finish the logic.
 1. Then, create the `HttpClientBuilder` class in `src/client.rs`.
 
    ```rust
-   /*** src/errors.rs ***/
-
-   use phper::{
-       classes::{ClassEntry, ClassEntity},
-       errors::{exception_class, Throwable},
-   };
-   
-   /// The exception class name of extension.
-   const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
-   
-   pub fn make_exception_class() -> ClassEntity<()> {
-       let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
-       // The `extends` is same as the PHP class `extends`.
-       class.extends(exception_class);
-       class
-   }
-   
-   #[derive(Debug, thiserror::Error)]
-   pub enum HttpClientError {
-       #[error(transparent)]
-       Reqwest(reqwest::Error),
-   
-       #[error("should call '{method_name}()' before call 'body()'")]
-       ResponseAfterRead { method_name: String },
-   
-       #[error("should not call 'body()' multi time")]
-       ResponseHadRead,
-   }
-   
-   impl Throwable for HttpClientError {
-       fn get_class(&self) -> &ClassEntry {
-           ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
-       }
-   }
-   
-   impl From<HttpClientError> for phper::Error {
-       fn from(e: HttpClientError) -> Self {
-           phper::Error::throw(e)
-       }
-   }
-
-   /*** src/client.rs ***/
-
+   # use phper::{
+   #     classes::{ClassEntry, ClassEntity},
+   #     errors::{exception_class, Throwable},
+   # };
+   #
+   # /// The exception class name of extension.
+   # const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
+   #
+   # pub fn make_exception_class() -> ClassEntity<()> {
+   #     let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
+   #     // The `extends` is same as the PHP class `extends`.
+   #     class.extends(exception_class);
+   #     class
+   # }
+   #
+   # #[derive(Debug, thiserror::Error)]
+   # pub enum HttpClientError {
+   #     #[error(transparent)]
+   #     Reqwest(reqwest::Error),
+   #
+   #     #[error("should call '{method_name}()' before call 'body()'")]
+   #     ResponseAfterRead { method_name: String },
+   #
+   #     #[error("should not call 'body()' multi time")]
+   #     ResponseHadRead,
+   # }
+   #
+   # impl Throwable for HttpClientError {
+   #     fn get_class(&self) -> &ClassEntry {
+   #         ClassEntry::from_globals(EXCEPTION_CLASS_NAME).unwrap_or_else(|_| exception_class())
+   #     }
+   # }
+   #
+   # impl From<HttpClientError> for phper::Error {
+   #     fn from(e: HttpClientError) -> Self {
+   #         phper::Error::throw(e)
+   #     }
+   # }
+   #
    use phper::{
        alloc::ToRefOwned,
        classes::{StaticStateClass, Visibility},
