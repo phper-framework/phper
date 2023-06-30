@@ -18,6 +18,10 @@
 #include <zend_exceptions.h>
 #include <zend_interfaces.h>
 
+#if PHP_MAJOR_VERSION >= 8
+#include <zend_observer.h>
+#endif
+
 typedef ZEND_INI_MH(phper_zend_ini_mh);
 
 typedef zend_class_entry *
