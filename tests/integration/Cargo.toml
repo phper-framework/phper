@@ -21,7 +21,7 @@ license = { workspace = true }
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-indexmap = "1.9.2"
+indexmap = "2.0.0"
 phper = { workspace = true }
 
 [dev-dependencies]
