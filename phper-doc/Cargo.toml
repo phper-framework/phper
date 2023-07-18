@@ -23,5 +23,5 @@ license = { workspace = true }
 phper = { workspace = true }
 
 [dev-dependencies]
-thiserror = "1.0.37"
-reqwest = { version = "0.11.13", features = ["blocking", "cookies"] }
+thiserror = "1.0.43"
+reqwest = { version = "0.11.18", features = ["blocking", "cookies"] }
