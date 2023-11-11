@@ -60,3 +60,10 @@ assert_true($interface->implementsInterface("Iterator"));
 $doSomethings = $interface->getMethod("doSomethings");
 assert_true($doSomethings->isPublic());
 assert_true($doSomethings->isAbstract());
+
+// Test get or set static properties.
+assert_eq(IntegrationTest\PropsHolder::$foo, "bar");
+
+assert_eq(IntegrationTest\PropsHolder::getFoo1(), 12345);
+IntegrationTest\PropsHolder::setFoo1("baz");
+assert_eq(IntegrationTest\PropsHolder::getFoo1(), "baz");

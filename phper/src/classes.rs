@@ -135,6 +135,26 @@ impl ClassEntry {
         }
     }
 
+    /// Create mutable reference from global class name.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use phper::classes::ClassEntry;
+    ///
+    /// let mut class = ClassEntry::from_globals_mut("Foo").unwrap();
+    /// class.set_static_property("name", "value").unwrap();
+    /// ```
+    pub fn from_globals_mut(class_name: impl AsRef<str>) -> crate::Result<&'static mut Self> {
+        let name = class_name.as_ref();
+        let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
+        unsafe {
+            ptr.as_mut().ok_or_else(|| {
+                crate::Error::ClassNotFound(ClassNotFoundError::new(name.to_string()))
+            })
+        }
+    }
+
     /// Create the object from class and call `__construct` with arguments.
     ///
     /// If the `__construct` is private, or protected and the called scope isn't
@@ -180,6 +200,39 @@ impl ClassEntry {
     /// Detect if the class is instance of parent class.
     pub fn is_instance_of(&self, parent: &ClassEntry) -> bool {
         unsafe { phper_instanceof_function(self.as_ptr(), parent.as_ptr()) }
+    }
+
+    /// Get the static property by name of class.
+    ///
+    /// Return None when static property hasn't register by
+    /// [ClassEntity::add_static_property].
+    pub fn get_static_property(&self, name: impl AsRef<str>) -> Option<&ZVal> {
+        let ptr = self.as_ptr() as *mut _;
+        let prop = Self::inner_get_static_property(ptr, name);
+        unsafe { ZVal::try_from_ptr(prop) }
+    }
+
+    /// Get the mutable static property by name of class.
+    ///
+    /// Return None when static property hasn't register by
+    /// [ClassEntity::add_static_property].
+    pub fn get_mut_static_property(&mut self, name: impl AsRef<str>) -> Option<&mut ZVal> {
+        let ptr = self.as_mut_ptr();
+        let prop = Self::inner_get_static_property(ptr, name);
+        unsafe { ZVal::try_from_mut_ptr(prop) }
+    }
+
+    fn inner_get_static_property(scope: *mut zend_class_entry, name: impl AsRef<str>) -> *mut zval {
+        let name = name.as_ref();
+
+        unsafe {
+            zend_read_static_property(
+                scope,
+                name.as_ptr().cast(),
+                name.len().try_into().unwrap(),
+                true.into(),
+            )
+        }
     }
 }
 
@@ -254,6 +307,11 @@ impl<T> StaticStateClass<T> {
 
     /// Converts to class entry.
     pub fn as_class_entry(&'static self) -> &'static ClassEntry {
+        unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
+    }
+
+    /// Converts to mutable class entry.
+    pub fn as_mut_class_entry(&'static self) -> &'static mut ClassEntry {
         unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
     }
 
@@ -442,6 +500,19 @@ impl<T: 'static> ClassEntity<T> {
     ) {
         self.property_entities
             .push(PropertyEntity::new(name, visibility, value));
+    }
+
+    /// Declare static property.
+    ///
+    /// The argument `value` should be `Copy` because 'zend_declare_property'
+    /// receive only scalar zval , otherwise will report fatal error:
+    /// "Internal zvals cannot be refcounted".
+    pub fn add_static_property(
+        &mut self, name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>,
+    ) {
+        let mut entity = PropertyEntity::new(name, visibility, value);
+        entity.set_vis_static();
+        self.property_entities.push(entity);
     }
 
     /// Register class to `extends` the parent class.
@@ -719,7 +790,7 @@ unsafe extern "C" fn interface_init_handler(
 /// Builder for declare class property.
 struct PropertyEntity {
     name: String,
-    visibility: Visibility,
+    visibility: RawVisibility,
     value: Scalar,
 }
 
@@ -727,9 +798,15 @@ impl PropertyEntity {
     fn new(name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>) -> Self {
         Self {
             name: name.into(),
-            visibility,
+            visibility: visibility as RawVisibility,
             value: value.into(),
         }
+    }
+
+    #[inline]
+    pub(crate) fn set_vis_static(&mut self) -> &mut Self {
+        self.visibility |= ZEND_ACC_STATIC;
+        self
     }
 
     #[allow(clippy::useless_conversion)]

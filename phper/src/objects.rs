@@ -11,7 +11,6 @@
 //! Apis relate to [zend_object](crate::sys::zend_object).
 
 use crate::{
-    alloc::EBox,
     classes::ClassEntry,
     functions::{call_internal, call_raw_common, ZFunc},
     sys::*,
@@ -185,7 +184,7 @@ impl ZObj {
     #[allow(clippy::useless_conversion)]
     pub fn set_property(&mut self, name: impl AsRef<str>, val: impl Into<ZVal>) {
         let name = name.as_ref();
-        let val = EBox::new(val.into());
+        let mut val = val.into();
         unsafe {
             #[cfg(phper_major_version = "8")]
             {
@@ -194,7 +193,7 @@ impl ZObj {
                     &mut self.inner,
                     name.as_ptr().cast(),
                     name.len().try_into().unwrap(),
-                    EBox::into_raw(val).cast(),
+                    val.as_mut_ptr(),
                 )
             }
             #[cfg(phper_major_version = "7")]
@@ -206,7 +205,7 @@ impl ZObj {
                     &mut zv,
                     name.as_ptr().cast(),
                     name.len().try_into().unwrap(),
-                    EBox::into_raw(val).cast(),
+                    val.as_mut_ptr(),
                 )
             }
         }
