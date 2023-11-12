@@ -28,7 +28,7 @@ use std::{
     ffi::{c_void, CString},
     fmt::Debug,
     marker::PhantomData,
-    mem::{size_of, zeroed, ManuallyDrop},
+    mem::{replace, size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,
@@ -135,26 +135,6 @@ impl ClassEntry {
         }
     }
 
-    /// Create mutable reference from global class name.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use phper::classes::ClassEntry;
-    ///
-    /// let mut class = ClassEntry::from_globals_mut("Foo").unwrap();
-    /// class.set_static_property("name", "value").unwrap();
-    /// ```
-    pub fn from_globals_mut(class_name: impl AsRef<str>) -> crate::Result<&'static mut Self> {
-        let name = class_name.as_ref();
-        let ptr: *mut Self = find_global_class_entry_ptr(name).cast();
-        unsafe {
-            ptr.as_mut().ok_or_else(|| {
-                crate::Error::ClassNotFound(ClassNotFoundError::new(name.to_string()))
-            })
-        }
-    }
-
     /// Create the object from class and call `__construct` with arguments.
     ///
     /// If the `__construct` is private, or protected and the called scope isn't
@@ -212,27 +192,22 @@ impl ClassEntry {
         unsafe { ZVal::try_from_ptr(prop) }
     }
 
-    /// Get the mutable static property by name of class.
+    /// Set the static property by name of class.
     ///
-    /// Return None when static property hasn't register by
+    /// Return `Some(x)` where `x` is the previous value of static property, or
+    /// return `None` when static property hasn't register by
     /// [ClassEntity::add_static_property].
-    pub fn get_mut_static_property(&mut self, name: impl AsRef<str>) -> Option<&mut ZVal> {
-        let ptr = self.as_mut_ptr();
+    pub fn set_static_property(&self, name: impl AsRef<str>, val: impl Into<ZVal>) -> Option<ZVal> {
+        let ptr = self.as_ptr() as *mut _;
         let prop = Self::inner_get_static_property(ptr, name);
-        unsafe { ZVal::try_from_mut_ptr(prop) }
+        let prop = unsafe { ZVal::try_from_mut_ptr(prop) };
+        prop.map(|prop| replace(prop, val.into()))
     }
 
     fn inner_get_static_property(scope: *mut zend_class_entry, name: impl AsRef<str>) -> *mut zval {
         let name = name.as_ref();
 
-        unsafe {
-            zend_read_static_property(
-                scope,
-                name.as_ptr().cast(),
-                name.len().try_into().unwrap(),
-                true.into(),
-            )
-        }
+        unsafe { zend_read_static_property(scope, name.as_ptr().cast(), name.len(), true.into()) }
     }
 }
 
@@ -307,11 +282,6 @@ impl<T> StaticStateClass<T> {
 
     /// Converts to class entry.
     pub fn as_class_entry(&'static self) -> &'static ClassEntry {
-        unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
-    }
-
-    /// Converts to mutable class entry.
-    pub fn as_mut_class_entry(&'static self) -> &'static mut ClassEntry {
         unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
     }
 

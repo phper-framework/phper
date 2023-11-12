@@ -173,12 +173,9 @@ fn integrate_static_props(module: &mut Module) {
 
     class
         .add_static_method("setFoo1", Visibility::Public, |params| {
-            let foo1 = ClassEntry::from_globals_mut("IntegrationTest\\PropsHolder")?
-                .get_mut_static_property("foo1");
-            if let Some(foo1) = foo1 {
-                *foo1 = params[0].to_owned();
-            }
-            phper::ok(())
+            let foo1 = ClassEntry::from_globals("IntegrationTest\\PropsHolder")?
+                .set_static_property("foo1", params[0].to_owned());
+            phper::ok(foo1)
         })
         .argument(Argument::by_val("val"));
 

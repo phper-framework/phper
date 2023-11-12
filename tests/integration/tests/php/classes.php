@@ -65,5 +65,6 @@ assert_true($doSomethings->isAbstract());
 assert_eq(IntegrationTest\PropsHolder::$foo, "bar");
 
 assert_eq(IntegrationTest\PropsHolder::getFoo1(), 12345);
-IntegrationTest\PropsHolder::setFoo1("baz");
+$pre_foo1 = IntegrationTest\PropsHolder::setFoo1("baz");
+assert_eq($pre_foo1, 12345);
 assert_eq(IntegrationTest\PropsHolder::getFoo1(), "baz");
