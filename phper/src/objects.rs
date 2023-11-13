@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_object](crate::sys::zend_object).
+//! Apis relate to [zend_object].
 
 use crate::{
     classes::ClassEntry,
@@ -29,7 +29,7 @@ use std::{
     ptr::null_mut,
 };
 
-/// Wrapper of [zend_object](crate::sys::zend_object).
+/// Wrapper of [zend_object].
 #[repr(transparent)]
 pub struct ZObj {
     inner: zend_object,
@@ -286,7 +286,7 @@ impl Debug for ZObj {
     }
 }
 
-/// Wrapper of [zend_object](crate::sys::zend_object).
+/// Wrapper of [zend_object].
 pub struct ZObject {
     inner: *mut ZObj,
 }
@@ -497,9 +497,9 @@ impl<T> StateObject<T> {
 impl<T: 'static> StateObject<T> {
     /// Converts into state.
     ///
-    /// Because the [zend_object](crate::sys::zend_object) is refcounted type,
+    /// Because the [zend_object] is refcounted type,
     /// therefore, you can only obtain state ownership when the refcount of the
-    /// [zend_object](crate::sys::zend_object) is `1`, otherwise, it will return
+    /// [zend_object] is `1`, otherwise, it will return
     /// `None`.
     pub fn into_state(mut self) -> Option<T> {
         unsafe {

@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_class_entry](crate::sys::zend_class_entry).
+//! Apis relate to [zend_class_entry].
 
 use crate::{
     arrays::ZArr,
@@ -48,7 +48,7 @@ pub fn array_access_class<'a>() -> &'a ClassEntry {
     unsafe { ClassEntry::from_ptr(zend_ce_arrayaccess) }
 }
 
-/// Wrapper of [zend_class_entry](crate::sys::zend_class_entry).
+/// Wrapper of [zend_class_entry].
 #[repr(transparent)]
 pub struct ClassEntry {
     inner: zend_class_entry,
@@ -234,7 +234,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 }
 
 /// The [StaticStateClass] holds
-/// [zend_class_entry](crate::sys::zend_class_entry) and inner state, always as
+/// [zend_class_entry] and inner state, always as
 /// the static variable, and then be bind to [ClassEntity].
 ///
 /// When the class registered (module initialized), the [StaticStateClass] will
@@ -268,7 +268,7 @@ pub struct StaticStateClass<T> {
 
 impl<T> StaticStateClass<T> {
     /// Create empty [StaticStateClass], with null
-    /// [zend_class_entry](crate::sys::zend_class_entry).
+    /// [zend_class_entry].
     pub const fn null() -> Self {
         Self {
             inner: AtomicPtr::new(null_mut()),
@@ -312,7 +312,7 @@ impl<T> StaticStateClass<T> {
 unsafe impl<T> Sync for StaticStateClass<T> {}
 
 /// The [StaticInterface]  holds
-/// [zend_class_entry](crate::sys::zend_class_entry), always as the static
+/// [zend_class_entry], always as the static
 /// variable, and then be bind to [InterfaceEntity].
 ///
 /// When the interface registered (module initialized), the [StaticInterface]
@@ -341,7 +341,7 @@ pub struct StaticInterface {
 
 impl StaticInterface {
     /// Create empty [StaticInterface], with null
-    /// [zend_class_entry](crate::sys::zend_class_entry).
+    /// [zend_class_entry].
     pub const fn null() -> Self {
         Self {
             inner: AtomicPtr::new(null_mut()),

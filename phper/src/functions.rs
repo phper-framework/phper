@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_function_entry](crate::sys::zend_function_entry).
+//! Apis relate to [zend_function_entry].
 //!
 //! TODO Add lambda.
 
@@ -151,9 +151,7 @@ impl FunctionEntry {
             infos.push(last_arg_info);
         }
 
-        let flags = visibility
-            .map(|v| v as u32)
-            .unwrap_or(Visibility::default() as u32);
+        let flags = visibility.unwrap_or(Visibility::default() as u32);
 
         zend_function_entry {
             fname: name.as_ptr().cast(),

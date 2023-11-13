@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_string](crate::sys::zend_string).
+//! Apis relate to [zend_string].
 
 use crate::sys::*;
 use phper_alloc::ToRefOwned;
@@ -26,7 +26,7 @@ use std::{
     str::Utf8Error,
 };
 
-/// Like str, CStr for [zend_string](crate::sys::zend_string).
+/// Like str, CStr for [zend_string].
 #[repr(transparent)]
 pub struct ZStr {
     inner: zend_string,
@@ -171,7 +171,7 @@ impl ToRefOwned for ZStr {
     }
 }
 
-/// Like String, CString for [zend_string](crate::sys::zend_string).
+/// Like String, CString for [zend_string].
 pub struct ZString {
     inner: *mut ZStr,
 }
