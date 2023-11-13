@@ -9,6 +9,7 @@
 # See the Mulan PSL v2 for more details.
 
 [workspace]
+resolver = "2"
 members = [
     "phper",
     "phper-alloc",

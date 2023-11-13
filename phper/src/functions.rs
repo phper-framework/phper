@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_function_entry](crate::sys::zend_function_entry).
+//! Apis relate to [zend_function_entry].
 //!
 //! TODO Add lambda.
 
