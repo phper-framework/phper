@@ -8,12 +8,12 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_resource](crate::sys::zend_resource).
+//! Apis relate to [zend_resource].
 
 use crate::{sys::*, values::ZVal};
 use std::fmt::{self, Debug};
 
-/// Wrapper of [zend_resource](crate::sys::zend_resource).
+/// Wrapper of [zend_resource].
 #[repr(transparent)]
 pub struct ZRef {
     inner: zend_reference,

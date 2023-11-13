@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_array](crate::sys::zend_array).
+//! Apis relate to [zend_array].
 
 use crate::{alloc::ToRefOwned, strings::ZStr, sys::*, values::ZVal};
 use derive_more::From;
@@ -61,7 +61,7 @@ impl<'a> From<Key<'a>> for InsertKey<'a> {
     }
 }
 
-/// Wrapper of [zend_array](crate::sys::zend_array).
+/// Wrapper of [zend_array].
 #[repr(transparent)]
 pub struct ZArr {
     inner: zend_array,
@@ -359,7 +359,7 @@ impl ToRefOwned for ZArr {
     }
 }
 
-/// Wrapper of [zend_array](crate::sys::zend_array).
+/// Wrapper of [zend_array].
 #[repr(transparent)]
 pub struct ZArray {
     inner: *mut ZArr,

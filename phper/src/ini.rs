@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_ini_entry_def](crate::sys::zend_ini_entry_def).
+//! Apis relate to [zend_ini_entry_def].
 
 use crate::{c_str, sys::*};
 use std::{
