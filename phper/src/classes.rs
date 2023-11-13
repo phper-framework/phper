@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_class_entry](crate::sys::zend_class_entry).
+//! Apis relate to [zend_class_entry].
 
 use crate::{
     arrays::ZArr,
@@ -28,7 +28,7 @@ use std::{
     ffi::{c_void, CString},
     fmt::Debug,
     marker::PhantomData,
-    mem::{size_of, zeroed, ManuallyDrop},
+    mem::{replace, size_of, zeroed, ManuallyDrop},
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,
@@ -48,7 +48,7 @@ pub fn array_access_class<'a>() -> &'a ClassEntry {
     unsafe { ClassEntry::from_ptr(zend_ce_arrayaccess) }
 }
 
-/// Wrapper of [zend_class_entry](crate::sys::zend_class_entry).
+/// Wrapper of [zend_class_entry].
 #[repr(transparent)]
 pub struct ClassEntry {
     inner: zend_class_entry,
@@ -181,6 +181,37 @@ impl ClassEntry {
     pub fn is_instance_of(&self, parent: &ClassEntry) -> bool {
         unsafe { phper_instanceof_function(self.as_ptr(), parent.as_ptr()) }
     }
+
+    /// Get the static property by name of class.
+    ///
+    /// Return None when static property hasn't register by
+    /// [ClassEntity::add_static_property].
+    pub fn get_static_property(&self, name: impl AsRef<str>) -> Option<&ZVal> {
+        let ptr = self.as_ptr() as *mut _;
+        let prop = Self::inner_get_static_property(ptr, name);
+        unsafe { ZVal::try_from_ptr(prop) }
+    }
+
+    /// Set the static property by name of class.
+    ///
+    /// Return `Some(x)` where `x` is the previous value of static property, or
+    /// return `None` when static property hasn't register by
+    /// [ClassEntity::add_static_property].
+    pub fn set_static_property(&self, name: impl AsRef<str>, val: impl Into<ZVal>) -> Option<ZVal> {
+        let ptr = self.as_ptr() as *mut _;
+        let prop = Self::inner_get_static_property(ptr, name);
+        let prop = unsafe { ZVal::try_from_mut_ptr(prop) };
+        prop.map(|prop| replace(prop, val.into()))
+    }
+
+    fn inner_get_static_property(scope: *mut zend_class_entry, name: impl AsRef<str>) -> *mut zval {
+        let name = name.as_ref();
+
+        unsafe {
+            #[allow(clippy::useless_conversion)]
+            zend_read_static_property(scope, name.as_ptr().cast(), name.len(), true.into())
+        }
+    }
 }
 
 impl Debug for ClassEntry {
@@ -206,7 +237,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 }
 
 /// The [StaticStateClass] holds
-/// [zend_class_entry](crate::sys::zend_class_entry) and inner state, always as
+/// [zend_class_entry] and inner state, always as
 /// the static variable, and then be bind to [ClassEntity].
 ///
 /// When the class registered (module initialized), the [StaticStateClass] will
@@ -240,7 +271,7 @@ pub struct StaticStateClass<T> {
 
 impl<T> StaticStateClass<T> {
     /// Create empty [StaticStateClass], with null
-    /// [zend_class_entry](crate::sys::zend_class_entry).
+    /// [zend_class_entry].
     pub const fn null() -> Self {
         Self {
             inner: AtomicPtr::new(null_mut()),
@@ -284,7 +315,7 @@ impl<T> StaticStateClass<T> {
 unsafe impl<T> Sync for StaticStateClass<T> {}
 
 /// The [StaticInterface]  holds
-/// [zend_class_entry](crate::sys::zend_class_entry), always as the static
+/// [zend_class_entry], always as the static
 /// variable, and then be bind to [InterfaceEntity].
 ///
 /// When the interface registered (module initialized), the [StaticInterface]
@@ -313,7 +344,7 @@ pub struct StaticInterface {
 
 impl StaticInterface {
     /// Create empty [StaticInterface], with null
-    /// [zend_class_entry](crate::sys::zend_class_entry).
+    /// [zend_class_entry].
     pub const fn null() -> Self {
         Self {
             inner: AtomicPtr::new(null_mut()),
@@ -442,6 +473,19 @@ impl<T: 'static> ClassEntity<T> {
     ) {
         self.property_entities
             .push(PropertyEntity::new(name, visibility, value));
+    }
+
+    /// Declare static property.
+    ///
+    /// The argument `value` should be `Copy` because 'zend_declare_property'
+    /// receive only scalar zval , otherwise will report fatal error:
+    /// "Internal zvals cannot be refcounted".
+    pub fn add_static_property(
+        &mut self, name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>,
+    ) {
+        let mut entity = PropertyEntity::new(name, visibility, value);
+        entity.set_vis_static();
+        self.property_entities.push(entity);
     }
 
     /// Register class to `extends` the parent class.
@@ -719,7 +763,7 @@ unsafe extern "C" fn interface_init_handler(
 /// Builder for declare class property.
 struct PropertyEntity {
     name: String,
-    visibility: Visibility,
+    visibility: RawVisibility,
     value: Scalar,
 }
 
@@ -727,16 +771,22 @@ impl PropertyEntity {
     fn new(name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>) -> Self {
         Self {
             name: name.into(),
-            visibility,
+            visibility: visibility as RawVisibility,
             value: value.into(),
         }
+    }
+
+    #[inline]
+    pub(crate) fn set_vis_static(&mut self) -> &mut Self {
+        self.visibility |= ZEND_ACC_STATIC;
+        self
     }
 
     #[allow(clippy::useless_conversion)]
     pub(crate) fn declare(&self, ce: *mut zend_class_entry) {
         let name = self.name.as_ptr().cast();
         let name_length = self.name.len().try_into().unwrap();
-        let access_type = self.visibility as u32 as i32;
+        let access_type = self.visibility as i32;
 
         unsafe {
             match &self.value {

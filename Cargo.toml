@@ -9,6 +9,7 @@
 # See the Mulan PSL v2 for more details.
 
 [workspace]
+resolver = "2"
 members = [
     "phper",
     "phper-alloc",
@@ -29,7 +30,7 @@ authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
 edition = "2021"
 license = "MulanPSL-2.0"
 repository = "https://github.com/phper-framework/phper"
-rust-version = "1.65"
+rust-version = "1.67"
 
 [workspace.dependencies]
 phper = { version = "0.12.0", path = "./phper" }

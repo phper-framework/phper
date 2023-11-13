@@ -19,6 +19,7 @@ integrate_objects_set_val();
 integrate_objects_call();
 integrate_objects_to_ref_owned(new stdClass());
 integrate_objects_to_ref_clone(new stdClass());
+integrate_objects_set_props();
 
 $a = new IntegrationTest\Objects\A();
 assert_throw(function () use ($a) { $a2 = clone $a; }, "Error", 0, "Trying to clone an uncloneable object of class IntegrationTest\\Objects\\A");

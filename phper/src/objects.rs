@@ -8,10 +8,9 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-//! Apis relate to [zend_object](crate::sys::zend_object).
+//! Apis relate to [zend_object].
 
 use crate::{
-    alloc::EBox,
     classes::ClassEntry,
     functions::{call_internal, call_raw_common, ZFunc},
     sys::*,
@@ -30,7 +29,7 @@ use std::{
     ptr::null_mut,
 };
 
-/// Wrapper of [zend_object](crate::sys::zend_object).
+/// Wrapper of [zend_object].
 #[repr(transparent)]
 pub struct ZObj {
     inner: zend_object,
@@ -185,7 +184,7 @@ impl ZObj {
     #[allow(clippy::useless_conversion)]
     pub fn set_property(&mut self, name: impl AsRef<str>, val: impl Into<ZVal>) {
         let name = name.as_ref();
-        let val = EBox::new(val.into());
+        let mut val = val.into();
         unsafe {
             #[cfg(phper_major_version = "8")]
             {
@@ -194,7 +193,7 @@ impl ZObj {
                     &mut self.inner,
                     name.as_ptr().cast(),
                     name.len().try_into().unwrap(),
-                    EBox::into_raw(val).cast(),
+                    val.as_mut_ptr(),
                 )
             }
             #[cfg(phper_major_version = "7")]
@@ -206,7 +205,7 @@ impl ZObj {
                     &mut zv,
                     name.as_ptr().cast(),
                     name.len().try_into().unwrap(),
-                    EBox::into_raw(val).cast(),
+                    val.as_mut_ptr(),
                 )
             }
         }
@@ -287,7 +286,7 @@ impl Debug for ZObj {
     }
 }
 
-/// Wrapper of [zend_object](crate::sys::zend_object).
+/// Wrapper of [zend_object].
 pub struct ZObject {
     inner: *mut ZObj,
 }
@@ -498,9 +497,9 @@ impl<T> StateObject<T> {
 impl<T: 'static> StateObject<T> {
     /// Converts into state.
     ///
-    /// Because the [zend_object](crate::sys::zend_object) is refcounted type,
+    /// Because the [zend_object] is refcounted type,
     /// therefore, you can only obtain state ownership when the refcount of the
-    /// [zend_object](crate::sys::zend_object) is `1`, otherwise, it will return
+    /// [zend_object] is `1`, otherwise, it will return
     /// `None`.
     pub fn into_state(mut self) -> Option<T> {
         unsafe {
