@@ -207,7 +207,10 @@ impl ClassEntry {
     fn inner_get_static_property(scope: *mut zend_class_entry, name: impl AsRef<str>) -> *mut zval {
         let name = name.as_ref();
 
-        unsafe { zend_read_static_property(scope, name.as_ptr().cast(), name.len(), true.into()) }
+        unsafe {
+            #[allow(clippy::useless_conversion)]
+            zend_read_static_property(scope, name.as_ptr().cast(), name.len(), true.into())
+        }
     }
 }
 
