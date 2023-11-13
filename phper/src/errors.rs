@@ -507,3 +507,9 @@ pub unsafe fn throw(e: impl Throwable) {
     let mut val = ManuallyDrop::new(ZVal::from(obj));
     zend_throw_exception_object(val.as_mut_ptr());
 }
+
+/// Equivalent to `Ok::<_, phper::Error>(value)`.
+#[inline]
+pub fn ok<T>(t: T) -> Result<T> {
+    Ok(t)
+}

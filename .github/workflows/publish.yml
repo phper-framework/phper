@@ -47,18 +47,12 @@ jobs:
           args: --manifest-path phper-sys/Cargo.toml
         continue-on-error: true
 
-      - name: Delay
-        run: sleep 20
-
       - name: Cargo publish phper-build
         uses: actions-rs/cargo@v1
         with:
           command: publish
           args: --manifest-path phper-build/Cargo.toml
         continue-on-error: true
-
-      - name: Delay
-        run: sleep 20
 
       - name: Cargo publish phper-macros
         uses: actions-rs/cargo@v1
@@ -67,18 +61,12 @@ jobs:
           args: --manifest-path phper-macros/Cargo.toml
         continue-on-error: true
 
-      - name: Delay
-        run: sleep 20
-
       - name: Cargo publish phper-alloc
         uses: actions-rs/cargo@v1
         with:
           command: publish
           args: --manifest-path phper-alloc/Cargo.toml
         continue-on-error: true
-
-      - name: Delay
-        run: sleep 20
 
       - name: Cargo publish phper-test
         uses: actions-rs/cargo@v1
@@ -87,9 +75,6 @@ jobs:
           args: --manifest-path phper-test/Cargo.toml
         continue-on-error: true
 
-      - name: Delay
-        run: sleep 20
-
       - name: Cargo publish phper
         uses: actions-rs/cargo@v1
         with:
@@ -97,11 +82,9 @@ jobs:
           args: --manifest-path phper/Cargo.toml
         continue-on-error: true
 
-      - name: Delay
-        run: sleep 20
-
       - name: Cargo publish phper-doc
         uses: actions-rs/cargo@v1
         with:
           command: publish
           args: --manifest-path phper-doc/Cargo.toml
+        continue-on-error: true

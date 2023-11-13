@@ -11,8 +11,8 @@
 use phper::{
     alloc::RefClone,
     classes::{
-        array_access_class, iterator_class, ClassEntity, InterfaceEntity, StaticInterface,
-        StaticStateClass, Visibility,
+        array_access_class, iterator_class, ClassEntity, ClassEntry, InterfaceEntity,
+        StaticInterface, StaticStateClass, Visibility,
     },
     functions::Argument,
     modules::Module,
@@ -24,6 +24,7 @@ pub fn integrate(module: &mut Module) {
     integrate_a(module);
     integrate_foo(module);
     integrate_i_bar(module);
+    integrate_static_props(module);
 }
 
 fn integrate_a(module: &mut Module) {
@@ -153,4 +154,30 @@ fn integrate_i_bar(module: &mut Module) {
         .argument(Argument::by_val("job_name"));
 
     module.add_interface(interface);
+}
+
+fn integrate_static_props(module: &mut Module) {
+    let mut class = ClassEntity::new("IntegrationTest\\PropsHolder");
+
+    class.add_static_property("foo", Visibility::Public, "bar");
+
+    class.add_static_property("foo1", Visibility::Private, 12345i64);
+
+    class.add_static_method("getFoo1", Visibility::Public, |_| {
+        let val = ClassEntry::from_globals("IntegrationTest\\PropsHolder")?
+            .get_static_property("foo1")
+            .map(ToOwned::to_owned)
+            .unwrap_or_default();
+        phper::ok(val)
+    });
+
+    class
+        .add_static_method("setFoo1", Visibility::Public, |params| {
+            let foo1 = ClassEntry::from_globals("IntegrationTest\\PropsHolder")?
+                .set_static_property("foo1", params[0].to_owned());
+            phper::ok(foo1)
+        })
+        .argument(Argument::by_val("val"));
+
+    module.add_class(class);
 }

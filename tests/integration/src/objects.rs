@@ -127,6 +127,24 @@ pub fn integrate(module: &mut Module) {
         )
         .argument(Argument::by_val("obj"));
 
+    module.add_function("integrate_objects_set_props", |_| {
+        let mut o = ZObject::new_by_std_class();
+
+        o.set_property("foo", "bar");
+        assert_eq!(o.get_property("foo").as_z_str().unwrap().to_bytes(), b"bar");
+
+        o.set_property("foo", ());
+        assert_eq!(o.get_property("foo").as_null(), Some(()));
+
+        o.set_property("foo", true);
+        assert_eq!(o.get_property("foo").as_bool(), Some(true));
+
+        o.set_property("foo", ZVal::from(100i64));
+        assert_eq!(o.get_property("foo").as_long(), Some(100i64));
+
+        phper::ok(())
+    });
+
     let class_a =
         ClassEntity::new_with_state_constructor("IntegrationTest\\Objects\\A", || 123456i64);
     module.add_class(class_a);
