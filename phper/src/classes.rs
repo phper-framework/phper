@@ -783,7 +783,7 @@ impl PropertyEntity {
     pub(crate) fn declare(&self, ce: *mut zend_class_entry) {
         let name = self.name.as_ptr().cast();
         let name_length = self.name.len().try_into().unwrap();
-        let access_type = self.visibility as u32 as i32;
+        let access_type = self.visibility as i32;
 
         unsafe {
             match &self.value {
