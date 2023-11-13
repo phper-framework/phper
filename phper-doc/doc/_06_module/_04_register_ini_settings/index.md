@@ -26,7 +26,7 @@ About the policy of setting, you can refer to
 
 ## Configure ini settings
 
-The user can configure the ini settings in the `php.ini`. if not configure, the
+The user can configure the ini settings in the `php.ini`. If not configured, the
 configuration item will use the default value.
 
 ```ini

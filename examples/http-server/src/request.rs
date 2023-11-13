@@ -42,7 +42,7 @@ pub fn make_request_class() -> ClassEntity<()> {
     class
 }
 
-/// New the object with class `HttpServer\HttpRequest`.
+/// Instantiate the object with class `HttpServer\HttpRequest`.
 pub fn new_request_object() -> phper::Result<StateObject<()>> {
     HTTP_REQUEST_CLASS.new_object([])
 }

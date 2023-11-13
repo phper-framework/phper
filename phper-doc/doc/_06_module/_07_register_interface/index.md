@@ -1,8 +1,8 @@
 # Register interface
 
-Registering interfaces is similar of registering classes.
+Registering interfaces is similar to registering classes.
 
-First, you have to new the class builder
+First, you have to instantiate the class builder.
 [`InterfaceEntity`](phper::classes::InterfaceEntity),
 then extends interfaces (if there are),
 add public abstract methods, finally add it into the `Module`.
@@ -28,7 +28,7 @@ pub fn get_module() -> Module {
 }
 ```
 
-Just like these codes in PHP:
+Similarly in PHP:
 
 ```php
 <?php

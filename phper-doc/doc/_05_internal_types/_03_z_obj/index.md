@@ -1,9 +1,9 @@
 # Z Obj
 
 The [`&ZObj`](phper::objects::ZObj) and [`ZObject`](phper::objects::ZObject) are
-the wrapper of [`zend_object`](phper::sys::zend_object).
+the wrappers for [`zend_object`](phper::sys::zend_object).
 
-You can do oop operation using `ZObj` or `ZObject`, like getting and setting properties,
+You can do OOP operation using `ZObj` or `ZObject`, like getting and setting properties,
 calling methods, etc.
 
 ```rust,no_run
@@ -36,5 +36,5 @@ let o = unsafe { ZObj::from_mut_ptr(something()) };
 let _o = o.to_ref_owned();
 ```
 
-Note that neither `ZObj` nor `ZObject` implement `Send` and `Sync`, because PHP
+Note that neither `ZObj` nor `ZObject` implements `Send` and `Sync`, because PHP
 is single-threaded.

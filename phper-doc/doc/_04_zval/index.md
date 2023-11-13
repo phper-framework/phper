@@ -19,7 +19,7 @@ but there is only one type at a time, you can use
 The [`phper::values::ZVal`] implements a lot of [`std::convert::From`] for the
 conversion.
 
-Here is the mapping relationship of Rust type and base PHP type.
+Here is the mapping of relationships between Rust types and base PHP types.
 
 | Trait           | Rust type                   | PHP type |
 | --------------- | --------------------------- | -------- |
@@ -35,10 +35,10 @@ Here is the mapping relationship of Rust type and base PHP type.
 | `From<ZArray>`  | [`phper::arrays::ZArray`]   | array    |
 | `From<ZObject>` | [`phper::objects::ZObject`] | object   |
 
-Otherwise, there are also composite types that implement `From`.
+There are also composite types that implement `From`.
 
 - `From<Option<T>>`: if Some(T), T will be converted to PHP type like `From<T>`,
-  or `None` wll be converted to `null`.
+  or `None` will be converted to `null`.
 
 ```rust,no_run
 use phper::values::ZVal;
@@ -66,7 +66,7 @@ fn say_hello(arguments: &mut [ZVal]) -> phper::Result<()> {
     // str.
     let name = arguments[0].expect_z_str()?.to_str()?;
 
-    // Macro which do php internal `echo`.
+    // Macro which runs PHP internal function `echo`.
     echo!("Hello, {}!\n", name);
 
     Ok(())
@@ -80,22 +80,22 @@ The [`phper::values::ZVal`] both implements [`std::clone::Clone`] and
 
 - [`std::clone::Clone`]: represent value copy (Type ZObject is excluded because it is always passed by reference).
 
-- [`phper::alloc::RefClone`]: represent reference counting  copy (Type (), bool,
+- [`phper::alloc::RefClone`]: represent reference counting copy (Type (), bool,
   i64, f64 is excluded because they are not reference counting types).
 
 ## PHP internal cast
 
 > Refer to: <https://www.phpinternalsbook.com/php7/zvals/casts_and_operations.html#casts>
 
-PHP is a weakly typed language, supports type cast internally.
+PHP is a weakly typed language, yet it supports type casting internally.
 
 The zend engine provides `convert_to_*` functions to do the type cast, and
 `ZVal` wraps them directly.
 
 ## Callable
 
-The [`phper::values::ZVal`] can be call via [`phper::values::ZVal::call`], make
-sure the actual type is callable (string or array or closure).
+The [`phper::values::ZVal`] can be called via [`phper::values::ZVal::call`]. Make
+sure that the actual type is callable (string, array or closure).
 
 ```rust,no_run
 use phper::values::ZVal;
