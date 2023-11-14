@@ -15,13 +15,13 @@
 *a list. I think it is a waste of performance.*
 
 The [`&ZArr`](phper::arrays::ZArr) and [`ZArray`](phper::arrays::ZArray) are
-the wrapper of [`zend_array`](phper::sys::zend_array) (same as `Hashtable`).
+the wrappers for [`zend_array`](phper::sys::zend_array) (same as `Hashtable`).
 
 [`&ZArr`](phper::arrays::ZArr) acts like [`HashMap`](std::collections::HashMap),
 also has api `insert()`, `get()`, `remove()`, but it's key type is
 [`Key`](phper::arrays::Key) and value type is [`ZVal`](phper::values::ZVal).
 
-Notice that phper prefer to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
+Notice that phper prefers to use [`Symtables`](https://www.phpinternalsbook.com/php5/hashtables/array_api.html#symtables) api `zend_symtable_*`,
 so `get(42)` and `get("42")` should be considered the same.
 
 `ZArray` can be dereferenced to `ZArr`.
@@ -53,13 +53,13 @@ for (k, v) in arr.iter() {
 }
 ```
 
-`ZArr` implements `ToOwned`, can upgrade to `ZArray` by value copy via
+`ZArr` implements `ToOwned` and it can upgrade to `ZArray` by value copying via
 `zend_array_dup`.
 
-Because `zend_array` is reference counting type, so `ZArr` also implements
-[`ToRefOwned`](phper::alloc::ToRefOwned) (just like
-[`RefClone`](phper::alloc::RefClone) for [`ZVal`](phper::values::ZVal)), can
-upgrade to `ZArray` by refcount increment.
+Because `zend_array` is reference counting type, `ZArr` also implements
+[`ToRefOwned`](phper::alloc::ToRefOwned) (similar to
+[`RefClone`](phper::alloc::RefClone) for [`ZVal`](phper::values::ZVal)), allowing an
+upgrade to `ZArray` by incrementing the refcount.
 
 ```rust,no_run
 use phper::sys;
@@ -79,5 +79,5 @@ let _arr = arr.to_owned();
 let _arr = arr.to_ref_owned();
 ```
 
-Note that neither `ZArr` nor `ZArray` implement `Send` and `Sync`, because PHP
+Note that neither `ZArr` nor `ZArray` implements `Send` and `Sync`, because PHP
 is single-threaded.

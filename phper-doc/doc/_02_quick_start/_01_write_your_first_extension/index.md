@@ -38,7 +38,7 @@ Full example is <https://github.com/phper-framework/phper/tree/master/examples/h
    cargo add phper
    ```
 
-1. Create the `build.rs` ( Adapting MacOS ).
+1. Create the `build.rs` (adapting MacOS).
 
    ```rust,no_run
    fn main() {
@@ -50,7 +50,7 @@ Full example is <https://github.com/phper-framework/phper/tree/master/examples/h
    }
    ```
 
-1. Write these code in `src/lib.rs`.
+1. Add this code to `src/lib.rs`.
 
    ```rust
    use phper::{echo, functions::Argument, modules::Module, php_get_module, values::ZVal};
@@ -85,7 +85,7 @@ Full example is <https://github.com/phper-framework/phper/tree/master/examples/h
    }
    ```
 
-1. Build, if your php isn't installed globally, you should specify the path of `php-config`.
+1. Build, if your PHP isn't installed globally, you should specify the path of `php-config`.
 
    ```bash
    # Optional, specify if php isn't installed globally,

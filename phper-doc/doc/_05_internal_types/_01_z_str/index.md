@@ -5,11 +5,11 @@
 > Refer: <https://www.php.net/manual/en/language.types.string.php>
 
 The [`&ZStr`](phper::strings::ZStr) and [`ZString`](phper::strings::ZString) are
-the wrapper of [`zend_string`](phper::sys::zend_string).
+wrappers for [`zend_string`](phper::sys::zend_string).
 
 `ZStr` can be converted to `&[u8]`, `&CStr` and `&str`.
 
-`ZString` can be constructed from `impl AsRef<[u8]>`, has pair of `from_raw()`
+`ZString` can be constructed from `impl AsRef<[u8]>` and has pair of `from_raw()`
 and `into_raw()`, like in [`Box`].
 
 ```rust,no_run
@@ -38,7 +38,7 @@ let s = ZString::new("Hello world!");
 assert_eq!(s.to_str(), Ok("Hello world!"));
 ```
 
-`ZStr` implements `ToOwned`, can upgrade to `ZString` by value copy.
+`ZStr` implements `ToOwned`. It can upgrade to `ZString` by value copying.
 
 Because `zend_string` is reference counting type, so `ZStr` also implements
 [`ToRefOwned`](phper::alloc::ToRefOwned) (just like
@@ -56,12 +56,12 @@ extern "C" {
 
 let s = unsafe { ZStr::from_mut_ptr(something()) };
 
-// By value copy.
-let _s = s.to_owned(); 
+// By value copying.
+let _s = s.to_owned();
 
 // By refcount increment.
 let _s = s.to_ref_owned();
 ```
 
-Note that neither `ZStr` nor `ZString` implement `Send` and `Sync`, because PHP
+Note that neither `ZStr` nor `ZString` implements `Send` and `Sync`, because PHP
 is single-threaded.

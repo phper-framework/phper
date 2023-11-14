@@ -2,7 +2,7 @@
 
 Registering classes is a bit more complicated than others.
 
-First, you have to new the class builder
+First, you have to instantiate the class builder
 [`ClassEntity`](phper::classes::ClassEntity), then register the parent class or
 implements interfaces, add the properties and methods, finally add it into the
 `Module`.
@@ -28,7 +28,7 @@ pub fn get_module() -> Module {
 }
 ```
 
-Just like these codes in PHP:
+Similarly in PHP:
 
 ```php
 <?php

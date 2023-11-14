@@ -1,9 +1,9 @@
 # Write a simple http client
 
-Here we will use Rust crate [reqwest](https://crates.io/crates/reqwest) to write a simple http client,
+Here we will use Rust crate [reqwest](https://crates.io/crates/reqwest) to write a simple HTTP client,
 like curl, but object-oriented.
 
-Full example is <https://github.com/phper-framework/phper/tree/master/examples/http-client>.
+Full example is at <https://github.com/phper-framework/phper/tree/master/examples/http-client>.
 
 Imagine that our PHP API should look like this:
 
@@ -31,7 +31,7 @@ var_dump([
 
 Here, the namespace of API is `HttpClient`.
 
-And there are three class:
+And there are three classes:
 
 - `HttpClientBuilder` is the builder of `HttpClient`.
 - `HttpClient` will send a http request and generate a http response.
@@ -73,7 +73,7 @@ Before writing the code, we first prepare the dependency and startup code.
    cargo add thiserror
    ```
 
-1. Create the `build.rs` ( Adapting MacOS ).
+1. Create the `build.rs` (adapting MacOS).
 
    ```rust,no_run
    fn main() {
@@ -245,7 +245,7 @@ Now let's begin to finish the logic.
 1. Register all classes in `src/lib.rs`.
 
 1. All codes are finished, so we can build the extension `.so`, and run the
-   php script of the beginning of the tutorial with the extension.
+   PHP script in the beginning of the tutorial with the extension.
 
    ```shell
    cargo build

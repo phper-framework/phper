@@ -19,13 +19,13 @@ PHPER follows this design, there are the following types:
 - [ZObj](phper::objects::ZObj) / [ZObject](phper::objects::ZObject)
 
 > It seems that there is no need to separate into two types, but `ZStr`,
-> `ZArr`, and `ZObj` are all transparent types, so the fields of the struct
-> cannot be changed. Separating an ownership struct `ZString`, `ZArray`,
-> and `ZObject`, and then we can change fields of the struct in the future.
+> `ZArr`, and `ZObj` are all transparent types. Therefore, the fields of the struct
+> cannot be changed. Separating an ownership struct `ZString`, `ZArray`, and `ZObject`,
+> and then we can change fields of the struct in the future.
 
 ## Mapping relationship
 
-Here is the mapping relationship of Rust type and base PHP type.
+Here is the mapping of relationships between Rust types and base PHP types.
 
 | Rust type        | PHP type |
 | ---------------- | -------- |
