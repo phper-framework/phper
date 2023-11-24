@@ -63,7 +63,7 @@ pub fn make_response_class() -> ClassEntity<Response<Body>> {
     class
 }
 
-/// New the object with class `HttpServer\HttpResponse`.
+/// Instantiate the object with class `HttpServer\HttpResponse`.
 pub fn new_response_object() -> phper::Result<StateObject<Response<Body>>> {
     HTTP_RESPONSE_CLASS.new_object([])
 }

@@ -1,15 +1,10 @@
 # Integrate with PECL
 
-As can be seen from the `quick start` example, using phper to develop
-PHP extension doesn't need the `phpize` and `make` processes like developing
-with C/C++.
+As can be seen from the `quick start` example, using phper to develop a PHP extension doesn't require the `phpize` and `make` processes, as you would when developing with C/C++.
 
-But, if you want to publish the extension on [PECL](https://pecl.php.net/)
-(the official repository of PHP extensions), you need to integrate phper
-project with `phpize` and `make`, because PECL install command will call them.
+However, if you intend to publish the extension on PECL (the official repository of PHP extensions), you will need to integrate the phper project with `phpize` and `make` since the PECL install command will call them.
 
-This chapter will guide you how to integrate phper project with `pecl` and
-`phpize`.
+This chapter will guide you on how to integrate the phper project with `pecl` and `phpize`.
 
 ## Steps
 

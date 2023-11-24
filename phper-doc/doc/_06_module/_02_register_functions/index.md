@@ -25,7 +25,7 @@ pub fn get_module() -> Module {
 ```
 
 This example registers a function called `say_hello` and accepts a parameter 
-`name` passed by value, just like these codes in PHP:
+`name` passed by value, similarly in PHP:
 
 ```php
 <?php
@@ -54,7 +54,7 @@ Extension [ <persistent> extension #56 hello version <no_version> ] {
 It is useful to register the parameters of the function, which can limit the 
 number of parameters of the function.
 
-Especially, when the parameters need to be passed by reference.
+Especially when the parameters need to be passed by reference.
 
 ```rust,no_run
 use phper::{modules::Module, php_get_module, functions::Argument};
