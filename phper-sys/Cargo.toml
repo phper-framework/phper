@@ -20,5 +20,6 @@ repository = { workspace = true }
 license = { workspace = true }
 
 [build-dependencies]
-bindgen = "0.66.1"
+bindgen = "0.69.1"
 cc = "1.0.79"
+regex = "1.5.6"

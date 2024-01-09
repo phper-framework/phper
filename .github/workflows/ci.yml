@@ -98,10 +98,7 @@ jobs:
           components: rustfmt
 
       - name: Cargo generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: -Z minimal-versions generate-lockfile
+        run: cargo +nightly -Z minimal-versions update
 
       - name: Setup cargo cache
         uses: actions/cache@v3
