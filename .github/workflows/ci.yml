@@ -100,7 +100,8 @@ jobs:
       - name: Cargo generate lockfile
         uses: actions-rs/cargo@v1
         with:
-          command: generate-lockfile
+          toolchain: nightly
+          command: -Z minimal-versions generate-lockfile
 
       - name: Setup cargo cache
         uses: actions/cache@v3
