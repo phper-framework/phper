@@ -68,6 +68,8 @@ jobs:
         run: |
           which clang
           clang --version
+          brew install llvm
+          ls $(brew --prefix llvm)
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
