@@ -66,8 +66,8 @@ jobs:
       - name: Setup libclang for Macos
         if: matrix.os == 'macos-12'
         run: |
-          ls $(brew --prefix llvm)
-          ls $(brew --prefix llvm)/lib
+          which clang
+          clang --version
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
