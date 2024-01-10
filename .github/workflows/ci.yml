@@ -69,7 +69,8 @@ jobs:
           which clang
           clang --version
           brew install llvm
-          ls $(brew --prefix llvm)
+          ls $(brew --prefix llvm)/lib
+          echo "LIBCLANG_PATH=$(brew --prefix llvm)/lib" >> $GITHUB_ENV
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
