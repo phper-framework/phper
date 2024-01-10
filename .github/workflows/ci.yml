@@ -42,7 +42,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - macos-11
+          - macos-12
         php-version:
           - "7.0"
           - "7.1"
@@ -63,10 +63,6 @@ jobs:
         if: matrix.os == 'ubuntu-20.04'
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
-      - name: Uninstall llvm for Macos
-        if: matrix.os == 'macos-11'
-        run: brew uninstall llvm
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -81,7 +77,7 @@ jobs:
           sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
 
       - name: Setup php-fpm for Macos
-        if: matrix.os == 'macos-11'
+        if: matrix.os == 'macos-12'
         run: |
           brew install php@${{ matrix.php-version }}
 
