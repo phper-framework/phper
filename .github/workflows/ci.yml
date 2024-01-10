@@ -59,9 +59,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install libclang
+      - name: Install libclang for Linux
         if: matrix.os == 'ubuntu-20.04'
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
+
+      - name: Install libclang for Macos
+        if: matrix.os == 'macos-11'
+        run: brew install llvm
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
