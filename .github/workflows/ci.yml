@@ -67,8 +67,6 @@ jobs:
         if: matrix.os == 'macos-12'
         run: |
           brew install llvm@13
-          echo $(brew --prefix llvm@13)
-          ls -al $(brew --prefix llvm@13)/lib
           echo "LIBCLANG_PATH=$(brew --prefix llvm@13)/lib" >> $GITHUB_ENV
 
       - name: Setup PHP
