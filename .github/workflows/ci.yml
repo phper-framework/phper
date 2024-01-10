@@ -42,7 +42,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - macos-11
+          - macos-12
         php-version:
           - "7.0"
           - "7.1"
@@ -59,9 +59,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install libclang
+      - name: Install libclang for Linux
         if: matrix.os == 'ubuntu-20.04'
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
+
+      - name: Setup libclang for Macos
+        if: matrix.os == 'macos-12'
+        run: |
+          brew install llvm@13
+          echo "LIBCLANG_PATH=$(brew --prefix llvm@13)/lib" >> $GITHUB_ENV
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -77,7 +83,7 @@ jobs:
           sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
 
       - name: Setup php-fpm for Macos
-        if: matrix.os == 'macos-11'
+        if: matrix.os == 'macos-12'
         run: |
           brew install php@${{ matrix.php-version }}
 
@@ -98,9 +104,7 @@ jobs:
           components: rustfmt
 
       - name: Cargo generate lockfile
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
+        run: cargo +nightly -Z minimal-versions update
 
       - name: Setup cargo cache
         uses: actions/cache@v3

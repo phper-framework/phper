@@ -30,7 +30,7 @@ authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
 edition = "2021"
 license = "MulanPSL-2.0"
 repository = "https://github.com/phper-framework/phper"
-rust-version = "1.67"
+rust-version = "1.65"
 
 [workspace.dependencies]
 phper = { version = "0.13.0", path = "./phper" }
