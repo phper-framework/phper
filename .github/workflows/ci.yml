@@ -63,9 +63,9 @@ jobs:
         if: matrix.os == 'ubuntu-20.04'
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
-      - name: Install libclang for Macos
+      - name: Uninstall llvm for Macos
         if: matrix.os == 'macos-11'
-        run: brew install llvm
+        run: brew uninstall llvm
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
