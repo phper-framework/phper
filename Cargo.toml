@@ -25,7 +25,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.13.0"
+version = "0.13.1"
 authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
 edition = "2021"
 license = "MulanPSL-2.0"
@@ -33,9 +33,9 @@ repository = "https://github.com/phper-framework/phper"
 rust-version = "1.65"
 
 [workspace.dependencies]
-phper = { version = "0.13.0", path = "./phper" }
-phper-alloc = { version = "0.13.0", path = "./phper-alloc" }
-phper-build = { version = "0.13.0", path = "./phper-build" }
-phper-macros = { version = "0.13.0", path = "./phper-macros" }
-phper-sys = { version = "0.13.0", path = "./phper-sys" }
-phper-test = { version = "0.13.0", path = "./phper-test" }
+phper = { version = "0.13.1", path = "./phper" }
+phper-alloc = { version = "0.13.1", path = "./phper-alloc" }
+phper-build = { version = "0.13.1", path = "./phper-build" }
+phper-macros = { version = "0.13.1", path = "./phper-macros" }
+phper-sys = { version = "0.13.1", path = "./phper-sys" }
+phper-test = { version = "0.13.1", path = "./phper-test" }
