@@ -19,7 +19,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 ### Necessary
 
-- **rust** 1.67 or later
+- **rust** 1.65 or later
 - **libclang** 9.0 or later
 - **php** 7.0 or later
 
@@ -39,6 +39,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
     - [x] 8.0
     - [x] 8.1
     - [x] 8.2
+    - [x] 8.3
   - **mode**
     - [x] nts
     - [ ] ~~zts~~
