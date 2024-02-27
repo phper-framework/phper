@@ -961,7 +961,7 @@ unsafe fn find_real_ce(mut ce: *mut zend_class_entry) -> Option<*mut zend_class_
                 return Some(ce);
             }
         }
-        ce = (*ce).parent;
+        ce = phper_get_parent_class(ce);
     }
 
     None

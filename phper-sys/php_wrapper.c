@@ -375,6 +375,10 @@ bool phper_instanceof_function(const zend_class_entry *instance_ce,
     return instanceof_function(instance_ce, ce) != 0;
 }
 
+zend_class_entry *phper_get_parent_class(zend_class_entry *ce) {
+    return ce->parent;
+}
+
 // ==================================================
 // function apis:
 // ==================================================
