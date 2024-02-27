@@ -18,7 +18,6 @@ mod macros;
 use phper_sys::*;
 use std::{
     borrow::Borrow,
-    convert::TryInto,
     mem::{size_of, ManuallyDrop},
     ops::{Deref, DerefMut},
 };
