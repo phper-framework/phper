@@ -29,3 +29,8 @@ $b2 = clone $b;
 $b2->incr();
 assert_eq($b->get(), 123456);
 assert_eq($b2->get(), 123457);
+
+class B2 extends IntegrationTest\Objects\B {}
+$b2 = new B2();
+$b22 = clone $b2;
+assert_eq($b22->get(), 123456);

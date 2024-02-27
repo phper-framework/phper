@@ -91,7 +91,7 @@ pub fn make_server_class() -> ClassEntity<()> {
             let app = Router::new().route(
                 "/",
                 any(move |req: Request<Body>| async move {
-                    match (async move {
+                    let fut = async move {
                         let (parts, body) = req.into_parts();
 
                         // Read all request body content.
@@ -132,9 +132,8 @@ pub fn make_server_class() -> ClassEntity<()> {
 
                             Ok::<Response<Body>, phper::Error>(response)
                         })
-                    })
-                    .await
-                    {
+                    };
+                    match fut.await {
                         Ok(response) => response,
                         Err(e) => {
                             // If failed, simply return 500 as http status code, and the error

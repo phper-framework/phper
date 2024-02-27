@@ -20,7 +20,6 @@ use phper_alloc::{RefClone, ToRefOwned};
 use std::{
     any::Any,
     borrow::Borrow,
-    convert::TryInto,
     ffi::c_void,
     fmt::{self, Debug},
     marker::PhantomData,

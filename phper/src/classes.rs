@@ -14,6 +14,7 @@ use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError, Throwable},
     functions::{Function, FunctionEntry, Method, MethodEntity},
+    modules::global_module,
     objects::{StateObj, StateObject, ZObject},
     strings::ZStr,
     sys::*,
@@ -23,8 +24,6 @@ use crate::{
 };
 use std::{
     any::Any,
-    borrow::ToOwned,
-    convert::TryInto,
     ffi::{c_void, CString},
     fmt::Debug,
     marker::PhantomData,
@@ -849,12 +848,15 @@ pub(crate) type RawVisibility = u32;
 
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
+    // Get real ce which hold state_constructor.
+    let real_ce = find_real_ce(ce).unwrap();
+
     // Alloc more memory size to store state data.
     let state_object = phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
     let state_object = StateObj::<()>::from_mut_ptr(state_object);
 
     // Find the hack elements hidden behind null builtin_function.
-    let mut func_ptr = (*ce).info.internal.builtin_functions;
+    let mut func_ptr = (*real_ce).info.internal.builtin_functions;
     while !(*func_ptr).fname.is_null() {
         func_ptr = func_ptr.offset(1);
     }
@@ -904,6 +906,7 @@ unsafe extern "C" fn clone_object(object: *mut zval) -> *mut zend_object {
 #[allow(clippy::useless_conversion)]
 unsafe fn clone_object_common(object: *mut zend_object) -> *mut zend_object {
     let ce = (*object).ce;
+    let real_ce = find_real_ce(ce).unwrap();
 
     // Alloc more memory size to store state data.
     let new_state_object =
@@ -911,7 +914,7 @@ unsafe fn clone_object_common(object: *mut zend_object) -> *mut zend_object {
     let new_state_object = StateObj::<()>::from_mut_ptr(new_state_object);
 
     // Find the hack elements hidden behind null builtin_function.
-    let mut func_ptr = (*(*object).ce).info.internal.builtin_functions;
+    let mut func_ptr = (*real_ce).info.internal.builtin_functions;
     while !(*func_ptr).fname.is_null() {
         func_ptr = func_ptr.offset(1);
     }
@@ -946,4 +949,20 @@ unsafe extern "C" fn free_object(object: *mut zend_object) {
 
     // Original destroy call.
     zend_object_std_dtor(object);
+}
+
+/// Find the class that registered by phper.
+unsafe fn find_real_ce(mut ce: *mut zend_class_entry) -> Option<*mut zend_class_entry> {
+    let class_entities = global_module().class_entities();
+
+    while !ce.is_null() {
+        for entity in class_entities {
+            if ClassEntry::from_ptr(ce).get_name().to_c_str() == Ok(&entity.class_name) {
+                return Some(ce);
+            }
+        }
+        ce = phper_get_parent_class(ce);
+    }
+
+    None
 }

@@ -37,6 +37,11 @@ static mut GLOBAL_MODULE: *mut Module = null_mut();
 
 static mut GLOBAL_MODULE_ENTRY: *mut zend_module_entry = null_mut();
 
+#[inline]
+pub(crate) unsafe fn global_module<'a>() -> &'a Module {
+    GLOBAL_MODULE.as_ref().unwrap()
+}
+
 unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int {
     let module = GLOBAL_MODULE.as_mut().unwrap();
 
@@ -284,5 +289,10 @@ impl Module {
         entries.push(unsafe { zeroed::<zend_function_entry>() });
 
         Box::into_raw(entries.into_boxed_slice()).cast()
+    }
+
+    #[inline]
+    pub(crate) fn class_entities(&self) -> &[ClassEntity<()>] {
+        &self.class_entities
     }
 }
