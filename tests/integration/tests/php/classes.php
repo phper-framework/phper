@@ -68,3 +68,8 @@ assert_eq(IntegrationTest\PropsHolder::getFoo1(), 12345);
 $pre_foo1 = IntegrationTest\PropsHolder::setFoo1("baz");
 assert_eq($pre_foo1, 12345);
 assert_eq(IntegrationTest\PropsHolder::getFoo1(), "baz");
+
+// Test php class extends from phper registered class.
+class Foo2 extends IntegrationTest\Foo {}
+$foo2 = new Foo2();
+assert_eq($foo2->current(), 'Current: 0');
