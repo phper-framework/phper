@@ -14,7 +14,6 @@ use crate::{alloc::ToRefOwned, strings::ZStr, sys::*, values::ZVal};
 use derive_more::From;
 use std::{
     borrow::Borrow,
-    convert::TryInto,
     fmt::{self, Debug},
     marker::PhantomData,
     mem::ManuallyDrop,

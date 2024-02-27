@@ -13,7 +13,6 @@
 //! TODO Add lambda.
 
 use crate::{
-    cg,
     classes::{ClassEntry, RawVisibility, Visibility},
     errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable},
     objects::{StateObj, ZObj, ZObject},

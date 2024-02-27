@@ -14,7 +14,6 @@ use crate::sys::*;
 use phper_alloc::ToRefOwned;
 use std::{
     borrow::Borrow,
-    convert::TryInto,
     ffi::{CStr, FromBytesWithNulError},
     fmt::{self, Debug},
     marker::PhantomData,

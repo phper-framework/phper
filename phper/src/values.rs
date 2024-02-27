@@ -24,7 +24,6 @@ use crate::{
 };
 use phper_alloc::RefClone;
 use std::{
-    convert::TryInto,
     ffi::CStr,
     fmt,
     fmt::Debug,

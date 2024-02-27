@@ -24,8 +24,6 @@ use crate::{
 };
 use std::{
     any::Any,
-    borrow::ToOwned,
-    convert::TryInto,
     ffi::{c_void, CString},
     fmt::Debug,
     marker::PhantomData,
