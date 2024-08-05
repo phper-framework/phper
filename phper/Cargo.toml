@@ -33,3 +33,15 @@ thiserror = "1.0.63"
 [build-dependencies]
 phper-build = { workspace = true }
 phper-sys = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(phper_major_version, values("7"))',
+    'cfg(phper_major_version, values("8"))',
+    'cfg(phper_minor_version, values("0"))',
+    'cfg(phper_minor_version, values("1"))',
+    'cfg(phper_minor_version, values("2"))',
+    'cfg(phper_minor_version, values("3"))',
+    'cfg(phper_minor_version, values("4"))',
+    'cfg(phper_zts)',
+] }
