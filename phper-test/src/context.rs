@@ -22,6 +22,7 @@ use tempfile::NamedTempFile;
 
 pub struct Context {
     pub php_bin: String,
+    #[allow(dead_code)]
     pub ini_content: String,
 }
 

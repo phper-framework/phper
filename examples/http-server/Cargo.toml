@@ -22,13 +22,13 @@ name = "http_server"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-hyper = { version = "0.14.27", features = ["http1", "runtime", "server"] }
-axum = "0.6.19"
+hyper = { version = "1.4.1", features = ["http1", "server"] }
+axum = "0.7.5"
 phper = { workspace = true }
-thiserror = "1.0.43"
-tokio = { version = "1.29.1", features = ["full"] }
-reqwest = { version = "0.11.18", features = ["blocking"] }
+thiserror = "1.0.63"
+tokio = { version = "1.39.2", features = ["full"] }
+reqwest = { version = "0.12.5", features = ["blocking"] }
 
 [dev-dependencies]
 phper-test = { workspace = true }
-reqwest = "0.11.18"
+reqwest = "0.12.5"

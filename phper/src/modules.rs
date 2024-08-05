@@ -193,7 +193,8 @@ impl Module {
 
     /// Register class to module.
     pub fn add_class<T>(&mut self, class: ClassEntity<T>) {
-        self.class_entities.push(unsafe { transmute(class) });
+        self.class_entities
+            .push(unsafe { transmute::<ClassEntity<T>, ClassEntity<()>>(class) });
     }
 
     /// Register interface to module.
