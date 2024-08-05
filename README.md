@@ -3,7 +3,6 @@
 [![CI](https://github.com/phper-framework/phper/actions/workflows/ci.yml/badge.svg)](https://github.com/phper-framework/phper/actions/workflows/ci.yml)
 [![Crates](https://img.shields.io/crates/v/phper)](https://crates.io/crates/phper)
 [![Docs](https://img.shields.io/docsrs/phper)](https://docs.rs/phper)
-[![Lines](https://img.shields.io/tokei/lines/github/phper-framework/phper)](https://github.com/phper-framework/phper)
 [![License](https://img.shields.io/crates/l/phper)](https://github.com/phper-framework/phper/blob/master/LICENSE)
 
 ## Rust ❤️ PHP
