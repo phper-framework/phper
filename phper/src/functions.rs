@@ -25,7 +25,7 @@ use phper_alloc::ToRefOwned;
 use std::{
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{transmute, zeroed},
+    mem::{transmute, zeroed, ManuallyDrop},
     ptr::{self, null_mut},
     rc::Rc,
 };
@@ -473,7 +473,11 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     let mut arguments = execute_data.get_parameters_array();
     let arguments = arguments.as_mut_slice();
 
-    handler.call(execute_data, transmute(arguments), return_value);
+    handler.call(
+        execute_data,
+        transmute::<&mut [ManuallyDrop<ZVal>], &mut [ZVal]>(arguments),
+        return_value,
+    );
 }
 
 /// Call user function by name.

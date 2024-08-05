@@ -10,20 +10,19 @@
 
 use crate::{errors::HttpServerError, request::new_request_object, response::new_response_object};
 use axum::{
-    body::Body,
+    body::{self, Body},
     http::{Request, Response, StatusCode},
     routing::any,
-    Router, Server,
+    Router,
 };
-use hyper::body;
 use phper::{
     alloc::ToRefOwned,
     classes::{ClassEntity, Visibility},
     functions::Argument,
     values::ZVal,
 };
-use std::{cell::RefCell, collections::HashMap, net::SocketAddr};
-use tokio::runtime::{self};
+use std::{cell::RefCell, collections::HashMap, error::Error, net::SocketAddr};
+use tokio::{net::TcpListener, runtime};
 
 const HTTP_SERVER_CLASS_NAME: &str = "HttpServer\\HttpServer";
 
@@ -95,7 +94,9 @@ pub fn make_server_class() -> ClassEntity<()> {
                         let (parts, body) = req.into_parts();
 
                         // Read all request body content.
-                        let body = body::to_bytes(body).await.map_err(HttpServerError::new)?;
+                        let body = body::to_bytes(body, usize::MAX)
+                            .await
+                            .map_err(HttpServerError::new)?;
 
                         // Create PHP `HttpServer\HttpRequest` object.
                         let mut request = new_request_object()?;
@@ -148,9 +149,9 @@ pub fn make_server_class() -> ClassEntity<()> {
             );
 
             // Start the http server.
-            let server = Server::bind(&addr).serve(app.into_make_service());
-
-            server.await
+            let listener = TcpListener::bind(addr).await?;
+            axum::serve(listener, app).await?;
+            Ok::<_, Box<dyn Error>>(())
         };
 
         // Build the tokio runtime, with the current thread scheduler, block on
