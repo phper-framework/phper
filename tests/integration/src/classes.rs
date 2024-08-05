@@ -104,7 +104,7 @@ fn integrate_foo(module: &mut Module) {
         .add_method("offsetExists", Visibility::Public, |this, arguments| {
             let offset = arguments[0].expect_long()?;
             let state = this.as_state();
-            Ok::<_, phper::Error>(state.array.get(&offset).is_some())
+            Ok::<_, phper::Error>(state.array.contains_key(&offset))
         })
         .argument(Argument::by_val("offset"));
 
