@@ -13,13 +13,7 @@
 //! TODO Add lambda.
 
 use crate::{
-    classes::{ClassEntry, RawVisibility, Visibility},
-    errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable},
-    objects::{StateObj, ZObj, ZObject},
-    strings::{ZStr, ZString},
-    sys::*,
-    utils::ensure_end_with_zero,
-    values::{ExecuteData, ZVal},
+    classes::{ClassEntry, RawVisibility, Visibility}, errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable}, objects::{StateObj, ZObj, ZObject}, strings::{ZStr, ZString}, sys::*, types::TypeInfo, utils::ensure_end_with_zero, values::{ExecuteData, ZVal}
 };
 use phper_alloc::ToRefOwned;
 use std::{
@@ -167,6 +161,7 @@ pub struct FunctionEntity {
     name: CString,
     handler: Rc<dyn Callable>,
     arguments: Vec<Argument>,
+    return_type: Option<ReturnType>,
 }
 
 impl FunctionEntity {
@@ -176,6 +171,7 @@ impl FunctionEntity {
             name: ensure_end_with_zero(name),
             handler,
             arguments: Default::default(),
+            return_type: None,
         }
     }
 
@@ -192,6 +188,13 @@ impl FunctionEntity {
         self.arguments.extend(arguments);
         self
     }
+
+    /// Add return type info.
+    #[inline]
+    pub fn return_type(&mut self, return_type: ReturnType) -> &mut Self {
+        self.return_type = Some(return_type);
+        self
+    }
 }
 
 /// Builder for registering class method.
@@ -200,6 +203,7 @@ pub struct MethodEntity {
     handler: Option<Rc<dyn Callable>>,
     arguments: Vec<Argument>,
     visibility: RawVisibility,
+    return_type: Option<ReturnType>,
 }
 
 impl MethodEntity {
@@ -238,6 +242,13 @@ impl MethodEntity {
     #[inline]
     pub fn arguments(&mut self, arguments: impl IntoIterator<Item = Argument>) -> &mut Self {
         self.arguments.extend(arguments);
+        self
+    }
+
+    /// Add return type info.
+    #[inline]
+    pub fn return_type(&mut self, return_type: ReturnType) -> &mut Self {
+        self.return_type = Some(return_type);
         self
     }
 }
@@ -288,6 +299,42 @@ impl Argument {
             pass_by_ref: true,
             required: false,
         }
+    }
+}
+
+/// Function or method return type.
+pub struct ReturnType {
+    type_info: TypeInfo,
+    ret_by_ref: bool,
+    allow_null: bool,
+}
+
+impl ReturnType {
+    /// Indicate the return type is return by value.
+    #[inline]
+    pub fn by_val(type_info: TypeInfo) -> Self {
+        Self {
+            type_info,
+            ret_by_ref: false,
+            allow_null: false,
+        }
+    }
+
+    /// Indicate the return type is return by reference.
+    #[inline]
+    pub fn by_ref(type_info: TypeInfo) -> Self {
+        Self {
+            type_info,
+            ret_by_ref: true,
+            allow_null: false,
+        }
+    }
+
+    /// Indicate the return type can be null.
+    #[inline]
+    pub fn allow_null(mut self) -> Self {
+        self.allow_null = true;
+        self
     }
 }
 
