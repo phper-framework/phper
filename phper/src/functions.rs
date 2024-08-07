@@ -13,16 +13,33 @@
 //! TODO Add lambda.
 
 use crate::{
-    classes::{ClassEntry, RawVisibility, Visibility}, errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable}, objects::{StateObj, ZObj, ZObject}, strings::{ZStr, ZString}, sys::*, types::TypeInfo, utils::ensure_end_with_zero, values::{ExecuteData, ZVal}
+    classes::{ClassEntry, RawVisibility, Visibility},
+    errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable},
+    modules::global_module,
+    objects::{StateObj, ZObj, ZObject},
+    strings::{ZStr, ZString},
+    sys::*,
+    types::TypeInfo,
+    utils::ensure_end_with_zero,
+    values::{ExecuteData, ZVal},
 };
 use phper_alloc::ToRefOwned;
 use std::{
+    collections::HashMap,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{transmute, zeroed, ManuallyDrop},
+    mem::{size_of, transmute, zeroed, ManuallyDrop},
     ptr::{self, null_mut},
     rc::Rc,
+    slice,
 };
+
+/// Used to mark the arguments obtained by the invoke function as mysterious
+/// codes from phper
+const INVOKE_MYSTERIOUS_CODE: &[u8] = b"PHPER";
+
+/// Used to find the handler in the invoke function.
+pub(crate) type HandlerMap = HashMap<(Option<CString>, CString), Rc<dyn Callable>>;
 
 pub(crate) trait Callable {
     fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal);
@@ -101,6 +118,7 @@ impl FunctionEntry {
         Self::entry(
             &entity.name,
             &entity.arguments,
+            entity.return_type.as_ref(),
             Some(entity.handler.clone()),
             None,
         )
@@ -110,6 +128,7 @@ impl FunctionEntry {
         Self::entry(
             &entity.name,
             &entity.arguments,
+            entity.return_type.as_ref(),
             entity.handler.clone(),
             Some(entity.visibility),
         )
@@ -117,13 +136,23 @@ impl FunctionEntry {
 
     /// Will leak memory
     unsafe fn entry(
-        name: &CStr, arguments: &[Argument], handler: Option<Rc<dyn Callable>>,
-        visibility: Option<RawVisibility>,
+        name: &CStr, arguments: &[Argument], return_type: Option<&ReturnType>,
+        handler: Option<Rc<dyn Callable>>, visibility: Option<RawVisibility>,
     ) -> zend_function_entry {
         let mut infos = Vec::new();
 
         let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
-        infos.push(phper_zend_begin_arg_info_ex(false, require_arg_count));
+
+        if let Some(return_type) = return_type {
+            infos.push(phper_zend_begin_arg_with_return_type_info_ex(
+                return_type.ret_by_ref,
+                require_arg_count,
+                return_type.type_info.into_raw(),
+                return_type.allow_null,
+            ));
+        } else {
+            infos.push(phper_zend_begin_arg_info_ex(false, require_arg_count));
+        }
 
         for arg in arguments {
             infos.push(phper_zend_arg_info(
@@ -133,6 +162,9 @@ impl FunctionEntry {
         }
 
         infos.push(zeroed::<zend_internal_arg_info>());
+
+        // Will be checked in `invoke` function.
+        infos.push(Self::create_mysterious_code());
 
         let raw_handler = handler.as_ref().map(|_| invoke as _);
 
@@ -153,6 +185,14 @@ impl FunctionEntry {
             num_args: arguments.len() as u32,
             flags,
         }
+    }
+
+    unsafe fn create_mysterious_code() -> zend_internal_arg_info {
+        let mut mysterious_code = [0u8; size_of::<zend_internal_arg_info>()];
+        for (i, n) in INVOKE_MYSTERIOUS_CODE.iter().enumerate() {
+            mysterious_code[i] = *n;
+        }
+        transmute(mysterious_code)
     }
 }
 
@@ -199,8 +239,8 @@ impl FunctionEntity {
 
 /// Builder for registering class method.
 pub struct MethodEntity {
-    name: CString,
-    handler: Option<Rc<dyn Callable>>,
+    pub(crate) name: CString,
+    pub(crate) handler: Option<Rc<dyn Callable>>,
     arguments: Vec<Argument>,
     visibility: RawVisibility,
     return_type: Option<ReturnType>,
@@ -216,6 +256,7 @@ impl MethodEntity {
             handler,
             visibility: visibility as RawVisibility,
             arguments: Default::default(),
+            return_type: None,
         }
     }
 
@@ -494,12 +535,43 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
     let num_args = execute_data.common_num_args();
     let arg_info = execute_data.common_arg_info();
 
-    let last_arg_info = arg_info.offset((num_args + 1) as isize);
-    let translator = CallableTranslator {
-        arg_info: *last_arg_info,
+    // should be mysterious code
+    let mysterious_arg_info = arg_info.offset((num_args + 1) as isize);
+    let mysterious_code = slice::from_raw_parts(
+        mysterious_arg_info as *const u8,
+        INVOKE_MYSTERIOUS_CODE.len(),
+    );
+
+    let handler = if mysterious_code == INVOKE_MYSTERIOUS_CODE {
+        // hiddden real handler
+        let last_arg_info = arg_info.offset((num_args + 2) as isize);
+        let translator = CallableTranslator {
+            arg_info: *last_arg_info,
+        };
+        let handler = translator.callable;
+        handler.as_ref().expect("handler is null")
+    } else {
+        let function_name = execute_data
+            .func()
+            .get_function_name()
+            .and_then(|name| name.to_c_str().ok())
+            .map(CString::from);
+
+        function_name
+            .and_then(|function_name| {
+                let class_name = execute_data
+                    .func()
+                    .get_class()
+                    .and_then(|cls| cls.get_name().to_c_str().ok())
+                    .map(CString::from);
+
+                global_module()
+                    .handler_map
+                    .get(&(class_name, function_name))
+            })
+            .expect("invoke handler is not correct")
+            .as_ref()
     };
-    let handler = translator.callable;
-    let handler = handler.as_ref().expect("handler is null");
 
     // Check arguments count.
     let num_args = execute_data.num_args();

@@ -15,7 +15,7 @@ use crate::{
     classes::{ClassEntity, InterfaceEntity},
     constants::Constant,
     errors::Throwable,
-    functions::{Function, FunctionEntity, FunctionEntry},
+    functions::{Function, FunctionEntity, FunctionEntry, HandlerMap},
     ini,
     sys::*,
     types::Scalar,
@@ -54,6 +54,7 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
     for class_entity in &module.class_entities {
         let ce = class_entity.init();
         class_entity.declare_properties(ce);
+        module.handler_map.extend(class_entity.handler_map());
     }
 
     for interface_entity in &module.interface_entities {
@@ -133,6 +134,8 @@ pub struct Module {
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
     infos: HashMap<CString, CString>,
+    /// Used to find the handler in the invoke function.
+    pub(crate) handler_map: HandlerMap,
 }
 
 impl Module {
@@ -154,6 +157,7 @@ impl Module {
             constants: Default::default(),
             ini_entities: Default::default(),
             infos: Default::default(),
+            handler_map: Default::default(),
         }
     }
 

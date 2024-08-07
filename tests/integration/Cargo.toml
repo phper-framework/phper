@@ -26,3 +26,11 @@ phper = { workspace = true }
 
 [dev-dependencies]
 phper-test = { workspace = true }
+
+[build-dependencies]
+phper-build = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(phper_major_version, values("8"))',
+] }

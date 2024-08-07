@@ -13,7 +13,7 @@
 use crate::{
     arrays::ZArr,
     errors::{ClassNotFoundError, InitializeObjectError, Throwable},
-    functions::{Function, FunctionEntry, Method, MethodEntity},
+    functions::{Function, FunctionEntry, HandlerMap, Method, MethodEntity},
     modules::global_module,
     objects::{StateObj, StateObject, ZObject},
     strings::ZStr,
@@ -648,6 +648,20 @@ impl<T: 'static> ClassEntity<T> {
             ptr.write(state_constructor);
         }
         entry
+    }
+
+    pub(crate) fn handler_map(&self) -> HandlerMap {
+        self.method_entities
+            .iter()
+            .filter_map(|method| {
+                method.handler.as_ref().map(|handler| {
+                    (
+                        (Some(self.class_name.clone()), method.name.clone()),
+                        handler.clone(),
+                    )
+                })
+            })
+            .collect()
     }
 }
 

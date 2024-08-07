@@ -25,6 +25,8 @@ pub fn integrate(module: &mut Module) {
     integrate_foo(module);
     integrate_i_bar(module);
     integrate_static_props(module);
+    #[cfg(phper_major_version = "8")]
+    integrate_stringable(module);
 }
 
 fn integrate_a(module: &mut Module) {
@@ -180,4 +182,17 @@ fn integrate_static_props(module: &mut Module) {
         .argument(Argument::by_val("val"));
 
     module.add_class(class);
+}
+
+#[cfg(phper_major_version = "8")]
+fn integrate_stringable(module: &mut Module) {
+    use phper::{functions::ReturnType, types::TypeInfo};
+
+    let mut cls = ClassEntity::new(r"IntegrationTest\FooString");
+    cls.implements(|| ClassEntry::from_globals("Stringable").unwrap());
+    cls.add_method("__toString", Visibility::Public, |_this, _: &mut [ZVal]| {
+        phper::ok(format!("string"))
+    })
+    .return_type(ReturnType::by_val(TypeInfo::STRING));
+    module.add_class(cls);
 }
