@@ -73,3 +73,8 @@ assert_eq(IntegrationTest\PropsHolder::getFoo1(), "baz");
 class Foo2 extends IntegrationTest\Foo {}
 $foo2 = new Foo2();
 assert_eq($foo2->current(), 'Current: 0');
+
+// Test Stringable implementation.
+if (PHP_VERSION_ID >= 80000) {
+    assert_eq(((string) (new IntegrationTest\FooString())), 'string');
+}
