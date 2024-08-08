@@ -467,8 +467,13 @@ phper_zend_begin_arg_with_return_type_info_ex(bool return_reference,
                                               uint32_t typ, bool allow_null) {
 #define static
 #define const
+#if PHP_VERSION_ID >= 70200
     ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(info, return_reference,
                                             required_num_args, typ, allow_null)
+#else
+    ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(
+        info, return_reference, required_num_args, typ, NULL, allow_null)
+#endif
     ZEND_END_ARG_INFO()
     return info[0];
 #undef static

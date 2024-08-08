@@ -191,7 +191,7 @@ fn integrate_stringable(module: &mut Module) {
     let mut cls = ClassEntity::new(r"IntegrationTest\FooString");
     cls.implements(|| ClassEntry::from_globals("Stringable").unwrap());
     cls.add_method("__toString", Visibility::Public, |_this, _: &mut [ZVal]| {
-        phper::ok(format!("string"))
+        phper::ok("string")
     })
     .return_type(ReturnType::by_val(TypeInfo::STRING));
     module.add_class(cls);
