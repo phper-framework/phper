@@ -46,6 +46,8 @@ fn main() {
         .blocklist_function("zend_ini_parse_quantity")
         // Block the `zend_startup` because it fails checks.
         .blocklist_function("zend_startup")
+        // Block the `zend_random_bytes_insecure` because it fails checks.
+        .blocklist_function("zend_random_bytes_insecure")
         .clang_args(&includes)
         .derive_default(true);
 
