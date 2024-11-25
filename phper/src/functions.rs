@@ -657,6 +657,7 @@ pub(crate) fn call_raw_common(call_fn: impl FnOnce(&mut ZVal)) -> crate::Result<
 
     unsafe {
         if !eg!(exception).is_null() {
+            #[allow(static_mut_refs)]
             let e = ptr::replace(&mut eg!(exception), null_mut());
             let obj = ZObject::from_raw(e);
             match ThrowObject::new(obj) {
