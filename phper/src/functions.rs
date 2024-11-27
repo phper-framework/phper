@@ -184,6 +184,8 @@ impl FunctionEntry {
             arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
             num_args: arguments.len() as u32,
             flags,
+            frameless_function_infos: null_mut(),
+            doc_comment: null_mut(),
         }
     }
 
