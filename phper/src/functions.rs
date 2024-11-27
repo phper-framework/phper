@@ -178,6 +178,7 @@ impl FunctionEntry {
 
         let flags = visibility.unwrap_or(Visibility::default() as u32);
 
+        #[allow(clippy::needless_update)]
         zend_function_entry {
             fname: name.as_ptr().cast(),
             handler: raw_handler,
