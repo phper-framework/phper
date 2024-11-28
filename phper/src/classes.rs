@@ -890,7 +890,25 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
     let object = state_object.as_mut_object().as_mut_ptr();
     zend_object_std_init(object, ce);
     object_properties_init(object, ce);
-    rebuild_object_properties(object);
+
+    cfg_if::cfg_if! {
+        if #[cfg(any(
+            phper_major_version = "7",
+            all(
+                phper_major_version = "8",
+                any(
+                    phper_minor_version = "0",
+                    phper_minor_version = "1",
+                    phper_minor_version = "2",
+                    phper_minor_version = "3",
+                ),
+            )
+        ))] {
+            rebuild_object_properties(object);
+        } else {
+            rebuild_object_properties_internal(object);
+        }
+    }
 
     // Set handlers
     let mut handlers = Box::new(std_object_handlers);

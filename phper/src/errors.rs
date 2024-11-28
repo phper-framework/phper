@@ -482,6 +482,7 @@ thread_local! {
 impl Default for ExceptionGuard {
     fn default() -> Self {
         EXCEPTION_STACK.with(|stack| unsafe {
+            #[allow(static_mut_refs)]
             stack
                 .borrow_mut()
                 .push(replace(&mut eg!(exception), null_mut()));

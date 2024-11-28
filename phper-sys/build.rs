@@ -44,6 +44,10 @@ fn main() {
         .allowlist_file("php_wrapper\\.c")
         // Block the `zend_ini_parse_quantity` because it's document causes the doc test to fail.
         .blocklist_function("zend_ini_parse_quantity")
+        // Block the `zend_startup` because it fails checks.
+        .blocklist_function("zend_startup")
+        // Block the `zend_random_bytes_insecure` because it fails checks.
+        .blocklist_item("zend_random_bytes_insecure")
         .clang_args(&includes)
         .derive_default(true);
 

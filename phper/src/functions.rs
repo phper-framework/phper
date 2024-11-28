@@ -178,12 +178,14 @@ impl FunctionEntry {
 
         let flags = visibility.unwrap_or(Visibility::default() as u32);
 
+        #[allow(clippy::needless_update)]
         zend_function_entry {
             fname: name.as_ptr().cast(),
             handler: raw_handler,
             arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
             num_args: arguments.len() as u32,
             flags,
+            ..Default::default()
         }
     }
 
@@ -657,6 +659,7 @@ pub(crate) fn call_raw_common(call_fn: impl FnOnce(&mut ZVal)) -> crate::Result<
 
     unsafe {
         if !eg!(exception).is_null() {
+            #[allow(static_mut_refs)]
             let e = ptr::replace(&mut eg!(exception), null_mut());
             let obj = ZObject::from_raw(e);
             match ThrowObject::new(obj) {
