@@ -67,8 +67,8 @@ jobs:
       - name: Setup libclang for Macos
         if: matrix.os == 'macos-14'
         run: |
-          brew install llvm@13
-          echo "LIBCLANG_PATH=$(brew --prefix llvm@13)/lib" >> $GITHUB_ENV
+          brew install llvm@18
+          echo "LIBCLANG_PATH=$(brew --prefix llvm@18)/lib" >> $GITHUB_ENV
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
