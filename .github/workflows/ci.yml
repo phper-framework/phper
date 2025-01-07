@@ -42,7 +42,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - macos-12
+          - macos-14
         php-version:
           - "7.0"
           - "7.1"
@@ -65,7 +65,7 @@ jobs:
         run: sudo apt-get install -y llvm-10-dev libclang-10-dev
 
       - name: Setup libclang for Macos
-        if: matrix.os == 'macos-12'
+        if: matrix.os == 'macos-14'
         run: |
           brew install llvm@13
           echo "LIBCLANG_PATH=$(brew --prefix llvm@13)/lib" >> $GITHUB_ENV
@@ -84,7 +84,7 @@ jobs:
           sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
 
       - name: Setup php-fpm for Macos
-        if: matrix.os == 'macos-12'
+        if: matrix.os == 'macos-14'
         run: |
           brew install php@${{ matrix.php-version }}
 
