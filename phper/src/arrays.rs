@@ -49,7 +49,7 @@ pub enum InsertKey<'a> {
     ZStr(&'a ZStr),
 }
 
-impl<'a> From<()> for InsertKey<'a> {
+impl From<()> for InsertKey<'_> {
     fn from(_: ()) -> Self {
         Self::NextIndex
     }
@@ -474,7 +474,7 @@ struct RawIter<'a> {
     _p: PhantomData<&'a ()>,
 }
 
-impl<'a> RawIter<'a> {
+impl RawIter<'_> {
     fn new(arr: *mut zend_array) -> Self {
         let mut pos: HashPosition = 0;
         unsafe {

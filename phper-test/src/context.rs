@@ -98,7 +98,7 @@ impl Context {
                 .and_then(|name| {
                     let mut p = p.to_path_buf();
                     p.push("sbin");
-                    p.push(&format!(
+                    p.push(format!(
                         "php-fpm{}",
                         if name.starts_with("php") {
                             name.chars().skip(3).collect::<String>()
