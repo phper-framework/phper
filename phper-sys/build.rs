@@ -21,6 +21,14 @@ fn main() {
     let includes = execute_command(&[php_config.as_str(), "--includes"]);
     let includes = includes.split(' ').collect::<Vec<_>>();
 
+    let mut extas_args = Vec::new();
+    if cfg!(all(
+        target_arch = "aarch64",
+        any(target_os = "macos", target_os = "ios")
+    )) {
+        extas_args.push("-mno-neon");
+    }
+
     // Generate libphpwrapper.a.
 
     let mut builder = cc::Build::new();
@@ -49,6 +57,7 @@ fn main() {
         // Block the `zend_random_bytes_insecure` because it fails checks.
         .blocklist_item("zend_random_bytes_insecure")
         .clang_args(&includes)
+        .clang_args(&extas_args)
         .derive_default(true);
 
     // iterate over the php include directories, and update the builder
