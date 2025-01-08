@@ -200,6 +200,12 @@ pub enum Scalar {
     Bytes(Vec<u8>),
 }
 
+impl From<()> for Scalar {
+    fn from(_: ()) -> Self {
+        Self::Null
+    }
+}
+
 impl From<&str> for Scalar {
     fn from(s: &str) -> Self {
         Self::String(s.to_owned())

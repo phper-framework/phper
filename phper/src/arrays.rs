@@ -49,6 +49,12 @@ pub enum InsertKey<'a> {
     ZStr(&'a ZStr),
 }
 
+impl<'a> From<()> for InsertKey<'a> {
+    fn from(_: ()) -> Self {
+        Self::NextIndex
+    }
+}
+
 impl<'a> From<Key<'a>> for InsertKey<'a> {
     fn from(k: Key<'a>) -> Self {
         match k {
