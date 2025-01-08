@@ -48,6 +48,12 @@ fn main() {
         .blocklist_function("zend_startup")
         // Block the `zend_random_bytes_insecure` because it fails checks.
         .blocklist_item("zend_random_bytes_insecure")
+        .blocklist_type("float32x1_t")
+        .blocklist_type("float32x2_t")
+        .blocklist_type("float32x4_t")
+        .blocklist_type("float64x1_t")
+        .blocklist_type("float64x2_t")
+        .blocklist_type("float64x4_t")
         .clang_args(&includes)
         .derive_default(true);
 
