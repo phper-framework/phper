@@ -48,7 +48,6 @@ fn main() {
         .blocklist_function("zend_startup")
         // Block the `zend_random_bytes_insecure` because it fails checks.
         .blocklist_item("zend_random_bytes_insecure")
-        .clang_arg("-D__ARM_NEON=0")
         .clang_args(&includes)
         .derive_default(true);
 
