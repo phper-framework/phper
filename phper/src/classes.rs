@@ -24,7 +24,7 @@ use crate::{
 };
 use std::{
     any::Any,
-    ffi::{c_void, CString, c_char},
+    ffi::{c_char, c_void, CString},
     fmt::Debug,
     marker::PhantomData,
     mem::{replace, size_of, zeroed, ManuallyDrop},
@@ -490,8 +490,7 @@ impl<T: 'static> ClassEntity<T> {
     }
 
     /// Add constant to class
-    pub fn add_constant(
-        &mut self, name: impl Into<String>, value: impl Into<Scalar>) {
+    pub fn add_constant(&mut self, name: impl Into<String>, value: impl Into<Scalar>) {
         let constant = ConstantEntity::new(name, value);
         self.constants.push(constant);
     }
@@ -720,8 +719,7 @@ impl InterfaceEntity {
     }
 
     /// Add constant to interface
-    pub fn add_constant(
-        &mut self, name: impl Into<String>, value: impl Into<Scalar>) {
+    pub fn add_constant(&mut self, name: impl Into<String>, value: impl Into<Scalar>) {
         let constant = ConstantEntity::new(name, value);
         self.constants.push(constant);
     }
@@ -1020,24 +1018,13 @@ unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &Consta
     unsafe {
         match &constant.value {
             Scalar::Null => zend_declare_class_constant_null(class_ce, name_ptr, name_len),
-            Scalar::Bool(b) => zend_declare_class_constant_bool(
-                class_ce,
-                name_ptr,
-                name_len,
-                *b as zend_bool,
-            ),
-            Scalar::I64(i) => zend_declare_class_constant_long(
-                class_ce,
-                name_ptr,
-                name_len,
-                *i as zend_long,
-            ),
-            Scalar::F64(f) => zend_declare_class_constant_double(
-                class_ce,
-                name_ptr,
-                name_len,
-                *f
-            ),
+            Scalar::Bool(b) => {
+                zend_declare_class_constant_bool(class_ce, name_ptr, name_len, *b as zend_bool)
+            }
+            Scalar::I64(i) => {
+                zend_declare_class_constant_long(class_ce, name_ptr, name_len, *i as zend_long)
+            }
+            Scalar::F64(f) => zend_declare_class_constant_double(class_ce, name_ptr, name_len, *f),
             Scalar::String(s) => {
                 let s_ptr = s.as_ptr() as *mut u8;
                 zend_declare_class_constant_stringl(
