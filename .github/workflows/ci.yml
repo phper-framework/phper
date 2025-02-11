@@ -62,7 +62,7 @@ jobs:
 
       - name: Install libclang for Linux
         if: matrix.os == 'ubuntu-24.04'
-        run: sudo apt-get install -y llvm-10-dev libclang-10-dev
+        run: sudo apt-get install -y llvm-18-dev libclang-18-dev
 
       - name: Setup libclang for Macos
         if: matrix.os == 'macos-14'
