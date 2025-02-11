@@ -24,7 +24,7 @@ use crate::{
 };
 use std::{
     any::Any,
-    ffi::{c_void, CString},
+    ffi::{c_void, CString, c_char},
     fmt::Debug,
     marker::PhantomData,
     mem::{replace, size_of, zeroed, ManuallyDrop},
@@ -377,6 +377,7 @@ pub struct ClassEntity<T: 'static> {
     property_entities: Vec<PropertyEntity>,
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
     interfaces: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
+    constants: Vec<ConstantEntity>,
     bind_class: Option<&'static StaticStateClass<T>>,
     state_cloner: Option<Rc<StateCloner>>,
     _p: PhantomData<(*mut (), T)>,
@@ -414,6 +415,7 @@ impl<T: 'static> ClassEntity<T> {
             property_entities: Vec::new(),
             parent: None,
             interfaces: Vec::new(),
+            constants: Vec::new(),
             bind_class: None,
             state_cloner: None,
             _p: PhantomData,
@@ -485,6 +487,13 @@ impl<T: 'static> ClassEntity<T> {
         let mut entity = PropertyEntity::new(name, visibility, value);
         entity.set_vis_static();
         self.property_entities.push(entity);
+    }
+
+    /// Add constant to class
+    pub fn add_constant(
+        &mut self, name: impl Into<String>, value: impl Into<Scalar>) {
+        let constant = ConstantEntity::new(name, value);
+        self.constants.push(constant);
     }
 
     /// Register class to `extends` the parent class.
@@ -603,6 +612,10 @@ impl<T: 'static> ClassEntity<T> {
             zend_class_implements(class_ce, 1, interface_ce);
         }
 
+        for constant in &self.constants {
+            add_class_constant(class_ce, constant);
+        }
+
         *phper_get_create_object(class_ce) = Some(create_object);
 
         class_ce
@@ -680,6 +693,7 @@ unsafe extern "C" fn class_init_handler(
 pub struct InterfaceEntity {
     interface_name: CString,
     method_entities: Vec<MethodEntity>,
+    constants: Vec<ConstantEntity>,
     extends: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
     bind_interface: Option<&'static StaticInterface>,
 }
@@ -690,6 +704,7 @@ impl InterfaceEntity {
         Self {
             interface_name: ensure_end_with_zero(interface_name.into()),
             method_entities: Vec::new(),
+            constants: Vec::new(),
             extends: Vec::new(),
             bind_interface: None,
         }
@@ -702,6 +717,13 @@ impl InterfaceEntity {
         entity.set_vis_abstract();
         self.method_entities.push(entity);
         self.method_entities.last_mut().unwrap()
+    }
+
+    /// Add constant to interface
+    pub fn add_constant(
+        &mut self, name: impl Into<String>, value: impl Into<Scalar>) {
+        let constant = ConstantEntity::new(name, value);
+        self.constants.push(constant);
     }
 
     /// Register interface to `extends` the interfaces, due to the interface can
@@ -751,6 +773,10 @@ impl InterfaceEntity {
             zend_class_implements(class_ce, 1, interface_ce);
         }
 
+        for constant in &self.constants {
+            add_class_constant(class_ce, constant);
+        }
+
         class_ce
     }
 
@@ -771,6 +797,21 @@ unsafe extern "C" fn interface_init_handler(
     class_ce: *mut zend_class_entry, _argument: *mut c_void,
 ) -> *mut zend_class_entry {
     zend_register_internal_interface(class_ce)
+}
+
+/// Builder for registering class/interface constants
+pub struct ConstantEntity {
+    name: String,
+    value: Scalar,
+}
+
+impl ConstantEntity {
+    fn new(name: impl Into<String>, value: impl Into<Scalar>) -> Self {
+        Self {
+            name: name.into(),
+            value: value.into(),
+        }
+    }
 }
 
 /// Builder for declare class property.
@@ -971,6 +1012,54 @@ unsafe fn clone_object_common(object: *mut zend_object) -> *mut zend_object {
     *new_state_object.as_mut_any_state() = data;
 
     new_object
+}
+
+unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &ConstantEntity) {
+    let name_ptr = constant.name.as_ptr() as *const c_char;
+    let name_len = constant.name.len();
+    unsafe {
+        match &constant.value {
+            Scalar::Null => zend_declare_class_constant_null(class_ce, name_ptr, name_len),
+            Scalar::Bool(b) => zend_declare_class_constant_bool(
+                class_ce,
+                name_ptr,
+                name_len,
+                *b as zend_bool,
+            ),
+            Scalar::I64(i) => zend_declare_class_constant_long(
+                class_ce,
+                name_ptr,
+                name_len,
+                *i as zend_long,
+            ),
+            Scalar::F64(f) => zend_declare_class_constant_double(
+                class_ce,
+                name_ptr,
+                name_len,
+                *f
+            ),
+            Scalar::String(s) => {
+                let s_ptr = s.as_ptr() as *mut u8;
+                zend_declare_class_constant_stringl(
+                    class_ce,
+                    name_ptr,
+                    name_len,
+                    s_ptr.cast(),
+                    s.len(),
+                )
+            }
+            Scalar::Bytes(s) => {
+                let s_ptr = s.as_ptr() as *mut u8;
+                zend_declare_class_constant_stringl(
+                    class_ce,
+                    name_ptr,
+                    name_len,
+                    s_ptr.cast(),
+                    s.len(),
+                )
+            }
+        }
+    }
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {

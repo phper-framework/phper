@@ -102,6 +102,18 @@ foo.add_static_method(
 ).argument(Argument::by_val("name"));
 ```
 
+## Add constants
+Interfaces can have public constants. Value can be string|int|bool|float|null.
+
+```rust,no_run
+use phper::classes::ClassEntity;
+
+let mut foo = ClassEntity::new("Foo");
+foo.add_constant("ONE", "one");
+foo.add_constant("TWO", 2);
+foo.add_constant("THREE", 3.0);
+```
+
 ## Handle state
 
 > The `ClassEntity` represents the class entry hold the state as generic type,

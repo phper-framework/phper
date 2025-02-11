@@ -25,6 +25,7 @@ pub fn integrate(module: &mut Module) {
     integrate_foo(module);
     integrate_i_bar(module);
     integrate_static_props(module);
+    integrate_i_constants(module);
     #[cfg(phper_major_version = "8")]
     integrate_stringable(module);
 }
@@ -34,6 +35,12 @@ fn integrate_a(module: &mut Module) {
 
     class.add_property("name", Visibility::Private, "default");
     class.add_property("number", Visibility::Private, 100);
+    class.add_constant("CST_STRING", "foo");
+    class.add_constant("CST_NULL", ());
+    class.add_constant("CST_TRUE", true);
+    class.add_constant("CST_FALSE", false);
+    class.add_constant("CST_INT", 100);
+    class.add_constant("CST_FLOAT", 3.14159);
 
     class
         .add_method("__construct", Visibility::Public, |this, arguments| {
@@ -154,6 +161,19 @@ fn integrate_i_bar(module: &mut Module) {
     interface
         .add_method("doSomethings")
         .argument(Argument::by_val("job_name"));
+
+    module.add_interface(interface);
+}
+
+fn integrate_i_constants(module: &mut Module) {
+    let mut interface = InterfaceEntity::new(r"IntegrationTest\IConstants");
+
+    interface.add_constant("CST_STRING", "foo");
+    interface.add_constant("CST_NULL", ());
+    interface.add_constant("CST_TRUE", true);
+    interface.add_constant("CST_FALSE", false);
+    interface.add_constant("CST_INT", 100);
+    interface.add_constant("CST_FLOAT", 3.14159);
 
     module.add_interface(interface);
 }
