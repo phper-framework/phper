@@ -1017,14 +1017,18 @@ unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &Consta
     let name_len = constant.name.len();
     unsafe {
         match &constant.value {
-            Scalar::Null => zend_declare_class_constant_null(class_ce, name_ptr, name_len),
+            Scalar::Null => {
+                zend_declare_class_constant_null(class_ce, name_ptr, name_len);
+            },
             Scalar::Bool(b) => {
                 zend_declare_class_constant_bool(class_ce, name_ptr, name_len, *b as zend_bool);
             }
             Scalar::I64(i) => {
                 zend_declare_class_constant_long(class_ce, name_ptr, name_len, *i as zend_long);
             }
-            Scalar::F64(f) => zend_declare_class_constant_double(class_ce, name_ptr, name_len, *f),
+            Scalar::F64(f) => {
+                zend_declare_class_constant_double(class_ce, name_ptr, name_len, *f);
+            },
             Scalar::String(s) => {
                 let s_ptr = s.as_ptr() as *mut u8;
                 zend_declare_class_constant_stringl(
