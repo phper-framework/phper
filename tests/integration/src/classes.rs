@@ -40,7 +40,7 @@ fn integrate_a(module: &mut Module) {
     class.add_constant("CST_TRUE", true);
     class.add_constant("CST_FALSE", false);
     class.add_constant("CST_INT", 100);
-    class.add_constant("CST_FLOAT", 3.14159);
+    class.add_constant("CST_FLOAT", 10.0);
 
     class
         .add_method("__construct", Visibility::Public, |this, arguments| {
@@ -173,7 +173,7 @@ fn integrate_i_constants(module: &mut Module) {
     interface.add_constant("CST_TRUE", true);
     interface.add_constant("CST_FALSE", false);
     interface.add_constant("CST_INT", 100);
-    interface.add_constant("CST_FLOAT", 3.14159);
+    interface.add_constant("CST_FLOAT", 10.0);
 
     module.add_interface(interface);
 }

@@ -1019,10 +1019,10 @@ unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &Consta
         match &constant.value {
             Scalar::Null => zend_declare_class_constant_null(class_ce, name_ptr, name_len),
             Scalar::Bool(b) => {
-                zend_declare_class_constant_bool(class_ce, name_ptr, name_len, *b as zend_bool)
+                zend_declare_class_constant_bool(class_ce, name_ptr, name_len, *b as zend_bool);
             }
             Scalar::I64(i) => {
-                zend_declare_class_constant_long(class_ce, name_ptr, name_len, *i as zend_long)
+                zend_declare_class_constant_long(class_ce, name_ptr, name_len, *i as zend_long);
             }
             Scalar::F64(f) => zend_declare_class_constant_double(class_ce, name_ptr, name_len, *f),
             Scalar::String(s) => {
@@ -1033,7 +1033,7 @@ unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &Consta
                     name_len,
                     s_ptr.cast(),
                     s.len(),
-                )
+                );
             }
             Scalar::Bytes(s) => {
                 let s_ptr = s.as_ptr() as *mut u8;
@@ -1043,7 +1043,7 @@ unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &Consta
                     name_len,
                     s_ptr.cast(),
                     s.len(),
-                )
+                );
             }
         }
     }
