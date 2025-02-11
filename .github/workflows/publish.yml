@@ -19,20 +19,20 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
   RUSTFLAGS: "-D warnings"
-  LLVM_CONFIG_PATH: llvm-config-14
+  LLVM_CONFIG_PATH: llvm-config-18
   CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
 jobs:
   publish:
     name: Publish
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Install libclang
-        run: sudo apt-get install -y llvm-14-dev libclang-14-dev
+        run: sudo apt-get install -y llvm-18-dev libclang-18-dev
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
