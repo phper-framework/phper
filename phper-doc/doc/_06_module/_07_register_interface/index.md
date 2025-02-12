@@ -72,3 +72,15 @@ foo.add_method("doSomethings").argument(Argument::by_val("name"));
 ```
 
 Note that abstract has no method body, so you don't need to add the handler to the method.
+
+## Add constants
+Interfaces can have public constants. Value can be string|int|bool|float|null.
+
+```rust,no_run
+use phper::classes::InterfaceEntity;
+
+let mut foo = InterfaceEntity::new("Foo");
+foo.add_constant("ONE", "one");
+foo.add_constant("TWO", 2);
+foo.add_constant("THREE", 3.0);
+```

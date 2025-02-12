@@ -78,3 +78,20 @@ assert_eq($foo2->current(), 'Current: 0');
 if (PHP_VERSION_ID >= 80000) {
     assert_eq(((string) (new IntegrationTest\FooString())), 'string');
 }
+
+// Test class constants
+assert_eq('foo', IntegrationTest\A::CST_STRING);
+assert_eq(null, IntegrationTest\A::CST_NULL);
+assert_true(true, IntegrationTest\A::CST_TRUE);
+assert_false(false, IntegrationTest\A::CST_FALSE);
+assert_eq(100, IntegrationTest\A::CST_INT);
+assert_eq(10.0, IntegrationTest\A::CST_FLOAT);
+
+// Test interface constants
+assert_true(interface_exists(IntegrationTest\IConstants::class));
+assert_eq('foo', IntegrationTest\IConstants::CST_STRING);
+assert_eq(null, IntegrationTest\IConstants::CST_NULL);
+assert_true(IntegrationTest\IConstants::CST_TRUE);
+assert_false(IntegrationTest\IConstants::CST_FALSE);
+assert_eq(100, IntegrationTest\IConstants::CST_INT);
+assert_eq(10.0, IntegrationTest\IConstants::CST_FLOAT);
