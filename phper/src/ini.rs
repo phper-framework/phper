@@ -10,7 +10,7 @@
 
 //! Apis relate to [zend_ini_entry_def].
 
-use crate::{c_str, sys::*};
+use crate::sys::*;
 use std::{
     ffi::{c_int, CStr},
     mem::zeroed,
@@ -100,13 +100,7 @@ impl FromIniValue for bool {
     #[allow(clippy::useless_conversion)]
     fn from_ini_value(name: &str) -> Self {
         let s = <Option<&CStr>>::from_ini_value(name);
-        [
-            Some(c_str!("1")),
-            Some(c_str!("true")),
-            Some(c_str!("on")),
-            Some(c_str!("On")),
-        ]
-        .contains(&s)
+        [Some(c"1"), Some(c"true"), Some(c"on"), Some(c"On")].contains(&s)
     }
 }
 

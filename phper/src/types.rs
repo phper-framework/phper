@@ -10,7 +10,7 @@
 
 //! Apis relate to PHP types.
 
-use crate::{c_str, sys::*};
+use crate::sys::*;
 use derive_more::From;
 use std::{
     ffi::CStr,
@@ -133,10 +133,10 @@ impl TypeInfo {
             let t = get_base_type_by_raw(self.t);
 
             if t == IS_UNDEF {
-                return c_str!("undef");
+                return c"undef";
             }
             if t == IS_REFERENCE {
-                return c_str!("reference");
+                return c"reference";
             }
 
             let s = zend_get_type_by_const(t as c_int);
@@ -145,10 +145,10 @@ impl TypeInfo {
             // Compact with PHP7.
             let bs = s.to_bytes();
             if bs == b"boolean" {
-                return c_str!("bool");
+                return c"bool";
             }
             if bs == b"integer" {
-                return c_str!("int");
+                return c"int";
             }
 
             s
