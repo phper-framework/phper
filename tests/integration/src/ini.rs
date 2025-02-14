@@ -9,7 +9,6 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    c_str,
     ini::{ini_get, Policy},
     modules::Module,
 };
@@ -33,7 +32,7 @@ pub fn integrate(module: &mut Module) {
         assert_eq!(ini_get::<f64>("INTEGRATE_INI_DOUBLE"), 200.);
         assert_eq!(
             ini_get::<Option<&CStr>>("INTEGRATE_INI_STRING"),
-            Some(c_str!("something"))
+            Some(c"something")
         );
         Ok::<_, Infallible>(())
     });
