@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::{errors::HttpServerError, request::new_request_object, response::new_response_object};
+use crate::{errors::HttpServerError, request::RequestClass, response::ResponseClass};
 use axum::{
     body::{self, Body},
     http::{Request, Response, StatusCode},
@@ -31,10 +31,14 @@ const HTTP_SERVER_CLASS_NAME: &str = "HttpServer\\HttpServer";
 thread_local! {
     // The map store the on request handlers, indexed by `HttpServer\HttpServer` object id.
     static ON_REQUEST_HANDLERS: RefCell<HashMap<u32, ZVal>> = Default::default();
+
+    static CLASSES_MAP: RefCell<HashMap<u32, (RequestClass, ResponseClass)>> = Default::default();
 }
 
 /// Register the class `HttpServer\HttpServer` by `ClassEntity`.
-pub fn make_server_class() -> ClassEntity<()> {
+pub fn make_server_class(
+    request_class: RequestClass, response_class: ResponseClass,
+) -> ClassEntity<()> {
     let mut class = ClassEntity::new(HTTP_SERVER_CLASS_NAME);
 
     // Register the server host field with public visibility.
@@ -46,12 +50,20 @@ pub fn make_server_class() -> ClassEntity<()> {
     // Register the constructor method with public visibility, accept host and port
     // arguments, initialize the host and port member properties.
     class
-        .add_method("__construct", Visibility::Public, |this, arguments| {
+        .add_method("__construct", Visibility::Public, move |this, arguments| {
             let host = arguments[0].expect_z_str()?;
             let port = arguments[1].expect_long()?;
 
             this.set_property("host", host.to_owned());
             this.set_property("port", port);
+
+            let (request_class, response_class) = (request_class.clone(), response_class.clone());
+
+            CLASSES_MAP.with(move |classes_map| {
+                classes_map
+                    .borrow_mut()
+                    .insert(this.handle(), (request_class, response_class));
+            });
 
             Ok::<_, phper::Error>(())
         })
@@ -98,40 +110,44 @@ pub fn make_server_class() -> ClassEntity<()> {
                             .await
                             .map_err(HttpServerError::new)?;
 
-                        // Create PHP `HttpServer\HttpRequest` object.
-                        let mut request = new_request_object()?;
+                        CLASSES_MAP.with(|classes_map| {
+                            let (request_class, response_class) = &classes_map.borrow()[&handle];
 
-                        // Inject headers from Rust request object to PHP request object.
-                        let request_headers =
-                            request.get_mut_property("headers").expect_mut_z_arr()?;
-                        for (key, value) in parts.headers {
-                            if let Some(key) = key {
-                                request_headers.insert(key.as_str(), value.as_bytes());
+                            // Create PHP `HttpServer\HttpRequest` object.
+                            let mut request = request_class.new_object([])?;
+
+                            // Inject headers from Rust request object to PHP request object.
+                            let request_headers =
+                                request.get_mut_property("headers").expect_mut_z_arr()?;
+                            for (key, value) in parts.headers {
+                                if let Some(key) = key {
+                                    request_headers.insert(key.as_str(), value.as_bytes());
+                                }
                             }
-                        }
 
-                        // Inject body content from Rust request object to PHP request object.
-                        request.set_property("data", &*body);
+                            // Inject body content from Rust request object to PHP request object.
+                            request.set_property("data", &*body);
 
-                        let request_val = ZVal::from(request);
+                            let request_val = ZVal::from(request);
 
-                        // Create PHP `HttpServer\HttpResponse` object.
-                        let mut response = new_response_object()?;
+                            // Create PHP `HttpServer\HttpResponse` object.
+                            let mut response = response_class.new_object([])?;
 
-                        let response_val = ZVal::from(response.to_ref_owned());
+                            let response_val = ZVal::from(response.to_ref_owned());
 
-                        ON_REQUEST_HANDLERS.with(|handlers| {
-                            // Get the on request handlers by object id.
-                            let mut handlers = handlers.borrow_mut();
-                            let handler = handlers.get_mut(&handle).unwrap();
+                            ON_REQUEST_HANDLERS.with(|handlers| {
+                                // Get the on request handlers by object id.
+                                let mut handlers = handlers.borrow_mut();
+                                let handler = handlers.get_mut(&handle).unwrap();
 
-                            // Call the PHP on request handler.
-                            handler.call([request_val, response_val])?;
+                                // Call the PHP on request handler.
+                                handler.call([request_val, response_val])?;
 
-                            // Get the inner state.
-                            let response = response.into_state().unwrap();
+                                // Get the inner state.
+                                let response = response.into_state().unwrap();
 
-                            Ok::<Response<Body>, phper::Error>(response)
+                                Ok::<Response<Body>, phper::Error>(response)
+                            })
                         })
                     };
                     match fut.await {

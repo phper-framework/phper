@@ -467,7 +467,7 @@ impl<T> Debug for StateObj<T> {
 }
 
 /// The object owned state, usually crated by
-/// [StaticStateClass](crate::classes::StaticStateClass).
+/// [StateClass](crate::classes::StateClass).
 pub struct StateObject<T> {
     inner: *mut StateObj<T>,
 }

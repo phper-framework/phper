@@ -11,8 +11,7 @@
 use phper::{
     alloc::RefClone,
     classes::{
-        array_access_class, iterator_class, ClassEntity, ClassEntry, InterfaceEntity,
-        StaticInterface, StaticStateClass, Visibility,
+        array_access_class, iterator_class, ClassEntity, ClassEntry, InterfaceEntity, Visibility,
     },
     functions::Argument,
     modules::Module,
@@ -66,8 +65,6 @@ fn integrate_a(module: &mut Module) {
     module.add_class(class);
 }
 
-static FOO_CLASS: StaticStateClass<Foo> = StaticStateClass::null();
-
 struct Foo {
     position: usize,
     array: HashMap<i64, ZVal>,
@@ -78,8 +75,6 @@ fn integrate_foo(module: &mut Module) {
         position: 0,
         array: Default::default(),
     });
-
-    class.bind(&FOO_CLASS);
 
     class.implements(iterator_class);
     class.implements(array_access_class);
@@ -148,12 +143,8 @@ fn integrate_foo(module: &mut Module) {
     module.add_class(class);
 }
 
-static I_BAR_INTERFACE: StaticInterface = StaticInterface::null();
-
 fn integrate_i_bar(module: &mut Module) {
     let mut interface = InterfaceEntity::new(r"IntegrationTest\IBar");
-
-    interface.bind(&I_BAR_INTERFACE);
 
     interface.extends(|| array_access_class());
     interface.extends(|| iterator_class());

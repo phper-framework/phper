@@ -11,7 +11,7 @@
 //! Apis relate to [zend_module_entry].
 
 use crate::{
-    classes::{ClassEntity, InterfaceEntity},
+    classes::{ClassEntity, Interface, InterfaceEntity, StateClass},
     constants::Constant,
     errors::Throwable,
     functions::{Function, FunctionEntity, FunctionEntry, HandlerMap},
@@ -195,14 +195,18 @@ impl Module {
     }
 
     /// Register class to module.
-    pub fn add_class<T>(&mut self, class: ClassEntity<T>) {
+    pub fn add_class<T>(&mut self, class: ClassEntity<T>) -> StateClass<T> {
+        let bind_class = class.bind_class();
         self.class_entities
             .push(unsafe { transmute::<ClassEntity<T>, ClassEntity<()>>(class) });
+        bind_class
     }
 
     /// Register interface to module.
-    pub fn add_interface(&mut self, interface: InterfaceEntity) {
+    pub fn add_interface(&mut self, interface: InterfaceEntity) -> Interface {
+        let bind_interface = interface.bind_interface();
         self.interface_entities.push(interface);
+        bind_interface
     }
 
     /// Register constant to module.

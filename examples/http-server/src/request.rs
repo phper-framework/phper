@@ -10,21 +10,17 @@
 
 use phper::{
     arrays::ZArray,
-    classes::{ClassEntity, StaticStateClass, Visibility},
-    objects::StateObject,
+    classes::{ClassEntity, StateClass, Visibility},
 };
 use std::convert::Infallible;
 
-pub const HTTP_REQUEST_CLASS_NAME: &str = "HttpServer\\HttpRequest";
+pub type RequestClass = StateClass<()>;
 
-pub static HTTP_REQUEST_CLASS: StaticStateClass<()> = StaticStateClass::null();
+pub const HTTP_REQUEST_CLASS_NAME: &str = "HttpServer\\HttpRequest";
 
 /// Register the class `HttpServer\HttpRequest` by `ClassEntity`.
 pub fn make_request_class() -> ClassEntity<()> {
     let mut class = ClassEntity::new(HTTP_REQUEST_CLASS_NAME);
-
-    // The state class will be initialized after class registered.
-    class.bind(&HTTP_REQUEST_CLASS);
 
     // Register the http headers field with public visibility.
     class.add_property("headers", Visibility::Public, ());
@@ -40,9 +36,4 @@ pub fn make_request_class() -> ClassEntity<()> {
     });
 
     class
-}
-
-/// Instantiate the object with class `HttpServer\HttpRequest`.
-pub fn new_request_object() -> phper::Result<StateObject<()>> {
-    HTTP_REQUEST_CLASS.new_object([])
 }

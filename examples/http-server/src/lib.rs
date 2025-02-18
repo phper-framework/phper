@@ -30,9 +30,9 @@ pub fn get_module() -> Module {
 
     // Register classes.
     module.add_class(make_exception_class());
-    module.add_class(make_server_class());
-    module.add_class(make_request_class());
-    module.add_class(make_response_class());
+    let request_class = module.add_class(make_request_class());
+    let response_class = module.add_class(make_response_class());
+    module.add_class(make_server_class(request_class, response_class));
 
     module
 }
