@@ -30,10 +30,10 @@ pub fn get_module() -> Module {
     );
 
     module.add_class(make_exception_class());
-    module.add_class(make_client_class());
-    module.add_class(make_client_builder_class());
-    module.add_class(make_request_builder_class());
-    module.add_class(make_response_class());
+    let response_class = module.add_class(make_response_class());
+    let request_builder_class = module.add_class(make_request_builder_class(response_class));
+    let client_class = module.add_class(make_client_class(request_builder_class));
+    module.add_class(make_client_builder_class(client_class));
 
     module
 }
