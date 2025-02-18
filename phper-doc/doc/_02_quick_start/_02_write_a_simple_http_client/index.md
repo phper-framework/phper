@@ -185,7 +185,7 @@ Now let's begin to finish the logic.
    #
    use phper::{
        alloc::ToRefOwned,
-       classes::{StaticStateClass, Visibility},
+       classes::{StateClass, Visibility},
        functions::Argument,
    };
    use reqwest::blocking::{Client, ClientBuilder};
@@ -195,11 +195,9 @@ Now let's begin to finish the logic.
 
    const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
 
-   // The static StaticStateClass is bind to ClassEntity of HttpClient, When the class registered,
-   // the StaticStateClass will be initialized, so you can use it to new stateful object, etc.
-   static HTTP_CLIENT_CLASS:StaticStateClass<Option<Client>> =StaticStateClass::null();
+   pub type ClientClass = StateClass<Option<Client>>;
    
-   pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
+   pub fn make_client_builder_class(client_class: ClientClass) -> ClassEntity<ClientBuilder> {
        // `new_with_default_state_constructor` means initialize the state of `ClientBuilder` as
        // `Default::default`.
        let mut class = ClassEntity::new_with_default_state_constructor(HTTP_CLIENT_BUILDER_CLASS_NAME);
@@ -228,10 +226,10 @@ Now let's begin to finish the logic.
    
        // Inner call the `ClientBuilder::build`, and wrap the result `Client` in
        // Object.
-       class.add_method("build", Visibility::Public, |this, _arguments| {
+       class.add_method("build", Visibility::Public, move |this, _arguments| {
            let state = take(this.as_mut_state());
            let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
-           let mut object = HTTP_CLIENT_CLASS.init_object()?;
+           let mut object = client_class.init_object()?;
            *object.as_mut_state() = Some(client);
            Ok::<_, phper::Error>(object)
        });

@@ -24,6 +24,7 @@ use crate::{
 };
 use std::{
     any::Any,
+    cell::RefCell,
     ffi::{c_char, c_void, CString},
     fmt::Debug,
     marker::PhantomData,
@@ -32,7 +33,6 @@ use std::{
     ptr::null_mut,
     rc::Rc,
     slice,
-    sync::atomic::{AtomicPtr, Ordering},
 };
 
 /// Predefined interface `Iterator`.
@@ -235,65 +235,72 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
-/// The [StaticStateClass] holds
-/// [zend_class_entry] and inner state, always as
-/// the static variable, and then be bind to [ClassEntity].
+/// The [StateClass] holds [zend_class_entry] and inner state, created by
+/// [Module::add_class](crate::modules::Module::add_class).
 ///
-/// When the class registered (module initialized), the [StaticStateClass] will
-/// be initialized, so you can use the [StaticStateClass] to new stateful
+/// When the class registered (module initialized), the [StateClass] will
+/// be initialized, so you can use the [StateClass] to new stateful
 /// object, etc.
 ///
-/// So, You shouldn't use [StaticStateClass] in `module_init` stage, because it
+/// So, You shouldn't use [StateClass] in `module_init` stage, because it
 /// hasn't initialized.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use phper::classes::{ClassEntity, StaticStateClass};
-///
-/// pub static FOO_CLASS: StaticStateClass<FooState> = StaticStateClass::null();
+/// use phper::{
+///     classes::{ClassEntity, StateClass},
+///     modules::Module,
+///     php_get_module,
+/// };
 ///
 /// #[derive(Default)]
 /// pub struct FooState;
 ///
 /// fn make_foo_class() -> ClassEntity<FooState> {
-///     let mut class = ClassEntity::new_with_default_state_constructor("Foo");
-///     class.bind(&FOO_CLASS);
-///     class
+///     ClassEntity::new_with_default_state_constructor("Foo")
+/// }
+///
+/// #[php_get_module]
+/// pub fn get_module() -> Module {
+///     let mut module = Module::new(
+///         env!("CARGO_CRATE_NAME"),
+///         env!("CARGO_PKG_VERSION"),
+///         env!("CARGO_PKG_AUTHORS"),
+///     );
+///
+///     let _foo_class: StateClass<FooState> = module.add_class(make_foo_class());
+///
+///     module
 /// }
 /// ```
-#[repr(transparent)]
-pub struct StaticStateClass<T> {
-    inner: AtomicPtr<zend_class_entry>,
+pub struct StateClass<T> {
+    inner: Rc<RefCell<*mut zend_class_entry>>,
     _p: PhantomData<T>,
 }
 
-impl<T> StaticStateClass<T> {
-    /// Create empty [StaticStateClass], with null
-    /// [zend_class_entry].
-    pub const fn null() -> Self {
+impl<T> StateClass<T> {
+    fn null() -> Self {
         Self {
-            inner: AtomicPtr::new(null_mut()),
+            inner: Rc::new(RefCell::new(null_mut())),
             _p: PhantomData,
         }
     }
 
-    fn bind(&'static self, ptr: *mut zend_class_entry) {
-        self.inner.store(ptr, Ordering::Relaxed);
+    fn bind(&self, ptr: *mut zend_class_entry) {
+        *self.inner.borrow_mut() = ptr;
     }
 
     /// Converts to class entry.
-    pub fn as_class_entry(&'static self) -> &'static ClassEntry {
-        unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
+    pub fn as_class_entry(&self) -> &ClassEntry {
+        unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
     }
 
     /// Create the object from class and call `__construct` with arguments.
     ///
     /// If the `__construct` is private, or protected and the called scope isn't
     /// parent class, it will throw PHP Error.
-    pub fn new_object(
-        &'static self, arguments: impl AsMut<[ZVal]>,
-    ) -> crate::Result<StateObject<T>> {
+    pub fn new_object(&self, arguments: impl AsMut<[ZVal]>) -> crate::Result<StateObject<T>> {
         self.as_class_entry()
             .new_object(arguments)
             .map(ZObject::into_raw)
@@ -303,7 +310,7 @@ impl<T> StaticStateClass<T> {
     /// Create the object from class, without calling `__construct`.
     ///
     /// **Be careful when `__construct` is necessary.**
-    pub fn init_object(&'static self) -> crate::Result<StateObject<T>> {
+    pub fn init_object(&self) -> crate::Result<StateObject<T>> {
         self.as_class_entry()
             .init_object()
             .map(ZObject::into_raw)
@@ -311,52 +318,69 @@ impl<T> StaticStateClass<T> {
     }
 }
 
-unsafe impl<T> Sync for StaticStateClass<T> {}
+impl<T> Clone for StateClass<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            _p: self._p,
+        }
+    }
+}
 
-/// The [StaticInterface]  holds
-/// [zend_class_entry], always as the static
-/// variable, and then be bind to [InterfaceEntity].
+/// The [Interface]  holds [zend_class_entry], created by
+/// [Module::add_interface](crate::modules::Module::add_interface).
 ///
-/// When the interface registered (module initialized), the [StaticInterface]
+/// When the interface registered (module initialized), the [Interface]
 /// will be initialized.
 ///
-/// So, You shouldn't use [StaticInterface] in `module_init` stage, because it
+/// So, You shouldn't use [Interface] in `module_init` stage, because it
 /// hasn't initialized.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use phper::classes::{InterfaceEntity, StaticInterface};
-///
-/// pub static FOO_INTERFACE: StaticInterface = StaticInterface::null();
+/// use phper::{
+///     classes::{Interface, InterfaceEntity},
+///     modules::Module,
+///     php_get_module,
+/// };
 ///
 /// fn make_foo_interface() -> InterfaceEntity {
-///     let mut interface = InterfaceEntity::new("Foo");
-///     interface.bind(&FOO_INTERFACE);
-///     interface
+///     InterfaceEntity::new("Foo")
+/// }
+///
+/// #[php_get_module]
+/// pub fn get_module() -> Module {
+///     let mut module = Module::new(
+///         env!("CARGO_CRATE_NAME"),
+///         env!("CARGO_PKG_VERSION"),
+///         env!("CARGO_PKG_AUTHORS"),
+///     );
+///
+///     let _foo_interface: Interface = module.add_interface(make_foo_interface());
+///
+///     module
 /// }
 /// ```
-#[repr(transparent)]
-pub struct StaticInterface {
-    inner: AtomicPtr<zend_class_entry>,
+#[derive(Clone)]
+pub struct Interface {
+    inner: Rc<RefCell<*mut zend_class_entry>>,
 }
 
-impl StaticInterface {
-    /// Create empty [StaticInterface], with null
-    /// [zend_class_entry].
-    pub const fn null() -> Self {
+impl Interface {
+    fn null() -> Self {
         Self {
-            inner: AtomicPtr::new(null_mut()),
+            inner: Rc::new(RefCell::new(null_mut())),
         }
     }
 
-    fn bind(&'static self, ptr: *mut zend_class_entry) {
-        self.inner.store(ptr, Ordering::Relaxed);
+    fn bind(&self, ptr: *mut zend_class_entry) {
+        *self.inner.borrow_mut() = ptr;
     }
 
     /// Converts to class entry.
-    pub fn as_class_entry(&'static self) -> &'static ClassEntry {
-        unsafe { ClassEntry::from_mut_ptr(self.inner.load(Ordering::Relaxed)) }
+    pub fn as_class_entry(&self) -> &ClassEntry {
+        unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
     }
 }
 
@@ -378,7 +402,7 @@ pub struct ClassEntity<T: 'static> {
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
     interfaces: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
     constants: Vec<ConstantEntity>,
-    bind_class: Option<&'static StaticStateClass<T>>,
+    bind_class: StateClass<T>,
     state_cloner: Option<Rc<StateCloner>>,
     _p: PhantomData<(*mut (), T)>,
 }
@@ -416,7 +440,7 @@ impl<T: 'static> ClassEntity<T> {
             parent: None,
             interfaces: Vec::new(),
             constants: Vec::new(),
-            bind_class: None,
+            bind_class: StateClass::null(),
             state_cloner: None,
             _p: PhantomData,
         }
@@ -536,14 +560,6 @@ impl<T: 'static> ClassEntity<T> {
         self.interfaces.push(Box::new(interface));
     }
 
-    /// Bind to static [StaticStateClass].
-    ///
-    /// When the class registered, the [StaticStateClass] will be initialized,
-    /// so you can use the [StaticStateClass] to new stateful object, etc.
-    pub fn bind(&mut self, cls: &'static StaticStateClass<T>) {
-        self.bind_class = Some(cls);
-    }
-
     /// Add the state clone function, called when cloning PHP object.
     ///
     /// By default, the object registered by `phper` is uncloneable, if you
@@ -602,9 +618,7 @@ impl<T: 'static> ClassEntity<T> {
             parent.cast(),
         );
 
-        if let Some(bind_class) = self.bind_class {
-            bind_class.bind(class_ce);
-        }
+        self.bind_class.bind(class_ce);
 
         for interface in &self.interfaces {
             let interface_ce = interface().as_ptr();
@@ -675,6 +689,11 @@ impl<T: 'static> ClassEntity<T> {
             })
             .collect()
     }
+
+    #[inline]
+    pub(crate) fn bind_class(&self) -> StateClass<T> {
+        self.bind_class.clone()
+    }
 }
 
 unsafe extern "C" fn class_init_handler(
@@ -694,7 +713,7 @@ pub struct InterfaceEntity {
     method_entities: Vec<MethodEntity>,
     constants: Vec<ConstantEntity>,
     extends: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
-    bind_interface: Option<&'static StaticInterface>,
+    bind_interface: Interface,
 }
 
 impl InterfaceEntity {
@@ -705,7 +724,7 @@ impl InterfaceEntity {
             method_entities: Vec::new(),
             constants: Vec::new(),
             extends: Vec::new(),
-            bind_interface: None,
+            bind_interface: Interface::null(),
         }
     }
 
@@ -743,15 +762,6 @@ impl InterfaceEntity {
         self.extends.push(Box::new(interface));
     }
 
-    /// Bind to static [StaticInterface].
-    ///
-    /// When the interface registered, the [StaticInterface] will be
-    /// initialized, so you can use the [StaticInterface] to be implemented
-    /// by other class.
-    pub fn bind(&mut self, i: &'static StaticInterface) {
-        self.bind_interface = Some(i);
-    }
-
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
         let class_ce = phper_init_class_entry_ex(
@@ -762,9 +772,7 @@ impl InterfaceEntity {
             null_mut(),
         );
 
-        if let Some(bind_interface) = self.bind_interface {
-            bind_interface.bind(class_ce);
-        }
+        self.bind_interface.bind(class_ce);
 
         for interface in &self.extends {
             let interface_ce = interface().as_ptr();
@@ -788,6 +796,11 @@ impl InterfaceEntity {
         methods.push(zeroed::<zend_function_entry>());
 
         Box::into_raw(methods.into_boxed_slice()).cast()
+    }
+
+    #[inline]
+    pub(crate) fn bind_interface(&self) -> Interface {
+        self.bind_interface.clone()
     }
 }
 

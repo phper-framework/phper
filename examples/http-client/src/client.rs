@@ -8,22 +8,24 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use crate::{errors::HttpClientError, request::REQUEST_BUILDER_CLASS};
+use crate::{errors::HttpClientError, request::RequestBuilderClass};
 use phper::{
     alloc::ToRefOwned,
-    classes::{ClassEntity, StaticStateClass, Visibility},
+    classes::{ClassEntity, StateClass, Visibility},
     functions::Argument,
 };
 use reqwest::blocking::{Client, ClientBuilder};
 use std::{convert::Infallible, mem::take, time::Duration};
 
+pub type ClientBuilderClass = StateClass<ClientBuilder>;
+
+pub type ClientClass = StateClass<Option<Client>>;
+
 const HTTP_CLIENT_BUILDER_CLASS_NAME: &str = "HttpClient\\HttpClientBuilder";
 
 const HTTP_CLIENT_CLASS_NAME: &str = "HttpClient\\HttpClient";
 
-static HTTP_CLIENT_CLASS: StaticStateClass<Option<Client>> = StaticStateClass::null();
-
-pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
+pub fn make_client_builder_class(client_class: ClientClass) -> ClassEntity<ClientBuilder> {
     // `new_with_default_state_constructor` means initialize the state of
     // `ClientBuilder` as `Default::default`.
     let mut class = ClassEntity::new_with_default_state_constructor(HTTP_CLIENT_BUILDER_CLASS_NAME);
@@ -52,10 +54,10 @@ pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
 
     // Inner call the `ClientBuilder::build`, and wrap the result `Client` in
     // Object.
-    class.add_method("build", Visibility::Public, |this, _arguments| {
+    class.add_method("build", Visibility::Public, move |this, _arguments| {
         let state = take(this.as_mut_state());
         let client = ClientBuilder::build(state).map_err(HttpClientError::Reqwest)?;
-        let mut object = HTTP_CLIENT_CLASS.init_object()?;
+        let mut object = client_class.init_object()?;
         *object.as_mut_state() = Some(client);
         Ok::<_, phper::Error>(object)
     });
@@ -63,33 +65,34 @@ pub fn make_client_builder_class() -> ClassEntity<ClientBuilder> {
     class
 }
 
-pub fn make_client_class() -> ClassEntity<Option<Client>> {
+pub fn make_client_class(
+    request_builder_class: RequestBuilderClass,
+) -> ClassEntity<Option<Client>> {
     let mut class =
         ClassEntity::<Option<Client>>::new_with_default_state_constructor(HTTP_CLIENT_CLASS_NAME);
-
-    class.bind(&HTTP_CLIENT_CLASS);
 
     class.add_method("__construct", Visibility::Private, |_, _| {
         Ok::<_, Infallible>(())
     });
 
+    let request_build_class_ = request_builder_class.clone();
     class
-        .add_method("get", Visibility::Public, |this, arguments| {
+        .add_method("get", Visibility::Public, move |this, arguments| {
             let url = arguments[0].expect_z_str()?.to_str().unwrap();
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.get(url);
-            let mut object = REQUEST_BUILDER_CLASS.init_object()?;
+            let mut object = request_build_class_.init_object()?;
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, phper::Error>(object)
         })
         .argument(Argument::by_val("url"));
 
     class
-        .add_method("post", Visibility::Public, |this, arguments| {
+        .add_method("post", Visibility::Public, move |this, arguments| {
             let url = arguments[0].expect_z_str()?.to_str().unwrap();
             let client = this.as_state().as_ref().unwrap();
             let request_builder = client.post(url);
-            let mut object = REQUEST_BUILDER_CLASS.init_object()?;
+            let mut object = request_builder_class.init_object()?;
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, phper::Error>(object)
         })

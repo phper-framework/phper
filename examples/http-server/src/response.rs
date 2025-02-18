@@ -14,22 +14,18 @@ use axum::{
     http::{HeaderName, HeaderValue, Response},
 };
 use phper::{
-    classes::{ClassEntity, StaticStateClass, Visibility},
+    classes::{ClassEntity, StateClass, Visibility},
     functions::Argument,
-    objects::StateObject,
 };
 
-pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
+pub type ResponseClass = StateClass<Response<Body>>;
 
-pub static HTTP_RESPONSE_CLASS: StaticStateClass<Response<Body>> = StaticStateClass::null();
+pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 
 /// Register the class `HttpServer\HttpResponse` by `ClassEntity`, with the
 /// inner state `Response<Body>`.
 pub fn make_response_class() -> ClassEntity<Response<Body>> {
     let mut class = ClassEntity::new_with_default_state_constructor(HTTP_RESPONSE_CLASS_NAME);
-
-    // The state class will be initialized after class registered.
-    class.bind(&HTTP_RESPONSE_CLASS);
 
     // Register the header method with public visibility, accept `name` and `value`
     // parameters.
@@ -61,9 +57,4 @@ pub fn make_response_class() -> ClassEntity<Response<Body>> {
         .argument(Argument::by_val("data"));
 
     class
-}
-
-/// Instantiate the object with class `HttpServer\HttpResponse`.
-pub fn new_response_object() -> phper::Result<StateObject<Response<Body>>> {
-    HTTP_RESPONSE_CLASS.new_object([])
 }
