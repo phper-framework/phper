@@ -42,7 +42,6 @@ fn main() {
     let mut builder = Builder::default()
         .header("php_wrapper.c")
         .allowlist_file("php_wrapper\\.c")
-        .blocklist_file(r"^.*arm_neon\.h$")
         // Block the `zend_ini_parse_quantity` because it's document causes the doc test to fail.
         .blocklist_function("zend_ini_parse_quantity")
         // Block the `zend_startup` because it fails checks.
