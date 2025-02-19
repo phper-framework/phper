@@ -236,7 +236,8 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 }
 
 /// The [StateClass] holds [zend_class_entry] and inner state, created by
-/// [Module::add_class](crate::modules::Module::add_class).
+/// [Module::add_class](crate::modules::Module::add_class) or
+/// [ClassEntity::bind_class].
 ///
 /// When the class registered (module initialized), the [StateClass] will
 /// be initialized, so you can use the [StateClass] to new stateful
@@ -690,8 +691,25 @@ impl<T: 'static> ClassEntity<T> {
             .collect()
     }
 
+    /// Get the bound class.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phper::classes::{ClassEntity, Visibility};
+    ///
+    /// pub fn make_foo_class() -> ClassEntity<()> {
+    ///     let mut class = ClassEntity::<()>::new_with_default_state_constructor("Foo");
+    ///     let foo_class = class.bind_class();
+    ///     class.add_static_method("newInstance", Visibility::Public, move |_| {
+    ///         let mut object = foo_class.init_object()?;
+    ///         Ok::<_, phper::Error>(object)
+    ///     });
+    ///     class
+    /// }
+    /// ```
     #[inline]
-    pub(crate) fn bind_class(&self) -> StateClass<T> {
+    pub fn bind_class(&self) -> StateClass<T> {
         self.bind_class.clone()
     }
 }
@@ -798,8 +816,9 @@ impl InterfaceEntity {
         Box::into_raw(methods.into_boxed_slice()).cast()
     }
 
+    /// Get the bound interface.
     #[inline]
-    pub(crate) fn bind_interface(&self) -> Interface {
+    pub fn bind_interface(&self) -> Interface {
         self.bind_interface.clone()
     }
 }
