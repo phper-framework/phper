@@ -29,6 +29,11 @@ $reflection_class = new ReflectionClass(\IntegrationTest\A::class);
 $property_name = $reflection_class->getProperty("name");
 assert_true($property_name->isPrivate());
 
+// Test bind_class
+$a_instance = IntegrationTest\A::newInstance();
+assert_true($a_instance instanceof IntegrationTest\A);
+assert_eq($a_instance->speak(), "name: default, number: 100");
+
 // Test registering class;
 $foo = new \IntegrationTest\Foo();
 
