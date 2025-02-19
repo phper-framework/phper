@@ -31,6 +31,7 @@ pub fn integrate(module: &mut Module) {
 
 fn integrate_a(module: &mut Module) {
     let mut class = ClassEntity::new("IntegrationTest\\A");
+    let integrate_a_class = class.bind_class();
 
     class.add_property("name", Visibility::Private, "default");
     class.add_property("number", Visibility::Private, 100);
@@ -50,6 +51,11 @@ fn integrate_a(module: &mut Module) {
             Ok::<_, phper::Error>(())
         })
         .arguments([Argument::by_val("name"), Argument::by_val("number")]);
+
+    class.add_static_method("newInstance", Visibility::Public, move |_| {
+        let object = integrate_a_class.init_object()?;
+        Ok::<_, phper::Error>(object)
+    });
 
     class.add_method("speak", Visibility::Public, |this, _arguments| {
         let name = this
