@@ -20,7 +20,6 @@ repository = { workspace = true }
 license = { workspace = true }
 
 [build-dependencies]
-bindgen = "0.69.4"
-cc = "1.1.7"
-home = "=0.5.9"
-regex = "1.10.6"
+bindgen = "0.71.1"
+cc = "1.2.14"
+regex = "1.11.1"

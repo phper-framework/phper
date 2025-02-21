@@ -150,7 +150,9 @@ fn integration_values_return_ebox_i64(_: &mut [ZVal]) -> Result<EBox<i64>, Infal
     Ok(ebox!(64))
 }
 
-fn integration_values_return_result_string_ok(_: &mut [ZVal]) -> phper::Result<impl Into<ZVal>> {
+fn integration_values_return_result_string_ok(
+    _: &mut [ZVal],
+) -> phper::Result<impl Into<ZVal> + use<>> {
     Ok("foo".to_string())
 }
 

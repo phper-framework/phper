@@ -33,7 +33,7 @@ pub fn log(level: LogLevel, message: impl Into<String>) {
     unsafe {
         php_error_docref1(
             null(),
-            "\0".as_ptr().cast(),
+            c"".as_ptr().cast(),
             level as i32,
             message.as_ptr().cast(),
         );

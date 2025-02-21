@@ -30,9 +30,11 @@ impl ZRes {
     ///
     /// Panics if pointer is null.
     pub unsafe fn from_ptr<'a>(ptr: *const zend_resource) -> &'a Self {
-        (ptr as *const Self)
-            .as_ref()
-            .expect("ptr should not be null")
+        unsafe {
+            (ptr as *const Self)
+                .as_ref()
+                .expect("ptr should not be null")
+        }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -41,7 +43,7 @@ impl ZRes {
     ///
     /// Create from raw pointer.
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_resource) -> Option<&'a Self> {
-        (ptr as *const Self).as_ref()
+        unsafe { (ptr as *const Self).as_ref() }
     }
 
     /// Wraps a raw pointer.
@@ -54,7 +56,7 @@ impl ZRes {
     ///
     /// Panics if pointer is null.
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_resource) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should not be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should not be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -63,7 +65,7 @@ impl ZRes {
     ///
     /// Create from raw pointer.
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_resource) -> Option<&'a mut Self> {
-        (ptr as *mut Self).as_mut()
+        unsafe { (ptr as *mut Self).as_mut() }
     }
 
     /// Returns a raw pointer wrapped.

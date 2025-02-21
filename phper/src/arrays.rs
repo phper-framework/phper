@@ -49,6 +49,12 @@ pub enum InsertKey<'a> {
     ZStr(&'a ZStr),
 }
 
+impl From<()> for InsertKey<'_> {
+    fn from(_: ()) -> Self {
+        Self::NextIndex
+    }
+}
+
 impl<'a> From<Key<'a>> for InsertKey<'a> {
     fn from(k: Key<'a>) -> Self {
         match k {
@@ -79,7 +85,7 @@ impl ZArr {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_array) -> &'a Self {
-        (ptr as *const Self).as_ref().expect("ptr should't be null")
+        unsafe { (ptr as *const Self).as_ref().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -89,7 +95,7 @@ impl ZArr {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_array) -> Option<&'a Self> {
-        (ptr as *const Self).as_ref()
+        unsafe { (ptr as *const Self).as_ref() }
     }
 
     /// Wraps a raw pointer.
@@ -103,7 +109,7 @@ impl ZArr {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_array) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -113,7 +119,7 @@ impl ZArr {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_array) -> Option<&'a mut Self> {
-        (ptr as *mut Self).as_mut()
+        unsafe { (ptr as *mut Self).as_mut() }
     }
 
     /// Returns a raw pointer wrapped.
@@ -392,8 +398,10 @@ impl ZArray {
     /// twice on the same raw pointer.
     #[inline]
     pub unsafe fn from_raw(ptr: *mut zend_array) -> Self {
-        Self {
-            inner: ZArr::from_mut_ptr(ptr),
+        unsafe {
+            Self {
+                inner: ZArr::from_mut_ptr(ptr),
+            }
         }
     }
 
@@ -468,7 +476,7 @@ struct RawIter<'a> {
     _p: PhantomData<&'a ()>,
 }
 
-impl<'a> RawIter<'a> {
+impl RawIter<'_> {
     fn new(arr: *mut zend_array) -> Self {
         let mut pos: HashPosition = 0;
         unsafe {

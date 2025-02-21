@@ -66,7 +66,7 @@ impl ClassEntry {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_class_entry) -> &'a Self {
-        (ptr as *const Self).as_ref().expect("ptr should't be null")
+        unsafe { (ptr as *const Self).as_ref().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -76,7 +76,7 @@ impl ClassEntry {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_class_entry) -> Option<&'a Self> {
-        (ptr as *const Self).as_ref()
+        unsafe { (ptr as *const Self).as_ref() }
     }
 
     /// Wraps a raw pointer.
@@ -90,7 +90,7 @@ impl ClassEntry {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_class_entry) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -100,7 +100,7 @@ impl ClassEntry {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_class_entry) -> Option<&'a mut Self> {
-        (ptr as *mut Self).as_mut()
+        unsafe { (ptr as *mut Self).as_mut() }
     }
 
     /// Returns a raw pointer wrapped.
@@ -604,35 +604,37 @@ impl<T: 'static> ClassEntity<T> {
 
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
-        let parent: *mut zend_class_entry = self
-            .parent
-            .as_ref()
-            .map(|parent| parent())
-            .map(|entry| entry.as_ptr() as *mut _)
-            .unwrap_or(null_mut());
+        unsafe {
+            let parent: *mut zend_class_entry = self
+                .parent
+                .as_ref()
+                .map(|parent| parent())
+                .map(|entry| entry.as_ptr() as *mut _)
+                .unwrap_or(null_mut());
 
-        let class_ce = phper_init_class_entry_ex(
-            self.class_name.as_ptr().cast(),
-            self.class_name.as_bytes().len().try_into().unwrap(),
-            self.function_entries(),
-            Some(class_init_handler),
-            parent.cast(),
-        );
+            let class_ce = phper_init_class_entry_ex(
+                self.class_name.as_ptr().cast(),
+                self.class_name.as_bytes().len().try_into().unwrap(),
+                self.function_entries(),
+                Some(class_init_handler),
+                parent.cast(),
+            );
 
-        self.bind_class.bind(class_ce);
+            self.bind_class.bind(class_ce);
 
-        for interface in &self.interfaces {
-            let interface_ce = interface().as_ptr();
-            zend_class_implements(class_ce, 1, interface_ce);
+            for interface in &self.interfaces {
+                let interface_ce = interface().as_ptr();
+                zend_class_implements(class_ce, 1, interface_ce);
+            }
+
+            for constant in &self.constants {
+                add_class_constant(class_ce, constant);
+            }
+
+            *phper_get_create_object(class_ce) = Some(create_object);
+
+            class_ce
         }
-
-        for constant in &self.constants {
-            add_class_constant(class_ce, constant);
-        }
-
-        *phper_get_create_object(class_ce) = Some(create_object);
-
-        class_ce
     }
 
     pub(crate) unsafe fn declare_properties(&self, ce: *mut zend_class_entry) {
@@ -642,39 +644,45 @@ impl<T: 'static> ClassEntity<T> {
     }
 
     unsafe fn function_entries(&self) -> *const zend_function_entry {
-        let mut methods = self
-            .method_entities
-            .iter()
-            .map(|method| FunctionEntry::from_method_entity(method))
-            .collect::<Vec<_>>();
+        unsafe {
+            let mut methods = self
+                .method_entities
+                .iter()
+                .map(|method| FunctionEntry::from_method_entity(method))
+                .collect::<Vec<_>>();
 
-        methods.push(zeroed::<zend_function_entry>());
+            methods.push(zeroed::<zend_function_entry>());
 
-        // Store the state constructor pointer to zend_class_entry.
-        methods.push(self.take_state_constructor_into_function_entry());
+            // Store the state constructor pointer to zend_class_entry.
+            methods.push(self.take_state_constructor_into_function_entry());
 
-        // Store the state cloner pointer to zend_class_entry.
-        methods.push(self.take_state_cloner_into_function_entry());
+            // Store the state cloner pointer to zend_class_entry.
+            methods.push(self.take_state_cloner_into_function_entry());
 
-        Box::into_raw(methods.into_boxed_slice()).cast()
+            Box::into_raw(methods.into_boxed_slice()).cast()
+        }
     }
 
     unsafe fn take_state_constructor_into_function_entry(&self) -> zend_function_entry {
-        let mut entry = zeroed::<zend_function_entry>();
-        let ptr = &mut entry as *mut _ as *mut *const StateConstructor;
-        let state_constructor = Rc::into_raw(self.state_constructor.clone());
-        ptr.write(state_constructor);
-        entry
+        unsafe {
+            let mut entry = zeroed::<zend_function_entry>();
+            let ptr = &mut entry as *mut _ as *mut *const StateConstructor;
+            let state_constructor = Rc::into_raw(self.state_constructor.clone());
+            ptr.write(state_constructor);
+            entry
+        }
     }
 
     unsafe fn take_state_cloner_into_function_entry(&self) -> zend_function_entry {
-        let mut entry = zeroed::<zend_function_entry>();
-        let ptr = &mut entry as *mut _ as *mut *const StateCloner;
-        if let Some(state_cloner) = &self.state_cloner {
-            let state_constructor = Rc::into_raw(state_cloner.clone());
-            ptr.write(state_constructor);
+        unsafe {
+            let mut entry = zeroed::<zend_function_entry>();
+            let ptr = &mut entry as *mut _ as *mut *const StateCloner;
+            if let Some(state_cloner) = &self.state_cloner {
+                let state_constructor = Rc::into_raw(state_cloner.clone());
+                ptr.write(state_constructor);
+            }
+            entry
         }
-        entry
     }
 
     pub(crate) fn handler_map(&self) -> HandlerMap {
@@ -717,11 +725,13 @@ impl<T: 'static> ClassEntity<T> {
 unsafe extern "C" fn class_init_handler(
     class_ce: *mut zend_class_entry, argument: *mut c_void,
 ) -> *mut zend_class_entry {
-    let parent = argument as *mut zend_class_entry;
-    if parent.is_null() {
-        zend_register_internal_class(class_ce)
-    } else {
-        zend_register_internal_class_ex(class_ce, parent)
+    unsafe {
+        let parent = argument as *mut zend_class_entry;
+        if parent.is_null() {
+            zend_register_internal_class(class_ce)
+        } else {
+            zend_register_internal_class_ex(class_ce, parent)
+        }
     }
 }
 
@@ -782,38 +792,42 @@ impl InterfaceEntity {
 
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
-        let class_ce = phper_init_class_entry_ex(
-            self.interface_name.as_ptr().cast(),
-            self.interface_name.as_bytes().len().try_into().unwrap(),
-            self.function_entries(),
-            Some(interface_init_handler),
-            null_mut(),
-        );
+        unsafe {
+            let class_ce = phper_init_class_entry_ex(
+                self.interface_name.as_ptr().cast(),
+                self.interface_name.as_bytes().len().try_into().unwrap(),
+                self.function_entries(),
+                Some(interface_init_handler),
+                null_mut(),
+            );
 
-        self.bind_interface.bind(class_ce);
+            self.bind_interface.bind(class_ce);
 
-        for interface in &self.extends {
-            let interface_ce = interface().as_ptr();
-            zend_class_implements(class_ce, 1, interface_ce);
+            for interface in &self.extends {
+                let interface_ce = interface().as_ptr();
+                zend_class_implements(class_ce, 1, interface_ce);
+            }
+
+            for constant in &self.constants {
+                add_class_constant(class_ce, constant);
+            }
+
+            class_ce
         }
-
-        for constant in &self.constants {
-            add_class_constant(class_ce, constant);
-        }
-
-        class_ce
     }
 
     unsafe fn function_entries(&self) -> *const zend_function_entry {
-        let mut methods = self
-            .method_entities
-            .iter()
-            .map(|method| FunctionEntry::from_method_entity(method))
-            .collect::<Vec<_>>();
+        unsafe {
+            let mut methods = self
+                .method_entities
+                .iter()
+                .map(|method| FunctionEntry::from_method_entity(method))
+                .collect::<Vec<_>>();
 
-        methods.push(zeroed::<zend_function_entry>());
+            methods.push(zeroed::<zend_function_entry>());
 
-        Box::into_raw(methods.into_boxed_slice()).cast()
+            Box::into_raw(methods.into_boxed_slice()).cast()
+        }
     }
 
     /// Get the bound interface.
@@ -826,7 +840,7 @@ impl InterfaceEntity {
 unsafe extern "C" fn interface_init_handler(
     class_ce: *mut zend_class_entry, _argument: *mut c_void,
 ) -> *mut zend_class_entry {
-    zend_register_internal_interface(class_ce)
+    unsafe { zend_register_internal_interface(class_ce) }
 }
 
 /// Builder for registering class/interface constants
@@ -933,66 +947,69 @@ pub(crate) type RawVisibility = u32;
 
 #[allow(clippy::useless_conversion)]
 unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
-    // Get real ce which hold state_constructor.
-    let real_ce = find_real_ce(ce).unwrap();
+    unsafe {
+        // Get real ce which hold state_constructor.
+        let real_ce = find_real_ce(ce).unwrap();
 
-    // Alloc more memory size to store state data.
-    let state_object = phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
-    let state_object = StateObj::<()>::from_mut_ptr(state_object);
+        // Alloc more memory size to store state data.
+        let state_object =
+            phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
+        let state_object = StateObj::<()>::from_mut_ptr(state_object);
 
-    // Find the hack elements hidden behind null builtin_function.
-    let mut func_ptr = (*real_ce).info.internal.builtin_functions;
-    while !(*func_ptr).fname.is_null() {
-        func_ptr = func_ptr.offset(1);
-    }
-
-    // Get state constructor.
-    func_ptr = func_ptr.offset(1);
-    let state_constructor = func_ptr as *mut *const StateConstructor;
-    let state_constructor = state_constructor.read().as_ref().unwrap();
-
-    // Get state cloner.
-    func_ptr = func_ptr.offset(1);
-    let has_state_cloner =
-        slice::from_raw_parts(func_ptr as *const u8, size_of::<*const StateCloner>())
-            != [0u8; size_of::<*const StateCloner>()];
-
-    // Common initialize process.
-    let object = state_object.as_mut_object().as_mut_ptr();
-    zend_object_std_init(object, ce);
-    object_properties_init(object, ce);
-
-    cfg_if::cfg_if! {
-        if #[cfg(any(
-            phper_major_version = "7",
-            all(
-                phper_major_version = "8",
-                any(
-                    phper_minor_version = "0",
-                    phper_minor_version = "1",
-                    phper_minor_version = "2",
-                    phper_minor_version = "3",
-                ),
-            )
-        ))] {
-            rebuild_object_properties(object);
-        } else {
-            rebuild_object_properties_internal(object);
+        // Find the hack elements hidden behind null builtin_function.
+        let mut func_ptr = (*real_ce).info.internal.builtin_functions;
+        while !(*func_ptr).fname.is_null() {
+            func_ptr = func_ptr.offset(1);
         }
+
+        // Get state constructor.
+        func_ptr = func_ptr.offset(1);
+        let state_constructor = func_ptr as *mut *const StateConstructor;
+        let state_constructor = state_constructor.read().as_ref().unwrap();
+
+        // Get state cloner.
+        func_ptr = func_ptr.offset(1);
+        let has_state_cloner =
+            slice::from_raw_parts(func_ptr as *const u8, size_of::<*const StateCloner>())
+                != [0u8; size_of::<*const StateCloner>()];
+
+        // Common initialize process.
+        let object = state_object.as_mut_object().as_mut_ptr();
+        zend_object_std_init(object, ce);
+        object_properties_init(object, ce);
+
+        cfg_if::cfg_if! {
+            if #[cfg(any(
+                phper_major_version = "7",
+                all(
+                    phper_major_version = "8",
+                    any(
+                        phper_minor_version = "0",
+                        phper_minor_version = "1",
+                        phper_minor_version = "2",
+                        phper_minor_version = "3",
+                    ),
+                )
+            ))] {
+                rebuild_object_properties(object);
+            } else {
+                rebuild_object_properties_internal(object);
+            }
+        }
+
+        // Set handlers
+        let mut handlers = Box::new(std_object_handlers);
+        handlers.offset = StateObj::<()>::offset() as c_int;
+        handlers.free_obj = Some(free_object);
+        handlers.clone_obj = has_state_cloner.then_some(clone_object);
+        (*object).handlers = Box::into_raw(handlers);
+
+        // Call the state constructor and store the state.
+        let data = (state_constructor)();
+        *state_object.as_mut_any_state() = data;
+
+        object
     }
-
-    // Set handlers
-    let mut handlers = Box::new(std_object_handlers);
-    handlers.offset = StateObj::<()>::offset() as c_int;
-    handlers.free_obj = Some(free_object);
-    handlers.clone_obj = has_state_cloner.then_some(clone_object);
-    (*object).handlers = Box::into_raw(handlers);
-
-    // Call the state constructor and store the state.
-    let data = (state_constructor)();
-    *state_object.as_mut_any_state() = data;
-
-    object
 }
 
 #[cfg(phper_major_version = "8")]
@@ -1002,46 +1019,50 @@ unsafe extern "C" fn clone_object(object: *mut zend_object) -> *mut zend_object 
 
 #[cfg(phper_major_version = "7")]
 unsafe extern "C" fn clone_object(object: *mut zval) -> *mut zend_object {
-    let object = phper_z_obj_p(object);
-    clone_object_common(object)
+    unsafe {
+        let object = phper_z_obj_p(object);
+        clone_object_common(object)
+    }
 }
 
 #[allow(clippy::useless_conversion)]
 unsafe fn clone_object_common(object: *mut zend_object) -> *mut zend_object {
-    let ce = (*object).ce;
-    let real_ce = find_real_ce(ce).unwrap();
+    unsafe {
+        let ce = (*object).ce;
+        let real_ce = find_real_ce(ce).unwrap();
 
-    // Alloc more memory size to store state data.
-    let new_state_object =
-        phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
-    let new_state_object = StateObj::<()>::from_mut_ptr(new_state_object);
+        // Alloc more memory size to store state data.
+        let new_state_object =
+            phper_zend_object_alloc(size_of::<StateObj<()>>().try_into().unwrap(), ce);
+        let new_state_object = StateObj::<()>::from_mut_ptr(new_state_object);
 
-    // Find the hack elements hidden behind null builtin_function.
-    let mut func_ptr = (*real_ce).info.internal.builtin_functions;
-    while !(*func_ptr).fname.is_null() {
-        func_ptr = func_ptr.offset(1);
+        // Find the hack elements hidden behind null builtin_function.
+        let mut func_ptr = (*real_ce).info.internal.builtin_functions;
+        while !(*func_ptr).fname.is_null() {
+            func_ptr = func_ptr.offset(1);
+        }
+
+        // Get state cloner.
+        func_ptr = func_ptr.offset(2);
+        let state_cloner = func_ptr as *mut *const StateCloner;
+        let state_cloner = state_cloner.read().as_ref().unwrap();
+
+        // Initialize and clone members
+        let new_object = new_state_object.as_mut_object().as_mut_ptr();
+        zend_object_std_init(new_object, ce);
+        object_properties_init(new_object, ce);
+        zend_objects_clone_members(new_object, object);
+
+        // Set handlers
+        (*new_object).handlers = (*object).handlers;
+
+        // Call the state cloner and store the state.
+        let state_object = StateObj::<()>::from_mut_object_ptr(object);
+        let data = (state_cloner)(*state_object.as_mut_any_state());
+        *new_state_object.as_mut_any_state() = data;
+
+        new_object
     }
-
-    // Get state cloner.
-    func_ptr = func_ptr.offset(2);
-    let state_cloner = func_ptr as *mut *const StateCloner;
-    let state_cloner = state_cloner.read().as_ref().unwrap();
-
-    // Initialize and clone members
-    let new_object = new_state_object.as_mut_object().as_mut_ptr();
-    zend_object_std_init(new_object, ce);
-    object_properties_init(new_object, ce);
-    zend_objects_clone_members(new_object, object);
-
-    // Set handlers
-    (*new_object).handlers = (*object).handlers;
-
-    // Call the state cloner and store the state.
-    let state_object = StateObj::<()>::from_mut_object_ptr(object);
-    let data = (state_cloner)(*state_object.as_mut_any_state());
-    *new_state_object.as_mut_any_state() = data;
-
-    new_object
 }
 
 unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &ConstantEntity) {
@@ -1086,27 +1107,31 @@ unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &Consta
 }
 
 unsafe extern "C" fn free_object(object: *mut zend_object) {
-    let state_object = StateObj::<()>::from_mut_object_ptr(object);
+    unsafe {
+        let state_object = StateObj::<()>::from_mut_object_ptr(object);
 
-    // Drop the state.
-    state_object.drop_state();
+        // Drop the state.
+        state_object.drop_state();
 
-    // Original destroy call.
-    zend_object_std_dtor(object);
+        // Original destroy call.
+        zend_object_std_dtor(object);
+    }
 }
 
 /// Find the class that registered by phper.
 unsafe fn find_real_ce(mut ce: *mut zend_class_entry) -> Option<*mut zend_class_entry> {
-    let class_entities = global_module().class_entities();
+    unsafe {
+        let class_entities = global_module().class_entities();
 
-    while !ce.is_null() {
-        for entity in class_entities {
-            if ClassEntry::from_ptr(ce).get_name().to_c_str() == Ok(&entity.class_name) {
-                return Some(ce);
+        while !ce.is_null() {
+            for entity in class_entities {
+                if ClassEntry::from_ptr(ce).get_name().to_c_str() == Ok(&entity.class_name) {
+                    return Some(ce);
+                }
             }
+            ce = phper_get_parent_class(ce);
         }
-        ce = phper_get_parent_class(ce);
-    }
 
-    None
+        None
+    }
 }
