@@ -12,7 +12,7 @@ use phper::{
     arrays::ZArray,
     classes::{ClassEntity, Visibility},
     functions::Argument,
-    ini::{ini_get, Policy},
+    ini::{Policy, ini_get},
     modules::Module,
     objects::StateObj,
     php_get_module,

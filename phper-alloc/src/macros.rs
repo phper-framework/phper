@@ -17,7 +17,5 @@
 /// ```
 #[macro_export]
 macro_rules! ebox {
-    ($arg:tt) => {{
-        $crate::EBox::new($arg)
-    }};
+    ($arg:tt) => {{ $crate::EBox::new($arg) }};
 }

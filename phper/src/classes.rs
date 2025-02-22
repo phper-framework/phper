@@ -25,10 +25,10 @@ use crate::{
 use std::{
     any::Any,
     cell::RefCell,
-    ffi::{c_char, c_void, CString},
+    ffi::{CString, c_char, c_void},
     fmt::Debug,
     marker::PhantomData,
-    mem::{replace, size_of, zeroed, ManuallyDrop},
+    mem::{ManuallyDrop, replace, size_of, zeroed},
     os::raw::c_int,
     ptr::null_mut,
     rc::Rc,

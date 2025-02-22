@@ -14,7 +14,7 @@
 
 use crate::{
     classes::{ClassEntry, RawVisibility, Visibility},
-    errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable},
+    errors::{ArgumentCountError, ExceptionGuard, ThrowObject, Throwable, throw},
     modules::global_module,
     objects::{StateObj, ZObj, ZObject},
     strings::{ZStr, ZString},
@@ -28,7 +28,7 @@ use std::{
     collections::HashMap,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{size_of, transmute, zeroed, ManuallyDrop},
+    mem::{ManuallyDrop, size_of, transmute, zeroed},
     ptr::{self, null_mut},
     rc::Rc,
     slice,

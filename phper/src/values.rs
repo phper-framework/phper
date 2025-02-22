@@ -14,7 +14,7 @@ use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
     errors::ExpectTypeError,
-    functions::{call_internal, ZFunc},
+    functions::{ZFunc, call_internal},
     objects::{StateObject, ZObj, ZObject},
     references::ZRef,
     resources::ZRes,
@@ -28,7 +28,7 @@ use std::{
     fmt,
     fmt::Debug,
     marker::PhantomData,
-    mem::{transmute, zeroed, ManuallyDrop, MaybeUninit},
+    mem::{ManuallyDrop, MaybeUninit, transmute, zeroed},
     str,
 };
 

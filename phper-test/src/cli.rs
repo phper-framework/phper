@@ -12,7 +12,7 @@
 
 use crate::context::Context;
 use std::{
-    panic::{catch_unwind, resume_unwind, UnwindSafe},
+    panic::{UnwindSafe, catch_unwind, resume_unwind},
     path::Path,
     process::{Child, Output},
 };

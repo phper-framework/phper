@@ -12,7 +12,7 @@
 
 use crate::sys::*;
 use std::{
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     mem::zeroed,
     os::raw::c_char,
     ptr::null_mut,
@@ -58,11 +58,7 @@ pub trait IntoIniValue {
 impl IntoIniValue for bool {
     #[inline]
     fn into_ini_value(self) -> String {
-        if self {
-            "1".to_owned()
-        } else {
-            "0".to_owned()
-        }
+        if self { "1".to_owned() } else { "0".to_owned() }
     }
 }
 

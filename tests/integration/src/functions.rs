@@ -11,7 +11,7 @@
 use phper::{
     arrays::ZArray,
     errors::throw,
-    functions::{call, Argument},
+    functions::{Argument, call},
     modules::Module,
     values::ZVal,
 };

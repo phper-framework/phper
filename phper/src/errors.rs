@@ -21,7 +21,7 @@ use std::{
     fmt::{self, Debug, Display},
     io,
     marker::PhantomData,
-    mem::{replace, ManuallyDrop},
+    mem::{ManuallyDrop, replace},
     ops::{Deref, DerefMut},
     ptr::null_mut,
     result,

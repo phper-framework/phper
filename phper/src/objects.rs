@@ -12,7 +12,7 @@
 
 use crate::{
     classes::ClassEntry,
-    functions::{call_internal, call_raw_common, ZFunc},
+    functions::{ZFunc, call_internal, call_raw_common},
     sys::*,
     values::ZVal,
 };
@@ -23,7 +23,7 @@ use std::{
     ffi::c_void,
     fmt::{self, Debug},
     marker::PhantomData,
-    mem::{replace, size_of, ManuallyDrop},
+    mem::{ManuallyDrop, replace, size_of},
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };

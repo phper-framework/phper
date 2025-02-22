@@ -10,10 +10,10 @@
 
 use crate::{errors::HttpServerError, request::RequestClass, response::ResponseClass};
 use axum::{
+    Router,
     body::{self, Body},
     http::{Request, Response, StatusCode},
     routing::any,
-    Router,
 };
 use phper::{
     alloc::ToRefOwned,
