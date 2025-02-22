@@ -26,7 +26,7 @@ use phper::sys;
 use phper::objects::ZObj;
 use phper::alloc::ToRefOwned;
 
-extern "C" {
+unsafe extern "C" {
     fn something() -> *mut sys::zend_object;
 }
 

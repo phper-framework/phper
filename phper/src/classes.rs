@@ -1014,7 +1014,7 @@ unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_objec
 
 #[cfg(phper_major_version = "8")]
 unsafe extern "C" fn clone_object(object: *mut zend_object) -> *mut zend_object {
-    clone_object_common(object)
+    unsafe { clone_object_common(object) }
 }
 
 #[cfg(phper_major_version = "7")]
