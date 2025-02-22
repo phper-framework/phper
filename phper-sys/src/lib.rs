@@ -16,6 +16,8 @@
 // TODO Because `bindgen` generates codes contains deref nullptr, temporary suppression.
 #![allow(deref_nullptr)]
 #![allow(clippy::all)]
+// TODO unsafe_op_in_unsafe_fn warning in edition 2024, temporary suppression.
+#![allow(unsafe_op_in_unsafe_fn)]
 #![doc = include_str!("../README.md")]
 
 include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));

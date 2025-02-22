@@ -10,7 +10,7 @@
 
 use phper::{
     classes::{ClassEntity, ClassEntry},
-    errors::{exception_class, Throwable},
+    errors::{Throwable, exception_class},
 };
 use std::error::Error;
 

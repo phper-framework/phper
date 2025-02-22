@@ -31,7 +31,7 @@ pub mod types;
 mod utils;
 pub mod values;
 
-pub use crate::errors::{ok, Error, Result};
+pub use crate::errors::{Error, Result, ok};
 pub use phper_alloc as alloc;
 pub use phper_macros::*;
 pub use phper_sys as sys;

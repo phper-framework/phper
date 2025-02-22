@@ -11,11 +11,11 @@
 //! Test tools for php fpm program.
 use crate::{context::Context, utils::spawn_command};
 use fastcgi_client::{Client, Params, Request};
-use libc::{atexit, kill, pid_t, SIGTERM};
+use libc::{SIGTERM, atexit, kill, pid_t};
 use once_cell::sync::OnceCell;
 use std::{
     fs,
-    mem::{forget, ManuallyDrop},
+    mem::{ManuallyDrop, forget},
     path::{Path, PathBuf},
     process::Child,
     sync::Mutex,

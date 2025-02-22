@@ -50,7 +50,7 @@ use phper::sys;
 use phper::strings::ZStr;
 use phper::alloc::ToRefOwned;
 
-extern "C" {
+unsafe extern "C" {
     fn something() -> *mut sys::zend_string;
 }
 

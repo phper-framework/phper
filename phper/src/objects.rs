@@ -12,7 +12,7 @@
 
 use crate::{
     classes::ClassEntry,
-    functions::{call_internal, call_raw_common, ZFunc},
+    functions::{ZFunc, call_internal, call_raw_common},
     sys::*,
     values::ZVal,
 };
@@ -23,7 +23,7 @@ use std::{
     ffi::c_void,
     fmt::{self, Debug},
     marker::PhantomData,
-    mem::{replace, size_of, ManuallyDrop},
+    mem::{ManuallyDrop, replace, size_of},
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };
@@ -47,7 +47,7 @@ impl ZObj {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_object) -> &'a Self {
-        (ptr as *const Self).as_ref().expect("ptr should't be null")
+        unsafe { (ptr as *const Self).as_ref().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -57,7 +57,7 @@ impl ZObj {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_object) -> Option<&'a Self> {
-        (ptr as *const Self).as_ref()
+        unsafe { (ptr as *const Self).as_ref() }
     }
 
     /// Wraps a raw pointer.
@@ -71,7 +71,7 @@ impl ZObj {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -81,7 +81,7 @@ impl ZObj {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_object) -> Option<&'a mut Self> {
-        (ptr as *mut Self).as_mut()
+        unsafe { (ptr as *mut Self).as_mut() }
     }
 
     /// Returns a raw pointer wrapped.
@@ -102,7 +102,7 @@ impl ZObj {
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_state_obj<T>(&self) -> &StateObj<T> {
-        StateObj::from_object_ptr(self.as_ptr())
+        unsafe { StateObj::from_object_ptr(self.as_ptr()) }
     }
 
     /// Upgrade to mutable state obj.
@@ -112,7 +112,7 @@ impl ZObj {
     /// Should only call this method for the class of object defined by the
     /// extension created by `phper`, otherwise, memory problems will caused.
     pub unsafe fn as_mut_state_obj<T>(&mut self) -> &mut StateObj<T> {
-        StateObj::from_mut_object_ptr(self.as_mut_ptr())
+        unsafe { StateObj::from_mut_object_ptr(self.as_mut_ptr()) }
     }
 
     /// Get the inner handle of object.
@@ -262,7 +262,7 @@ impl ZObj {
     }
 
     pub(crate) unsafe fn gc_refcount(&self) -> u32 {
-        phper_zend_object_gc_refcount(self.as_ptr())
+        unsafe { phper_zend_object_gc_refcount(self.as_ptr()) }
     }
 }
 
@@ -319,8 +319,10 @@ impl ZObject {
     /// twice on the same raw pointer.
     #[inline]
     pub unsafe fn from_raw(ptr: *mut zend_object) -> Self {
-        Self {
-            inner: ZObj::from_mut_ptr(ptr),
+        unsafe {
+            Self {
+                inner: ZObj::from_mut_ptr(ptr),
+            }
         }
     }
 
@@ -391,23 +393,29 @@ impl<T> StateObj<T> {
 
     #[inline]
     pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut c_void) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should't be null") }
     }
 
     pub(crate) unsafe fn from_object_ptr<'a>(ptr: *const zend_object) -> &'a Self {
-        ((ptr as usize - Self::offset()) as *const Self)
-            .as_ref()
-            .unwrap()
+        unsafe {
+            ((ptr as usize - Self::offset()) as *const Self)
+                .as_ref()
+                .unwrap()
+        }
     }
 
     pub(crate) unsafe fn from_mut_object_ptr<'a>(ptr: *mut zend_object) -> &'a mut Self {
-        ((ptr as usize - Self::offset()) as *mut Self)
-            .as_mut()
-            .unwrap()
+        unsafe {
+            ((ptr as usize - Self::offset()) as *mut Self)
+                .as_mut()
+                .unwrap()
+        }
     }
 
     pub(crate) unsafe fn drop_state(&mut self) {
-        drop(Box::from_raw(self.any_state));
+        unsafe {
+            drop(Box::from_raw(self.any_state));
+        }
     }
 
     #[inline]

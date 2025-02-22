@@ -44,7 +44,7 @@ impl ZStr {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_string) -> &'a Self {
-        (ptr as *const Self).as_ref().expect("ptr should't be null")
+        unsafe { (ptr as *const Self).as_ref().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -54,7 +54,7 @@ impl ZStr {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_string) -> Option<&'a Self> {
-        (ptr as *const Self).as_ref()
+        unsafe { (ptr as *const Self).as_ref() }
     }
 
     /// Wraps a raw pointer.
@@ -68,7 +68,7 @@ impl ZStr {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_string) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -78,7 +78,7 @@ impl ZStr {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_string) -> Option<&'a mut Self> {
-        (ptr as *mut Self).as_mut()
+        unsafe { (ptr as *mut Self).as_mut() }
     }
 
     /// Returns a raw pointer wrapped.
@@ -200,8 +200,10 @@ impl ZString {
     /// twice on the same raw pointer.
     #[inline]
     pub unsafe fn from_raw(ptr: *mut zend_string) -> Self {
-        Self {
-            inner: ZStr::from_mut_ptr(ptr),
+        unsafe {
+            Self {
+                inner: ZStr::from_mut_ptr(ptr),
+            }
         }
     }
 

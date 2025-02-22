@@ -10,8 +10,7 @@ This chapter will guide you on how to integrate the phper project with `pecl` an
 
 ### Adapt to `phpize`
 
-1. At first, imagine you have finished the hello project follow [write your first extension](_02_quick_start::_01_write_your_first_extension), can build the
-php extension `.so` file successfully.
+1. At first, imagine you have finished the hello project follow [write your first extension](_02_quick_start::_01_write_your_first_extension), can build the php extension `.so` file successfully.
 
 1. And then, create the `config.m4` file using by `phpize` (In theory,
    `config.w32` is also required for compatibility with Windows, but now phper

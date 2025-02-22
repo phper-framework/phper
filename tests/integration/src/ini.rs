@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    ini::{ini_get, Policy},
+    ini::{Policy, ini_get},
     modules::Module,
 };
 use std::{convert::Infallible, ffi::CStr};

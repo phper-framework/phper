@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    errors::{exception_class, ThrowObject},
+    errors::{ThrowObject, exception_class},
     modules::Module,
 };
 use std::io;

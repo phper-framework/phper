@@ -14,7 +14,7 @@ use crate::{
     alloc::EBox,
     arrays::{ZArr, ZArray},
     errors::ExpectTypeError,
-    functions::{call_internal, ZFunc},
+    functions::{ZFunc, call_internal},
     objects::{StateObject, ZObj, ZObject},
     references::ZRef,
     resources::ZRes,
@@ -28,7 +28,7 @@ use std::{
     fmt,
     fmt::Debug,
     marker::PhantomData,
-    mem::{transmute, zeroed, ManuallyDrop, MaybeUninit},
+    mem::{ManuallyDrop, MaybeUninit, transmute, zeroed},
     str,
 };
 
@@ -51,7 +51,7 @@ impl ExecuteData {
     #[inline]
     #[allow(dead_code)]
     pub unsafe fn from_ptr<'a>(ptr: *const zend_execute_data) -> &'a Self {
-        (ptr as *const Self).as_ref().expect("ptr should't be null")
+        unsafe { (ptr as *const Self).as_ref().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -62,7 +62,7 @@ impl ExecuteData {
     #[inline]
     #[allow(dead_code)]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zend_execute_data) -> Option<&'a Self> {
-        (ptr as *const Self).as_ref()
+        unsafe { (ptr as *const Self).as_ref() }
     }
 
     /// Wraps a raw pointer.
@@ -76,7 +76,7 @@ impl ExecuteData {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -87,7 +87,7 @@ impl ExecuteData {
     #[inline]
     #[allow(dead_code)]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zend_execute_data) -> Option<&'a mut Self> {
-        (ptr as *mut Self).as_mut()
+        unsafe { (ptr as *mut Self).as_mut() }
     }
 
     /// Returns a raw pointer wrapped.
@@ -148,15 +148,17 @@ impl ExecuteData {
     }
 
     pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
-        let num_args = self.num_args();
-        let mut arguments = vec![zeroed::<zval>(); num_args];
-        if num_args > 0 {
-            phper_zend_get_parameters_array_ex(
-                num_args.try_into().unwrap(),
-                arguments.as_mut_ptr(),
-            );
+        unsafe {
+            let num_args = self.num_args();
+            let mut arguments = vec![zeroed::<zval>(); num_args];
+            if num_args > 0 {
+                phper_zend_get_parameters_array_ex(
+                    num_args.try_into().unwrap(),
+                    arguments.as_mut_ptr(),
+                );
+            }
+            transmute(arguments)
         }
-        transmute(arguments)
     }
 
     /// Gets parameter by index.
@@ -195,7 +197,7 @@ impl ZVal {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_ptr<'a>(ptr: *const zval) -> &'a Self {
-        (ptr as *const Self).as_ref().expect("ptr should't be null")
+        unsafe { (ptr as *const Self).as_ref().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -205,7 +207,7 @@ impl ZVal {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_ptr<'a>(ptr: *const zval) -> Option<&'a Self> {
-        (ptr as *const Self).as_ref()
+        unsafe { (ptr as *const Self).as_ref() }
     }
 
     /// Wraps a raw pointer.
@@ -219,7 +221,7 @@ impl ZVal {
     /// Panics if pointer is null.
     #[inline]
     pub unsafe fn from_mut_ptr<'a>(ptr: *mut zval) -> &'a mut Self {
-        (ptr as *mut Self).as_mut().expect("ptr should't be null")
+        unsafe { (ptr as *mut Self).as_mut().expect("ptr should't be null") }
     }
 
     /// Wraps a raw pointer, return None if pointer is null.
@@ -229,7 +231,7 @@ impl ZVal {
     /// Create from raw pointer.
     #[inline]
     pub unsafe fn try_from_mut_ptr<'a>(ptr: *mut zval) -> Option<&'a mut Self> {
-        (ptr as *mut Self).as_mut()
+        unsafe { (ptr as *mut Self).as_mut() }
     }
 
     /// Returns a raw pointer wrapped.

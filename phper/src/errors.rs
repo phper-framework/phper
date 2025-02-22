@@ -21,7 +21,7 @@ use std::{
     fmt::{self, Debug, Display},
     io,
     marker::PhantomData,
-    mem::{replace, ManuallyDrop},
+    mem::{ManuallyDrop, replace},
     ops::{Deref, DerefMut},
     ptr::null_mut,
     result,
@@ -504,9 +504,11 @@ impl Drop for ExceptionGuard {
 /// You should always return the `Result<ZVal, impl Throwable>` in the handler,
 /// rather than use this function.
 pub unsafe fn throw(e: impl Throwable) {
-    let obj = ThrowObject::from_throwable(e).into_inner();
-    let mut val = ManuallyDrop::new(ZVal::from(obj));
-    zend_throw_exception_object(val.as_mut_ptr());
+    unsafe {
+        let obj = ThrowObject::from_throwable(e).into_inner();
+        let mut val = ManuallyDrop::new(ZVal::from(obj));
+        zend_throw_exception_object(val.as_mut_ptr());
+    }
 }
 
 /// Equivalent to `Ok::<_, phper::Error>(value)`.

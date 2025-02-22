@@ -10,7 +10,7 @@
 
 use phper::{
     classes::{ClassEntity, ClassEntry},
-    errors::{exception_class, Throwable},
+    errors::{Throwable, exception_class},
 };
 
 /// The exception class name of extension.

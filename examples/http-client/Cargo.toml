@@ -23,8 +23,8 @@ crate-type = ["lib", "cdylib"]
 
 [dependencies]
 phper = { workspace = true }
-reqwest = { version = "0.12.5", features = ["blocking", "cookies"] }
-thiserror = "1.0.63"
+reqwest = { version = "0.12.12", features = ["blocking", "cookies"] }
+thiserror = "2.0.11"
 
 [dev-dependencies]
 phper-test = { workspace = true }

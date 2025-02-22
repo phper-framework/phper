@@ -12,7 +12,7 @@
 
 use crate::sys::*;
 use std::{
-    ffi::{c_int, CStr},
+    ffi::{CStr, c_int},
     mem::zeroed,
     os::raw::c_char,
     ptr::null_mut,
@@ -58,11 +58,7 @@ pub trait IntoIniValue {
 impl IntoIniValue for bool {
     #[inline]
     fn into_ini_value(self) -> String {
-        if self {
-            "1".to_owned()
-        } else {
-            "0".to_owned()
-        }
+        if self { "1".to_owned() } else { "0".to_owned() }
     }
 }
 
@@ -193,16 +189,18 @@ fn create_ini_entry_ex(name: &str, default_value: &str, modifiable: u32) -> zend
 }
 
 unsafe fn entries(ini_entries: &[IniEntity]) -> *const zend_ini_entry_def {
-    let mut entries = Vec::with_capacity(ini_entries.len() + 1);
+    unsafe {
+        let mut entries = Vec::with_capacity(ini_entries.len() + 1);
 
-    ini_entries.iter().for_each(|entity| {
-        // Ini entity will exist throughout the whole application life cycle.
-        entries.push(entity.entry());
-    });
+        ini_entries.iter().for_each(|entity| {
+            // Ini entity will exist throughout the whole application life cycle.
+            entries.push(entity.entry());
+        });
 
-    entries.push(zeroed::<zend_ini_entry_def>());
+        entries.push(zeroed::<zend_ini_entry_def>());
 
-    Box::into_raw(entries.into_boxed_slice()).cast()
+        Box::into_raw(entries.into_boxed_slice()).cast()
+    }
 }
 
 pub(crate) fn register(ini_entries: &[IniEntity], module_number: c_int) {

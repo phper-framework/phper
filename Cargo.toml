@@ -27,10 +27,10 @@ members = [
 [workspace.package]
 version = "0.14.1"
 authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
-edition = "2021"
+edition = "2024"
 license = "MulanPSL-2.0"
 repository = "https://github.com/phper-framework/phper"
-rust-version = "1.79"
+rust-version = "1.85"
 
 [workspace.dependencies]
 phper = { version = "0.14.1", path = "./phper" }

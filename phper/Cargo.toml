@@ -23,13 +23,13 @@ license = { workspace = true }
 
 [dependencies]
 cfg-if = "1.0.0"
-derive_more = "0.99.18"
-indexmap = "2.3.0"
-once_cell = "1.19.0"
+derive_more = { version = "2.0.1", features = ["from", "constructor"] }
+indexmap = "2.7.1"
+once_cell = "1.20.3"
 phper-alloc = { workspace = true }
 phper-macros = { workspace = true }
 phper-sys = { workspace = true }
-thiserror = "1.0.63"
+thiserror = "2.0.11"
 
 [build-dependencies]
 phper-build = { workspace = true }

@@ -10,7 +10,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemFn, Visibility};
+use syn::{ItemFn, Visibility, parse_macro_input};
 
 pub(crate) fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemFn);
@@ -31,7 +31,7 @@ pub(crate) fn php_get_module(_attr: TokenStream, input: TokenStream) -> TokenStr
     }
 
     let result = quote! {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         #[doc(hidden)]
         #(#attrs)*
         #vis extern "C" fn #name() -> *const ::phper::sys::zend_module_entry {

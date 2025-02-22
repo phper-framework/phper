@@ -12,7 +12,7 @@
 
 use crate::context::Context;
 use std::{
-    panic::{catch_unwind, resume_unwind, UnwindSafe},
+    panic::{UnwindSafe, catch_unwind, resume_unwind},
     path::Path,
     process::{Child, Output},
 };
@@ -41,8 +41,7 @@ pub type ScriptCondition<'a> = (&'a dyn AsRef<Path>, &'a dyn Fn(Output) -> bool)
 /// checkers are pass, than the test is pass.
 ///
 /// - `exec_path` is the path of the make executable, which will be used to
-///   detect the path of
-/// extension lib.
+///   detect the path of extension lib.
 ///
 /// - `scripts` is the slice of the tuple, format is `(path of your php test
 ///   script, checker function or closure)`.
@@ -93,6 +92,7 @@ pub fn test_php_scripts_with_condition(
 
 /// Check your extension by executing the long term php script such as http
 /// server, if the all your specified checkers are pass, than the test is pass.
+#[allow(clippy::zombie_processes)]
 pub fn test_long_term_php_script_with_condition(
     lib_path: impl AsRef<Path>, script: impl AsRef<Path>,
     condition: impl FnOnce(&Child) + UnwindSafe,

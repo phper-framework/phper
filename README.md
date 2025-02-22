@@ -18,36 +18,33 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 ### Necessary
 
-- **rust** 1.79 or later
+- **rust** 1.85 or later
 - **libclang** 9.0 or later
 - **php** 7.0 or later
 
 ### Tested Support
 
-- **OS**
-  - [x] linux
-  - [x] macos
-  - [ ] ~~windows~~
-- **PHP**
-  - **version**
-    - [x] 7.0
-    - [x] 7.1
-    - [x] 7.2
-    - [x] 7.3
-    - [x] 7.4
-    - [x] 8.0
-    - [x] 8.1
-    - [x] 8.2
-    - [x] 8.3
-  - **mode**
-    - [x] nts
-    - [ ] ~~zts~~
-  - **sapi**
-    - [x] cli
-    - [x] fpm
-  - **debug**
-    - [x] disable
-    - [ ] ~~enable~~
+| **Category**    | **Item** | **Status** |
+| --------------- | -------- | ---------- |
+| **OS**          | Linux    | ✅          |
+|                 | macOS    | ✅          |
+|                 | Windows  | ❌          |
+| **PHP Version** | 7.0      | ✅          |
+|                 | 7.1      | ✅          |
+|                 | 7.2      | ✅          |
+|                 | 7.3      | ✅          |
+|                 | 7.4      | ✅          |
+|                 | 8.0      | ✅          |
+|                 | 8.1      | ✅          |
+|                 | 8.2      | ✅          |
+|                 | 8.3      | ✅          |
+|                 | 8.4      | ✅          |
+| **PHP Mode**    | NTS      | ✅          |
+|                 | ZTS      | ❌          |
+| **SAPI**        | CLI      | ✅          |
+|                 | FPM      | ✅          |
+| **Debug**       | Disable  | ✅          |
+|                 | Enable   | ❌          |
 
 ## Examples
 

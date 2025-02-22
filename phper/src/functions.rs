@@ -14,7 +14,7 @@
 
 use crate::{
     classes::{ClassEntry, RawVisibility, Visibility},
-    errors::{throw, ArgumentCountError, ExceptionGuard, ThrowObject, Throwable},
+    errors::{ArgumentCountError, ExceptionGuard, ThrowObject, Throwable, throw},
     modules::global_module,
     objects::{StateObj, ZObj, ZObject},
     strings::{ZStr, ZString},
@@ -28,7 +28,7 @@ use std::{
     collections::HashMap,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{size_of, transmute, zeroed, ManuallyDrop},
+    mem::{ManuallyDrop, size_of, transmute, zeroed},
     ptr::{self, null_mut},
     rc::Rc,
     slice,
@@ -115,23 +115,27 @@ pub struct FunctionEntry {
 
 impl FunctionEntry {
     pub(crate) unsafe fn from_function_entity(entity: &FunctionEntity) -> zend_function_entry {
-        Self::entry(
-            &entity.name,
-            &entity.arguments,
-            entity.return_type.as_ref(),
-            Some(entity.handler.clone()),
-            None,
-        )
+        unsafe {
+            Self::entry(
+                &entity.name,
+                &entity.arguments,
+                entity.return_type.as_ref(),
+                Some(entity.handler.clone()),
+                None,
+            )
+        }
     }
 
     pub(crate) unsafe fn from_method_entity(entity: &MethodEntity) -> zend_function_entry {
-        Self::entry(
-            &entity.name,
-            &entity.arguments,
-            entity.return_type.as_ref(),
-            entity.handler.clone(),
-            Some(entity.visibility),
-        )
+        unsafe {
+            Self::entry(
+                &entity.name,
+                &entity.arguments,
+                entity.return_type.as_ref(),
+                entity.handler.clone(),
+                Some(entity.visibility),
+            )
+        }
     }
 
     /// Will leak memory
@@ -139,62 +143,66 @@ impl FunctionEntry {
         name: &CStr, arguments: &[Argument], return_type: Option<&ReturnType>,
         handler: Option<Rc<dyn Callable>>, visibility: Option<RawVisibility>,
     ) -> zend_function_entry {
-        let mut infos = Vec::new();
+        unsafe {
+            let mut infos = Vec::new();
 
-        let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
+            let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
 
-        if let Some(return_type) = return_type {
-            infos.push(phper_zend_begin_arg_with_return_type_info_ex(
-                return_type.ret_by_ref,
-                require_arg_count,
-                return_type.type_info.into_raw(),
-                return_type.allow_null,
-            ));
-        } else {
-            infos.push(phper_zend_begin_arg_info_ex(false, require_arg_count));
-        }
+            if let Some(return_type) = return_type {
+                infos.push(phper_zend_begin_arg_with_return_type_info_ex(
+                    return_type.ret_by_ref,
+                    require_arg_count,
+                    return_type.type_info.into_raw(),
+                    return_type.allow_null,
+                ));
+            } else {
+                infos.push(phper_zend_begin_arg_info_ex(false, require_arg_count));
+            }
 
-        for arg in arguments {
-            infos.push(phper_zend_arg_info(
-                arg.pass_by_ref,
-                arg.name.as_ptr().cast(),
-            ));
-        }
+            for arg in arguments {
+                infos.push(phper_zend_arg_info(
+                    arg.pass_by_ref,
+                    arg.name.as_ptr().cast(),
+                ));
+            }
 
-        infos.push(zeroed::<zend_internal_arg_info>());
+            infos.push(zeroed::<zend_internal_arg_info>());
 
-        // Will be checked in `invoke` function.
-        infos.push(Self::create_mysterious_code());
+            // Will be checked in `invoke` function.
+            infos.push(Self::create_mysterious_code());
 
-        let raw_handler = handler.as_ref().map(|_| invoke as _);
+            let raw_handler = handler.as_ref().map(|_| invoke as _);
 
-        if let Some(handler) = handler {
-            let translator = CallableTranslator {
-                callable: Rc::into_raw(handler),
-            };
-            let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
-            infos.push(last_arg_info);
-        }
+            if let Some(handler) = handler {
+                let translator = CallableTranslator {
+                    callable: Rc::into_raw(handler),
+                };
+                let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
+                infos.push(last_arg_info);
+            }
 
-        let flags = visibility.unwrap_or(Visibility::default() as u32);
+            let flags = visibility.unwrap_or(Visibility::default() as u32);
 
-        #[allow(clippy::needless_update)]
-        zend_function_entry {
-            fname: name.as_ptr().cast(),
-            handler: raw_handler,
-            arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
-            num_args: arguments.len() as u32,
-            flags,
-            ..Default::default()
+            #[allow(clippy::needless_update)]
+            zend_function_entry {
+                fname: name.as_ptr().cast(),
+                handler: raw_handler,
+                arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
+                num_args: arguments.len() as u32,
+                flags,
+                ..Default::default()
+            }
         }
     }
 
     unsafe fn create_mysterious_code() -> zend_internal_arg_info {
-        let mut mysterious_code = [0u8; size_of::<zend_internal_arg_info>()];
-        for (i, n) in INVOKE_MYSTERIOUS_CODE.iter().enumerate() {
-            mysterious_code[i] = *n;
+        unsafe {
+            let mut mysterious_code = [0u8; size_of::<zend_internal_arg_info>()];
+            for (i, n) in INVOKE_MYSTERIOUS_CODE.iter().enumerate() {
+                mysterious_code[i] = *n;
+            }
+            transmute(mysterious_code)
         }
-        transmute(mysterious_code)
     }
 }
 
@@ -398,8 +406,10 @@ impl ZFunc {
     ///
     /// Panics if pointer is null.
     pub(crate) unsafe fn from_mut_ptr<'a>(ptr: *mut zend_function) -> &'a mut ZFunc {
-        let ptr = ptr as *mut Self;
-        ptr.as_mut().expect("ptr shouldn't be null")
+        unsafe {
+            let ptr = ptr as *mut Self;
+            ptr.as_mut().expect("ptr shouldn't be null")
+        }
     }
 
     /// Returns a raw pointer wrapped.
@@ -531,74 +541,77 @@ pub(crate) union CallableTranslator {
 
 /// The entry for all registered PHP functions.
 unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: *mut zval) {
-    let execute_data = ExecuteData::from_mut_ptr(execute_data);
-    let return_value = ZVal::from_mut_ptr(return_value);
+    unsafe {
+        let execute_data = ExecuteData::from_mut_ptr(execute_data);
+        let return_value = ZVal::from_mut_ptr(return_value);
 
-    let num_args = execute_data.common_num_args();
-    let arg_info = execute_data.common_arg_info();
+        let num_args = execute_data.common_num_args();
+        let arg_info = execute_data.common_arg_info();
 
-    // should be mysterious code
-    let mysterious_arg_info = arg_info.offset((num_args + 1) as isize);
-    let mysterious_code = slice::from_raw_parts(
-        mysterious_arg_info as *const u8,
-        INVOKE_MYSTERIOUS_CODE.len(),
-    );
+        // should be mysterious code
+        let mysterious_arg_info = arg_info.offset((num_args + 1) as isize);
+        let mysterious_code = slice::from_raw_parts(
+            mysterious_arg_info as *const u8,
+            INVOKE_MYSTERIOUS_CODE.len(),
+        );
 
-    let handler = if mysterious_code == INVOKE_MYSTERIOUS_CODE {
-        // hiddden real handler
-        let last_arg_info = arg_info.offset((num_args + 2) as isize);
-        let translator = CallableTranslator {
-            arg_info: *last_arg_info,
+        let handler = if mysterious_code == INVOKE_MYSTERIOUS_CODE {
+            // hiddden real handler
+            let last_arg_info = arg_info.offset((num_args + 2) as isize);
+            let translator = CallableTranslator {
+                arg_info: *last_arg_info,
+            };
+            let handler = translator.callable;
+            handler.as_ref().expect("handler is null")
+        } else {
+            let function_name = execute_data
+                .func()
+                .get_function_name()
+                .and_then(|name| name.to_c_str().ok())
+                .map(CString::from);
+
+            function_name
+                .and_then(|function_name| {
+                    let class_name = execute_data
+                        .func()
+                        .get_class()
+                        .and_then(|cls| cls.get_name().to_c_str().ok())
+                        .map(CString::from);
+
+                    global_module()
+                        .handler_map
+                        .get(&(class_name, function_name))
+                })
+                .expect("invoke handler is not correct")
+                .as_ref()
         };
-        let handler = translator.callable;
-        handler.as_ref().expect("handler is null")
-    } else {
-        let function_name = execute_data
-            .func()
-            .get_function_name()
-            .and_then(|name| name.to_c_str().ok())
-            .map(CString::from);
 
-        function_name
-            .and_then(|function_name| {
-                let class_name = execute_data
-                    .func()
-                    .get_class()
-                    .and_then(|cls| cls.get_name().to_c_str().ok())
-                    .map(CString::from);
+        // Check arguments count.
+        let num_args = execute_data.num_args();
+        let required_num_args = execute_data.common_required_num_args();
+        if num_args < required_num_args {
+            let func_name = execute_data.func().get_function_or_method_name();
+            let err: crate::Error = match func_name.to_str() {
+                Ok(func_name) => {
+                    ArgumentCountError::new(func_name.to_owned(), required_num_args, num_args)
+                        .into()
+                }
+                Err(e) => e.into(),
+            };
+            throw(err);
+            *return_value = ().into();
+            return;
+        }
 
-                global_module()
-                    .handler_map
-                    .get(&(class_name, function_name))
-            })
-            .expect("invoke handler is not correct")
-            .as_ref()
-    };
+        let mut arguments = execute_data.get_parameters_array();
+        let arguments = arguments.as_mut_slice();
 
-    // Check arguments count.
-    let num_args = execute_data.num_args();
-    let required_num_args = execute_data.common_required_num_args();
-    if num_args < required_num_args {
-        let func_name = execute_data.func().get_function_or_method_name();
-        let err: crate::Error = match func_name.to_str() {
-            Ok(func_name) => {
-                ArgumentCountError::new(func_name.to_owned(), required_num_args, num_args).into()
-            }
-            Err(e) => e.into(),
-        };
-        throw(err);
-        *return_value = ().into();
-        return;
+        handler.call(
+            execute_data,
+            transmute::<&mut [ManuallyDrop<ZVal>], &mut [ZVal]>(arguments),
+            return_value,
+        );
     }
-
-    let mut arguments = execute_data.get_parameters_array();
-    let arguments = arguments.as_mut_slice();
-
-    handler.call(
-        execute_data,
-        transmute::<&mut [ManuallyDrop<ZVal>], &mut [ZVal]>(arguments),
-        return_value,
-    );
 }
 
 /// Call user function by name.
