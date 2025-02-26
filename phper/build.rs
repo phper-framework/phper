@@ -11,13 +11,7 @@
 use phper_sys::*;
 
 fn main() {
-    phper_build::register_configures();
-
-    #[cfg(target_os = "macos")]
-    {
-        println!("cargo:rustc-link-arg=-undefined");
-        println!("cargo:rustc-link-arg=dynamic_lookup");
-    }
+    phper_build::register_all();
 
     assert_eq!(
         USING_ZTS, 0,
