@@ -29,6 +29,7 @@ fn test_cli() {
             "integration",
         ),
         &[
+            &tests_php_dir.join("phpinfo.php"),
             &tests_php_dir.join("arguments.php"),
             &tests_php_dir.join("arrays.php"),
             &tests_php_dir.join("classes.php"),
