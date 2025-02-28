@@ -113,10 +113,10 @@ unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
 
         php_info_print_table_start();
         if !module.version.as_bytes().is_empty() {
-            php_info_print_table_row(2, c"version", module.version.as_ptr());
+            php_info_print_table_row(2, c"version".as_ptr(), module.version.as_ptr());
         }
         if !module.author.as_bytes().is_empty() {
-            php_info_print_table_row(2, c"authors", module.author.as_ptr());
+            php_info_print_table_row(2, c"authors".as_ptr(), module.author.as_ptr());
         }
         for (key, value) in &module.infos {
             php_info_print_table_row(2, key.as_ptr(), value.as_ptr());
