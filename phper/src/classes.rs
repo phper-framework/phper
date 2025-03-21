@@ -30,6 +30,7 @@ use std::{
     marker::PhantomData,
     mem::{ManuallyDrop, replace, size_of, zeroed},
     os::raw::c_int,
+    ptr,
     ptr::null_mut,
     rc::Rc,
     slice,
@@ -48,6 +49,7 @@ pub fn array_access_class<'a>() -> &'a ClassEntry {
 }
 
 /// Wrapper of [zend_class_entry].
+#[derive(Clone)]
 #[repr(transparent)]
 pub struct ClassEntry {
     inner: zend_class_entry,
@@ -220,6 +222,14 @@ impl Debug for ClassEntry {
             .finish()
     }
 }
+
+impl PartialEq for ClassEntry {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self as *const _, other as *const _)
+    }
+}
+
+impl Eq for ClassEntry {}
 
 #[allow(clippy::useless_conversion)]
 fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {

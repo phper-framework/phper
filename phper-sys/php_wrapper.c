@@ -485,3 +485,31 @@ zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name) {
     info[0].name = name;
     return info[0];
 }
+
+zend_internal_arg_info phper_zend_arg_info_with_type(bool pass_by_ref,
+                                                    const char *name,
+                                                    uint32_t type_hint,
+                                                    bool allow_null) {
+#if PHP_VERSION_ID >= 70200
+    zend_internal_arg_info info[] = {
+        ZEND_ARG_TYPE_INFO(pass_by_ref, , type_hint, allow_null)
+    };
+#else
+    zend_internal_arg_info info[] = {
+        ZEND_ARG_TYPE_INFO(pass_by_ref, , type_hint, NULL, allow_null)
+    };
+#endif
+    info[0].name = name;
+    return info[0];
+}
+
+zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
+                                              const char *name,
+                                              const char *class_name,
+                                              bool allow_null) {
+    zend_internal_arg_info info[] = {
+        ZEND_ARG_OBJ_INFO(pass_by_ref, , class_name, allow_null)
+    };
+    info[0].name = name;
+    return info[0];
+}

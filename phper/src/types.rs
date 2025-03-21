@@ -10,7 +10,10 @@
 
 //! Apis relate to PHP types.
 
-use crate::sys::*;
+use crate::{
+    classes::ClassEntry,
+    sys::*,
+};
 use derive_more::From;
 use std::{
     ffi::CStr,
@@ -216,4 +219,37 @@ impl From<&[u8]> for Scalar {
     fn from(b: &[u8]) -> Self {
         Self::Bytes(b.to_owned())
     }
+}
+
+/// Wrapper of PHP typehints, used for arguments and return types.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeHint {
+    /// null typehint
+    Null,
+    /// bool typehint
+    Bool,
+    /// int typehint
+    Int,
+    /// float typehint
+    Float,
+    /// string typehint
+    String,
+    /// array typehint
+    Array,
+    /// object typehint
+    Object,
+    /// callable typehint
+    Callable,
+    /// iterable typehint
+    Iterable,
+    /// mixed typehint (php 8.0+)
+    Mixed,
+    /// void typehint
+    Void,
+    /// self typehint
+    This,
+    /// never typehint (php 8.1+)
+    Never,
+    /// class entry typehint
+    ClassEntry(ClassEntry),
 }

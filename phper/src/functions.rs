@@ -19,7 +19,7 @@ use crate::{
     objects::{StateObj, ZObj, ZObject},
     strings::{ZStr, ZString},
     sys::*,
-    types::TypeInfo,
+    types::{TypeHint, TypeInfo},
     utils::ensure_end_with_zero,
     values::{ExecuteData, ZVal},
 };
@@ -160,10 +160,93 @@ impl FunctionEntry {
             }
 
             for arg in arguments {
-                infos.push(phper_zend_arg_info(
-                    arg.pass_by_ref,
-                    arg.name.as_ptr().cast(),
-                ));
+                //if let Some(ref type_hint) = arg.type_hint {
+                //    println!("argument has a type-hint");
+                //}
+                //infos.push(phper_zend_arg_info(
+                //    arg.pass_by_ref,
+                //    arg.name.as_ptr().cast(),
+                //));
+
+                let arg_info = if let Some(ref type_hint) = arg.type_hint {
+                    match type_hint {
+                        TypeHint::Null => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_NULL, true)
+                        ),
+                        TypeHint::Bool => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), _IS_BOOL, arg.nullable)
+                        ),
+                        TypeHint::Int => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_LONG, arg.nullable)
+                        ),
+                        TypeHint::Float => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_DOUBLE, arg.nullable)
+                        ),
+                        TypeHint::String => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_STRING, arg.nullable)
+                        ),
+                        TypeHint::Array => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ARRAY, arg.nullable)
+                        ),
+                        TypeHint::Object => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_OBJECT, arg.nullable)
+                        ),
+                        /*TypeHint::Callable => {
+                            // Use ZEND_ARG_CALLABLE_INFO for callable typehint
+                            // You would need to implement this C function
+                            unsafe { phper_zend_arg_callable_info(arg.pass_by_ref, arg.name.as_ptr(), arg.nullable) }
+                        },*/
+                        TypeHint::Iterable => {
+                            // For iterable typehint - this might need a special handler or could use IS_ITERABLE
+                            // if defined in your PHP version
+                            Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ITERABLE, arg.nullable) )
+                        },
+                        TypeHint::Mixed => {
+                            // Mixed type - depends on PHP version, for PHP 8+ this might be a special constant
+                            // For PHP 8.0+, there might be a specific constant for mixed
+                            Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), 0, true) ) // 0 might be replaced with appropriate constant
+                        },
+                        TypeHint::Void => {
+                            // Void type - typically only used for return values, not arguments
+                            Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_VOID, false) )
+                        },
+                        TypeHint::This => {
+                            None
+                            // Some(phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr()))
+                        },
+                        TypeHint::Never => {
+                            // Never return type - PHP 8.1+
+                            // This is typically only for return values
+                            Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_NEVER, false) )
+                        },
+                        /*TypeHint::ClassEntry(class_entry) => {
+                            // Get the class name from the class entry
+                            let class_name = class_entry.get_name(); // Assuming get_name() returns a &str
+                            let temp_class_name = CString::new(class_name).unwrap();
+                            class_name_c = Some(temp_class_name);
+
+                            unsafe {
+                                phper_zend_arg_obj_info(
+                                    arg.pass_by_ref,
+                                    arg.name.as_ptr(),
+                                    class_name_c.as_ref().unwrap().as_ptr(),
+                                    arg.allow_null
+                                )
+                            }
+                        }*/
+                        _ => None
+                    }
+                } else {
+                    None
+                };
+
+                if let Some(arg_info) = arg_info {
+                    infos.push(arg_info);
+                } else {
+                    // No type hint, use the original function
+                    let default_arg_info = phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr());
+                    infos.push(default_arg_info);
+                }
             }
 
             infos.push(zeroed::<zend_internal_arg_info>());
@@ -307,8 +390,11 @@ impl MethodEntity {
 /// Function or method argument info.
 pub struct Argument {
     name: CString,
+    type_hint: Option<TypeHint>,
     pass_by_ref: bool,
     required: bool,
+    nullable: bool,
+    //default_value: Option<zval>, //TODO
 }
 
 impl Argument {
@@ -317,8 +403,10 @@ impl Argument {
         let name = ensure_end_with_zero(name);
         Self {
             name,
+            type_hint: None,
             pass_by_ref: false,
             required: true,
+            nullable: false,
         }
     }
 
@@ -327,8 +415,10 @@ impl Argument {
         let name = ensure_end_with_zero(name);
         Self {
             name,
+            type_hint: None,
             pass_by_ref: true,
             required: true,
+            nullable: false,
         }
     }
 
@@ -337,8 +427,10 @@ impl Argument {
         let name = ensure_end_with_zero(name);
         Self {
             name,
+            type_hint: None,
             pass_by_ref: false,
             required: false,
+            nullable: false,
         }
     }
 
@@ -347,15 +439,30 @@ impl Argument {
         let name = ensure_end_with_zero(name);
         Self {
             name,
+            type_hint: None,
             pass_by_ref: true,
             required: false,
+            nullable: false,
         }
+    }
+
+    /// Add a type-hint to the argument
+    pub fn with_type_hint(mut self, type_hint: TypeHint) -> Self {
+        self.type_hint = Some(type_hint);
+        self
+    }
+
+    /// Allow type-hint to be nullable
+    pub fn nullable(mut self) -> Self {
+        self.nullable = true;
+        self
     }
 }
 
 /// Function or method return type.
 pub struct ReturnType {
     type_info: TypeInfo,
+    type_hint: Option<TypeHint>,
     ret_by_ref: bool,
     allow_null: bool,
 }
@@ -366,6 +473,7 @@ impl ReturnType {
     pub fn by_val(type_info: TypeInfo) -> Self {
         Self {
             type_info,
+            type_hint: None,
             ret_by_ref: false,
             allow_null: false,
         }
@@ -376,6 +484,7 @@ impl ReturnType {
     pub fn by_ref(type_info: TypeInfo) -> Self {
         Self {
             type_info,
+            type_hint: None,
             ret_by_ref: true,
             allow_null: false,
         }
@@ -385,6 +494,12 @@ impl ReturnType {
     #[inline]
     pub fn allow_null(mut self) -> Self {
         self.allow_null = true;
+        self
+    }
+
+    /// Add a type-hint to the return type
+    pub fn with_type_hint(mut self, type_hint: TypeHint) -> Self {
+        self.type_hint = Some(type_hint);
         self
     }
 }
