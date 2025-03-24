@@ -11,7 +11,6 @@
 //! Apis relate to PHP types.
 
 use crate::{
-    classes::ClassEntry,
     sys::*,
 };
 use derive_more::From;
@@ -247,9 +246,9 @@ pub enum TypeHint {
     /// void typehint
     Void,
     /// self typehint
-    This,
+    _Self,
+    /// ClassEntry typehint (class, interface)
+    ClassEntry(String),
     /// never typehint (php 8.1+)
     Never,
-    /// class entry typehint
-    ClassEntry(ClassEntry),
 }

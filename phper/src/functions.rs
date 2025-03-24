@@ -191,11 +191,9 @@ impl FunctionEntry {
                         TypeHint::Object => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_OBJECT, arg.nullable)
                         ),
-                        /*TypeHint::Callable => {
-                            // Use ZEND_ARG_CALLABLE_INFO for callable typehint
-                            // You would need to implement this C function
-                            unsafe { phper_zend_arg_callable_info(arg.pass_by_ref, arg.name.as_ptr(), arg.nullable) }
-                        },*/
+                        TypeHint::Callable => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_CALLABLE, arg.nullable)
+                        ),
                         TypeHint::Iterable => {
                             // For iterable typehint - this might need a special handler or could use IS_ITERABLE
                             // if defined in your PHP version
@@ -206,35 +204,32 @@ impl FunctionEntry {
                             // For PHP 8.0+, there might be a specific constant for mixed
                             Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), 0, true) ) // 0 might be replaced with appropriate constant
                         },
-                        TypeHint::Void => {
-                            // Void type - typically only used for return values, not arguments
-                            Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_VOID, false) )
-                        },
-                        TypeHint::This => {
-                            None
-                            // Some(phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr()))
-                        },
-                        TypeHint::Never => {
-                            // Never return type - PHP 8.1+
-                            // This is typically only for return values
-                            Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_NEVER, false) )
-                        },
-                        /*TypeHint::ClassEntry(class_entry) => {
+                        TypeHint::ClassEntry(s) => {
+                            println!("typehint for class entry: {}", s);
                             // Get the class name from the class entry
+                            /*let class_entry = f();
                             let class_name = class_entry.get_name(); // Assuming get_name() returns a &str
                             let temp_class_name = CString::new(class_name).unwrap();
-                            class_name_c = Some(temp_class_name);
+                            let class_name_c = Some(temp_class_name);
 
-                            unsafe {
-                                phper_zend_arg_obj_info(
-                                    arg.pass_by_ref,
-                                    arg.name.as_ptr(),
-                                    class_name_c.as_ref().unwrap().as_ptr(),
-                                    arg.allow_null
-                                )
-                            }
-                        }*/
-                        _ => None
+                            Some( phper_zend_arg_obj_info(
+                                arg.pass_by_ref,
+                                arg.name.as_ptr(),
+                                class_name_c.as_ref().unwrap().as_ptr(),
+                                arg.nullable
+                            ))*/
+                            None
+                        },
+                        // everything from here is not relevant to function type-hints
+                        TypeHint::Void => {
+                            None
+                        },
+                        TypeHint::_Self => {
+                            None
+                        },
+                        TypeHint::Never => {
+                            None
+                        },
                     }
                 } else {
                     None
@@ -455,6 +450,18 @@ impl Argument {
     /// Allow type-hint to be nullable
     pub fn nullable(mut self) -> Self {
         self.nullable = true;
+        self
+    }
+
+    /// Argument is required (also see by_*<ref|val>)
+    pub fn required(mut self) -> Self {
+        self.required = true;
+        self
+    }
+
+    /// Argument is optional (also see by_<ref|val>_optional)
+    pub fn optional(mut self) -> Self {
+        self.required = false;
         self
     }
 }

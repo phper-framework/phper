@@ -28,9 +28,9 @@ function assert_false($value) {
     assert_eq($value, false);
 }
 
-function assert_eq($left, $right) {
+function assert_eq($left, $right, $message = '') {
     if ($left !== $right) {
-        throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));
+        throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s,\n message: %s,\n", var_export($left, true), var_export($right, true), $message));
     }
 }
 
