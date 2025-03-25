@@ -16,6 +16,7 @@ use phper::{
     functions::Argument,
     modules::Module,
     values::ZVal,
+    types::ReturnTypeHint,
 };
 use std::{collections::HashMap, convert::Infallible};
 
@@ -210,6 +211,6 @@ fn integrate_stringable(module: &mut Module) {
     cls.add_method("__toString", Visibility::Public, |_this, _: &mut [ZVal]| {
         phper::ok("string")
     })
-    .return_type(ReturnType::by_val(TypeInfo::STRING));
+    .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
     module.add_class(cls);
 }

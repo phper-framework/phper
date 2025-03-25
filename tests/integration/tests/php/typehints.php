@@ -21,7 +21,7 @@ $value = $foo->getValue();
 
 assert_eq($value, 'foobar');
 
-$typehintProvider = [
+$argumentTypehintProvider = [
     // <method>, <expected typehint>, <is nullable>, <is required>
     ['testString', 'string', false, true],
     ['testStringOptional', 'string', false, false],
@@ -58,13 +58,17 @@ $typehintProvider = [
     ['testIterableNullable', 'iterable', true, true],
 
     ['testNull', 'null', true, true],
+
+    ['testClassEntry', 'class_name', false, true],
+    ['testClassEntryOptional', 'class_name', false, false],
+    ['testClassEntryNullable', 'class_name', true, true],
 ];
 
 // typehints
-echo 'Testing TypeHints' . PHP_EOL;
-$c = new \IntegrationTest\TypeHints\C();
-$reflection = new ReflectionClass($c);
-foreach ($typehintProvider as $input) {
+echo 'Testing argument typehints' . PHP_EOL;
+$cls = new \IntegrationTest\TypeHints\ArgumentTypeHintTest();
+$reflection = new ReflectionClass($cls);
+foreach ($argumentTypehintProvider as $input) {
     echo(sprintf("%s..", $input[0]));
     $reflectionMethod = $reflection->getMethod($input[0]);
     $params = $reflectionMethod->getParameters();
@@ -73,9 +77,26 @@ foreach ($typehintProvider as $input) {
     $param = $params[0];
     $type = $param->getType();
     if (!in_array($input[1], ['mixed'])) {
-        assert_eq($input[1], (string)$type->getName(), 'has typehint type');
-        assert_eq($input[2], $type->allowsNull(), 'allows null');
+        assert_eq($input[1], (string)$type->getName(), sprintf('%s has typehint type', $input[0]));
+        assert_eq($input[2], $type->allowsNull(), sprintf('%s allows null', $input[0]));
     }
-    assert_eq($input[3], !$param->isOptional(), 'is optional');
+    assert_eq($input[3], !$param->isOptional(), sprintf('%s is optional', $input[0]));
     echo "PASS" . PHP_EOL;
+}
+
+// return typehints
+$returnTypehintProvider = [
+    // <method>, <expected typehint>, <is nullable>
+    ['returnString', 'string', false],
+];
+echo PHP_EOL . 'Testing return typehints' . PHP_EOL;
+$cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
+$reflection = new ReflectionClass($cls);
+foreach ($returnTypehintProvider as $input) {
+    echo(sprintf("%s..", $input[0]));
+    $reflectionMethod = $reflection->getMethod($input[0]);
+    $return = $reflectionMethod->getReturnType();
+    assert_eq($input[1], $return->getName(), sprintf('%s has typehint type', $input[0]));
+    assert_eq($input[2], $return->allowsNull(), sprintf('%s allows null', $input[0]));
+    echo 'PASS' . PHP_EOL;
 }

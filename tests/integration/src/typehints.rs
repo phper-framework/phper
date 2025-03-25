@@ -14,21 +14,24 @@ use phper::{
     },
     functions::{Argument, ReturnType},
     modules::Module,
-    types::{TypeHint, TypeInfo},
+    types::{ArgumentTypeHint, ReturnTypeHint, TypeInfo},
     values::ZVal,
 };
+
+const I_FOO: &str = r"IntegrationTest\TypeHints\IFoo";
 
 pub fn integrate(module: &mut Module) {
     let i_foo = module.add_interface(make_i_foo_interface());
     let a_class = module.add_class(make_foo_class(i_foo.clone()));
     let _b_class = module.add_class(make_b_class(a_class.clone(), i_foo.clone()));
-    let _c_class = module.add_class(make_c_class(i_foo.clone()));
+    let _ = module.add_class(make_arg_typehint_class());
+    let _ = module.add_class(make_return_typehint_class());
 }
 
 fn make_i_foo_interface() -> InterfaceEntity {
     let mut interface = InterfaceEntity::new(r"IntegrationTest\TypeHints\IFoo");
     interface.add_method("getValue")
-        .return_type(ReturnType::by_val(TypeInfo::STRING));
+        .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
     interface.add_method("setValue")
         .argument(Argument::by_val("foo"));
 
@@ -54,7 +57,7 @@ fn make_foo_class(
                 .to_owned();
             Ok::<_, phper::Error>(value)
         })
-        .return_type(ReturnType::by_val(TypeInfo::STRING));
+        .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
 
     class
         .add_method("setValue", Visibility::Public, |this, arguments| {
@@ -85,31 +88,29 @@ fn make_b_class(
     class
 }
 
-fn make_c_class(
-    _i_foo: Interface,
-) ->ClassEntity<()> {
-    let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\C");
+fn make_arg_typehint_class() ->ClassEntity<()> {
+    let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\ArgumentTypeHintTest");
     // String tests
     class
         .add_method("testString", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_z_str()?.to_str()?.to_string();
             phper::ok(())
         })
-        .argument(Argument::by_val("string_value").with_type_hint(TypeHint::String));
+        .argument(Argument::by_val("string_value").with_type_hint(ArgumentTypeHint::String));
 
     class
         .add_method("testStringOptional", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_z_str()?.to_str()?.to_string();
             phper::ok(())
         })
-        .argument(Argument::by_val("string_value").with_type_hint(TypeHint::String).optional());
+        .argument(Argument::by_val("string_value").with_type_hint(ArgumentTypeHint::String).optional());
 
     class
         .add_method("testStringNullable", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_z_str()?.to_str()?.to_string();
             phper::ok(())
         })
-        .argument(Argument::by_val("string_value").with_type_hint(TypeHint::String).nullable());
+        .argument(Argument::by_val("string_value").with_type_hint(ArgumentTypeHint::String).nullable());
 
     // Bool tests
     class
@@ -117,21 +118,21 @@ fn make_c_class(
             let _ = arguments[0].as_bool();
             phper::ok(())
         })
-        .argument(Argument::by_val("bool_value").with_type_hint(TypeHint::Bool));
+        .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool));
 
     class
         .add_method("testBoolNullable", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].as_bool();
             phper::ok(())
         })
-        .argument(Argument::by_val("bool_value").with_type_hint(TypeHint::Bool).nullable());
+        .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool).nullable());
 
     class
         .add_method("testBoolOptional", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_bool()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("bool_value").with_type_hint(TypeHint::Bool).optional());
+        .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool).optional());
 
     // Int tests
     class
@@ -139,21 +140,21 @@ fn make_c_class(
             let _ = arguments[0].expect_long()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("int_value").with_type_hint(TypeHint::Int));
+        .argument(Argument::by_val("int_value").with_type_hint(ArgumentTypeHint::Int));
 
     class
         .add_method("testIntNullable", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_long()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("int_value").with_type_hint(TypeHint::Int).nullable());
+        .argument(Argument::by_val("int_value").with_type_hint(ArgumentTypeHint::Int).nullable());
 
     class
         .add_method("testIntOptional", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_long()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("int_value").with_type_hint(TypeHint::Int).optional());
+        .argument(Argument::by_val("int_value").with_type_hint(ArgumentTypeHint::Int).optional());
 
     // Float tests
     class
@@ -161,21 +162,21 @@ fn make_c_class(
             let _ = arguments[0].expect_double()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("float_value").with_type_hint(TypeHint::Float));
+        .argument(Argument::by_val("float_value").with_type_hint(ArgumentTypeHint::Float));
 
     class
         .add_method("testFloatOptional", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_double()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("float_value").with_type_hint(TypeHint::Float).optional());
+        .argument(Argument::by_val("float_value").with_type_hint(ArgumentTypeHint::Float).optional());
 
     class
         .add_method("testFloatNullable", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_double()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("float_value").with_type_hint(TypeHint::Float).nullable());
+        .argument(Argument::by_val("float_value").with_type_hint(ArgumentTypeHint::Float).nullable());
 
     // Array tests
     class
@@ -183,109 +184,119 @@ fn make_c_class(
             let _ = arguments[0].expect_z_arr()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("array_value").with_type_hint(TypeHint::Array));
+        .argument(Argument::by_val("array_value").with_type_hint(ArgumentTypeHint::Array));
 
     class
         .add_method("testArrayOptional", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_z_arr()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("array_value").with_type_hint(TypeHint::Array).optional());
+        .argument(Argument::by_val("array_value").with_type_hint(ArgumentTypeHint::Array).optional());
 
     class
         .add_method("testArrayNullable", Visibility::Public, move |_, arguments| {
             let _ = arguments[0].expect_z_arr()?;
             phper::ok(())
         })
-        .argument(Argument::by_val("array_value").with_type_hint(TypeHint::Array).nullable());
+        .argument(Argument::by_val("array_value").with_type_hint(ArgumentTypeHint::Array).nullable());
 
     // Mixed tests
     class
         .add_method("testMixed", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("mixed_value").with_type_hint(TypeHint::Mixed));
+        .argument(Argument::by_val("mixed_value").with_type_hint(ArgumentTypeHint::Mixed));
 
     // Callable tests
     class
         .add_method("testCallable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("callable_value").with_type_hint(TypeHint::Callable));
+        .argument(Argument::by_val("callable_value").with_type_hint(ArgumentTypeHint::Callable));
 
     class
         .add_method("testCallableNullable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("callable_value").with_type_hint(TypeHint::Callable).nullable());
+        .argument(Argument::by_val("callable_value").with_type_hint(ArgumentTypeHint::Callable).nullable());
 
     class
         .add_method("testCallableOptional", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("callable_value").with_type_hint(TypeHint::Callable).optional());
+        .argument(Argument::by_val("callable_value").with_type_hint(ArgumentTypeHint::Callable).optional());
 
     class
         .add_method("testObject", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("object_value").with_type_hint(TypeHint::Object));
+        .argument(Argument::by_val("object_value").with_type_hint(ArgumentTypeHint::Object));
 
     class
         .add_method("testObjectNullable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("object_value").with_type_hint(TypeHint::Object).nullable());
+        .argument(Argument::by_val("object_value").with_type_hint(ArgumentTypeHint::Object).nullable());
 
     class
         .add_method("testObjectOptional", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("object_value").with_type_hint(TypeHint::Object).optional());
+        .argument(Argument::by_val("object_value").with_type_hint(ArgumentTypeHint::Object).optional());
 
     class
         .add_method("testIterable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("iterable_value").with_type_hint(TypeHint::Iterable));
+        .argument(Argument::by_val("iterable_value").with_type_hint(ArgumentTypeHint::Iterable));
 
     class
         .add_method("testIterableNullable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("iterable_value").with_type_hint(TypeHint::Iterable).nullable());
+        .argument(Argument::by_val("iterable_value").with_type_hint(ArgumentTypeHint::Iterable).nullable());
 
     class
         .add_method("testIterableOptional", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("iterable_value").with_type_hint(TypeHint::Iterable).optional());
+        .argument(Argument::by_val("iterable_value").with_type_hint(ArgumentTypeHint::Iterable).optional());
 
     class
         .add_method("testNull", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("null_value").with_type_hint(TypeHint::Null));
+        .argument(Argument::by_val("null_value").with_type_hint(ArgumentTypeHint::Null));
 
-    // Class type test (assuming you have a classEntry for "DateTime")
     class
         .add_method("testClassEntry", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("classentry").with_type_hint(TypeHint::ClassEntry(String::from("todo"))));
+        .argument(Argument::by_val("classentry").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))));
 
-    /*class
-        .add_method("testClassNullable", Visibility::Public, move |_, arguments| {
-            if arguments[0].is_null() {
-                phper::ok("null")
-            } else {
-                let obj = arguments[0].expect_z_obj()?;
-                let class_name = obj.get_class_name()?;
-                phper::ok(class_name)
-            }
+    class
+        .add_method("testClassEntryNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
         })
-        .argument(Argument::by_val("datetime_obj").with_type_hint(TypeHint::ClassEntry(get_date_time_class_entry())).nullable());*/
+        .argument(Argument::by_val("classentry").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))).nullable());
 
+    class
+        .add_method("testClassEntryOptional", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(Argument::by_val("classentry").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))).optional());
+
+    class
+}
+
+fn make_return_typehint_class() ->ClassEntity<()> {
+    let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\ReturnTypeHintTest");
+    // String tests
+    class
+        .add_method("returnString", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
 
     class
 }

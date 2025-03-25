@@ -19,7 +19,7 @@ use crate::{
     objects::{StateObj, ZObj, ZObject},
     strings::{ZStr, ZString},
     sys::*,
-    types::{TypeHint, TypeInfo},
+    types::{ArgumentTypeHint, ReturnTypeHint, TypeInfo},
     utils::ensure_end_with_zero,
     values::{ExecuteData, ZVal},
 };
@@ -149,86 +149,90 @@ impl FunctionEntry {
             let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
 
             if let Some(return_type) = return_type {
-                infos.push(phper_zend_begin_arg_with_return_type_info_ex(
-                    return_type.ret_by_ref,
-                    require_arg_count,
-                    return_type.type_info.into_raw(),
-                    return_type.allow_null,
-                ));
+                if let Some(type_hint) = &return_type.type_hint {
+                    let ret_info = match type_hint {
+                        ReturnTypeHint::String => phper_zend_begin_arg_with_return_type_info_ex(
+                            return_type.ret_by_ref,
+                            require_arg_count,
+                            IS_STRING,
+                            return_type.allow_null,
+                        ),
+                        _ => phper_zend_begin_arg_with_return_type_info_ex(
+                            return_type.ret_by_ref,
+                            require_arg_count,
+                            return_type.type_info.into_raw(),
+                            return_type.allow_null,
+                        ),
+                    };
+                    infos.push(ret_info);
+                } else {
+                    infos.push(phper_zend_begin_arg_with_return_type_info_ex(
+                        return_type.ret_by_ref,
+                        require_arg_count,
+                        return_type.type_info.into_raw(),
+                        return_type.allow_null,
+                    ));
+                }
             } else {
                 infos.push(phper_zend_begin_arg_info_ex(false, require_arg_count));
             }
 
             for arg in arguments {
-                //if let Some(ref type_hint) = arg.type_hint {
-                //    println!("argument has a type-hint");
-                //}
-                //infos.push(phper_zend_arg_info(
-                //    arg.pass_by_ref,
-                //    arg.name.as_ptr().cast(),
-                //));
-
                 let arg_info = if let Some(ref type_hint) = arg.type_hint {
                     match type_hint {
-                        TypeHint::Null => Some(
+                        ArgumentTypeHint::Null => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_NULL, true)
                         ),
-                        TypeHint::Bool => Some(
+                        ArgumentTypeHint::Bool => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), _IS_BOOL, arg.nullable)
                         ),
-                        TypeHint::Int => Some(
+                        ArgumentTypeHint::Int => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_LONG, arg.nullable)
                         ),
-                        TypeHint::Float => Some(
+                        ArgumentTypeHint::Float => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_DOUBLE, arg.nullable)
                         ),
-                        TypeHint::String => Some(
+                        ArgumentTypeHint::String => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_STRING, arg.nullable)
                         ),
-                        TypeHint::Array => Some(
+                        ArgumentTypeHint::Array => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ARRAY, arg.nullable)
                         ),
-                        TypeHint::Object => Some(
+                        ArgumentTypeHint::Object => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_OBJECT, arg.nullable)
                         ),
-                        TypeHint::Callable => Some(
+                        ArgumentTypeHint::Callable => Some(
                             phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_CALLABLE, arg.nullable)
                         ),
-                        TypeHint::Iterable => {
+                        ArgumentTypeHint::Iterable => {
                             // For iterable typehint - this might need a special handler or could use IS_ITERABLE
                             // if defined in your PHP version
                             Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ITERABLE, arg.nullable) )
                         },
-                        TypeHint::Mixed => {
+                        ArgumentTypeHint::Mixed => {
                             // Mixed type - depends on PHP version, for PHP 8+ this might be a special constant
                             // For PHP 8.0+, there might be a specific constant for mixed
                             Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), 0, true) ) // 0 might be replaced with appropriate constant
                         },
-                        TypeHint::ClassEntry(s) => {
-                            println!("typehint for class entry: {}", s);
-                            // Get the class name from the class entry
-                            /*let class_entry = f();
-                            let class_name = class_entry.get_name(); // Assuming get_name() returns a &str
-                            let temp_class_name = CString::new(class_name).unwrap();
-                            let class_name_c = Some(temp_class_name);
-
-                            Some( phper_zend_arg_obj_info(
-                                arg.pass_by_ref,
-                                arg.name.as_ptr(),
-                                class_name_c.as_ref().unwrap().as_ptr(),
-                                arg.nullable
-                            ))*/
-                            None
-                        },
-                        // everything from here is not relevant to function type-hints
-                        TypeHint::Void => {
-                            None
-                        },
-                        TypeHint::_Self => {
-                            None
-                        },
-                        TypeHint::Never => {
-                            None
+                        ArgumentTypeHint::ClassEntry(class_name) => {
+                            println!("typehint for class entry: {}", class_name);
+                            match CString::new(class_name.clone()) {
+                                Ok(c_class_name) => {
+                                    // Defer actual class entry lookup
+                                    // Use zend_arg_obj_info with just the class name string
+                                    Some(phper_zend_arg_obj_info(
+                                        arg.pass_by_ref,       // Whether argument is passed by reference
+                                        arg.name.as_ptr(),     // Argument name
+                                        c_class_name.as_ptr(), // Class name as C string
+                                        arg.nullable           // Whether the argument can be null
+                                    ))
+                                },
+                                Err(_) => {
+                                    // Handle invalid class name (contains null byte)
+                                    eprintln!("Invalid class name: {}", class_name);
+                                    None
+                                }
+                            }
                         },
                     }
                 } else {
@@ -385,7 +389,7 @@ impl MethodEntity {
 /// Function or method argument info.
 pub struct Argument {
     name: CString,
-    type_hint: Option<TypeHint>,
+    type_hint: Option<ArgumentTypeHint>,
     pass_by_ref: bool,
     required: bool,
     nullable: bool,
@@ -442,7 +446,7 @@ impl Argument {
     }
 
     /// Add a type-hint to the argument
-    pub fn with_type_hint(mut self, type_hint: TypeHint) -> Self {
+    pub fn with_type_hint(mut self, type_hint: ArgumentTypeHint) -> Self {
         self.type_hint = Some(type_hint);
         self
     }
@@ -469,7 +473,7 @@ impl Argument {
 /// Function or method return type.
 pub struct ReturnType {
     type_info: TypeInfo,
-    type_hint: Option<TypeHint>,
+    type_hint: Option<ReturnTypeHint>,
     ret_by_ref: bool,
     allow_null: bool,
 }
@@ -505,7 +509,7 @@ impl ReturnType {
     }
 
     /// Add a type-hint to the return type
-    pub fn with_type_hint(mut self, type_hint: TypeHint) -> Self {
+    pub fn with_type_hint(mut self, type_hint: ReturnTypeHint) -> Self {
         self.type_hint = Some(type_hint);
         self
     }

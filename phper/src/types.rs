@@ -220,9 +220,9 @@ impl From<&[u8]> for Scalar {
     }
 }
 
-/// Wrapper of PHP typehints, used for arguments and return types.
+/// PHP argument typehints
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeHint {
+pub enum ArgumentTypeHint {
     /// null typehint
     Null,
     /// bool typehint
@@ -243,12 +243,39 @@ pub enum TypeHint {
     Iterable,
     /// mixed typehint (php 8.0+)
     Mixed,
-    /// void typehint
-    Void,
-    /// self typehint
-    _Self,
     /// ClassEntry typehint (class, interface)
     ClassEntry(String),
-    /// never typehint (php 8.1+)
+}
+
+/// PHP return typehints
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReturnTypeHint {
+    /// null typehint
+    Null,
+    /// bool typehint
+    Bool,
+    /// int typehint
+    Int,
+    /// float typehint
+    Float,
+    /// string typehint
+    String,
+    /// array typehint
+    Array,
+    /// object typehint
+    Object,
+    /// callable typehint
+    Callable,
+    /// iterable typehint
+    Iterable,
+    /// mixed typehint (php 8.0+)
+    Mixed,
+    /// ClassEntry typehint (class, interface)
+    ClassEntry(String),
+    /// self typehint
+    _Self,
+    /// never typehint (8.2+)
     Never,
+    /// void typehint
+    Void,
 }
