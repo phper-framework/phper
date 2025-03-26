@@ -272,9 +272,7 @@ pub enum ReturnTypeHint {
     Mixed,
     /// ClassEntry typehint (class, interface)
     ClassEntry(String),
-    /// self typehint
-    _Self,
-    /// never typehint (8.2+)
+    /// never typehint (8.1+)
     Never,
     /// void typehint
     Void,

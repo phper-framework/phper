@@ -87,7 +87,28 @@ foreach ($argumentTypehintProvider as $input) {
 // return typehints
 $returnTypehintProvider = [
     // <method>, <expected typehint>, <is nullable>
+    ['returnNull', 'null', true],
+    ['returnBool', 'bool', false],
+    ['returnBoolNullable', 'bool', true],
+    ['returnInt', 'int', false],
+    ['returnIntNullable', 'int', true],
+    ['returnFloat', 'float', false],
+    ['returnFloatNullable', 'float', true],
     ['returnString', 'string', false],
+    ['returnStringNullable', 'string', true],
+    ['returnArray', 'array', false],
+    ['returnArrayNullable', 'array', true],
+    ['returnObject', 'object', false],
+    ['returnObjectNullable', 'object', true],
+    ['returnCallable', 'callable', false],
+    ['returnCallableNullable', 'callable', true],
+    ['returnIterable', 'iterable', false],
+    ['returnIterableNullable', 'iterable', true],
+    ['returnMixed', 'mixed', true],
+    ['returnNever', 'never', false],
+    ['returnVoid', 'void', false],
+    ['returnClassEntry', 'class_name', false],
+    ['returnClassEntryNullable', 'class_name', true],
 ];
 echo PHP_EOL . 'Testing return typehints' . PHP_EOL;
 $cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
@@ -100,3 +121,20 @@ foreach ($returnTypehintProvider as $input) {
     assert_eq($input[2], $return->allowsNull(), sprintf('%s allows null', $input[0]));
     echo 'PASS' . PHP_EOL;
 }
+
+// test class entry type-hints with an instance
+$foo = new class implements \IntegrationTest\TypeHints\IFoo {
+    private $value;
+    public function getValue(): string {
+        return $this->value;
+    }
+    public function setValue($value): void {
+        $this->value = $value;
+    }
+};
+
+$foo->setValue('hello');
+assert_eq('hello', $foo->getValue());
+
+$handler = new \IntegrationTest\TypeHints\FooHandler();
+assert_eq($foo, $handler->handle($foo));

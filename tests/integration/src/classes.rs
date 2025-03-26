@@ -204,13 +204,13 @@ fn integrate_static_props(module: &mut Module) {
 
 #[cfg(phper_major_version = "8")]
 fn integrate_stringable(module: &mut Module) {
-    use phper::{functions::ReturnType, types::TypeInfo};
+    use phper::{functions::ReturnType};
 
     let mut cls = ClassEntity::new(r"IntegrationTest\FooString");
     cls.implements(|| ClassEntry::from_globals("Stringable").unwrap());
     cls.add_method("__toString", Visibility::Public, |_this, _: &mut [ZVal]| {
         phper::ok("string")
     })
-    .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
+    .return_type(ReturnType::by_val(ReturnTypeHint::String));
     module.add_class(cls);
 }

@@ -14,7 +14,7 @@ use phper::{
     },
     functions::{Argument, ReturnType},
     modules::Module,
-    types::{ArgumentTypeHint, ReturnTypeHint, TypeInfo},
+    types::{ArgumentTypeHint, ReturnTypeHint},
     values::ZVal,
 };
 
@@ -22,8 +22,9 @@ const I_FOO: &str = r"IntegrationTest\TypeHints\IFoo";
 
 pub fn integrate(module: &mut Module) {
     let i_foo = module.add_interface(make_i_foo_interface());
-    let a_class = module.add_class(make_foo_class(i_foo.clone()));
-    let _b_class = module.add_class(make_b_class(a_class.clone(), i_foo.clone()));
+    let foo_class = module.add_class(make_foo_class(i_foo.clone()));
+    let _ = module.add_class(make_b_class(foo_class.clone(), i_foo.clone()));
+    let _ = module.add_class(make_foo_handler());
     let _ = module.add_class(make_arg_typehint_class());
     let _ = module.add_class(make_return_typehint_class());
 }
@@ -31,11 +32,23 @@ pub fn integrate(module: &mut Module) {
 fn make_i_foo_interface() -> InterfaceEntity {
     let mut interface = InterfaceEntity::new(r"IntegrationTest\TypeHints\IFoo");
     interface.add_method("getValue")
-        .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
+        .return_type(ReturnType::by_val(ReturnTypeHint::String));
     interface.add_method("setValue")
-        .argument(Argument::by_val("foo"));
+        .argument(Argument::by_val("value"));
 
     interface
+}
+
+fn make_foo_handler() -> ClassEntity<()> {
+    let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\FooHandler");
+
+    class.add_method("handle", Visibility::Public, |_,arguments| {
+        phper::ok(arguments[0].clone())
+    })
+        .argument(Argument::by_val("foo").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))))
+        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(String::from(I_FOO))));
+
+    class
 }
 
 fn make_foo_class(
@@ -57,7 +70,7 @@ fn make_foo_class(
                 .to_owned();
             Ok::<_, phper::Error>(value)
         })
-        .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
+        .return_type(ReturnType::by_val(ReturnTypeHint::String));
 
     class
         .add_method("setValue", Visibility::Public, |this, arguments| {
@@ -291,12 +304,137 @@ fn make_arg_typehint_class() ->ClassEntity<()> {
 
 fn make_return_typehint_class() ->ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\ReturnTypeHintTest");
-    // String tests
+    class
+        .add_method("returnNull", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Null));
+
     class
         .add_method("returnString", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .return_type(ReturnType::by_val(TypeInfo::STRING).with_type_hint(ReturnTypeHint::String));
+        .return_type(ReturnType::by_val(ReturnTypeHint::String));
+
+    class
+        .add_method("returnStringNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::String).allow_null());
+
+    class
+        .add_method("returnBool", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Bool));
+
+    class
+        .add_method("returnBoolNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Bool).allow_null());
+
+    class
+        .add_method("returnInt", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Int));
+
+    class
+        .add_method("returnIntNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Int).allow_null());
+
+    class
+        .add_method("returnFloat", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Float));
+
+    class
+        .add_method("returnFloatNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Float).allow_null());
+
+    class
+        .add_method("returnArray", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Array));
+
+    class
+        .add_method("returnArrayNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Array).allow_null());
+
+    class
+        .add_method("returnObject", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Object));
+
+    class
+        .add_method("returnObjectNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Object).allow_null());
+
+    class
+        .add_method("returnCallable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Callable));
+
+    class
+        .add_method("returnCallableNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Callable).allow_null());
+
+    class
+        .add_method("returnIterable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Iterable));
+
+    class
+        .add_method("returnIterableNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Iterable).allow_null());
+
+    class
+        .add_method("returnMixed", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Mixed));
+
+    class
+        .add_method("returnClassEntry", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(String::from(I_FOO))));
+
+    class
+        .add_method("returnClassEntryNullable", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(String::from(I_FOO))).allow_null());
+
+    class
+        .add_method("returnNever", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Never));
+
+    class
+        .add_method("returnVoid", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Void));
 
     class
 }
