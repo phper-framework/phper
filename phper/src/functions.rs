@@ -596,7 +596,8 @@ impl Argument {
 
     /// Argument default value. Example: "'a-string'", "A_CONST", "42",
     /// "[0=>'zero']"
-    pub fn with_default_value(mut self, default_value: CString) -> Self {
+    pub fn with_default_value(mut self, default_value: impl Into<String>) -> Self {
+        let default_value = ensure_end_with_zero(default_value);
         self.default_value = Some(default_value);
         self.required = false; // arg with default value does not count towards required arg count
         self

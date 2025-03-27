@@ -15,7 +15,6 @@ use phper::{
     types::{ArgumentTypeHint, ReturnTypeHint},
     values::ZVal,
 };
-use std::ffi::CString;
 
 const I_FOO: &str = r"IntegrationTest\TypeHints\IFoo";
 
@@ -32,32 +31,32 @@ pub fn integrate(module: &mut Module) {
         .argument(
             Argument::by_val("s")
                 .with_type_hint(ArgumentTypeHint::String)
-                .with_default_value(CString::new("'foobarbaz'").unwrap()),
+                .with_default_value("'foobarbaz'"),
         )
         .argument(
             Argument::by_val("i")
                 .with_type_hint(ArgumentTypeHint::Int)
-                .with_default_value(CString::new("42").unwrap()),
+                .with_default_value("42"),
         )
         .argument(
             Argument::by_val("f")
                 .with_type_hint(ArgumentTypeHint::Float)
-                .with_default_value(CString::new("7.89").unwrap()),
+                .with_default_value("7.89"),
         )
         .argument(
             Argument::by_val("b")
                 .with_type_hint(ArgumentTypeHint::Bool)
-                .with_default_value(CString::new("true").unwrap()),
+                .with_default_value("true"),
         )
         .argument(
             Argument::by_val("a")
                 .with_type_hint(ArgumentTypeHint::Array)
-                .with_default_value(CString::new("['a'=>'b']").unwrap()),
+                .with_default_value("['a'=>'b']"),
         )
         .argument(
             Argument::by_val("m")
                 .with_type_hint(ArgumentTypeHint::Mixed)
-                .with_default_value(CString::new("1.23").unwrap()),
+                .with_default_value("1.23"),
         )
         .return_type(ReturnType::by_val(ReturnTypeHint::Void));
 }
@@ -590,7 +589,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("string_value")
                 .with_type_hint(ArgumentTypeHint::String)
-                .with_default_value(CString::new("'foobarbaz'").unwrap()),
+                .with_default_value("'foobarbaz'"),
         ); //NB single quotes!
 
     class
@@ -600,7 +599,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("const_value")
                 .with_type_hint(ArgumentTypeHint::String)
-                .with_default_value(CString::new("PHP_VERSION").unwrap()),
+                .with_default_value("PHP_VERSION"),
         );
 
     class
@@ -610,7 +609,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("bool_value")
                 .with_type_hint(ArgumentTypeHint::Bool)
-                .with_default_value(CString::new("true").unwrap()),
+                .with_default_value("true"),
         );
 
     class
@@ -620,7 +619,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("bool_value")
                 .with_type_hint(ArgumentTypeHint::Bool)
-                .with_default_value(CString::new("false").unwrap()),
+                .with_default_value("false"),
         );
 
     class
@@ -628,7 +627,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("int_value")
                 .with_type_hint(ArgumentTypeHint::Int)
-                .with_default_value(CString::new("42").unwrap()),
+                .with_default_value("42"),
         );
 
     class
@@ -640,7 +639,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("float_value")
                 .with_type_hint(ArgumentTypeHint::Float)
-                .with_default_value(CString::new("3.14159").unwrap()),
+                .with_default_value("3.14159"),
         );
 
     class
@@ -652,7 +651,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("array_value")
                 .with_type_hint(ArgumentTypeHint::Array)
-                .with_default_value(CString::new("['a' => 'b']").unwrap()),
+                .with_default_value("['a' => 'b']"),
         );
 
     class
@@ -662,7 +661,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("iterable_value")
                 .with_type_hint(ArgumentTypeHint::Iterable)
-                .with_default_value(CString::new("[0 => 1]").unwrap()),
+                .with_default_value("[0 => 1]"),
         );
 
     class
@@ -674,7 +673,7 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         .argument(
             Argument::by_val("mixed_value")
                 .with_type_hint(ArgumentTypeHint::Mixed)
-                .with_default_value(CString::new("999").unwrap()),
+                .with_default_value("999"),
         );
 
     class

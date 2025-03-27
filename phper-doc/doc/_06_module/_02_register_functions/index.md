@@ -89,7 +89,6 @@ a nullable class (in this case, an interface), and a string with a default value
 ```rust,no_run
 use phper::{modules::Module, php_get_module, functions::Argument, echo};
 use phper::types::ArgumentTypeHint;
-use std::ffi::CString;
 
 #[php_get_module]
 pub fn get_module() -> Module {
@@ -103,7 +102,7 @@ pub fn get_module() -> Module {
         Ok(())
     })
     .argument(Argument::by_val("a_class").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface"))).allow_null())
-    .argument(Argument::by_val("name").with_type_hint(ArgumentTypeHint::String).with_default_value(CString::new("'my_default'").unwrap()))
+    .argument(Argument::by_val("name").with_type_hint(ArgumentTypeHint::String).with_default_value("'my_default'"))
     .argument(Argument::by_val("optional_bool").with_type_hint(ArgumentTypeHint::Bool).optional());
 
     module
