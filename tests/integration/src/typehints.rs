@@ -9,9 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::{
-        ClassEntity, Interface, InterfaceEntity, StateClass, Visibility,
-    },
+    classes::{ClassEntity, Interface, InterfaceEntity, StateClass, Visibility},
     functions::{Argument, ReturnType},
     modules::Module,
     types::{ArgumentTypeHint, ReturnTypeHint},
@@ -29,25 +27,48 @@ pub fn integrate(module: &mut Module) {
     module.add_class(make_arg_typehint_class());
     module.add_class(make_return_typehint_class());
     module.add_class(make_arg_default_value_class());
-    module.add_function("integration_function_typehints", |_| {
-            phper::ok(())
-            },
+    module
+        .add_function("integration_function_typehints", |_| phper::ok(()))
+        .argument(
+            Argument::by_val("s")
+                .with_type_hint(ArgumentTypeHint::String)
+                .with_default_value(CString::new("'foobarbaz'").unwrap()),
         )
-        .argument(Argument::by_val("s").with_type_hint(ArgumentTypeHint::String).with_default_value(CString::new("'foobarbaz'").unwrap()))
-        .argument(Argument::by_val("i").with_type_hint(ArgumentTypeHint::Int).with_default_value(CString::new("42").unwrap()))
-        .argument(Argument::by_val("f").with_type_hint(ArgumentTypeHint::Float).with_default_value(CString::new("7.89").unwrap()))
-        .argument(Argument::by_val("b").with_type_hint(ArgumentTypeHint::Bool).with_default_value(CString::new("true").unwrap()))
-        .argument(Argument::by_val("a").with_type_hint(ArgumentTypeHint::Array).with_default_value(CString::new("['a'=>'b']").unwrap()))
-        .argument(Argument::by_val("m").with_type_hint(ArgumentTypeHint::Mixed).with_default_value(CString::new("1.23").unwrap()))
+        .argument(
+            Argument::by_val("i")
+                .with_type_hint(ArgumentTypeHint::Int)
+                .with_default_value(CString::new("42").unwrap()),
+        )
+        .argument(
+            Argument::by_val("f")
+                .with_type_hint(ArgumentTypeHint::Float)
+                .with_default_value(CString::new("7.89").unwrap()),
+        )
+        .argument(
+            Argument::by_val("b")
+                .with_type_hint(ArgumentTypeHint::Bool)
+                .with_default_value(CString::new("true").unwrap()),
+        )
+        .argument(
+            Argument::by_val("a")
+                .with_type_hint(ArgumentTypeHint::Array)
+                .with_default_value(CString::new("['a'=>'b']").unwrap()),
+        )
+        .argument(
+            Argument::by_val("m")
+                .with_type_hint(ArgumentTypeHint::Mixed)
+                .with_default_value(CString::new("1.23").unwrap()),
+        )
         .return_type(ReturnType::by_val(ReturnTypeHint::Void));
-
 }
 
 fn make_i_foo_interface() -> InterfaceEntity {
     let mut interface = InterfaceEntity::new(r"IntegrationTest\TypeHints\IFoo");
-    interface.add_method("getValue")
+    interface
+        .add_method("getValue")
         .return_type(ReturnType::by_val(ReturnTypeHint::String));
-    interface.add_method("setValue")
+    interface
+        .add_method("setValue")
         .argument(Argument::by_val("value"));
 
     interface
@@ -56,27 +77,30 @@ fn make_i_foo_interface() -> InterfaceEntity {
 fn make_foo_handler() -> ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\FooHandler");
 
-    class.add_method("handle", Visibility::Public, |_,arguments| {
-        phper::ok(arguments[0].clone())
-    })
-        .argument(Argument::by_val("foo").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))))
-        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(String::from(I_FOO))));
+    class
+        .add_method("handle", Visibility::Public, |_, arguments| {
+            phper::ok(arguments[0].clone())
+        })
+        .argument(
+            Argument::by_val("foo")
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))),
+        )
+        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(
+            String::from(I_FOO),
+        )));
 
     class
 }
 
-fn make_foo_class(
-    i_foo: Interface,
-) -> ClassEntity<()> {
+fn make_foo_class(i_foo: Interface) -> ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\Foo");
 
-    //leak Interface so that ClassEntry can be retrieved later, during module startup
+    // leak Interface so that ClassEntry can be retrieved later, during module
+    // startup
     let i_foo_copy: &'static Interface = Box::leak(Box::new(i_foo));
-    class.implements(move || {
-        i_foo_copy.as_class_entry()
-    });
+    class.implements(move || i_foo_copy.as_class_entry());
     class
-        .add_method("getValue", Visibility::Public, |this,_| {
+        .add_method("getValue", Visibility::Public, |this, _| {
             let value = this
                 .get_property("value")
                 .expect_z_str()?
@@ -99,23 +123,19 @@ fn make_foo_class(
     class
 }
 
-fn make_b_class(
-    a_class: StateClass<()>,
-    i_foo: Interface,
-) -> ClassEntity<()> {
+fn make_b_class(a_class: StateClass<()>, i_foo: Interface) -> ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\B");
     let _i_foo_copy: &'static Interface = Box::leak(Box::new(i_foo));
 
-    class
-        .add_static_method("createFoo", Visibility::Public, move |_| {
-            let object = a_class.init_object()?;
-            Ok::<_, phper::Error>(object)
-        });
+    class.add_static_method("createFoo", Visibility::Public, move |_| {
+        let object = a_class.init_object()?;
+        Ok::<_, phper::Error>(object)
+    });
 
     class
 }
 
-fn make_arg_typehint_class() ->ClassEntity<()> {
+fn make_arg_typehint_class() -> ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\ArgumentTypeHintTest");
     // String tests
     class
@@ -126,18 +146,34 @@ fn make_arg_typehint_class() ->ClassEntity<()> {
         .argument(Argument::by_val("string_value").with_type_hint(ArgumentTypeHint::String));
 
     class
-        .add_method("testStringOptional", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_z_str()?.to_str()?.to_string();
-            phper::ok(())
-        })
-        .argument(Argument::by_val("string_value").with_type_hint(ArgumentTypeHint::String).optional());
+        .add_method(
+            "testStringOptional",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_z_str()?.to_str()?.to_string();
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("string_value")
+                .with_type_hint(ArgumentTypeHint::String)
+                .optional(),
+        );
 
     class
-        .add_method("testStringNullable", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_z_str()?.to_str()?.to_string();
-            phper::ok(())
-        })
-        .argument(Argument::by_val("string_value").with_type_hint(ArgumentTypeHint::String).allow_null());
+        .add_method(
+            "testStringNullable",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_z_str()?.to_str()?.to_string();
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("string_value")
+                .with_type_hint(ArgumentTypeHint::String)
+                .allow_null(),
+        );
 
     // Bool tests
     class
@@ -148,18 +184,34 @@ fn make_arg_typehint_class() ->ClassEntity<()> {
         .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool));
 
     class
-        .add_method("testBoolNullable", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].as_bool();
-            phper::ok(())
-        })
-        .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool).allow_null());
+        .add_method(
+            "testBoolNullable",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].as_bool();
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("bool_value")
+                .with_type_hint(ArgumentTypeHint::Bool)
+                .allow_null(),
+        );
 
     class
-        .add_method("testBoolOptional", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_bool()?;
-            phper::ok(())
-        })
-        .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool).optional());
+        .add_method(
+            "testBoolOptional",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_bool()?;
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("bool_value")
+                .with_type_hint(ArgumentTypeHint::Bool)
+                .optional(),
+        );
 
     // Int tests
     class
@@ -170,18 +222,34 @@ fn make_arg_typehint_class() ->ClassEntity<()> {
         .argument(Argument::by_val("int_value").with_type_hint(ArgumentTypeHint::Int));
 
     class
-        .add_method("testIntNullable", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_long()?;
-            phper::ok(())
-        })
-        .argument(Argument::by_val("int_value").with_type_hint(ArgumentTypeHint::Int).allow_null());
+        .add_method(
+            "testIntNullable",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_long()?;
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("int_value")
+                .with_type_hint(ArgumentTypeHint::Int)
+                .allow_null(),
+        );
 
     class
-        .add_method("testIntOptional", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_long()?;
-            phper::ok(())
-        })
-        .argument(Argument::by_val("int_value").with_type_hint(ArgumentTypeHint::Int).optional());
+        .add_method(
+            "testIntOptional",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_long()?;
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("int_value")
+                .with_type_hint(ArgumentTypeHint::Int)
+                .optional(),
+        );
 
     // Float tests
     class
@@ -192,18 +260,34 @@ fn make_arg_typehint_class() ->ClassEntity<()> {
         .argument(Argument::by_val("float_value").with_type_hint(ArgumentTypeHint::Float));
 
     class
-        .add_method("testFloatOptional", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_double()?;
-            phper::ok(())
-        })
-        .argument(Argument::by_val("float_value").with_type_hint(ArgumentTypeHint::Float).optional());
+        .add_method(
+            "testFloatOptional",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_double()?;
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("float_value")
+                .with_type_hint(ArgumentTypeHint::Float)
+                .optional(),
+        );
 
     class
-        .add_method("testFloatNullable", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_double()?;
-            phper::ok(())
-        })
-        .argument(Argument::by_val("float_value").with_type_hint(ArgumentTypeHint::Float).allow_null());
+        .add_method(
+            "testFloatNullable",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_double()?;
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("float_value")
+                .with_type_hint(ArgumentTypeHint::Float)
+                .allow_null(),
+        );
 
     // Array tests
     class
@@ -214,120 +298,169 @@ fn make_arg_typehint_class() ->ClassEntity<()> {
         .argument(Argument::by_val("array_value").with_type_hint(ArgumentTypeHint::Array));
 
     class
-        .add_method("testArrayOptional", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_z_arr()?;
-            phper::ok(())
-        })
-        .argument(Argument::by_val("array_value").with_type_hint(ArgumentTypeHint::Array).optional());
+        .add_method(
+            "testArrayOptional",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_z_arr()?;
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("array_value")
+                .with_type_hint(ArgumentTypeHint::Array)
+                .optional(),
+        );
 
     class
-        .add_method("testArrayNullable", Visibility::Public, move |_, arguments| {
-            let _ = arguments[0].expect_z_arr()?;
-            phper::ok(())
-        })
-        .argument(Argument::by_val("array_value").with_type_hint(ArgumentTypeHint::Array).allow_null());
+        .add_method(
+            "testArrayNullable",
+            Visibility::Public,
+            move |_, arguments| {
+                let _ = arguments[0].expect_z_arr()?;
+                phper::ok(())
+            },
+        )
+        .argument(
+            Argument::by_val("array_value")
+                .with_type_hint(ArgumentTypeHint::Array)
+                .allow_null(),
+        );
 
     // Mixed tests
     class
-        .add_method("testMixed", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("testMixed", Visibility::Public, move |_, _| phper::ok(()))
         .argument(Argument::by_val("mixed_value").with_type_hint(ArgumentTypeHint::Mixed));
 
     // Callable tests
     class
-        .add_method("testCallable", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method(
+            "testCallable",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
         .argument(Argument::by_val("callable_value").with_type_hint(ArgumentTypeHint::Callable));
 
     class
         .add_method("testCallableNullable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("callable_value").with_type_hint(ArgumentTypeHint::Callable).allow_null());
+        .argument(
+            Argument::by_val("callable_value")
+                .with_type_hint(ArgumentTypeHint::Callable)
+                .allow_null(),
+        );
 
     class
         .add_method("testCallableOptional", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("callable_value").with_type_hint(ArgumentTypeHint::Callable).optional());
+        .argument(
+            Argument::by_val("callable_value")
+                .with_type_hint(ArgumentTypeHint::Callable)
+                .optional(),
+        );
 
     class
-        .add_method("testObject", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("testObject", Visibility::Public, move |_, _| phper::ok(()))
         .argument(Argument::by_val("object_value").with_type_hint(ArgumentTypeHint::Object));
 
     class
         .add_method("testObjectNullable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("object_value").with_type_hint(ArgumentTypeHint::Object).allow_null());
+        .argument(
+            Argument::by_val("object_value")
+                .with_type_hint(ArgumentTypeHint::Object)
+                .allow_null(),
+        );
 
     class
         .add_method("testObjectOptional", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("object_value").with_type_hint(ArgumentTypeHint::Object).optional());
+        .argument(
+            Argument::by_val("object_value")
+                .with_type_hint(ArgumentTypeHint::Object)
+                .optional(),
+        );
 
     class
-        .add_method("testIterable", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method(
+            "testIterable",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
         .argument(Argument::by_val("iterable_value").with_type_hint(ArgumentTypeHint::Iterable));
 
     class
         .add_method("testIterableNullable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("iterable_value").with_type_hint(ArgumentTypeHint::Iterable).allow_null());
+        .argument(
+            Argument::by_val("iterable_value")
+                .with_type_hint(ArgumentTypeHint::Iterable)
+                .allow_null(),
+        );
 
     class
         .add_method("testIterableOptional", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("iterable_value").with_type_hint(ArgumentTypeHint::Iterable).optional());
+        .argument(
+            Argument::by_val("iterable_value")
+                .with_type_hint(ArgumentTypeHint::Iterable)
+                .optional(),
+        );
 
     class
-        .add_method("testNull", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("testNull", Visibility::Public, move |_, _| phper::ok(()))
         .argument(Argument::by_val("null_value").with_type_hint(ArgumentTypeHint::Null));
 
     class
         .add_method("testClassEntry", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("classentry").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))));
+        .argument(
+            Argument::by_val("classentry")
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))),
+        );
 
     class
         .add_method("testClassEntryNullable", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("classentry").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))).allow_null());
+        .argument(
+            Argument::by_val("classentry")
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO)))
+                .allow_null(),
+        );
 
     class
         .add_method("testClassEntryOptional", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("classentry").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))).optional());
+        .argument(
+            Argument::by_val("classentry")
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO)))
+                .optional(),
+        );
 
     class
 }
 
-fn make_return_typehint_class() ->ClassEntity<()> {
+fn make_return_typehint_class() -> ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\ReturnTypeHintTest");
     class
-        .add_method("returnNull", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnNull", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Null));
 
     class
-        .add_method("returnString", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method(
+            "returnString",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
         .return_type(ReturnType::by_val(ReturnTypeHint::String));
 
     class
@@ -337,9 +470,7 @@ fn make_return_typehint_class() ->ClassEntity<()> {
         .return_type(ReturnType::by_val(ReturnTypeHint::String).allow_null());
 
     class
-        .add_method("returnBool", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnBool", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Bool));
 
     class
@@ -349,9 +480,7 @@ fn make_return_typehint_class() ->ClassEntity<()> {
         .return_type(ReturnType::by_val(ReturnTypeHint::Bool).allow_null());
 
     class
-        .add_method("returnInt", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnInt", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Int));
 
     class
@@ -361,9 +490,7 @@ fn make_return_typehint_class() ->ClassEntity<()> {
         .return_type(ReturnType::by_val(ReturnTypeHint::Int).allow_null());
 
     class
-        .add_method("returnFloat", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnFloat", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Float));
 
     class
@@ -373,9 +500,7 @@ fn make_return_typehint_class() ->ClassEntity<()> {
         .return_type(ReturnType::by_val(ReturnTypeHint::Float).allow_null());
 
     class
-        .add_method("returnArray", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnArray", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Array));
 
     class
@@ -385,9 +510,11 @@ fn make_return_typehint_class() ->ClassEntity<()> {
         .return_type(ReturnType::by_val(ReturnTypeHint::Array).allow_null());
 
     class
-        .add_method("returnObject", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method(
+            "returnObject",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
         .return_type(ReturnType::by_val(ReturnTypeHint::Object));
 
     class
@@ -421,94 +548,134 @@ fn make_return_typehint_class() ->ClassEntity<()> {
         .return_type(ReturnType::by_val(ReturnTypeHint::Iterable).allow_null());
 
     class
-        .add_method("returnMixed", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnMixed", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Mixed));
 
     class
         .add_method("returnClassEntry", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(String::from(I_FOO))));
+        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(
+            String::from(I_FOO),
+        )));
 
     class
-        .add_method("returnClassEntryNullable", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
-        .return_type(ReturnType::by_val(ReturnTypeHint::ClassEntry(String::from(I_FOO))).allow_null());
+        .add_method(
+            "returnClassEntryNullable",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
+        .return_type(
+            ReturnType::by_val(ReturnTypeHint::ClassEntry(String::from(I_FOO))).allow_null(),
+        );
 
     class
-        .add_method("returnNever", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnNever", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Never));
 
     class
-        .add_method("returnVoid", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
+        .add_method("returnVoid", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::by_val(ReturnTypeHint::Void));
 
     class
 }
 
-fn make_arg_default_value_class() ->ClassEntity<()> {
+fn make_arg_default_value_class() -> ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\ArgumentDefaultValueTest");
 
     class
         .add_method("stringDefault", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("string_value").with_type_hint(ArgumentTypeHint::String).with_default_value(CString::new("'foobarbaz'").unwrap())); //NB single quotes!
+        .argument(
+            Argument::by_val("string_value")
+                .with_type_hint(ArgumentTypeHint::String)
+                .with_default_value(CString::new("'foobarbaz'").unwrap()),
+        ); //NB single quotes!
 
     class
         .add_method("stringConstantDefault", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("const_value").with_type_hint(ArgumentTypeHint::String).with_default_value(CString::new("PHP_VERSION").unwrap()));
+        .argument(
+            Argument::by_val("const_value")
+                .with_type_hint(ArgumentTypeHint::String)
+                .with_default_value(CString::new("PHP_VERSION").unwrap()),
+        );
 
     class
         .add_method("boolDefaultTrue", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool).with_default_value(CString::new("true").unwrap()));
+        .argument(
+            Argument::by_val("bool_value")
+                .with_type_hint(ArgumentTypeHint::Bool)
+                .with_default_value(CString::new("true").unwrap()),
+        );
 
     class
         .add_method("boolDefaultFalse", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("bool_value").with_type_hint(ArgumentTypeHint::Bool).with_default_value(CString::new("false").unwrap()));
+        .argument(
+            Argument::by_val("bool_value")
+                .with_type_hint(ArgumentTypeHint::Bool)
+                .with_default_value(CString::new("false").unwrap()),
+        );
 
     class
-        .add_method("intDefault", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
-        .argument(Argument::by_val("int_value").with_type_hint(ArgumentTypeHint::Int).with_default_value(CString::new("42").unwrap()));
+        .add_method("intDefault", Visibility::Public, move |_, _| phper::ok(()))
+        .argument(
+            Argument::by_val("int_value")
+                .with_type_hint(ArgumentTypeHint::Int)
+                .with_default_value(CString::new("42").unwrap()),
+        );
 
     class
-        .add_method("floatDefault", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
-        .argument(Argument::by_val("float_value").with_type_hint(ArgumentTypeHint::Float).with_default_value(CString::new("3.14159").unwrap()));
+        .add_method(
+            "floatDefault",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
+        .argument(
+            Argument::by_val("float_value")
+                .with_type_hint(ArgumentTypeHint::Float)
+                .with_default_value(CString::new("3.14159").unwrap()),
+        );
 
     class
-        .add_method("arrayDefault", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
-        .argument(Argument::by_val("array_value").with_type_hint(ArgumentTypeHint::Array).with_default_value(CString::new("['a' => 'b']").unwrap()));
+        .add_method(
+            "arrayDefault",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
+        .argument(
+            Argument::by_val("array_value")
+                .with_type_hint(ArgumentTypeHint::Array)
+                .with_default_value(CString::new("['a' => 'b']").unwrap()),
+        );
 
     class
         .add_method("iterableDefault", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .argument(Argument::by_val("iterable_value").with_type_hint(ArgumentTypeHint::Iterable).with_default_value(CString::new("[0 => 1]").unwrap()));
+        .argument(
+            Argument::by_val("iterable_value")
+                .with_type_hint(ArgumentTypeHint::Iterable)
+                .with_default_value(CString::new("[0 => 1]").unwrap()),
+        );
 
     class
-        .add_method("mixedDefault", Visibility::Public, move |_, _| {
-            phper::ok(())
-        })
-        .argument(Argument::by_val("mixed_value").with_type_hint(ArgumentTypeHint::Mixed).with_default_value(CString::new("999").unwrap()));
+        .add_method(
+            "mixedDefault",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
+        .argument(
+            Argument::by_val("mixed_value")
+                .with_type_hint(ArgumentTypeHint::Mixed)
+                .with_default_value(CString::new("999").unwrap()),
+        );
 
     class
 }

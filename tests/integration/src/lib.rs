@@ -20,8 +20,8 @@ mod ini;
 mod objects;
 mod references;
 mod strings;
-mod values;
 mod typehints;
+mod values;
 
 use phper::{modules::Module, php_get_module};
 

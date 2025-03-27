@@ -192,18 +192,22 @@ impl FunctionEntry {
                         IS_OBJECT,
                         return_type.allow_null,
                     )),
-                    ReturnTypeHint::Callable => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        IS_CALLABLE,
-                        return_type.allow_null,
-                    )),
-                    ReturnTypeHint::Iterable => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        IS_ITERABLE,
-                        return_type.allow_null,
-                    )),
+                    ReturnTypeHint::Callable => {
+                        Some(phper_zend_begin_arg_with_return_type_info_ex(
+                            return_type.ret_by_ref,
+                            require_arg_count,
+                            IS_CALLABLE,
+                            return_type.allow_null,
+                        ))
+                    }
+                    ReturnTypeHint::Iterable => {
+                        Some(phper_zend_begin_arg_with_return_type_info_ex(
+                            return_type.ret_by_ref,
+                            require_arg_count,
+                            IS_ITERABLE,
+                            return_type.allow_null,
+                        ))
+                    }
                     ReturnTypeHint::Mixed => {
                         if PHP_MAJOR_VERSION < 8 {
                             None
@@ -217,7 +221,9 @@ impl FunctionEntry {
                         }
                     }
                     ReturnTypeHint::Never => {
-                        if PHP_MAJOR_VERSION < 8 || (PHP_MAJOR_VERSION == 8 && PHP_MINOR_VERSION <= 1) {
+                        if PHP_MAJOR_VERSION < 8
+                            || (PHP_MAJOR_VERSION == 8 && PHP_MINOR_VERSION <= 1)
+                        {
                             None
                         } else {
                             Some(phper_zend_begin_arg_with_return_type_info_ex(
@@ -249,10 +255,10 @@ impl FunctionEntry {
                 None
             };
 
-            infos.push(return_info.unwrap_or_else(|| {
-                phper_zend_begin_arg_info_ex(false, require_arg_count)
-            }));
-
+            infos.push(
+                return_info
+                    .unwrap_or_else(|| phper_zend_begin_arg_info_ex(false, require_arg_count)),
+            );
 
             for arg in arguments {
                 let default_value_ptr = arg
@@ -262,57 +268,105 @@ impl FunctionEntry {
                     .unwrap_or(std::ptr::null());
                 let arg_info = if let Some(ref type_hint) = arg.type_hint {
                     match type_hint {
-                        ArgumentTypeHint::Null => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_NULL, true, default_value_ptr)
-                        ),
-                        ArgumentTypeHint::Bool => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), _IS_BOOL, arg.nullable, default_value_ptr)
-                        ),
-                        ArgumentTypeHint::Int => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_LONG, arg.nullable, default_value_ptr)
-                        ),
-                        ArgumentTypeHint::Float => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_DOUBLE, arg.nullable, default_value_ptr)
-                        ),
-                        ArgumentTypeHint::String => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_STRING, arg.nullable, default_value_ptr)
-                        ),
-                        ArgumentTypeHint::Array => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ARRAY, arg.nullable, default_value_ptr)
-                        ),
+                        ArgumentTypeHint::Null => Some(phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            IS_NULL,
+                            true,
+                            default_value_ptr,
+                        )),
+                        ArgumentTypeHint::Bool => Some(phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            _IS_BOOL,
+                            arg.nullable,
+                            default_value_ptr,
+                        )),
+                        ArgumentTypeHint::Int => Some(phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            IS_LONG,
+                            arg.nullable,
+                            default_value_ptr,
+                        )),
+                        ArgumentTypeHint::Float => Some(phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            IS_DOUBLE,
+                            arg.nullable,
+                            default_value_ptr,
+                        )),
+                        ArgumentTypeHint::String => Some(phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            IS_STRING,
+                            arg.nullable,
+                            default_value_ptr,
+                        )),
+                        ArgumentTypeHint::Array => Some(phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            IS_ARRAY,
+                            arg.nullable,
+                            default_value_ptr,
+                        )),
                         ArgumentTypeHint::Object => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_OBJECT, arg.nullable, std::ptr::null()) //default value not supported
+                            phper_zend_arg_info_with_type(
+                                arg.pass_by_ref,
+                                arg.name.as_ptr(),
+                                IS_OBJECT,
+                                arg.nullable,
+                                std::ptr::null(),
+                            ), // default value not supported
                         ),
                         ArgumentTypeHint::Callable => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_CALLABLE, arg.nullable, std::ptr::null()) //default value not supported
+                            phper_zend_arg_info_with_type(
+                                arg.pass_by_ref,
+                                arg.name.as_ptr(),
+                                IS_CALLABLE,
+                                arg.nullable,
+                                std::ptr::null(),
+                            ), // default value not supported
                         ),
-                        ArgumentTypeHint::Iterable => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ITERABLE, arg.nullable, default_value_ptr)
-                        ),
+                        ArgumentTypeHint::Iterable => Some(phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            IS_ITERABLE,
+                            arg.nullable,
+                            default_value_ptr,
+                        )),
                         ArgumentTypeHint::Mixed => {
                             if PHP_MAJOR_VERSION < 8 {
                                 None
                             } else {
-                                Some(phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_MIXED, true, default_value_ptr))
+                                Some(phper_zend_arg_info_with_type(
+                                    arg.pass_by_ref,
+                                    arg.name.as_ptr(),
+                                    IS_MIXED,
+                                    true,
+                                    default_value_ptr,
+                                ))
                             }
-                        },
+                        }
                         ArgumentTypeHint::ClassEntry(class_name) => {
-                            let c_class_name = CString::new(class_name.clone()).expect("CString::new failed");
+                            let c_class_name =
+                                CString::new(class_name.clone()).expect("CString::new failed");
                             Some(phper_zend_arg_obj_info(
                                 arg.pass_by_ref,
                                 arg.name.as_ptr(),
                                 c_class_name.as_ptr(),
-                                arg.nullable
+                                arg.nullable,
                             ))
-                        },
+                        }
                     }
                 } else {
                     None
                 };
 
-                infos.push(arg_info.unwrap_or_else(|| {
-                    phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr())
-                }));
+                infos
+                    .push(arg_info.unwrap_or_else(|| {
+                        phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr())
+                    }));
             }
 
             infos.push(zeroed::<zend_internal_arg_info>());
@@ -540,7 +594,8 @@ impl Argument {
         self
     }
 
-    /// Argument default value. Example: "'a-string'", "A_CONST", "42", "[0=>'zero']"
+    /// Argument default value. Example: "'a-string'", "A_CONST", "42",
+    /// "[0=>'zero']"
     pub fn with_default_value(mut self, default_value: CString) -> Self {
         self.default_value = Some(default_value);
         self.required = false; // arg with default value does not count towards required arg count
