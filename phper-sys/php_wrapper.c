@@ -511,14 +511,15 @@ zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name) {
 zend_internal_arg_info phper_zend_arg_info_with_type(bool pass_by_ref,
                                                     const char *name,
                                                     uint32_t type_hint,
-                                                    bool allow_null) {
+                                                    bool allow_null,
+                                                    const char *default_value) {
 #if PHP_VERSION_ID >= 70200
     zend_internal_arg_info info[] = {
-        ZEND_ARG_TYPE_INFO(pass_by_ref, , type_hint, allow_null)
+        ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(pass_by_ref, , type_hint, allow_null, default_value)
     };
 #else
     zend_internal_arg_info info[] = {
-        ZEND_ARG_TYPE_INFO(pass_by_ref, , type_hint, NULL, allow_null)
+        ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(pass_by_ref, , type_hint, NULL, allow_null, default_value)
     };
 #endif
     info[0].name = name;

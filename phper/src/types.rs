@@ -10,9 +10,7 @@
 
 //! Apis relate to PHP types.
 
-use crate::{
-    sys::*,
-};
+use crate::sys::*;
 use derive_more::From;
 use std::{
     ffi::CStr,

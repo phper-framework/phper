@@ -255,40 +255,45 @@ impl FunctionEntry {
 
 
             for arg in arguments {
+                let default_value_ptr = arg
+                    .default_value
+                    .as_ref()
+                    .map(|s| s.as_ptr())
+                    .unwrap_or(std::ptr::null());
                 let arg_info = if let Some(ref type_hint) = arg.type_hint {
                     match type_hint {
                         ArgumentTypeHint::Null => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_NULL, true)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_NULL, true, default_value_ptr)
                         ),
                         ArgumentTypeHint::Bool => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), _IS_BOOL, arg.nullable)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), _IS_BOOL, arg.nullable, default_value_ptr)
                         ),
                         ArgumentTypeHint::Int => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_LONG, arg.nullable)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_LONG, arg.nullable, default_value_ptr)
                         ),
                         ArgumentTypeHint::Float => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_DOUBLE, arg.nullable)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_DOUBLE, arg.nullable, default_value_ptr)
                         ),
                         ArgumentTypeHint::String => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_STRING, arg.nullable)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_STRING, arg.nullable, default_value_ptr)
                         ),
                         ArgumentTypeHint::Array => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ARRAY, arg.nullable)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ARRAY, arg.nullable, default_value_ptr)
                         ),
                         ArgumentTypeHint::Object => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_OBJECT, arg.nullable)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_OBJECT, arg.nullable, std::ptr::null()) //default value not supported
                         ),
                         ArgumentTypeHint::Callable => Some(
-                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_CALLABLE, arg.nullable)
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_CALLABLE, arg.nullable, std::ptr::null()) //default value not supported
                         ),
-                        ArgumentTypeHint::Iterable => {
-                            Some( phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ITERABLE, arg.nullable) )
-                        },
+                        ArgumentTypeHint::Iterable => Some(
+                            phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_ITERABLE, arg.nullable, default_value_ptr)
+                        ),
                         ArgumentTypeHint::Mixed => {
                             if PHP_MAJOR_VERSION < 8 {
                                 None
                             } else {
-                                Some(phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), 0, true))
+                                Some(phper_zend_arg_info_with_type(arg.pass_by_ref, arg.name.as_ptr(), IS_MIXED, true, default_value_ptr))
                             }
                         },
                         ArgumentTypeHint::ClassEntry(class_name) => {
@@ -455,7 +460,7 @@ pub struct Argument {
     pass_by_ref: bool,
     required: bool,
     nullable: bool,
-    //default_value: Option<zval>, //TODO
+    default_value: Option<CString>,
 }
 
 impl Argument {
@@ -468,6 +473,7 @@ impl Argument {
             pass_by_ref: false,
             required: true,
             nullable: false,
+            default_value: None,
         }
     }
 
@@ -480,6 +486,7 @@ impl Argument {
             pass_by_ref: true,
             required: true,
             nullable: false,
+            default_value: None,
         }
     }
 
@@ -492,6 +499,7 @@ impl Argument {
             pass_by_ref: false,
             required: false,
             nullable: false,
+            default_value: None,
         }
     }
 
@@ -504,6 +512,7 @@ impl Argument {
             pass_by_ref: true,
             required: false,
             nullable: false,
+            default_value: None,
         }
     }
 
@@ -514,7 +523,7 @@ impl Argument {
     }
 
     /// Allow type-hint to be nullable
-    pub fn nullable(mut self) -> Self {
+    pub fn allow_null(mut self) -> Self {
         self.nullable = true;
         self
     }
@@ -528,6 +537,13 @@ impl Argument {
     /// Argument is optional (also see by_<ref|val>_optional)
     pub fn optional(mut self) -> Self {
         self.required = false;
+        self
+    }
+
+    /// Argument default value (always a String)
+    pub fn with_default_value(mut self, default_value: CString) -> Self {
+        self.default_value = Some(default_value);
+        self.required = false; // important!
         self
     }
 }
