@@ -106,21 +106,21 @@ foo.add_static_method(
 
 Methods may add argument and return typehints as per functions. For example:
 
-```rust,no-run
+```rust,no_run
 use phper::classes::{ClassEntity, ClassEntry, Visibility};
-use phper::functions::Argument;
-use phper::types::{ArgumentTypeHint, ReturnTypeHint},
+use phper::functions::{Argument, ReturnType};
+use phper::types::{ArgumentTypeHint, ReturnTypeHint};
 
 let mut foo = ClassEntity::new("Foo");
 foo.add_method(
     "test",
     Visibility::Public,
-    |_this, _arguments| {
+    |_this, _arguments| -> phper::Result<()> {
         Ok(())
     },
 )
 .argument(Argument::by_val("a_string").with_type_hint(ArgumentTypeHint::String))
-.argument(Argument::by_val("an_interface").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface")))))
+.argument(Argument::by_val("an_interface").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface"))))
 .return_type(ReturnType::by_val(ReturnTypeHint::Bool).allow_null());
 ```
 

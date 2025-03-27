@@ -86,8 +86,10 @@ the `count` parameter is no longer long, but a reference.
 Arguments can have type-hints, nullability and default values applied. Here we define a function that accepts
 a nullable class (in this case, an interface), and a string with a default value:
 
-```rust,no-run
+```rust,no_run
 use phper::{modules::Module, php_get_module, functions::Argument, echo};
+use phper::types::ArgumentTypeHint;
+use std::ffi::CString;
 
 #[php_get_module]
 pub fn get_module() -> Module {
