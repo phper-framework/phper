@@ -80,3 +80,43 @@ pub fn get_module() -> Module {
 Here, the argument is registered as
 [`Argument::by_ref`](phper::functions::Argument::by_ref).  Therefore, the type of
 the `count` parameter is no longer long, but a reference.
+
+## Argument and return type modifiers
+
+Arguments can have type-hints, nullability and default values applied. Here we define a function that accepts
+a nullable class (in this case, an interface), and a string with a default value:
+
+```rust,no-run
+use phper::{modules::Module, php_get_module, functions::Argument, echo};
+
+#[php_get_module]
+pub fn get_module() -> Module {
+    let mut module = Module::new(
+        env!("CARGO_CRATE_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
+
+    module.add_function("my_function", |_| -> phper::Result<()> {
+        Ok(())
+    })
+    .argument(Argument::by_val("a_class").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface"))).allow_null())
+    .argument(Argument::by_val("name").with_type_hint(ArgumentTypeHint::String).with_default_value(CString::new("'my_default'").unwrap()))
+    .argument(Argument::by_val("optional_bool").with_type_hint(ArgumentTypeHint::Bool).optional());
+
+    module
+}
+```
+
+The output of `php --re` for this function would look like:
+
+```txt
+    Function [ <internal:integration> function my_function ] {
+
+      - Parameters [3] {
+        Parameter #0 [ <required> ?class_name $a_class ]
+        Parameter #1 [ <optional> string $name = 'my_default' ]
+        Parameter #2 [ <optional> bool $optional_bool = <default> ]
+      }
+    }
+```

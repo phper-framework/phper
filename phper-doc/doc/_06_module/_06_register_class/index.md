@@ -102,6 +102,28 @@ foo.add_static_method(
 ).argument(Argument::by_val("name"));
 ```
 
+## Argument and return type modifiers
+
+Methods may add argument and return typehints as per functions. For example:
+
+```rust,no-run
+use phper::classes::{ClassEntity, ClassEntry, Visibility};
+use phper::functions::Argument;
+use phper::types::{ArgumentTypeHint, ReturnTypeHint},
+
+let mut foo = ClassEntity::new("Foo");
+foo.add_method(
+    "test",
+    Visibility::Public,
+    |_this, _arguments| {
+        Ok(())
+    },
+)
+.argument(Argument::by_val("a_string").with_type_hint(ArgumentTypeHint::String))
+.argument(Argument::by_val("an_interface").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface")))))
+.return_type(ReturnType::by_val(ReturnTypeHint::Bool).allow_null());
+```
+
 ## Add constants
 Interfaces can have public constants. Value can be string|int|bool|float|null.
 

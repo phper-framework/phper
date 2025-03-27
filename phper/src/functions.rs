@@ -540,10 +540,10 @@ impl Argument {
         self
     }
 
-    /// Argument default value (always a String)
+    /// Argument default value. Example: "'a-string'", "A_CONST", "42", "[0=>'zero']"
     pub fn with_default_value(mut self, default_value: CString) -> Self {
         self.default_value = Some(default_value);
-        self.required = false; // important!
+        self.required = false; // arg with default value does not count towards required arg count
         self
     }
 }
