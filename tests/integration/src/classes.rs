@@ -203,9 +203,7 @@ fn integrate_static_props(module: &mut Module) {
 
 #[cfg(phper_major_version = "8")]
 fn integrate_stringable(module: &mut Module) {
-    use phper::functions::ReturnType;
-    use phper::types::ReturnTypeHint;
-
+    use phper::{functions::ReturnType, types::ReturnTypeHint};
 
     let mut cls = ClassEntity::new(r"IntegrationTest\FooString");
     cls.implements(|| ClassEntry::from_globals("Stringable").unwrap());
