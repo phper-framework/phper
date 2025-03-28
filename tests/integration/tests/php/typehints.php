@@ -42,7 +42,7 @@ $argumentTypehintProvider = [
     ['testArrayOptional', 'array', false, false],
     ['testArrayNullable', 'array', true, true],
 
-    ['testMixed', 'mixed', true, true],
+    ['testMixed', 'mixed', true, true, '8.0'],
 
     ['testCallable', 'callable', false, true],
     ['testCallableOptional', 'callable', false, false],
@@ -58,9 +58,9 @@ $argumentTypehintProvider = [
 
     ['testNull', 'null', true, true, '8.2'],
 
-    ['testClassEntry', 'class_name', false, true],
-    ['testClassEntryOptional', 'class_name', false, false],
-    ['testClassEntryNullable', 'class_name', true, true],
+    ['testClassEntry', 'class_name', false, true, '7.4'],
+    ['testClassEntryOptional', 'class_name', false, false, '7.4'],
+    ['testClassEntryNullable', 'class_name', true, true, '7.4'],
 ];
 
 // typehints
@@ -105,11 +105,11 @@ $returnTypehintProvider = [
     ['returnCallableNullable', 'callable', true],
     ['returnIterable', 'iterable', false],
     ['returnIterableNullable', 'iterable', true],
-    ['returnMixed', 'mixed', true],
+    ['returnMixed', 'mixed', true, '7.4'],
     ['returnNever', 'never', false, '8.1'],
     ['returnVoid', 'void', false],
-    ['returnClassEntry', 'class_name', false],
-    ['returnClassEntryNullable', 'class_name', true],
+    ['returnClassEntry', 'class_name', false, '7.4'],
+    ['returnClassEntryNullable', 'class_name', true, '7.4'],
 ];
 echo PHP_EOL . 'Testing return typehints' . PHP_EOL;
 $cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
@@ -147,16 +147,16 @@ $handler = new \IntegrationTest\TypeHints\FooHandler();
 assert_eq($foo, $handler->handle($foo));
 
 $argumentDefaultValueProvider = [
-    // <method>, <expected default value>
-    ['stringDefault', 'foobarbaz', 'string'],
-    ['stringConstantDefault', PHP_VERSION, 'string'],
-    ['boolDefaultTrue', true, 'boolean'],
-    ['boolDefaultFalse', false, 'boolean'],
-    ['intDefault', 42, 'integer'],
-    ['floatDefault', 3.14159, 'double'],
-    ['arrayDefault', ['a' => 'b'], 'array'],
-    ['iterableDefault', [0 => 1], 'array'],
-    ['mixedDefault', 999, 'integer'],
+    // <method>, <expected default value>, <(optional) min php version>
+    ['stringDefault', 'foobarbaz', 'string', '7.4'],
+    ['stringConstantDefault', PHP_VERSION, 'string', '7.4'],
+    ['boolDefaultTrue', true, 'boolean', '7.4'],
+    ['boolDefaultFalse', false, 'boolean', '7.4'],
+    ['intDefault', 42, 'integer', '7.4'],
+    ['floatDefault', 3.14159, 'double', '7.4'],
+    ['arrayDefault', ['a' => 'b'], 'array', '7.4'],
+    ['iterableDefault', [0 => 1], 'array', '7.4'],
+    ['mixedDefault', 999, 'integer', '7.4'],
 ];
 
 echo PHP_EOL . 'Testing argument default values' . PHP_EOL;
@@ -164,6 +164,10 @@ $cls = new IntegrationTest\TypeHints\ArgumentDefaultValueTest();
 $reflection = new ReflectionClass($cls);
 foreach ($argumentDefaultValueProvider as $input) {
     echo(sprintf("%s..", $input[0]));
+    if (array_key_exists(3, $input) && !php_at_least($input[3])) {
+        echo sprintf("SKIPPED requires at least PHP %s", $input[3]) . PHP_EOL;
+        continue;
+    }
     $reflectionMethod = $reflection->getMethod($input[0]);
     $params = $reflectionMethod->getParameters();
     $param = $params[0];
@@ -183,14 +187,16 @@ $expectedArgs = [
     ['m', 'mixed', 1.23],
 
 ];
-echo PHP_EOL . 'Testing function typehints' . PHP_EOL;
-$reflection = new ReflectionFunction('integration_function_typehints');
-$params = $reflection->getParameters();
-foreach ($expectedArgs as $i => $input) {
-    echo(sprintf("argument %d..", $i));
-    assert_eq($input[0], $params[$i]->getName(), sprintf('argument %d has correct name', $i));
-    assert_eq($input[1], $params[$i]->getType()->getName(), sprintf('argument %d has correct type', $i));
-    assert_eq($input[2], $params[$i]->getDefaultValue(), sprintf('argument %d has correct default value', $i));
-    echo "PASS" . PHP_EOL;
+if (PHP_VERSION_ID >= 70400) {
+    echo PHP_EOL . 'Testing function typehints' . PHP_EOL;
+    $reflection = new ReflectionFunction('integration_function_typehints');
+    $params = $reflection->getParameters();
+    foreach ($expectedArgs as $i => $input) {
+        echo(sprintf("argument %d..", $i));
+        assert_eq($input[0], $params[$i]->getName(), sprintf('argument %d has correct name', $i));
+        assert_eq($input[1], $params[$i]->getType()->getName(), sprintf('argument %d has correct type', $i));
+        assert_eq($input[2], $params[$i]->getDefaultValue(), sprintf('argument %d has correct default value', $i));
+        echo "PASS" . PHP_EOL;
+    }
+    assert_eq('void', $reflection->getReturnType()->getName(), 'integration_function_typehints return type is void');
 }
-assert_eq('void', $reflection->getReturnType()->getName(), 'integration_function_typehints return type is void');
