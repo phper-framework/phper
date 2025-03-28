@@ -38,6 +38,14 @@ phper_init_class_entry_handler(zend_class_entry *class_ce, void *argument);
 #define IS_NEVER 0x1B
 #endif
 
+#ifndef IS_ITERABLE
+#define IS_ITERABLE 0x1C
+#endif
+
+#ifndef IS_VOID
+#define IS_VOID 0x1D
+#endif
+
 // ==================================================
 // zval apis:
 // ==================================================
@@ -500,10 +508,8 @@ phper_zend_begin_arg_with_return_obj_info_ex(bool return_reference,
 #define static
 #define const
 #if PHP_VERSION_ID >= 70400
-    ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(info, return_reference,
-                                           required_num_args,
-                                           class_name, allow_null)
-#elif PHP_VERSION_ID >= 70200
+    ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(info, return_reference, required_num_args, class_name, allow_null)
+#else
     ZEND_BEGIN_ARG_INFO_EX(info, 0, return_reference, required_num_args)
 #endif
     ZEND_END_ARG_INFO()
@@ -527,14 +533,9 @@ zend_internal_arg_info phper_zend_arg_info_with_type(bool pass_by_ref,
     zend_internal_arg_info info[] = {
         ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(pass_by_ref, name, type_hint, allow_null, default_value)
     };
-#elif PHP_VERSION_ID >= 70200
+#elif PHP_VERSION_ID >= 70000
     zend_internal_arg_info info[] = {
         ZEND_ARG_TYPE_INFO(pass_by_ref, name, type_hint, allow_null)
-    };
-#else
-    // PHP 7.0 and below: fallback
-    zend_internal_arg_info info[] = {
-        ZEND_ARG_INFO(pass_by_ref, name)
     };
 #endif
     info[0].name = name;
@@ -561,9 +562,7 @@ zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
 #else
     zend_internal_arg_info info = {
         .name = name,
-        .type = 0,
         .pass_by_reference = pass_by_ref,
-        .is_variadic = 0
     };
     return info;
 #endif

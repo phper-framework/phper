@@ -22,7 +22,7 @@ assert_eq($value, 'foobar');
 
 $argumentTypehintProvider = [
     // <method>, <expected typehint>, <is nullable>, <is required>, <(optional)min php version>
-    ['testString', 'string', false, true],
+    ['testString', 'string', false, true, '7.1'],
     ['testStringOptional', 'string', false, false],
     ['testStringNullable', 'string', true, true],
 
@@ -48,13 +48,13 @@ $argumentTypehintProvider = [
     ['testCallableOptional', 'callable', false, false],
     ['testCallableNullable', 'callable', true, true],
 
-    ['testObject', 'object', false, true],
-    ['testObjectOptional', 'object', false, false],
-    ['testObjectNullable', 'object', true, true],
+    ['testObject', 'object', false, true, '7.1'],
+    ['testObjectOptional', 'object', false, false, '7.1'],
+    ['testObjectNullable', 'object', true, true, '7.1'],
 
-    ['testIterable', 'iterable', false, true],
-    ['testIterableOptional', 'iterable', false, false],
-    ['testIterableNullable', 'iterable', true, true],
+    ['testIterable', 'iterable', false, true, '7.1'],
+    ['testIterableOptional', 'iterable', false, false, '7.1'],
+    ['testIterableNullable', 'iterable', true, true, '7.1'],
 
     ['testNull', 'null', true, true, '8.2'],
 
@@ -79,9 +79,14 @@ foreach ($argumentTypehintProvider as $input) {
     assert_eq(1, count($params), 'has 1 param');
     $param = $params[0];
     $type = $param->getType();
-    assert_eq($input[1], (string)$type->getName(), sprintf('%s has typehint type', $input[0]));
-    assert_eq($input[2], $type->allowsNull(), sprintf('%s allows null', $input[0]));
-    assert_eq($input[3], !$param->isOptional(), sprintf('%s is optional', $input[0]));
+    if (PHP_VERSION_ID >= 70100) {
+        assert_eq($input[1], (string)$type->getName(), sprintf('%s has typehint type', $input[0]));
+        assert_eq($input[2], $type->allowsNull(), sprintf('%s allows null', $input[0]));
+        assert_eq($input[3], !$param->isOptional(), sprintf('%s is optional', $input[0]));
+    } else {
+        //ReflectionType::getName doesn't exist until 7.1
+        assert_eq($input[1], (string)$type);
+    }
     echo "PASS" . PHP_EOL;
 }
 
@@ -122,29 +127,31 @@ foreach ($returnTypehintProvider as $input) {
     }
     $reflectionMethod = $reflection->getMethod($input[0]);
     $return = $reflectionMethod->getReturnType();
-    if ($input[1] !== 'never') {
+    if ($input[1] !== 'never' && PHP_VERSION_ID > 70100) {
         assert_eq($input[1], $return->getName(), sprintf('%s has typehint type', $input[0]));
         assert_eq($input[2], $return->allowsNull(), sprintf('%s allows null', $input[0]));
     }
     echo 'PASS' . PHP_EOL;
 }
 
-// test class entry type-hints with an instance
-$foo = new class implements \IntegrationTest\TypeHints\IFoo {
-    private $value;
-    public function getValue(): string {
-        return $this->value;
-    }
-    public function setValue($value): void {
-        $this->value = $value;
-    }
-};
+if (PHP_VERSION_ID > 70100) {
+    // test class entry type-hints with an instance
+    $foo = new class implements \IntegrationTest\TypeHints\IFoo {
+        private $value;
+        public function getValue(): string {
+            return $this->value;
+        }
+        public function setValue($value): void {
+            $this->value = $value;
+        }
+    };
 
-$foo->setValue('hello');
-assert_eq('hello', $foo->getValue());
+    $foo->setValue('hello');
+    assert_eq('hello', $foo->getValue());
 
-$handler = new \IntegrationTest\TypeHints\FooHandler();
-assert_eq($foo, $handler->handle($foo));
+    $handler = new \IntegrationTest\TypeHints\FooHandler();
+    assert_eq($foo, $handler->handle($foo));
+}
 
 $argumentDefaultValueProvider = [
     // <method>, <expected default value>, <(optional) min php version>
