@@ -220,6 +220,7 @@ impl FunctionEntry {
                             ))
                         }
                     }
+                    #[allow(clippy::absurd_extreme_comparisons)]
                     ReturnTypeHint::Never => {
                         if PHP_MAJOR_VERSION < 8
                             || (PHP_MAJOR_VERSION == 8 && PHP_MINOR_VERSION <= 1)
