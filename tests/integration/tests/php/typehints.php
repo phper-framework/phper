@@ -21,7 +21,7 @@ $value = $foo->getValue();
 assert_eq($value, 'foobar');
 
 $argumentTypehintProvider = [
-    // <method>, <expected typehint>, <is nullable>, <is required>
+    // <method>, <expected typehint>, <is nullable>, <is required>, <(optional)min php version>
     ['testString', 'string', false, true],
     ['testStringOptional', 'string', false, false],
     ['testStringNullable', 'string', true, true],
@@ -56,7 +56,7 @@ $argumentTypehintProvider = [
     ['testIterableOptional', 'iterable', false, false],
     ['testIterableNullable', 'iterable', true, true],
 
-    ['testNull', 'null', true, true],
+    ['testNull', 'null', true, true, '8.2'],
 
     ['testClassEntry', 'class_name', false, true],
     ['testClassEntryOptional', 'class_name', false, false],
@@ -69,6 +69,10 @@ $cls = new \IntegrationTest\TypeHints\ArgumentTypeHintTest();
 $reflection = new ReflectionClass($cls);
 foreach ($argumentTypehintProvider as $input) {
     echo(sprintf("%s..", $input[0]));
+    if (array_key_exists(4, $input) && !php_at_least($input[4])) {
+        echo sprintf("SKIPPED requires at least PHP %s", $input[4]) . PHP_EOL;
+        continue;
+    }
     $reflectionMethod = $reflection->getMethod($input[0]);
     $params = $reflectionMethod->getParameters();
 
@@ -83,8 +87,8 @@ foreach ($argumentTypehintProvider as $input) {
 
 // return typehints
 $returnTypehintProvider = [
-    // <method>, <expected typehint>, <is nullable>
-    ['returnNull', 'null', true],
+    // <method>, <expected typehint>, <is nullable>, <(optional)min php version>
+    ['returnNull', 'null', true, '8.2'],
     ['returnBool', 'bool', false],
     ['returnBoolNullable', 'bool', true],
     ['returnInt', 'int', false],
@@ -102,7 +106,7 @@ $returnTypehintProvider = [
     ['returnIterable', 'iterable', false],
     ['returnIterableNullable', 'iterable', true],
     ['returnMixed', 'mixed', true],
-    ['returnNever', 'never', false],
+    ['returnNever', 'never', false, '8.1'],
     ['returnVoid', 'void', false],
     ['returnClassEntry', 'class_name', false],
     ['returnClassEntryNullable', 'class_name', true],
@@ -112,10 +116,16 @@ $cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
 $reflection = new ReflectionClass($cls);
 foreach ($returnTypehintProvider as $input) {
     echo(sprintf("%s..", $input[0]));
+    if (array_key_exists(3, $input) && !php_at_least($input[3])) {
+        echo sprintf("SKIPPED requires at least PHP %s", $input[3]) . PHP_EOL;
+        continue;
+    }
     $reflectionMethod = $reflection->getMethod($input[0]);
     $return = $reflectionMethod->getReturnType();
-    assert_eq($input[1], $return->getName(), sprintf('%s has typehint type', $input[0]));
-    assert_eq($input[2], $return->allowsNull(), sprintf('%s allows null', $input[0]));
+    if ($input[1] !== 'never') {
+        assert_eq($input[1], $return->getName(), sprintf('%s has typehint type', $input[0]));
+        assert_eq($input[2], $return->allowsNull(), sprintf('%s allows null', $input[0]));
+    }
     echo 'PASS' . PHP_EOL;
 }
 
