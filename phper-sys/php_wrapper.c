@@ -484,6 +484,8 @@ zend_internal_arg_info
 phper_zend_begin_arg_with_return_type_info_ex(bool return_reference,
                                               uintptr_t required_num_args,
                                               uint32_t typ, bool allow_null) {
+(void)typ;
+(void)allow_null;
 #define static
 #define const
 #if PHP_VERSION_ID >= 70400
@@ -505,6 +507,8 @@ phper_zend_begin_arg_with_return_obj_info_ex(bool return_reference,
                                              uintptr_t required_num_args,
                                              const char* class_name,
                                              bool allow_null) {
+(void)class_name;
+(void)allow_null;
 #define static
 #define const
 #if PHP_VERSION_ID >= 80000
@@ -529,6 +533,7 @@ zend_internal_arg_info phper_zend_arg_info_with_type(bool pass_by_ref,
                                                     uint32_t type_hint,
                                                     bool allow_null,
                                                     const char *default_value) {
+(void)default_value;
 #if PHP_VERSION_ID >= 80000
     zend_internal_arg_info info[] = {
         ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(pass_by_ref, name, type_hint, allow_null, default_value)
@@ -546,6 +551,10 @@ zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
                                                const char *name,
                                                const char *class_name,
                                                bool allow_null) {
+// suppress "unused parameter" warnings.
+(void)name;
+(void)class_name;
+(void)allow_null;
 #if PHP_VERSION_ID >= 80000
     zend_internal_arg_info info[] = {
         ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(pass_by_ref, name, class_name, allow_null, NULL)

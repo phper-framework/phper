@@ -13,8 +13,9 @@ use phper::{
     classes::{
         ClassEntity, ClassEntry, InterfaceEntity, Visibility, array_access_class, iterator_class,
     },
-    functions::Argument,
+    functions::{Argument, ReturnType},
     modules::Module,
+    types::{ArgumentTypeHint, ReturnTypeHint},
     values::ZVal,
 };
 use std::{collections::HashMap, convert::Infallible};
@@ -86,28 +87,39 @@ fn integrate_foo(module: &mut Module) {
     class.implements(array_access_class);
 
     // Implement Iterator interface.
-    class.add_method("current", Visibility::Public, |this, _arguments| {
-        let state = this.as_state();
-        Ok::<_, phper::Error>(format!("Current: {}", state.position))
-    });
-    class.add_method("key", Visibility::Public, |this, _arguments| {
-        let state = this.as_state();
-        Ok::<_, phper::Error>(state.position as i64)
-    });
-    class.add_method("next", Visibility::Public, |this, _arguments| {
-        let state = this.as_mut_state();
-        state.position += 1;
-        Ok::<_, Infallible>(())
-    });
-    class.add_method("rewind", Visibility::Public, |this, _arguments| {
-        let state = this.as_mut_state();
-        state.position = 0;
-        Ok::<_, Infallible>(())
-    });
-    class.add_method("valid", Visibility::Public, |this, _arguments| {
-        let state = this.as_state();
-        Ok::<_, Infallible>(state.position < 3)
-    });
+    class
+        .add_method("current", Visibility::Public, |this, _arguments| {
+            let state = this.as_state();
+            Ok::<_, phper::Error>(format!("Current: {}", state.position))
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Mixed));
+
+    class
+        .add_method("key", Visibility::Public, |this, _arguments| {
+            let state = this.as_state();
+            Ok::<_, phper::Error>(state.position as i64)
+        }).return_type(ReturnType::by_val(ReturnTypeHint::Mixed));
+
+    class
+        .add_method("next", Visibility::Public, |this, _arguments| {
+            let state = this.as_mut_state();
+            state.position += 1;
+            Ok::<_, Infallible>(())
+        }).return_type(ReturnType::by_val(ReturnTypeHint::Void));
+
+    class
+        .add_method("rewind", Visibility::Public, |this, _arguments| {
+            let state = this.as_mut_state();
+            state.position = 0;
+            Ok::<_, Infallible>(())
+        }).return_type(ReturnType::by_val(ReturnTypeHint::Void));
+
+    class
+        .add_method("valid", Visibility::Public, |this, _arguments| {
+            let state = this.as_state();
+            Ok::<_, Infallible>(state.position < 3)
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Bool));
 
     // Implement ArrayAccess interface.
     class
@@ -116,7 +128,8 @@ fn integrate_foo(module: &mut Module) {
             let state = this.as_state();
             Ok::<_, phper::Error>(state.array.contains_key(&offset))
         })
-        .argument(Argument::by_val("offset"));
+        .argument(Argument::by_val("offset").with_type_hint(ArgumentTypeHint::Mixed))
+        .return_type(ReturnType::by_val(ReturnTypeHint::Bool));
 
     class
         .add_method("offsetGet", Visibility::Public, |this, arguments| {
@@ -125,7 +138,8 @@ fn integrate_foo(module: &mut Module) {
             let val = state.array.get_mut(&offset).map(|val| val.ref_clone());
             Ok::<_, phper::Error>(val)
         })
-        .argument(Argument::by_val("offset"));
+        .argument(Argument::by_val("offset").with_type_hint(ArgumentTypeHint::Mixed))
+        .return_type(ReturnType::by_val(ReturnTypeHint::Mixed));
 
     class
         .add_method("offsetSet", Visibility::Public, |this, arguments| {
@@ -135,7 +149,11 @@ fn integrate_foo(module: &mut Module) {
             state.array.insert(offset, value);
             Ok::<_, phper::Error>(())
         })
-        .arguments([Argument::by_val("offset"), Argument::by_val("value")]);
+        .arguments([
+            Argument::by_val("offset").with_type_hint(ArgumentTypeHint::Mixed),
+            Argument::by_val("value").with_type_hint(ArgumentTypeHint::Mixed),
+        ])
+        .return_type(ReturnType::by_val(ReturnTypeHint::Void));
 
     class
         .add_method("offsetUnset", Visibility::Public, |this, arguments| {
@@ -144,7 +162,8 @@ fn integrate_foo(module: &mut Module) {
             state.array.remove(&offset);
             Ok::<_, phper::Error>(())
         })
-        .argument(Argument::by_val("offset"));
+        .argument(Argument::by_val("offset").with_type_hint(ArgumentTypeHint::Mixed))
+        .return_type(ReturnType::by_val(ReturnTypeHint::Void));
 
     module.add_class(class);
 }
