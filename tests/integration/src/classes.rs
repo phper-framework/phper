@@ -98,21 +98,24 @@ fn integrate_foo(module: &mut Module) {
         .add_method("key", Visibility::Public, |this, _arguments| {
             let state = this.as_state();
             Ok::<_, phper::Error>(state.position as i64)
-        }).return_type(ReturnType::by_val(ReturnTypeHint::Mixed));
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Mixed));
 
     class
         .add_method("next", Visibility::Public, |this, _arguments| {
             let state = this.as_mut_state();
             state.position += 1;
             Ok::<_, Infallible>(())
-        }).return_type(ReturnType::by_val(ReturnTypeHint::Void));
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Void));
 
     class
         .add_method("rewind", Visibility::Public, |this, _arguments| {
             let state = this.as_mut_state();
             state.position = 0;
             Ok::<_, Infallible>(())
-        }).return_type(ReturnType::by_val(ReturnTypeHint::Void));
+        })
+        .return_type(ReturnType::by_val(ReturnTypeHint::Void));
 
     class
         .add_method("valid", Visibility::Public, |this, _arguments| {
