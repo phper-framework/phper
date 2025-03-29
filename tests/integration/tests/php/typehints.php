@@ -48,9 +48,9 @@ $argumentTypehintProvider = [
     ['testCallableOptional', 'callable', false, false],
     ['testCallableNullable', 'callable', true, true],
 
-    ['testObject', 'object', false, true, '7.1'],
-    ['testObjectOptional', 'object', false, false, '7.1'],
-    ['testObjectNullable', 'object', true, true, '7.1'],
+    ['testObject', 'object', false, true, '7.2'],
+    ['testObjectOptional', 'object', false, false, '7.2'],
+    ['testObjectNullable', 'object', true, true, '7.2'],
 
     ['testIterable', 'iterable', false, true, '7.1'],
     ['testIterableOptional', 'iterable', false, false, '7.1'],
@@ -79,7 +79,7 @@ foreach ($argumentTypehintProvider as $input) {
     assert_eq(1, count($params), 'has 1 param');
     $param = $params[0];
     $type = $param->getType();
-    if (PHP_VERSION_ID >= 70100) {
+    if (PHP_VERSION_ID >= 70200) {
         assert_eq($input[1], (string)$type->getName(), sprintf('%s has typehint type', $input[0]));
         assert_eq($input[2], $type->allowsNull(), sprintf('%s allows null', $input[0]));
         assert_eq($input[3], !$param->isOptional(), sprintf('%s is optional', $input[0]));
@@ -127,7 +127,7 @@ foreach ($returnTypehintProvider as $input) {
     }
     $reflectionMethod = $reflection->getMethod($input[0]);
     $return = $reflectionMethod->getReturnType();
-    if ($input[1] !== 'never' && PHP_VERSION_ID > 70100) {
+    if ($input[1] !== 'never' && PHP_VERSION_ID > 70200) {
         assert_eq($input[1], $return->getName(), sprintf('%s has typehint type', $input[0]));
         assert_eq($input[2], $return->allowsNull(), sprintf('%s allows null', $input[0]));
     }
