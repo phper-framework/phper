@@ -58,9 +58,9 @@ $argumentTypehintProvider = [
 
     ['testNull', 'null', true, true, '8.2'],
 
-    ['testClassEntry', 'class_name', false, true, '7.4'],
-    ['testClassEntryOptional', 'class_name', false, false, '7.4'],
-    ['testClassEntryNullable', 'class_name', true, true, '7.4'],
+    ['testClassEntry', 'class_name', false, true, '8.0'],
+    ['testClassEntryOptional', 'class_name', false, false, '8.0'],
+    ['testClassEntryNullable', 'class_name', true, true, '8.0'],
 ];
 
 // typehints
@@ -110,11 +110,11 @@ $returnTypehintProvider = [
     ['returnCallableNullable', 'callable', true],
     ['returnIterable', 'iterable', false],
     ['returnIterableNullable', 'iterable', true],
-    ['returnMixed', 'mixed', true, '7.4'],
+    ['returnMixed', 'mixed', true, '8.0'],
     ['returnNever', 'never', false, '8.1'],
     ['returnVoid', 'void', false],
-    ['returnClassEntry', 'class_name', false, '7.4'],
-    ['returnClassEntryNullable', 'class_name', true, '7.4'],
+    ['returnClassEntry', 'class_name', false, '8.0'],
+    ['returnClassEntryNullable', 'class_name', true, '8.0'],
 ];
 echo PHP_EOL . 'Testing return typehints' . PHP_EOL;
 $cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
@@ -155,15 +155,15 @@ if (PHP_VERSION_ID > 70100) {
 
 $argumentDefaultValueProvider = [
     // <method>, <expected default value>, <(optional) min php version>
-    ['stringDefault', 'foobarbaz', 'string', '7.4'],
-    ['stringConstantDefault', PHP_VERSION, 'string', '7.4'],
-    ['boolDefaultTrue', true, 'boolean', '7.4'],
-    ['boolDefaultFalse', false, 'boolean', '7.4'],
-    ['intDefault', 42, 'integer', '7.4'],
-    ['floatDefault', 3.14159, 'double', '7.4'],
-    ['arrayDefault', ['a' => 'b'], 'array', '7.4'],
-    ['iterableDefault', [0 => 1], 'array', '7.4'],
-    ['mixedDefault', 999, 'integer', '7.4'],
+    ['stringDefault', 'foobarbaz', 'string', '8.0'],
+    ['stringConstantDefault', PHP_VERSION, 'string', '8.0'],
+    ['boolDefaultTrue', true, 'boolean', '8.0'],
+    ['boolDefaultFalse', false, 'boolean', '8.0'],
+    ['intDefault', 42, 'integer', '8.0'],
+    ['floatDefault', 3.14159, 'double', '8.0'],
+    ['arrayDefault', ['a' => 'b'], 'array', '8.0'],
+    ['iterableDefault', [0 => 1], 'array', '8.0'],
+    ['mixedDefault', 999, 'integer', '8.0'],
 ];
 
 echo PHP_EOL . 'Testing argument default values' . PHP_EOL;
@@ -194,7 +194,7 @@ $expectedArgs = [
     ['m', 'mixed', 1.23],
 
 ];
-if (PHP_VERSION_ID >= 70400) {
+if (PHP_VERSION_ID >= 80000) {
     echo PHP_EOL . 'Testing function typehints' . PHP_EOL;
     $reflection = new ReflectionFunction('integration_function_typehints');
     $params = $reflection->getParameters();
