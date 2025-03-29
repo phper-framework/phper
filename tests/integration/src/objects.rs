@@ -94,7 +94,7 @@ pub fn integrate(module: &mut Module) {
                 Ok(())
             },
         )
-        .argument(Argument::by_val("obj"));
+        .argument(Argument::new("obj"));
 
     module
         .add_function(
@@ -125,7 +125,7 @@ pub fn integrate(module: &mut Module) {
                 Ok(())
             },
         )
-        .argument(Argument::by_val("obj"));
+        .argument(Argument::new("obj"));
 
     module.add_function("integrate_objects_set_props", |_| {
         let mut o = ZObject::new_by_std_class();

@@ -18,7 +18,7 @@ pub fn get_module() -> Module {
         let name = arguments[0].expect_z_str()?.to_str()?;
         echo!("Hello, {}!\n", name);
         Ok(())
-    }).argument(Argument::by_val("name"));
+    }).argument(Argument::new("name"));
 
     module
 }
@@ -71,7 +71,7 @@ pub fn get_module() -> Module {
         let count = arguments[0].expect_mut_z_ref()?;
         *count.val_mut().expect_mut_long()? += 100;
         Ok(())
-    }).argument(Argument::by_ref("count"));
+    }).argument(Argument::new("count").by_ref());
 
     module
 }
@@ -101,9 +101,9 @@ pub fn get_module() -> Module {
     module.add_function("my_function", |_| -> phper::Result<()> {
         Ok(())
     })
-    .argument(Argument::by_val("a_class").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface"))).allow_null())
-    .argument(Argument::by_val("name").with_type_hint(ArgumentTypeHint::String).with_default_value("'my_default'"))
-    .argument(Argument::by_val("optional_bool").with_type_hint(ArgumentTypeHint::Bool).optional());
+    .argument(Argument::new("a_class").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface"))).allow_null())
+    .argument(Argument::new("name").with_type_hint(ArgumentTypeHint::String).with_default_value("'my_default'"))
+    .argument(Argument::new("optional_bool").with_type_hint(ArgumentTypeHint::Bool).optional());
 
     module
 }

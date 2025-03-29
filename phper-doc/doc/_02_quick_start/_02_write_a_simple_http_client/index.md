@@ -211,7 +211,7 @@ Now let's begin to finish the logic.
                *state = builder.timeout(Duration::from_millis(ms as u64));
                Ok::<_, phper::Error>(this.to_ref_owned())
            })
-           .argument(Argument::by_val("ms"));
+           .argument(Argument::new("ms"));
    
        // Inner call the `ClientBuilder::cookie_store`.
        class
@@ -222,7 +222,7 @@ Now let's begin to finish the logic.
                *state = builder.cookie_store(enable);
                Ok::<_, phper::Error>(this.to_ref_owned())
            })
-           .argument(Argument::by_val("enable"));
+           .argument(Argument::new("enable"));
    
        // Inner call the `ClientBuilder::build`, and wrap the result `Client` in
        // Object.

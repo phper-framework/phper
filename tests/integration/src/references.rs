@@ -24,5 +24,5 @@ pub fn integrate(module: &mut Module) {
 
             Ok::<_, phper::Error>(())
         })
-        .arguments([Argument::by_ref("foo"), Argument::by_ref("bar")]);
+        .arguments([Argument::new("foo").by_ref(), Argument::new("bar").by_ref()]);
 }

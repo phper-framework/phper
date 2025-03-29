@@ -39,7 +39,7 @@ pub fn make_client_builder_class(client_class: ClientClass) -> ClassEntity<Clien
             *state = builder.timeout(Duration::from_millis(ms as u64));
             Ok::<_, phper::Error>(this.to_ref_owned())
         })
-        .argument(Argument::by_val("ms"));
+        .argument(Argument::new("ms"));
 
     // Inner call the `ClientBuilder::cookie_store`.
     class
@@ -50,7 +50,7 @@ pub fn make_client_builder_class(client_class: ClientClass) -> ClassEntity<Clien
             *state = builder.cookie_store(enable);
             Ok::<_, phper::Error>(this.to_ref_owned())
         })
-        .argument(Argument::by_val("enable"));
+        .argument(Argument::new("enable"));
 
     // Inner call the `ClientBuilder::build`, and wrap the result `Client` in
     // Object.
@@ -85,7 +85,7 @@ pub fn make_client_class(
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, phper::Error>(object)
         })
-        .argument(Argument::by_val("url"));
+        .argument(Argument::new("url"));
 
     class
         .add_method("post", Visibility::Public, move |this, arguments| {
@@ -96,7 +96,7 @@ pub fn make_client_class(
             *object.as_mut_state() = Some(request_builder);
             Ok::<_, phper::Error>(object)
         })
-        .argument(Argument::by_val("url"));
+        .argument(Argument::new("url"));
 
     class
 }

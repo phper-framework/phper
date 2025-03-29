@@ -58,7 +58,7 @@ pub fn get_module() -> Module {
     // register functions
     module
         .add_function("complex_say_hello", say_hello)
-        .argument(Argument::by_val("name"));
+        .argument(Argument::new("name"));
     module.add_function("complex_throw_exception", throw_exception);
     module.add_function("complex_get_all_ini", |_: &mut [ZVal]| {
         let mut arr = ZArray::new();
@@ -91,7 +91,7 @@ pub fn get_module() -> Module {
                 Ok(())
             },
         )
-        .argument(Argument::by_val("foo"));
+        .argument(Argument::new("foo"));
     module.add_class(foo_class);
 
     // register extra info

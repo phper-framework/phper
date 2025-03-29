@@ -518,8 +518,8 @@ pub struct Argument {
 }
 
 impl Argument {
-    /// Indicate the argument is pass by value.
-    pub fn by_val(name: impl Into<String>) -> Self {
+    /// Create a new argument with default values
+    pub fn new(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
             name,
@@ -531,43 +531,10 @@ impl Argument {
         }
     }
 
-    /// Indicate the argument is pass by reference.
-    pub fn by_ref(name: impl Into<String>) -> Self {
-        let name = ensure_end_with_zero(name);
-        Self {
-            name,
-            type_hint: None,
-            pass_by_ref: true,
-            required: true,
-            nullable: false,
-            default_value: None,
-        }
-    }
-
-    /// Indicate the argument is pass by value and is optional.
-    pub fn by_val_optional(name: impl Into<String>) -> Self {
-        let name = ensure_end_with_zero(name);
-        Self {
-            name,
-            type_hint: None,
-            pass_by_ref: false,
-            required: false,
-            nullable: false,
-            default_value: None,
-        }
-    }
-
-    /// Indicate the argument is pass by reference nad is optional.
-    pub fn by_ref_optional(name: impl Into<String>) -> Self {
-        let name = ensure_end_with_zero(name);
-        Self {
-            name,
-            type_hint: None,
-            pass_by_ref: true,
-            required: false,
-            nullable: false,
-            default_value: None,
-        }
+    /// Indicate the argument is passed by reference
+    pub fn by_ref(mut self) -> Self {
+        self.pass_by_ref = true;
+        self
     }
 
     /// Add a type-hint to the argument
@@ -582,13 +549,7 @@ impl Argument {
         self
     }
 
-    /// Argument is required (also see by_*<ref|val>)
-    pub fn required(mut self) -> Self {
-        self.required = true;
-        self
-    }
-
-    /// Argument is optional (also see by_<ref|val>_optional)
+    /// Argument is optional
     pub fn optional(mut self) -> Self {
         self.required = false;
         self
@@ -614,7 +575,7 @@ pub struct ReturnType {
 impl ReturnType {
     /// Indicate the return type is return by value.
     #[inline]
-    pub fn by_val(type_hint: ReturnTypeHint) -> Self {
+    pub fn new(type_hint: ReturnTypeHint) -> Self {
         Self {
             type_hint,
             ret_by_ref: false,
@@ -624,12 +585,9 @@ impl ReturnType {
 
     /// Indicate the return type is return by reference.
     #[inline]
-    pub fn by_ref(type_hint: ReturnTypeHint) -> Self {
-        Self {
-            type_hint,
-            ret_by_ref: true,
-            allow_null: false,
-        }
+    pub fn by_ref(mut self) -> Self {
+        self.ret_by_ref = true;
+        self
     }
 
     /// Indicate the return type can be null.
@@ -640,6 +598,7 @@ impl ReturnType {
     }
 
     /// Add a type-hint to the return type
+    #[inline]
     pub fn with_type_hint(mut self, type_hint: ReturnTypeHint) -> Self {
         self.type_hint = type_hint;
         self
