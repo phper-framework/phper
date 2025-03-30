@@ -81,12 +81,11 @@ fn make_foo_handler() -> ClassEntity<()> {
             phper::ok(arguments[0].clone())
         })
         .argument(
-            Argument::new("foo")
-                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))),
+            Argument::new("foo").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))),
         )
-        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(
-            String::from(I_FOO),
-        )));
+        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(String::from(
+            I_FOO,
+        ))));
 
     class
 }
@@ -554,9 +553,9 @@ fn make_return_typehint_class() -> ClassEntity<()> {
         .add_method("returnClassEntry", Visibility::Public, move |_, _| {
             phper::ok(())
         })
-        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(
-            String::from(I_FOO),
-        )));
+        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(String::from(
+            I_FOO,
+        ))));
 
     class
         .add_method(
@@ -564,9 +563,7 @@ fn make_return_typehint_class() -> ClassEntity<()> {
             Visibility::Public,
             move |_, _| phper::ok(()),
         )
-        .return_type(
-            ReturnType::new(ReturnTypeHint::ClassEntry(String::from(I_FOO))).allow_null(),
-        );
+        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(String::from(I_FOO))).allow_null());
 
     class
         .add_method("returnNever", Visibility::Public, move |_, _| phper::ok(()))
