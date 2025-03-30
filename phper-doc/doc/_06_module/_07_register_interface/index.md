@@ -68,7 +68,7 @@ use phper::objects::StateObj;
 use phper::values::ZVal;
 
 let mut foo = InterfaceEntity::new("Foo");
-foo.add_method("doSomethings").argument(Argument::by_val("name"));
+foo.add_method("doSomethings").argument(Argument::new("name"));
 ```
 
 Note that abstract has no method body, so you don't need to add the handler to the method.

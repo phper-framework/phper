@@ -41,7 +41,7 @@ pub fn integrate(module: &mut Module) {
                 }
             },
         )
-        .argument(Argument::by_val("fn"));
+        .argument(Argument::new("fn"));
 
     module.add_function(
         "integrate_functions_throw_error_exception",

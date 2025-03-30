@@ -43,8 +43,8 @@ pub fn make_response_class() -> ClassEntity<Response<Body>> {
 
             Ok::<_, phper::Error>(())
         })
-        .argument(Argument::by_val("name"))
-        .argument(Argument::by_val("value"));
+        .argument(Argument::new("name"))
+        .argument(Argument::new("value"));
 
     // Register the end method with public visibility, accept `data` parameters.
     class
@@ -54,7 +54,7 @@ pub fn make_response_class() -> ClassEntity<Response<Body>> {
             *response.body_mut() = arguments[0].expect_z_str()?.to_bytes().to_vec().into();
             Ok::<_, phper::Error>(())
         })
-        .argument(Argument::by_val("data"));
+        .argument(Argument::new("data"));
 
     class
 }

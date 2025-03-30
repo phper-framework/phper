@@ -20,6 +20,7 @@ mod ini;
 mod objects;
 mod references;
 mod strings;
+mod typehints;
 mod values;
 
 use phper::{modules::Module, php_get_module};
@@ -43,6 +44,7 @@ pub fn get_module() -> Module {
     ini::integrate(&mut module);
     errors::integrate(&mut module);
     references::integrate(&mut module);
+    typehints::integrate(&mut module);
 
     module
 }

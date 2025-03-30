@@ -67,7 +67,7 @@ pub fn make_server_class(
 
             Ok::<_, phper::Error>(())
         })
-        .arguments([Argument::by_val("host"), Argument::by_val("port")]);
+        .arguments([Argument::new("host"), Argument::new("port")]);
 
     // Register the onRequest method, with public visibility, insert the handle into
     // global ON_REQUEST_HANDLERS map.
@@ -80,7 +80,7 @@ pub fn make_server_class(
             });
             Ok::<_, phper::Error>(())
         })
-        .argument(Argument::by_val("handle"));
+        .argument(Argument::new("handle"));
 
     // Register the start method, with public visibility, this method will start and
     // http server, listen on the addr, and block.
