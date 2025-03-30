@@ -217,3 +217,61 @@ impl From<&[u8]> for Scalar {
         Self::Bytes(b.to_owned())
     }
 }
+
+/// PHP argument typehints
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArgumentTypeHint {
+    /// null typehint
+    Null,
+    /// bool typehint
+    Bool,
+    /// int typehint
+    Int,
+    /// float typehint
+    Float,
+    /// string typehint
+    String,
+    /// array typehint
+    Array,
+    /// object typehint
+    Object,
+    /// callable typehint
+    Callable,
+    /// iterable typehint
+    Iterable,
+    /// mixed typehint (php 8.0+)
+    Mixed,
+    /// ClassEntry typehint (class, interface)
+    ClassEntry(String),
+}
+
+/// PHP return typehints
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReturnTypeHint {
+    /// null typehint
+    Null,
+    /// bool typehint
+    Bool,
+    /// int typehint
+    Int,
+    /// float typehint
+    Float,
+    /// string typehint
+    String,
+    /// array typehint
+    Array,
+    /// object typehint
+    Object,
+    /// callable typehint
+    Callable,
+    /// iterable typehint
+    Iterable,
+    /// mixed typehint (php 8.0+)
+    Mixed,
+    /// ClassEntry typehint (class, interface)
+    ClassEntry(String),
+    /// never typehint (8.1+)
+    Never,
+    /// void typehint
+    Void,
+}

@@ -51,14 +51,14 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
             constant.register(module_number);
         }
 
+        for interface_entity in &module.interface_entities {
+            interface_entity.init();
+        }
+
         for class_entity in &module.class_entities {
             let ce = class_entity.init();
             class_entity.declare_properties(ce);
             module.handler_map.extend(class_entity.handler_map());
-        }
-
-        for interface_entity in &module.interface_entities {
-            interface_entity.init();
         }
 
         if let Some(f) = take(&mut module.module_init) {

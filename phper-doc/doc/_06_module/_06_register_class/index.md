@@ -99,7 +99,29 @@ foo.add_static_method(
         let name = arguments[0].expect_z_str()?.to_str()?;
         Ok::<_, phper::Error>(format!("Hello, {}!\n", name))
     },
-).argument(Argument::by_val("name"));
+).argument(Argument::new("name"));
+```
+
+## Argument and return type modifiers
+
+Methods may add argument and return typehints as per functions. For example:
+
+```rust,no_run
+use phper::classes::{ClassEntity, ClassEntry, Visibility};
+use phper::functions::{Argument, ReturnType};
+use phper::types::{ArgumentTypeHint, ReturnTypeHint};
+
+let mut foo = ClassEntity::new("Foo");
+foo.add_method(
+    "test",
+    Visibility::Public,
+    |_this, _arguments| -> phper::Result<()> {
+        Ok(())
+    },
+)
+.argument(Argument::new("a_string").with_type_hint(ArgumentTypeHint::String))
+.argument(Argument::new("an_interface").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface"))))
+.return_type(ReturnType::new(ReturnTypeHint::Bool).allow_null());
 ```
 
 ## Add constants
@@ -148,8 +170,8 @@ class.add_method(
         Ok::<_, phper::Error>(())
     },
 )
-.argument(Argument::by_val("key"))
-.argument(Argument::by_val("value"));
+.argument(Argument::new("key"))
+.argument(Argument::new("value"));
 ```
 
 Equivalent to the following PHP code (hides the implementation details):

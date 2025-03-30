@@ -28,9 +28,9 @@ function assert_false($value) {
     assert_eq($value, false);
 }
 
-function assert_eq($left, $right) {
+function assert_eq($left, $right, $message = '') {
     if ($left !== $right) {
-        throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s", var_export($left, true), var_export($right, true)));
+        throw new AssertionError(sprintf("left != right,\n left: %s,\n right: %s,\n message: %s,\n", var_export($left, true), var_export($right, true), $message));
     }
 }
 
@@ -65,4 +65,9 @@ function assert_throw($callable, $expect_exception_class, $expect_exception_code
 function array_ksort($array) {
     ksort($array);
     return $array;
+}
+
+/* @var string $version Basic php version ('7.0', '8.4') */
+function php_at_least(string $version) {
+    return version_compare(PHP_VERSION, $version, '>=');
 }

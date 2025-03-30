@@ -22,7 +22,7 @@ fn integrate_arguments(module: &mut Module) {
         .add_function("integrate_arguments_null", |arguments: &mut [ZVal]| {
             arguments[0].expect_null()
         })
-        .argument(Argument::by_val("a"));
+        .argument(Argument::new("a"));
 
     module
         .add_function(
@@ -34,13 +34,13 @@ fn integrate_arguments(module: &mut Module) {
                 Ok(a + b)
             },
         )
-        .arguments([Argument::by_val("a"), Argument::by_val("b")]);
+        .arguments([Argument::new("a"), Argument::new("b")]);
 
     module
         .add_function("integrate_arguments_double", |arguments: &mut [ZVal]| {
             arguments[0].expect_double()
         })
-        .argument(Argument::by_val("a"));
+        .argument(Argument::new("a"));
 
     module
         .add_function(
@@ -52,8 +52,8 @@ fn integrate_arguments(module: &mut Module) {
                 Ok(format!("{}, {}", a, b))
             },
         )
-        .argument(Argument::by_val("a"))
-        .argument(Argument::by_val("b"));
+        .argument(Argument::new("a"))
+        .argument(Argument::new("b"));
 
     module
         .add_function(
@@ -66,7 +66,7 @@ fn integrate_arguments(module: &mut Module) {
                 Ok(b)
             },
         )
-        .argument(Argument::by_val("a"));
+        .argument(Argument::new("a"));
 
     module
         .add_function(
@@ -78,7 +78,7 @@ fn integrate_arguments(module: &mut Module) {
                 Ok(a)
             },
         )
-        .argument(Argument::by_val("a"));
+        .argument(Argument::new("a"));
 
     module
         .add_function(
@@ -93,6 +93,6 @@ fn integrate_arguments(module: &mut Module) {
                 Ok(format!("{}: {}", a, b))
             },
         )
-        .argument(Argument::by_val("a"))
-        .argument(Argument::by_val_optional("b"));
+        .argument(Argument::new("a"))
+        .argument(Argument::new("b").optional());
 }

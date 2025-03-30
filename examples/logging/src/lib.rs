@@ -32,7 +32,7 @@ pub fn get_module() -> Module {
             echo!("Hello, {}!", message);
             Ok(())
         })
-        .argument(Argument::by_val("message"));
+        .argument(Argument::new("message"));
 
     module
         .add_function("log_notice", |params: &mut [ZVal]| -> phper::Result<()> {
@@ -45,7 +45,7 @@ pub fn get_module() -> Module {
             notice!("Something happened: {}", message);
             Ok(())
         })
-        .argument(Argument::by_val("message"));
+        .argument(Argument::new("message"));
 
     module
         .add_function("log_warning", |params: &mut [ZVal]| -> phper::Result<()> {
@@ -58,7 +58,7 @@ pub fn get_module() -> Module {
             warning!("Something warning: {}", message);
             Ok(())
         })
-        .argument(Argument::by_val("message"));
+        .argument(Argument::new("message"));
 
     module
         .add_function("log_error", |params: &mut [ZVal]| -> phper::Result<()> {
@@ -70,7 +70,7 @@ pub fn get_module() -> Module {
             error!("Something gone failed: {}", message);
             Ok(())
         })
-        .argument(Argument::by_val("message"));
+        .argument(Argument::new("message"));
 
     module
         .add_function(
@@ -85,7 +85,7 @@ pub fn get_module() -> Module {
                 Ok(())
             },
         )
-        .argument(Argument::by_val("message"));
+        .argument(Argument::new("message"));
 
     module
 }

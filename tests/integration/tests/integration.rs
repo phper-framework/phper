@@ -42,6 +42,7 @@ fn test_cli() {
             &tests_php_dir.join("references.php"),
             &tests_php_dir.join("errors.php"),
             &tests_php_dir.join("reflection.php"),
+            &tests_php_dir.join("typehints.php"),
         ],
     );
 }
