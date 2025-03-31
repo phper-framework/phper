@@ -427,7 +427,7 @@ pub struct ClassEntity<T: 'static> {
     state_constructor: Rc<StateConstructor>,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
-    parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
+    parent: Option<String>,
     interfaces: Vec<Interface>,
     constants: Vec<ConstantEntity>,
     bind_class: StateClass<T>,
@@ -550,7 +550,7 @@ impl<T: 'static> ClassEntity<T> {
     /// Register class to `extends` the parent class.
     ///
     /// *Because in the `MINIT` phase, the class starts to register, so the*
-    /// *closure is used to return the `ClassEntry` to delay the acquisition of*
+    /// *`ClassEntry` is looked up by name to delay the acquisition of*
     /// *the class.*
     ///
     /// # Examples
@@ -559,10 +559,10 @@ impl<T: 'static> ClassEntity<T> {
     /// use phper::classes::{ClassEntity, ClassEntry};
     ///
     /// let mut class = ClassEntity::new("MyException");
-    /// class.extends(|| ClassEntry::from_globals("Exception").unwrap());
+    /// class.extends("Exception");
     /// ```
-    pub fn extends(&mut self, parent: impl Fn() -> &'static ClassEntry + 'static) {
-        self.parent = Some(Box::new(parent));
+    pub fn extends(&mut self, parent_name: impl Into<String>) {
+        self.parent = Some(parent_name.into());
     }
 
     /// Register class to `implements` the interface, due to the class can
@@ -631,12 +631,14 @@ impl<T: 'static> ClassEntity<T> {
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
         unsafe {
-            let parent: *mut zend_class_entry = self
-                .parent
-                .as_ref()
-                .map(|parent| parent())
-                .map(|entry| entry.as_ptr() as *mut _)
-                .unwrap_or(null_mut());
+            let parent: *mut zend_class_entry = if let Some(ref name) = self.parent {
+                let entry = ClassEntry::from_globals(name).unwrap_or_else(|err| {
+                    panic!("Unable to resolve parent class: {}: {}", name,err);
+                });
+                entry.as_ptr() as *mut _
+            } else {
+                null_mut()
+            };
 
             let class_ce = phper_init_class_entry_ex(
                 self.class_name.as_ptr().cast(),
@@ -800,7 +802,7 @@ impl InterfaceEntity {
     /// Register interface to `extends` the interfaces, due to the interface can
     /// extends multi interface, so this method can be called multi time.
     ///
-    /// *Because in the `MINIT` phase, the class starts to register, so the*
+    /// *Because in the `MINIT` phase, the class starts to register, a*
     /// *closure is used to return the `ClassEntry` to delay the acquisition of*
     /// *the class.*
     ///

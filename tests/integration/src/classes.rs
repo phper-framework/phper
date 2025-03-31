@@ -26,6 +26,7 @@ pub fn integrate(module: &mut Module) {
     integrate_i_bar(module);
     integrate_static_props(module);
     integrate_i_constants(module);
+    integrate_bar_extends_foo(module);
     #[cfg(phper_major_version = "8")]
     integrate_stringable(module);
 }
@@ -221,6 +222,15 @@ fn integrate_static_props(module: &mut Module) {
         .argument(Argument::new("val"));
 
     module.add_class(class);
+}
+
+fn integrate_bar_extends_foo(module: &mut Module) {
+    let mut cls = ClassEntity::new(r"IntegrationTest\BarExtendsFoo");
+    cls.extends(r"IntegrationTest\Foo");
+    cls.add_method("test", Visibility::Public, |_,_| {
+        phper::ok(())
+    });
+    module.add_class(cls);
 }
 
 #[cfg(phper_major_version = "8")]

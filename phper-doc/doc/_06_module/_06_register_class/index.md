@@ -44,7 +44,7 @@ If you want the class `Foo` extends `Bar`, and implements interface `Stringable`
 use phper::classes::{ClassEntity, ClassEntry, Interface};
 
 let mut foo = ClassEntity::new("Foo");
-foo.extends(|| ClassEntry::from_globals("Bar").unwrap());
+foo.extends("Bar");
 foo.implements(Interface::from_name("Stringable"));
 ```
 

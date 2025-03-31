@@ -101,7 +101,7 @@ Now let's begin to finish the logic.
    pub fn make_exception_class() -> ClassEntity<()> {
        let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
        // The `extends` is same as the PHP class `extends`.
-       class.extends(exception_class);
+       class.extends("Exception");
        class
    }
    
@@ -155,7 +155,7 @@ Now let's begin to finish the logic.
    # pub fn make_exception_class() -> ClassEntity<()> {
    #     let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
    #     // The `extends` is same as the PHP class `extends`.
-   #     class.extends(exception_class);
+   #     class.extends("Exception");
    #     class
    # }
    #
