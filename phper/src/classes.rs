@@ -376,22 +376,39 @@ impl<T> Clone for StateClass<T> {
 #[derive(Clone)]
 pub struct Interface {
     inner: Rc<RefCell<*mut zend_class_entry>>,
+    name: Option<String>,
 }
 
 impl Interface {
     fn null() -> Self {
         Self {
             inner: Rc::new(RefCell::new(null_mut())),
+            name: None,
+        }
+    }
+
+    /// Create a new interface from global name (eg "Stringable", "ArrayAccess")
+    pub fn from_name(name: impl Into<String>) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(null_mut())),
+            name: Some(name.into()),
         }
     }
 
     fn bind(&self, ptr: *mut zend_class_entry) {
+        if self.name.is_some() {
+            panic!("Cannot bind() an Interface created with from_name()");
+        }
         *self.inner.borrow_mut() = ptr;
     }
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        if let Some(name) = &self.name {
+            ClassEntry::from_globals(name).unwrap()
+        } else {
+            unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        }
     }
 }
 
@@ -411,7 +428,7 @@ pub struct ClassEntity<T: 'static> {
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
     parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
-    interfaces: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
+    interfaces: Vec<Interface>,
     constants: Vec<ConstantEntity>,
     bind_class: StateClass<T>,
     state_cloner: Option<Rc<StateCloner>>,
@@ -552,23 +569,22 @@ impl<T: 'static> ClassEntity<T> {
     /// implement multi interface, so this method can be called multi time.
     ///
     /// *Because in the `MINIT` phase, the class starts to register, so the*
-    /// *closure is used to return the `ClassEntry` to delay the acquisition of*
-    /// *the class.*
+    /// *`ClassEntry` is not fetched until later*
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use phper::classes::{ClassEntity, ClassEntry};
+    /// use phper::classes::{ClassEntity, ClassEntry, Interface};
     ///
     /// let mut class = ClassEntity::new("MyClass");
-    /// class.implements(|| ClassEntry::from_globals("Stringable").unwrap());
+    /// class.implements(Interface::from_name("Stringable"));
     ///
     /// // Here you have to the implement the method `__toString()` in `Stringable`
     /// // for `MyClass`, otherwise `MyClass` will become abstract class.
     /// // ...
     /// ```
-    pub fn implements(&mut self, interface: impl Fn() -> &'static ClassEntry + 'static) {
-        self.interfaces.push(Box::new(interface));
+    pub fn implements(&mut self, interface: Interface) {
+        self.interfaces.push(interface);
     }
 
     /// Add the state clone function, called when cloning PHP object.
@@ -633,7 +649,7 @@ impl<T: 'static> ClassEntity<T> {
             self.bind_class.bind(class_ce);
 
             for interface in &self.interfaces {
-                let interface_ce = interface().as_ptr();
+                let interface_ce = interface.as_class_entry().as_ptr();
                 zend_class_implements(class_ce, 1, interface_ce);
             }
 

@@ -92,11 +92,8 @@ fn make_foo_handler() -> ClassEntity<()> {
 
 fn make_foo_class(i_foo: Interface) -> ClassEntity<()> {
     let mut class = ClassEntity::new(r"IntegrationTest\TypeHints\Foo");
+    class.implements(i_foo);
 
-    // leak Interface so that ClassEntry can be retrieved later, during module
-    // startup
-    let i_foo_copy: &'static Interface = Box::leak(Box::new(i_foo));
-    class.implements(move || i_foo_copy.as_class_entry());
     class
         .add_method("getValue", Visibility::Public, |this, _| {
             let value = this

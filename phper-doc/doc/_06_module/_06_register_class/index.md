@@ -41,14 +41,14 @@ class Foo {}
 If you want the class `Foo` extends `Bar`, and implements interface `Stringable`:
 
 ```rust,no_run
-use phper::classes::{ClassEntity, ClassEntry};
+use phper::classes::{ClassEntity, ClassEntry, Interface};
 
 let mut foo = ClassEntity::new("Foo");
 foo.extends(|| ClassEntry::from_globals("Bar").unwrap());
-foo.implements(|| ClassEntry::from_globals("Stringable").unwrap());
+foo.implements(Interface::from_name("Stringable"));
 ```
 
-You should implements the method `Stringable::__toString` after implemented
+You should implement the method `Stringable::__toString` after implementing
 `Stringable`, otherwise the class `Foo` will become abstract class.
 
 ## Add properties

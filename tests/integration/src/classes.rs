@@ -11,7 +11,8 @@
 use phper::{
     alloc::RefClone,
     classes::{
-        ClassEntity, ClassEntry, InterfaceEntity, Visibility, array_access_class, iterator_class,
+        ClassEntity, ClassEntry, Interface, InterfaceEntity, Visibility, array_access_class,
+        iterator_class,
     },
     functions::{Argument, ReturnType},
     modules::Module,
@@ -83,8 +84,8 @@ fn integrate_foo(module: &mut Module) {
         array: Default::default(),
     });
 
-    class.implements(iterator_class);
-    class.implements(array_access_class);
+    class.implements(Interface::from_name("Iterator"));
+    class.implements(Interface::from_name("ArrayAccess"));
 
     // Implement Iterator interface.
     class
@@ -228,7 +229,7 @@ fn integrate_stringable(module: &mut Module) {
     use phper::{functions::ReturnType, types::ReturnTypeHint};
 
     let mut cls = ClassEntity::new(r"IntegrationTest\FooString");
-    cls.implements(|| ClassEntry::from_globals("Stringable").unwrap());
+    cls.implements(Interface::from_name("Stringable"));
     cls.add_method("__toString", Visibility::Public, |_this, _: &mut [ZVal]| {
         phper::ok("string")
     })
