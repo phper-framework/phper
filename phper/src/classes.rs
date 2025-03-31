@@ -807,13 +807,16 @@ impl InterfaceEntity {
     /// # Examples
     ///
     /// ```no_run
-    /// use phper::classes::{ClassEntry, InterfaceEntity};
+    /// use phper::classes::{Interface, InterfaceEntity};
     ///
     /// let mut interface = InterfaceEntity::new("MyInterface");
-    /// interface.extends(|| ClassEntry::from_globals("Stringable").unwrap());
+    /// interface.extends(Interface::from_name("Stringable"));
     /// ```
-    pub fn extends(&mut self, interface: impl Fn() -> &'static ClassEntry + 'static) {
-        self.extends.push(Box::new(interface));
+    pub fn extends(&mut self, interface: Interface) {
+        self.extends.push(Box::new(move || {
+            let entry: &'static ClassEntry = unsafe { std::mem::transmute(interface.as_class_entry()) };
+            entry
+        }));
     }
 
     #[allow(clippy::useless_conversion)]

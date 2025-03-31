@@ -11,8 +11,7 @@
 use phper::{
     alloc::RefClone,
     classes::{
-        ClassEntity, ClassEntry, Interface, InterfaceEntity, Visibility, array_access_class,
-        iterator_class,
+        ClassEntity, ClassEntry, Interface, InterfaceEntity, Visibility,
     },
     functions::{Argument, ReturnType},
     modules::Module,
@@ -175,8 +174,8 @@ fn integrate_foo(module: &mut Module) {
 fn integrate_i_bar(module: &mut Module) {
     let mut interface = InterfaceEntity::new(r"IntegrationTest\IBar");
 
-    interface.extends(|| array_access_class());
-    interface.extends(|| iterator_class());
+    interface.extends(Interface::from_name("ArrayAccess"));
+    interface.extends(Interface::from_name("Iterator"));
 
     interface
         .add_method("doSomethings")
