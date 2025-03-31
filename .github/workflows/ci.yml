@@ -83,6 +83,7 @@ jobs:
         run: |
           brew install php@${{ matrix.php-version }}
           echo "/opt/homebrew/opt/php@${{ matrix.php-version }}/bin" >> "$GITHUB_PATH"
+          echo "/opt/homebrew/opt/php@${{ matrix.php-version }}/sbin" >> "$GITHUB_PATH"
 
       - name: PHP version
         run: |
