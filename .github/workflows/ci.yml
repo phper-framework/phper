@@ -81,7 +81,8 @@ jobs:
       - name: Setup php-fpm for Macos
         if: matrix.os == 'macos-14'
         run: |
-          brew install php@${{ matrix.php-version }}
+          brew install --with-fpm php@${{ matrix.php-version }}
+          echo "/opt/homebrew/opt/php@${{ matrix.php-version }}/bin" >> "$GITHUB_PATH"
 
       - name: PHP version
         run: |
