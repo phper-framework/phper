@@ -28,7 +28,7 @@ use std::{
     ffi::{CString, c_char, c_void},
     fmt::Debug,
     marker::PhantomData,
-    mem::{ManuallyDrop, replace, size_of, zeroed},
+    mem::{ManuallyDrop, replace, size_of, transmute, zeroed},
     os::raw::c_int,
     ptr,
     ptr::null_mut,
@@ -287,13 +287,26 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 /// ```
 pub struct StateClass<T> {
     inner: Rc<RefCell<*mut zend_class_entry>>,
+    name: Option<String>,
     _p: PhantomData<T>,
+}
+
+impl StateClass<()> {
+    /// Create from name, which will be looked up from globals.
+    pub fn from_name(name: impl Into<String>) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(null_mut())),
+            name: Some(name.into()),
+            _p: PhantomData,
+        }
+    }
 }
 
 impl<T> StateClass<T> {
     fn null() -> Self {
         Self {
             inner: Rc::new(RefCell::new(null_mut())),
+            name: None,
             _p: PhantomData,
         }
     }
@@ -304,7 +317,11 @@ impl<T> StateClass<T> {
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        if let Some(name) = &self.name {
+            ClassEntry::from_globals(name).unwrap()
+        } else {
+            unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        }
     }
 
     /// Create the object from class and call `__construct` with arguments.
@@ -333,6 +350,7 @@ impl<T> Clone for StateClass<T> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
+            name: self.name.clone(),
             _p: self._p,
         }
     }
@@ -427,7 +445,7 @@ pub struct ClassEntity<T: 'static> {
     state_constructor: Rc<StateConstructor>,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
-    parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
+    parent: Option<StateClass<()>>,
     interfaces: Vec<Interface>,
     constants: Vec<ConstantEntity>,
     bind_class: StateClass<T>,
@@ -557,7 +575,7 @@ impl<T: 'static> ClassEntity<T> {
     ///
     /// ```no_run
     /// use phper::{
-    ///     classes::{ClassEntity, ClassEntry},
+    ///     classes::{ClassEntity, ClassEntry, StateClass},
     ///     modules::Module,
     ///     php_get_module,
     /// };
@@ -572,38 +590,18 @@ impl<T: 'static> ClassEntity<T> {
     ///
     ///     let foo = module.add_class(ClassEntity::new("Foo"));
     ///     let mut bar = ClassEntity::new("Bar");
-    ///     bar.extends(&foo);
+    ///     bar.extends(foo);
+    ///     module.add_class(bar);
+    ///
+    ///     let mut ex = ClassEntity::new("MyException");
+    ///     ex.extends(StateClass::from_name("Exception"));
+    ///     module.add_class(ex);
     ///
     ///     module
     /// }
     /// ```
-    pub fn extends<U: 'static>(&mut self, parent: &StateClass<U>) {
-        let parent = parent.clone();
-        self.parent = Some(Box::new(move || {
-            let entry: &'static ClassEntry =
-                unsafe { std::mem::transmute(parent.as_class_entry()) };
-            entry
-        }));
-    }
-
-    /// Register class to `extends` the parent class, by name. Similar to
-    /// `extends`, this is useful for built-ins.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use phper::classes::{ClassEntity, ClassEntry};
-    ///
-    /// let mut class = ClassEntity::new("MyException");
-    /// class.extends_name("Exception");
-    /// ```
-    pub fn extends_name(&mut self, name: impl Into<String>) {
-        let name = name.into();
-        self.parent = Some(Box::new(move || {
-            ClassEntry::from_globals(&name).unwrap_or_else(|_| {
-                panic!("Unable to resolve parent class: {}", name);
-            })
-        }));
+    pub fn extends<S: 'static>(&mut self, parent: StateClass<S>) {
+        self.parent = Some(unsafe { transmute::<StateClass<S>, StateClass<()>>(parent) });
     }
 
     /// Register class to `implements` the interface, due to the class can
@@ -672,11 +670,12 @@ impl<T: 'static> ClassEntity<T> {
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
         unsafe {
-            let parent: *mut zend_class_entry = if let Some(ref parent_fn) = self.parent {
-                parent_fn().as_ptr() as *mut _
-            } else {
-                null_mut()
-            };
+            let parent: *mut zend_class_entry = self
+                .parent
+                .as_ref()
+                .map(|parent| parent.as_class_entry())
+                .map(|entry| entry.as_ptr() as *mut _)
+                .unwrap_or(null_mut());
 
             let class_ce = phper_init_class_entry_ex(
                 self.class_name.as_ptr().cast(),

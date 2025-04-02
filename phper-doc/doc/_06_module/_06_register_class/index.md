@@ -39,16 +39,16 @@ class Foo {}
 ## Extends & implements
 
 To allow a class to extend another, you can either use `ClassEntity.extends(StateClass<T>)` for classes implemented
-in your module, or `ClassEntity.extends_name(String)` for built-ins (although, `extends_name` should actually work
-for any class).
+in your module.
 
-If you want the class `Foo` extends `Bar`, and implements interface `Stringable`:
+If you want class `Foo` extends `Bar`, and implements interface `Stringable`:
 
 ```rust,no_run
 use phper::classes::{ClassEntity, ClassEntry, Interface};
 
+let mut bar = ClassEntity::new("Bar").bind_class();
 let mut foo = ClassEntity::new("Foo");
-foo.extends_name("Bar");
+foo.extends(bar);
 foo.implements(Interface::from_name("Stringable"));
 ```
 

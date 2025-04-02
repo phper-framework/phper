@@ -24,7 +24,7 @@ pub fn integrate(module: &mut Module) {
     integrate_i_bar(module);
     integrate_static_props(module);
     integrate_i_constants(module);
-    integrate_bar_extends_foo(module, &foo_class);
+    integrate_bar_extends_foo(module, foo_class);
     #[cfg(phper_major_version = "8")]
     integrate_stringable(module);
 }
@@ -222,7 +222,7 @@ fn integrate_static_props(module: &mut Module) {
     module.add_class(class);
 }
 
-fn integrate_bar_extends_foo(module: &mut Module, foo_class: &StateClass<Foo>) {
+fn integrate_bar_extends_foo(module: &mut Module, foo_class: StateClass<Foo>) {
     let mut cls = ClassEntity::new(r"IntegrationTest\BarExtendsFoo");
     cls.extends(foo_class);
     cls.add_method("test", Visibility::Public, |_, _| phper::ok(()));

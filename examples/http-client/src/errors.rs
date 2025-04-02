@@ -9,7 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    classes::{ClassEntity, ClassEntry},
+    classes::{ClassEntity, ClassEntry, StateClass},
     errors::{Throwable, exception_class},
 };
 
@@ -19,7 +19,7 @@ const EXCEPTION_CLASS_NAME: &str = "HttpClient\\HttpClientException";
 pub fn make_exception_class() -> ClassEntity<()> {
     let mut class = ClassEntity::new(EXCEPTION_CLASS_NAME);
     // The `extends` is same as the PHP class `extends`.
-    class.extends_name("Exception");
+    class.extends(StateClass::from_name("Exception"));
     class
 }
 
