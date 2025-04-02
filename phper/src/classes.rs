@@ -427,7 +427,7 @@ pub struct ClassEntity<T: 'static> {
     state_constructor: Rc<StateConstructor>,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
-    parent: Option<String>,
+    parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
     interfaces: Vec<Interface>,
     constants: Vec<ConstantEntity>,
     bind_class: StateClass<T>,
@@ -556,13 +556,54 @@ impl<T: 'static> ClassEntity<T> {
     /// # Examples
     ///
     /// ```no_run
+    /// use phper::{
+    ///     classes::{ClassEntity, ClassEntry},
+    ///     modules::Module,
+    ///     php_get_module,
+    /// };
+    ///
+    /// #[php_get_module]
+    /// pub fn get_module() -> Module {
+    ///     let mut module = Module::new(
+    ///         env!("CARGO_CRATE_NAME"),
+    ///         env!("CARGO_PKG_VERSION"),
+    ///         env!("CARGO_PKG_AUTHORS"),
+    ///     );
+    ///
+    ///     let foo = module.add_class(ClassEntity::new("Foo"));
+    ///     let mut bar = ClassEntity::new("Bar");
+    ///     bar.extends(&foo);
+    ///
+    /// module
+    /// }
+    /// ```
+    pub fn extends<U: 'static>(&mut self, parent: &StateClass<U>) {
+        let parent = parent.clone();
+        self.parent = Some(Box::new(move || {
+            let entry: &'static ClassEntry =
+                unsafe { std::mem::transmute(parent.as_class_entry()) };
+            entry
+        }));
+    }
+
+    /// Register class to `extends` the parent class, by name. Similar to `extends`, this is
+    /// useful for built-ins.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
     /// use phper::classes::{ClassEntity, ClassEntry};
     ///
     /// let mut class = ClassEntity::new("MyException");
-    /// class.extends("Exception");
+    /// class.extends_name("Exception");
     /// ```
-    pub fn extends(&mut self, parent_name: impl Into<String>) {
-        self.parent = Some(parent_name.into());
+    pub fn extends_name(&mut self, name: impl Into<String>) {
+        let name = name.into();
+        self.parent = Some(Box::new(move || {
+            ClassEntry::from_globals(&name).unwrap_or_else(|_| {
+                panic!("Unable to resolve parent class: {}", name);
+            })
+        }));
     }
 
     /// Register class to `implements` the interface, due to the class can
@@ -631,11 +672,8 @@ impl<T: 'static> ClassEntity<T> {
     #[allow(clippy::useless_conversion)]
     pub(crate) unsafe fn init(&self) -> *mut zend_class_entry {
         unsafe {
-            let parent: *mut zend_class_entry = if let Some(ref name) = self.parent {
-                let entry = ClassEntry::from_globals(name).unwrap_or_else(|err| {
-                    panic!("Unable to resolve parent class: {}: {}", name,err);
-                });
-                entry.as_ptr() as *mut _
+            let parent: *mut zend_class_entry = if let Some(ref parent_fn) = self.parent {
+                parent_fn().as_ptr() as *mut _
             } else {
                 null_mut()
             };
