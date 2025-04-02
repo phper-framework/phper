@@ -574,7 +574,7 @@ impl<T: 'static> ClassEntity<T> {
     ///     let mut bar = ClassEntity::new("Bar");
     ///     bar.extends(&foo);
     ///
-    /// module
+    ///     module
     /// }
     /// ```
     pub fn extends<U: 'static>(&mut self, parent: &StateClass<U>) {
@@ -586,8 +586,8 @@ impl<T: 'static> ClassEntity<T> {
         }));
     }
 
-    /// Register class to `extends` the parent class, by name. Similar to `extends`, this is
-    /// useful for built-ins.
+    /// Register class to `extends` the parent class, by name. Similar to
+    /// `extends`, this is useful for built-ins.
     ///
     /// # Examples
     ///
@@ -854,7 +854,8 @@ impl InterfaceEntity {
     /// ```
     pub fn extends(&mut self, interface: Interface) {
         self.extends.push(Box::new(move || {
-            let entry: &'static ClassEntry = unsafe { std::mem::transmute(interface.as_class_entry()) };
+            let entry: &'static ClassEntry =
+                unsafe { std::mem::transmute(interface.as_class_entry()) };
             entry
         }));
     }
