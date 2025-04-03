@@ -17,7 +17,6 @@ use phper::{
     values::ZVal,
 };
 use std::{collections::HashMap, convert::Infallible};
-use std::rc::Rc;
 
 pub fn integrate(module: &mut Module) {
     integrate_a(module);
@@ -238,45 +237,27 @@ fn integrate_dependent_classes(module: &mut Module) {
     let mut a_cls = ClassEntity::new(A_CLS);
     let mut b_cls = ClassEntity::new(B_CLS);
 
-    // Placeholder, will clone StateClass into closures after registration
-    let a_cls_ref = std::rc::Rc::new(std::cell::RefCell::new(None));
-    let b_cls_ref = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let a_bound_class = a_cls.bound_class();
+    let b_bound_class = b_cls.bound_class();
 
-    {
-        let b_cls_ref = Rc::clone(&b_cls_ref);
-        a_cls.add_static_method("createB", Visibility::Public, move |_| {
-            let borrow = b_cls_ref.borrow();
-            let b_state: &StateClass<()> = borrow
-                .as_ref()
-                .expect("B class not registered");
-            let obj = b_state.init_object()?;
-            Ok::<_, phper::Error>(obj)
+    a_cls
+        .add_static_method("createB", Visibility::Public, move |_| {
+            let object = b_bound_class.init_object()?;
+            Ok::<_, phper::Error>(object)
         })
-        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(String::from(B_CLS))));
-    }
+        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(B_CLS.into())));
 
-    {
-        let a_cls_ref = Rc::clone(&a_cls_ref);
-        b_cls.add_static_method("createA", Visibility::Public, move |_| {
-            let borrow = a_cls_ref.borrow();
-            let a_state: &StateClass<()> = borrow
-                .as_ref()
-                .expect("A class not registered");
-            let obj = a_state.init_object()?;
-            Ok::<_, phper::Error>(obj)
+    b_cls
+        .add_static_method("createA", Visibility::Public, move |_| {
+            let object = a_bound_class.init_object()?;
+            Ok::<_, phper::Error>(object)
         })
-        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(String::from(A_CLS))));
-    }
+        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(A_CLS.into())));
 
-
-    // Register both classes and save the StateClass into shared RefCells
-    let a_state = module.add_class(a_cls);
-    let b_state = module.add_class(b_cls);
-
-    *a_cls_ref.borrow_mut() = Some(a_state);
-    *b_cls_ref.borrow_mut() = Some(b_state);
+    // Register both classes
+    module.add_class(a_cls);
+    module.add_class(b_cls);
 }
-
 
 #[cfg(phper_major_version = "8")]
 fn integrate_stringable(module: &mut Module) {
