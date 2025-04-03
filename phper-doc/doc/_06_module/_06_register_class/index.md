@@ -38,15 +38,19 @@ class Foo {}
 
 ## Extends & implements
 
-To allow a class to extend another, you can either use `ClassEntity.extends(StateClass<T>)` for classes implemented
-in your module.
+To allow a class to extend another, you can use `ClassEntity.extends(StateClass<T>)` for classes implemented
+in your module. A StateClass can either be obtained by registering your own class against the module, or
+by  looking up the class by name (for example, for PHP built-in classes like `Exception`).
 
 If you want class `Foo` extends `Bar`, and implements interface `Stringable`:
 
 ```rust,no_run
 use phper::classes::{ClassEntity, ClassEntry, Interface};
+use phper::{modules::Module, php_get_module};
 
-let mut bar = ClassEntity::new("Bar").bind_class();
+let mut module = Module::new("test", "0.1", "");
+
+let bar = module.add_class(ClassEntity::new("Bar"));
 let mut foo = ClassEntity::new("Foo");
 foo.extends(bar);
 foo.implements(Interface::from_name("Stringable"));
