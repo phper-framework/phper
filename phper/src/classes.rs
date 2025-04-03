@@ -314,7 +314,8 @@ impl<T> StateClass<T> {
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        match self.inner.borrow().clone() {
+        let inner = self.inner.borrow().clone();
+        match inner {
             InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_ptr(ptr) },
             InnerClassEntry::Name(name) => {
                 let entry = ClassEntry::from_globals(name).unwrap();
@@ -422,7 +423,8 @@ impl Interface {
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        match self.inner.borrow().clone() {
+        let inner = self.inner.borrow().clone();
+        match inner {
             InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_ptr(ptr) },
             InnerClassEntry::Name(name) => {
                 let entry = ClassEntry::from_globals(name).unwrap();
