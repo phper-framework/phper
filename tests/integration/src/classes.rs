@@ -229,6 +229,21 @@ fn integrate_bar_extends_foo(module: &mut Module, foo_class: StateClass<Foo>) {
     module.add_class(cls);
 }
 
+fn integrate_dependent_classes(module: &mut Module) {
+    let mut a_cls = ClassEntity::new(r"IntegrationTest\Dependency\A");
+    let mut b_cls = ClassEntity::new(r"IntegrationTest\Dependency\B");
+
+    a_cls.add_static_method("createB", Visibility::Public, |_| {
+        let b = b_cls.init_object()?;
+        Ok::<_, phper::Error>(b)
+    });
+
+    b_cls.add_static_method("createA", Visibility::Public, |_| {
+        let a = a_cls.init_object()?;
+        Ok::<_, phper::Error>(a)
+    });
+}
+
 #[cfg(phper_major_version = "8")]
 fn integrate_stringable(module: &mut Module) {
     use phper::{functions::ReturnType, types::ReturnTypeHint};
