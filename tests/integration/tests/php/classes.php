@@ -105,3 +105,9 @@ assert_eq(10.0, IntegrationTest\IConstants::CST_FLOAT);
 $bar = new \IntegrationTest\BarExtendsFoo; //Bar should extend Foo
 $reflection = new ReflectionClass($bar);
 assert_true($reflection->isSubclassOf(IntegrationTest\Foo::class));
+
+// Test co-dependent classes
+$b = IntegrationTest\Dependency\A::createB();
+assert_true($b instanceof IntegrationTest\Dependency\B);
+$a = IntegrationTest\Dependency\B::createA();
+assert_true($a instanceof IntegrationTest\Dependency\A);
