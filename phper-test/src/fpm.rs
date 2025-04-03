@@ -12,19 +12,18 @@
 use crate::{context::Context, utils::spawn_command};
 use fastcgi_client::{Client, Params, Request};
 use libc::{SIGTERM, atexit, kill, pid_t};
-use once_cell::sync::OnceCell;
 use std::{
     fs,
     mem::{ManuallyDrop, forget},
     path::{Path, PathBuf},
     process::Child,
-    sync::Mutex,
+    sync::{Mutex, OnceLock},
     time::Duration,
 };
 use tempfile::NamedTempFile;
 use tokio::{io, net::TcpStream, runtime::Handle, task::block_in_place};
 
-static FPM_HANDLE: OnceCell<Mutex<FpmHandle>> = OnceCell::new();
+static FPM_HANDLE: OnceLock<Mutex<FpmHandle>> = OnceLock::new();
 
 struct FpmHandle {
     lib_path: PathBuf,

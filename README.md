@@ -24,27 +24,19 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 ### Tested Support
 
-| **Category**    | **Item** | **Status** |
-| --------------- | -------- | ---------- |
-| **OS**          | Linux    | ✅          |
-|                 | macOS    | ✅          |
-|                 | Windows  | ❌          |
-| **PHP Version** | 7.0      | ✅          |
-|                 | 7.1      | ✅          |
-|                 | 7.2      | ✅          |
-|                 | 7.3      | ✅          |
-|                 | 7.4      | ✅          |
-|                 | 8.0      | ✅          |
-|                 | 8.1      | ✅          |
-|                 | 8.2      | ✅          |
-|                 | 8.3      | ✅          |
-|                 | 8.4      | ✅          |
-| **PHP Mode**    | NTS      | ✅          |
-|                 | ZTS      | ❌          |
-| **SAPI**        | CLI      | ✅          |
-|                 | FPM      | ✅          |
-| **Debug**       | Disable  | ✅          |
-|                 | Enable   | ❌          |
+| **Category**    | **Item**  | **Status** |
+| --------------- | --------- | ---------- |
+| **OS**          | Linux     | ✅          |
+|                 | macOS     | ✅          |
+|                 | Windows   | ❌          |
+| **PHP Version** | 7.0 ~ 7.4 | ✅          |
+|                 | 8.0 ~ 8.4 | ✅          |
+| **PHP Mode**    | NTS       | ✅          |
+|                 | ZTS       | ❌          |
+| **SAPI**        | CLI       | ✅          |
+|                 | FPM       | ✅          |
+| **Debug**       | Disable   | ✅          |
+|                 | Enable    | ❌          |
 
 ## Examples
 
@@ -53,6 +45,8 @@ See [examples](https://github.com/phper-framework/phper/tree/master/examples).
 ## The projects using PHPER
 
 - [apache/skywalking-php](https://github.com/apache/skywalking-php) - The PHP Agent for Apache SkyWalking, which provides the native tracing abilities for PHP project.
+
+- [phper-framework/jieba-php](https://github.com/phper-framework/jieba-php) - The Jieba Chinese Word Segmentation Implemented in Rust Bound for PHP.
 
 ## License
 

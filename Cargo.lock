@@ -999,7 +999,6 @@ dependencies = [
  "cfg-if",
  "derive_more",
  "indexmap",
- "once_cell",
  "phper-alloc",
  "phper-build",
  "phper-macros",
@@ -1103,7 +1102,6 @@ version = "0.15.0"
 dependencies = [
  "fastcgi-client",
  "libc",
- "once_cell",
  "phper-macros",
  "tempfile",
  "tokio",
