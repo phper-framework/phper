@@ -206,17 +206,17 @@ impl Module {
 
     /// Register class to module.
     pub fn add_class<T>(&mut self, class: ClassEntity<T>) -> StateClass<T> {
-        let bind_class = class.bind_class();
+        let bound_class = class.bound_class();
         self.class_entities
             .push(unsafe { transmute::<ClassEntity<T>, ClassEntity<()>>(class) });
-        bind_class
+        bound_class
     }
 
     /// Register interface to module.
     pub fn add_interface(&mut self, interface: InterfaceEntity) -> Interface {
-        let bind_interface = interface.bind_interface();
+        let bound_interface = interface.bound_interface();
         self.interface_entities.push(interface);
-        bind_interface
+        bound_interface
     }
 
     /// Register constant to module.

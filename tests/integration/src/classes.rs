@@ -31,7 +31,7 @@ pub fn integrate(module: &mut Module) {
 
 fn integrate_a(module: &mut Module) {
     let mut class = ClassEntity::new("IntegrationTest\\A");
-    let integrate_a_class = class.bind_class();
+    let integrate_a_class = class.bound_class();
 
     class.add_property("name", Visibility::Private, "default");
     class.add_property("number", Visibility::Private, 100);
