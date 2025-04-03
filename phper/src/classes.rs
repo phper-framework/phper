@@ -235,7 +235,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 
 /// The [StateClass] holds [zend_class_entry] and inner state, created by
 /// [Module::add_class](crate::modules::Module::add_class) or
-/// [ClassEntity::bind_class].
+/// [ClassEntity::bound_class].
 ///
 /// When the class registered (module initialized), the [StateClass] will
 /// be initialized, so you can use the [StateClass] to new stateful
@@ -436,7 +436,7 @@ pub struct ClassEntity<T: 'static> {
     parent: Option<StateClass<()>>,
     interfaces: Vec<Interface>,
     constants: Vec<ConstantEntity>,
-    bind_class: StateClass<T>,
+    bound_class: StateClass<T>,
     state_cloner: Option<Rc<StateCloner>>,
     _p: PhantomData<(*mut (), T)>,
 }
@@ -474,7 +474,7 @@ impl<T: 'static> ClassEntity<T> {
             parent: None,
             interfaces: Vec::new(),
             constants: Vec::new(),
-            bind_class: StateClass::null(),
+            bound_class: StateClass::null(),
             state_cloner: None,
             _p: PhantomData,
         }
@@ -673,7 +673,7 @@ impl<T: 'static> ClassEntity<T> {
                 parent.cast(),
             );
 
-            self.bind_class.bind(class_ce);
+            self.bound_class.bind(class_ce);
 
             for interface in &self.interfaces {
                 let interface_ce = interface.as_class_entry().as_ptr();
@@ -761,7 +761,7 @@ impl<T: 'static> ClassEntity<T> {
     ///
     /// pub fn make_foo_class() -> ClassEntity<()> {
     ///     let mut class = ClassEntity::<()>::new_with_default_state_constructor("Foo");
-    ///     let foo_class = class.bind_class();
+    ///     let foo_class = class.bound_class();
     ///     class.add_static_method("newInstance", Visibility::Public, move |_| {
     ///         let mut object = foo_class.init_object()?;
     ///         Ok::<_, phper::Error>(object)
@@ -770,8 +770,8 @@ impl<T: 'static> ClassEntity<T> {
     /// }
     /// ```
     #[inline]
-    pub fn bind_class(&self) -> StateClass<T> {
-        self.bind_class.clone()
+    pub fn bound_class(&self) -> StateClass<T> {
+        self.bound_class.clone()
     }
 }
 
@@ -794,7 +794,7 @@ pub struct InterfaceEntity {
     method_entities: Vec<MethodEntity>,
     constants: Vec<ConstantEntity>,
     extends: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
-    bind_interface: Interface,
+    bound_interface: Interface,
 }
 
 impl InterfaceEntity {
@@ -805,7 +805,7 @@ impl InterfaceEntity {
             method_entities: Vec::new(),
             constants: Vec::new(),
             extends: Vec::new(),
-            bind_interface: Interface::null(),
+            bound_interface: Interface::null(),
         }
     }
 
@@ -858,7 +858,7 @@ impl InterfaceEntity {
                 null_mut(),
             );
 
-            self.bind_interface.bind(class_ce);
+            self.bound_interface.bind(class_ce);
 
             for interface in &self.extends {
                 let interface_ce = interface().as_ptr();
@@ -889,8 +889,8 @@ impl InterfaceEntity {
 
     /// Get the bound interface.
     #[inline]
-    pub fn bind_interface(&self) -> Interface {
-        self.bind_interface.clone()
+    pub fn bound_interface(&self) -> Interface {
+        self.bound_interface.clone()
     }
 }
 
