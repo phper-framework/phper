@@ -109,15 +109,3 @@ macro_rules! sg {
         $crate::sys::sapi_globals.$x
     };
 }
-
-/// Define a class stub
-#[macro_export]
-macro_rules! define_class_stub {
-    ($name:expr, $cls_var:ident) => {{
-        use std::{cell::RefCell, rc::Rc};
-
-        let $cls_var: Rc<RefCell<Option<_>>> = Rc::new(RefCell::new(None));
-        let entity = ::phper::classes::ClassEntity::new($name);
-        (entity, $cls_var)
-    }};
-}
