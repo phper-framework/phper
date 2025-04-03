@@ -9,6 +9,8 @@
 // See the Mulan PSL v2 for more details.
 
 #![warn(rust_2018_idioms, clippy::dbg_macro, clippy::print_stdout)]
+#[macro_use]
+extern crate phper;
 
 mod arguments;
 mod arrays;

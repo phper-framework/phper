@@ -16,8 +16,7 @@ use phper::{
     types::{ArgumentTypeHint, ReturnTypeHint},
     values::ZVal,
 };
-use std::{collections::HashMap, convert::Infallible};
-use std::rc::Rc;
+use std::{collections::HashMap, convert::Infallible, rc::Rc};
 
 pub fn integrate(module: &mut Module) {
     integrate_a(module);
@@ -235,49 +234,38 @@ fn integrate_bar_extends_foo(module: &mut Module, foo_class: StateClass<Foo>) {
 fn integrate_dependent_classes(module: &mut Module) {
     const A_CLS: &str = r"IntegrationTest\Dependency\A";
     const B_CLS: &str = r"IntegrationTest\Dependency\B";
-    // Build both class entities
-    let mut a_cls = ClassEntity::new(A_CLS);
-    let mut b_cls = ClassEntity::new(B_CLS);
 
-    // Placeholder, will clone StateClass into closures after registration
-    let a_cls_ref = std::rc::Rc::new(std::cell::RefCell::new(None));
-    let b_cls_ref = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let (mut a_cls, a_ref) = define_class_stub!(A_CLS, a_ref);
+    let (mut b_cls, b_ref) = define_class_stub!(B_CLS, b_ref);
 
     {
-        let b_cls_ref = Rc::clone(&b_cls_ref);
-        a_cls.add_static_method("createB", Visibility::Public, move |_| {
-            let borrow = b_cls_ref.borrow();
-            let b_state: &StateClass<()> = borrow
-                .as_ref()
-                .expect("B class not registered");
-            let obj = b_state.init_object()?;
-            Ok::<_, phper::Error>(obj)
-        })
-        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(String::from(B_CLS))));
+        let b_ref = Rc::clone(&b_ref);
+        a_cls
+            .add_static_method("createB", Visibility::Public, move |_| {
+                let borrow = b_ref.borrow();
+                let b_state: &StateClass<()> = borrow.as_ref().unwrap();
+                Ok::<_, phper::Error>(b_state.init_object()?)
+            })
+            .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(B_CLS.into())));
     }
 
     {
-        let a_cls_ref = Rc::clone(&a_cls_ref);
-        b_cls.add_static_method("createA", Visibility::Public, move |_| {
-            let borrow = a_cls_ref.borrow();
-            let a_state: &StateClass<()> = borrow
-                .as_ref()
-                .expect("A class not registered");
-            let obj = a_state.init_object()?;
-            Ok::<_, phper::Error>(obj)
-        })
-        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(String::from(A_CLS))));
+        let a_ref = Rc::clone(&a_ref);
+        b_cls
+            .add_static_method("createA", Visibility::Public, move |_| {
+                let borrow = a_ref.borrow();
+                let a_state: &StateClass<()> = borrow.as_ref().unwrap();
+                Ok::<_, phper::Error>(a_state.init_object()?)
+            })
+            .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(A_CLS.into())));
     }
 
-
-    // Register both classes and save the StateClass into shared RefCells
+    // Register both classes
     let a_state = module.add_class(a_cls);
     let b_state = module.add_class(b_cls);
-
-    *a_cls_ref.borrow_mut() = Some(a_state);
-    *b_cls_ref.borrow_mut() = Some(b_state);
+    *a_ref.borrow_mut() = Some(a_state.clone());
+    *b_ref.borrow_mut() = Some(b_state.clone());
 }
-
 
 #[cfg(phper_major_version = "8")]
 fn integrate_stringable(module: &mut Module) {
