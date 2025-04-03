@@ -30,8 +30,7 @@ use std::{
     marker::PhantomData,
     mem::{ManuallyDrop, replace, size_of, transmute, zeroed},
     os::raw::c_int,
-    ptr,
-    ptr::null_mut,
+    ptr::{self, null_mut},
     rc::Rc,
     slice,
 };
@@ -233,6 +232,12 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     }
 }
 
+#[derive(Clone)]
+enum InnerClassEntry {
+    Ptr(Rc<RefCell<*mut zend_class_entry>>),
+    Name(String),
+}
+
 /// The [StateClass] holds [zend_class_entry] and inner state, created by
 /// [Module::add_class](crate::modules::Module::add_class) or
 /// [ClassEntity::bound_class].
@@ -274,8 +279,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 /// }
 /// ```
 pub struct StateClass<T> {
-    inner: Rc<RefCell<*mut zend_class_entry>>,
-    name: Option<String>,
+    inner: InnerClassEntry,
     _p: PhantomData<T>,
 }
 
@@ -283,8 +287,7 @@ impl StateClass<()> {
     /// Create from name, which will be looked up from globals.
     pub fn from_name(name: impl Into<String>) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(null_mut())),
-            name: Some(name.into()),
+            inner: InnerClassEntry::Name(name.into()),
             _p: PhantomData,
         }
     }
@@ -293,22 +296,27 @@ impl StateClass<()> {
 impl<T> StateClass<T> {
     fn null() -> Self {
         Self {
-            inner: Rc::new(RefCell::new(null_mut())),
-            name: None,
+            inner: InnerClassEntry::Ptr(Rc::new(RefCell::new(null_mut()))),
             _p: PhantomData,
         }
     }
 
     fn bind(&self, ptr: *mut zend_class_entry) {
-        *self.inner.borrow_mut() = ptr;
+        match &self.inner {
+            InnerClassEntry::Ptr(p) => {
+                *p.borrow_mut() = ptr;
+            }
+            InnerClassEntry::Name(_) => {
+                unreachable!("Cannot bind() an StateClass created with from_name()");
+            }
+        }
     }
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        if let Some(name) = &self.name {
-            ClassEntry::from_globals(name).unwrap()
-        } else {
-            unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        match &self.inner {
+            InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_mut_ptr(*ptr.borrow()) },
+            InnerClassEntry::Name(name) => ClassEntry::from_globals(name).unwrap(),
         }
     }
 
@@ -338,7 +346,6 @@ impl<T> Clone for StateClass<T> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
-            name: self.name.clone(),
             _p: self._p,
         }
     }
@@ -381,39 +388,39 @@ impl<T> Clone for StateClass<T> {
 /// ```
 #[derive(Clone)]
 pub struct Interface {
-    inner: Rc<RefCell<*mut zend_class_entry>>,
-    name: Option<String>,
+    inner: InnerClassEntry,
 }
 
 impl Interface {
     fn null() -> Self {
         Self {
-            inner: Rc::new(RefCell::new(null_mut())),
-            name: None,
+            inner: InnerClassEntry::Ptr(Rc::new(RefCell::new(null_mut()))),
         }
     }
 
     /// Create a new interface from global name (eg "Stringable", "ArrayAccess")
     pub fn from_name(name: impl Into<String>) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(null_mut())),
-            name: Some(name.into()),
+            inner: InnerClassEntry::Name(name.into()),
         }
     }
 
     fn bind(&self, ptr: *mut zend_class_entry) {
-        if self.name.is_some() {
-            panic!("Cannot bind() an Interface created with from_name()");
+        match &self.inner {
+            InnerClassEntry::Ptr(p) => {
+                *p.borrow_mut() = ptr;
+            }
+            InnerClassEntry::Name(_) => {
+                unreachable!("Cannot bind() an Interface created with from_name()");
+            }
         }
-        *self.inner.borrow_mut() = ptr;
     }
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        if let Some(name) = &self.name {
-            ClassEntry::from_globals(name).unwrap()
-        } else {
-            unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        match &self.inner {
+            InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_mut_ptr(*ptr.borrow()) },
+            InnerClassEntry::Name(name) => ClassEntry::from_globals(name).unwrap(),
         }
     }
 }
@@ -793,7 +800,7 @@ pub struct InterfaceEntity {
     interface_name: CString,
     method_entities: Vec<MethodEntity>,
     constants: Vec<ConstantEntity>,
-    extends: Vec<Box<dyn Fn() -> &'static ClassEntry>>,
+    extends: Vec<Interface>,
     bound_interface: Interface,
 }
 
@@ -840,11 +847,7 @@ impl InterfaceEntity {
     /// interface.extends(Interface::from_name("Stringable"));
     /// ```
     pub fn extends(&mut self, interface: Interface) {
-        self.extends.push(Box::new(move || {
-            let entry: &'static ClassEntry =
-                unsafe { std::mem::transmute(interface.as_class_entry()) };
-            entry
-        }));
+        self.extends.push(interface);
     }
 
     #[allow(clippy::useless_conversion)]
@@ -861,7 +864,7 @@ impl InterfaceEntity {
             self.bound_interface.bind(class_ce);
 
             for interface in &self.extends {
-                let interface_ce = interface().as_ptr();
+                let interface_ce = interface.as_class_entry().as_ptr();
                 zend_class_implements(class_ce, 1, interface_ce);
             }
 
