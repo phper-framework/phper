@@ -36,18 +36,6 @@ use std::{
     slice,
 };
 
-/// Predefined interface `Iterator`.
-#[inline]
-pub fn iterator_class<'a>() -> &'a ClassEntry {
-    unsafe { ClassEntry::from_ptr(zend_ce_iterator) }
-}
-
-/// Predefined interface `ArrayAccess`.
-#[inline]
-pub fn array_access_class<'a>() -> &'a ClassEntry {
-    unsafe { ClassEntry::from_ptr(zend_ce_arrayaccess) }
-}
-
 /// Wrapper of [zend_class_entry].
 #[derive(Clone)]
 #[repr(transparent)]
