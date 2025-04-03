@@ -9,7 +9,6 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::utils;
-use once_cell::sync::OnceCell;
 use std::{
     env,
     fs::read_to_string,
@@ -17,6 +16,7 @@ use std::{
     ops::{Deref, DerefMut},
     path::Path,
     process::Command,
+    sync::OnceLock,
 };
 use tempfile::NamedTempFile;
 
@@ -28,7 +28,7 @@ pub struct Context {
 
 impl Context {
     pub fn get_global() -> &'static Context {
-        static CONTEXT: OnceCell<Context> = OnceCell::new();
+        static CONTEXT: OnceLock<Context> = OnceLock::new();
         CONTEXT.get_or_init(|| {
             let mut ini_content = String::new();
 
