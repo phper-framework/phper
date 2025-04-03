@@ -25,6 +25,7 @@ pub fn integrate(module: &mut Module) {
     integrate_static_props(module);
     integrate_i_constants(module);
     integrate_bar_extends_foo(module, foo_class);
+    integrate_dependent_classes(module);
     #[cfg(phper_major_version = "8")]
     integrate_stringable(module);
 }
@@ -227,6 +228,35 @@ fn integrate_bar_extends_foo(module: &mut Module, foo_class: StateClass<Foo>) {
     cls.extends(foo_class);
     cls.add_method("test", Visibility::Public, |_, _| phper::ok(()));
     module.add_class(cls);
+}
+
+fn integrate_dependent_classes(module: &mut Module) {
+    const A_CLS: &str = r"IntegrationTest\Dependency\A";
+    const B_CLS: &str = r"IntegrationTest\Dependency\B";
+    // Build both class entities
+    let mut a_cls = ClassEntity::new(A_CLS);
+    let mut b_cls = ClassEntity::new(B_CLS);
+
+    let a_bound_class = a_cls.bound_class();
+    let b_bound_class = b_cls.bound_class();
+
+    a_cls
+        .add_static_method("createB", Visibility::Public, move |_| {
+            let object = b_bound_class.init_object()?;
+            Ok::<_, phper::Error>(object)
+        })
+        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(B_CLS.into())));
+
+    b_cls
+        .add_static_method("createA", Visibility::Public, move |_| {
+            let object = a_bound_class.init_object()?;
+            Ok::<_, phper::Error>(object)
+        })
+        .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(A_CLS.into())));
+
+    // Register both classes
+    module.add_class(a_cls);
+    module.add_class(b_cls);
 }
 
 #[cfg(phper_major_version = "8")]

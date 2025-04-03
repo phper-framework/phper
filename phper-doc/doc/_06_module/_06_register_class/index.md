@@ -38,8 +38,8 @@ class Foo {}
 
 ## Extends & implements
 
-To allow a class to extend another, you can use `ClassEntity.extends(StateClass<T>)` for classes implemented
-in your module. A StateClass can either be obtained by registering your own class against the module, or
+To allow a class to extend another, you can use `ClassEntity.extends(StateClass<T>)`.
+A StateClass can either be obtained by registering your own class against the module, or
 by  looking up the class by name (for example, for PHP built-in classes like `Exception`).
 
 If you want class `Foo` extends `Bar`, and implements interface `Stringable`:
@@ -193,5 +193,53 @@ class MyHashMap {
         // ...
     }
 
+}
+```
+
+## Circular class dependencies
+If you wish to register classes which depend on each other, you can retrieve the bound class (`StateClass<T>`)
+from a `ClassEntity`, and use it in functions and methods:
+
+```rust,no_run
+use phper::{
+    classes::{ClassEntity, StateClass, Visibility},
+    modules::Module,
+};
+
+let mut module = Module::new(
+    env!("CARGO_CRATE_NAME"),
+    env!("CARGO_PKG_VERSION"),
+    env!("CARGO_PKG_AUTHORS"),
+);
+
+let mut a_cls = ClassEntity::new("A");
+let mut b_cls = ClassEntity::new("B");
+let a_bound_class = a_cls.bound_class();
+let b_bound_class = b_cls.bound_class();
+
+a_cls.add_static_method("createB", Visibility::Public, move |_| {
+    let object = b_bound_class.init_object()?;
+    Ok::<_, phper::Error>(object)
+});
+b_cls.add_static_method("createA", Visibility::Public, move |_| {
+    let object = a_bound_class.init_object()?;
+    Ok::<_, phper::Error>(object)
+});
+
+module.add_class(a_cls);
+module.add_class(b_cls);
+```
+
+This is equivalent to the following PHP code:
+```php
+class A {
+  public static function createB(): B {
+    return new B();
+  }
+}
+class B {
+  public static function createA(): A {
+    return new A();
+  }
 }
 ```
