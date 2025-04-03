@@ -231,7 +231,6 @@ fn integrate_bar_extends_foo(module: &mut Module, foo_class: StateClass<Foo>) {
     module.add_class(cls);
 }
 
-// test co-dependent classes, ie `A::createB()` and `B::createA()`
 fn integrate_dependent_classes(module: &mut Module) {
     const A_CLS: &str = r"IntegrationTest\Dependency\A";
     const B_CLS: &str = r"IntegrationTest\Dependency\B";
