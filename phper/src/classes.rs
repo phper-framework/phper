@@ -278,12 +278,12 @@ enum InnerClassEntry {
 ///     module
 /// }
 /// ```
-pub struct StateClass<T> {
+pub struct StateClass<T: ?Sized> {
     inner: Rc<RefCell<InnerClassEntry>>,
     _p: PhantomData<T>,
 }
 
-impl StateClass<()> {
+impl StateClass<[()]> {
     /// Create from name, which will be looked up from globals.
     pub fn from_name(name: impl Into<String>) -> Self {
         Self {
@@ -293,7 +293,7 @@ impl StateClass<()> {
     }
 }
 
-impl<T> StateClass<T> {
+impl<T: ?Sized> StateClass<T> {
     fn null() -> Self {
         Self {
             inner: Rc::new(RefCell::new(InnerClassEntry::Ptr(null()))),
@@ -324,7 +324,9 @@ impl<T> StateClass<T> {
             }
         }
     }
+}
 
+impl<T: 'static> StateClass<T> {
     /// Create the object from class and call `__construct` with arguments.
     ///
     /// If the `__construct` is private, or protected and the called scope isn't
@@ -605,7 +607,7 @@ impl<T: 'static> ClassEntity<T> {
     ///     module
     /// }
     /// ```
-    pub fn extends<S: 'static>(&mut self, parent: StateClass<S>) {
+    pub fn extends<S: ?Sized>(&mut self, parent: StateClass<S>) {
         self.parent = Some(unsafe { transmute::<StateClass<S>, StateClass<()>>(parent) });
     }
 
