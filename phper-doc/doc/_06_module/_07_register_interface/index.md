@@ -41,12 +41,11 @@ interface Foo {}
 If you want the interface `Foo` extends `ArrayAccess` and `Iterator` interfaces.
 
 ```rust,no_run
-use phper::classes::{InterfaceEntity, ClassEntry};
-use phper::classes::{array_access_class, iterator_class};
+use phper::classes::{Interface, InterfaceEntity, ClassEntry};
 
 let mut foo = InterfaceEntity::new("Foo");
-foo.extends(|| array_access_class());
-foo.extends(|| iterator_class());
+foo.extends(Interface::from_name("ArrayAccess"));
+foo.extends(Interface::from_name("Iterator"));
 ```
 
 Same as:

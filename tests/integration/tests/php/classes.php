@@ -100,3 +100,8 @@ assert_true(IntegrationTest\IConstants::CST_TRUE);
 assert_false(IntegrationTest\IConstants::CST_FALSE);
 assert_eq(100, IntegrationTest\IConstants::CST_INT);
 assert_eq(10.0, IntegrationTest\IConstants::CST_FLOAT);
+
+// Test module class extends module class
+$bar = new \IntegrationTest\BarExtendsFoo; //Bar should extend Foo
+$reflection = new ReflectionClass($bar);
+assert_true($reflection->isSubclassOf(IntegrationTest\Foo::class));

@@ -28,25 +28,13 @@ use std::{
     ffi::{CString, c_char, c_void},
     fmt::Debug,
     marker::PhantomData,
-    mem::{ManuallyDrop, replace, size_of, zeroed},
+    mem::{ManuallyDrop, replace, size_of, transmute, zeroed},
     os::raw::c_int,
     ptr,
     ptr::null_mut,
     rc::Rc,
     slice,
 };
-
-/// Predefined interface `Iterator`.
-#[inline]
-pub fn iterator_class<'a>() -> &'a ClassEntry {
-    unsafe { ClassEntry::from_ptr(zend_ce_iterator) }
-}
-
-/// Predefined interface `ArrayAccess`.
-#[inline]
-pub fn array_access_class<'a>() -> &'a ClassEntry {
-    unsafe { ClassEntry::from_ptr(zend_ce_arrayaccess) }
-}
 
 /// Wrapper of [zend_class_entry].
 #[derive(Clone)]
@@ -287,13 +275,26 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 /// ```
 pub struct StateClass<T> {
     inner: Rc<RefCell<*mut zend_class_entry>>,
+    name: Option<String>,
     _p: PhantomData<T>,
+}
+
+impl StateClass<()> {
+    /// Create from name, which will be looked up from globals.
+    pub fn from_name(name: impl Into<String>) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(null_mut())),
+            name: Some(name.into()),
+            _p: PhantomData,
+        }
+    }
 }
 
 impl<T> StateClass<T> {
     fn null() -> Self {
         Self {
             inner: Rc::new(RefCell::new(null_mut())),
+            name: None,
             _p: PhantomData,
         }
     }
@@ -304,7 +305,11 @@ impl<T> StateClass<T> {
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        if let Some(name) = &self.name {
+            ClassEntry::from_globals(name).unwrap()
+        } else {
+            unsafe { ClassEntry::from_mut_ptr(*self.inner.borrow()) }
+        }
     }
 
     /// Create the object from class and call `__construct` with arguments.
@@ -333,6 +338,7 @@ impl<T> Clone for StateClass<T> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
+            name: self.name.clone(),
             _p: self._p,
         }
     }
@@ -427,7 +433,7 @@ pub struct ClassEntity<T: 'static> {
     state_constructor: Rc<StateConstructor>,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
-    parent: Option<Box<dyn Fn() -> &'static ClassEntry>>,
+    parent: Option<StateClass<()>>,
     interfaces: Vec<Interface>,
     constants: Vec<ConstantEntity>,
     bind_class: StateClass<T>,
@@ -550,19 +556,40 @@ impl<T: 'static> ClassEntity<T> {
     /// Register class to `extends` the parent class.
     ///
     /// *Because in the `MINIT` phase, the class starts to register, so the*
-    /// *closure is used to return the `ClassEntry` to delay the acquisition of*
+    /// *`ClassEntry` is looked up by name to delay the acquisition of*
     /// *the class.*
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use phper::classes::{ClassEntity, ClassEntry};
+    /// use phper::{
+    ///     classes::{ClassEntity, ClassEntry, StateClass},
+    ///     modules::Module,
+    ///     php_get_module,
+    /// };
     ///
-    /// let mut class = ClassEntity::new("MyException");
-    /// class.extends(|| ClassEntry::from_globals("Exception").unwrap());
+    /// #[php_get_module]
+    /// pub fn get_module() -> Module {
+    ///     let mut module = Module::new(
+    ///         env!("CARGO_CRATE_NAME"),
+    ///         env!("CARGO_PKG_VERSION"),
+    ///         env!("CARGO_PKG_AUTHORS"),
+    ///     );
+    ///
+    ///     let foo = module.add_class(ClassEntity::new("Foo"));
+    ///     let mut bar = ClassEntity::new("Bar");
+    ///     bar.extends(foo);
+    ///     module.add_class(bar);
+    ///
+    ///     let mut ex = ClassEntity::new("MyException");
+    ///     ex.extends(StateClass::from_name("Exception"));
+    ///     module.add_class(ex);
+    ///
+    ///     module
+    /// }
     /// ```
-    pub fn extends(&mut self, parent: impl Fn() -> &'static ClassEntry + 'static) {
-        self.parent = Some(Box::new(parent));
+    pub fn extends<S: 'static>(&mut self, parent: StateClass<S>) {
+        self.parent = Some(unsafe { transmute::<StateClass<S>, StateClass<()>>(parent) });
     }
 
     /// Register class to `implements` the interface, due to the class can
@@ -634,7 +661,7 @@ impl<T: 'static> ClassEntity<T> {
             let parent: *mut zend_class_entry = self
                 .parent
                 .as_ref()
-                .map(|parent| parent())
+                .map(|parent| parent.as_class_entry())
                 .map(|entry| entry.as_ptr() as *mut _)
                 .unwrap_or(null_mut());
 
@@ -800,20 +827,24 @@ impl InterfaceEntity {
     /// Register interface to `extends` the interfaces, due to the interface can
     /// extends multi interface, so this method can be called multi time.
     ///
-    /// *Because in the `MINIT` phase, the class starts to register, so the*
+    /// *Because in the `MINIT` phase, the class starts to register, a*
     /// *closure is used to return the `ClassEntry` to delay the acquisition of*
     /// *the class.*
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use phper::classes::{ClassEntry, InterfaceEntity};
+    /// use phper::classes::{Interface, InterfaceEntity};
     ///
     /// let mut interface = InterfaceEntity::new("MyInterface");
-    /// interface.extends(|| ClassEntry::from_globals("Stringable").unwrap());
+    /// interface.extends(Interface::from_name("Stringable"));
     /// ```
-    pub fn extends(&mut self, interface: impl Fn() -> &'static ClassEntry + 'static) {
-        self.extends.push(Box::new(interface));
+    pub fn extends(&mut self, interface: Interface) {
+        self.extends.push(Box::new(move || {
+            let entry: &'static ClassEntry =
+                unsafe { std::mem::transmute(interface.as_class_entry()) };
+            entry
+        }));
     }
 
     #[allow(clippy::useless_conversion)]

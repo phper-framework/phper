@@ -10,10 +10,7 @@
 
 use phper::{
     alloc::RefClone,
-    classes::{
-        ClassEntity, ClassEntry, Interface, InterfaceEntity, Visibility, array_access_class,
-        iterator_class,
-    },
+    classes::{ClassEntity, ClassEntry, Interface, InterfaceEntity, StateClass, Visibility},
     functions::{Argument, ReturnType},
     modules::Module,
     types::{ArgumentTypeHint, ReturnTypeHint},
@@ -23,10 +20,11 @@ use std::{collections::HashMap, convert::Infallible};
 
 pub fn integrate(module: &mut Module) {
     integrate_a(module);
-    integrate_foo(module);
+    let foo_class = integrate_foo(module);
     integrate_i_bar(module);
     integrate_static_props(module);
     integrate_i_constants(module);
+    integrate_bar_extends_foo(module, foo_class);
     #[cfg(phper_major_version = "8")]
     integrate_stringable(module);
 }
@@ -78,7 +76,7 @@ struct Foo {
     array: HashMap<i64, ZVal>,
 }
 
-fn integrate_foo(module: &mut Module) {
+fn integrate_foo(module: &mut Module) -> StateClass<Foo> {
     let mut class = ClassEntity::new_with_state_constructor("IntegrationTest\\Foo", || Foo {
         position: 0,
         array: Default::default(),
@@ -169,14 +167,14 @@ fn integrate_foo(module: &mut Module) {
         .argument(Argument::new("offset").with_type_hint(ArgumentTypeHint::Mixed))
         .return_type(ReturnType::new(ReturnTypeHint::Void));
 
-    module.add_class(class);
+    module.add_class(class)
 }
 
 fn integrate_i_bar(module: &mut Module) {
     let mut interface = InterfaceEntity::new(r"IntegrationTest\IBar");
 
-    interface.extends(|| array_access_class());
-    interface.extends(|| iterator_class());
+    interface.extends(Interface::from_name("ArrayAccess"));
+    interface.extends(Interface::from_name("Iterator"));
 
     interface
         .add_method("doSomethings")
@@ -222,6 +220,13 @@ fn integrate_static_props(module: &mut Module) {
         .argument(Argument::new("val"));
 
     module.add_class(class);
+}
+
+fn integrate_bar_extends_foo(module: &mut Module, foo_class: StateClass<Foo>) {
+    let mut cls = ClassEntity::new(r"IntegrationTest\BarExtendsFoo");
+    cls.extends(foo_class);
+    cls.add_method("test", Visibility::Public, |_, _| phper::ok(()));
+    module.add_class(cls);
 }
 
 #[cfg(phper_major_version = "8")]
