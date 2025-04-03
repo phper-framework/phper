@@ -452,7 +452,7 @@ pub struct ClassEntity<T: 'static> {
     state_constructor: Rc<StateConstructor>,
     method_entities: Vec<MethodEntity>,
     property_entities: Vec<PropertyEntity>,
-    parent: Option<StateClass<()>>,
+    parent: Option<StateClass<[()]>>,
     interfaces: Vec<Interface>,
     constants: Vec<ConstantEntity>,
     bound_class: StateClass<T>,
@@ -608,7 +608,7 @@ impl<T: 'static> ClassEntity<T> {
     /// }
     /// ```
     pub fn extends<S: ?Sized>(&mut self, parent: StateClass<S>) {
-        self.parent = Some(unsafe { transmute::<StateClass<S>, StateClass<()>>(parent) });
+        self.parent = Some(unsafe { transmute::<StateClass<S>, StateClass<[()]>>(parent) });
     }
 
     /// Register class to `implements` the interface, due to the class can
