@@ -25,7 +25,6 @@ members = [
 ]
 
 [workspace.package]
-version = "0.15.1"
 authors = ["PHPER Framework Team", "jmjoy <jmjoy@apache.org>"]
 edition = "2024"
 license = "MulanPSL-2.0"

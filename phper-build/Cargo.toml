@@ -12,7 +12,7 @@
 name = "phper-build"
 description = "Generates stubs for project using phper."
 keywords = ["php", "binding"]
-version = { workspace = true }
+version = "0.15.1"
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
