@@ -30,7 +30,7 @@ use std::{
     marker::PhantomData,
     mem::{ManuallyDrop, replace, size_of, transmute, zeroed},
     os::raw::c_int,
-    ptr::{self, null_mut},
+    ptr::{self, null, null_mut},
     rc::Rc,
     slice,
 };
@@ -234,7 +234,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 
 #[derive(Clone)]
 enum InnerClassEntry {
-    Ptr(Rc<RefCell<*mut zend_class_entry>>),
+    Ptr(*const zend_class_entry),
     Name(String),
 }
 
@@ -279,7 +279,7 @@ enum InnerClassEntry {
 /// }
 /// ```
 pub struct StateClass<T> {
-    inner: InnerClassEntry,
+    inner: Rc<RefCell<InnerClassEntry>>,
     _p: PhantomData<T>,
 }
 
@@ -287,7 +287,7 @@ impl StateClass<()> {
     /// Create from name, which will be looked up from globals.
     pub fn from_name(name: impl Into<String>) -> Self {
         Self {
-            inner: InnerClassEntry::Name(name.into()),
+            inner: Rc::new(RefCell::new(InnerClassEntry::Name(name.into()))),
             _p: PhantomData,
         }
     }
@@ -296,15 +296,15 @@ impl StateClass<()> {
 impl<T> StateClass<T> {
     fn null() -> Self {
         Self {
-            inner: InnerClassEntry::Ptr(Rc::new(RefCell::new(null_mut()))),
+            inner: Rc::new(RefCell::new(InnerClassEntry::Ptr(null()))),
             _p: PhantomData,
         }
     }
 
     fn bind(&self, ptr: *mut zend_class_entry) {
-        match &self.inner {
+        match &mut *self.inner.borrow_mut() {
             InnerClassEntry::Ptr(p) => {
-                *p.borrow_mut() = ptr;
+                *p = ptr;
             }
             InnerClassEntry::Name(_) => {
                 unreachable!("Cannot bind() an StateClass created with from_name()");
@@ -314,9 +314,13 @@ impl<T> StateClass<T> {
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        match &self.inner {
-            InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_mut_ptr(*ptr.borrow()) },
-            InnerClassEntry::Name(name) => ClassEntry::from_globals(name).unwrap(),
+        match self.inner.borrow().clone() {
+            InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_ptr(ptr) },
+            InnerClassEntry::Name(name) => {
+                let entry = ClassEntry::from_globals(name).unwrap();
+                *self.inner.borrow_mut() = InnerClassEntry::Ptr(entry.as_ptr());
+                entry
+            }
         }
     }
 
@@ -388,27 +392,27 @@ impl<T> Clone for StateClass<T> {
 /// ```
 #[derive(Clone)]
 pub struct Interface {
-    inner: InnerClassEntry,
+    inner: Rc<RefCell<InnerClassEntry>>,
 }
 
 impl Interface {
     fn null() -> Self {
         Self {
-            inner: InnerClassEntry::Ptr(Rc::new(RefCell::new(null_mut()))),
+            inner: Rc::new(RefCell::new(InnerClassEntry::Ptr(null()))),
         }
     }
 
     /// Create a new interface from global name (eg "Stringable", "ArrayAccess")
     pub fn from_name(name: impl Into<String>) -> Self {
         Self {
-            inner: InnerClassEntry::Name(name.into()),
+            inner: Rc::new(RefCell::new(InnerClassEntry::Name(name.into()))),
         }
     }
 
     fn bind(&self, ptr: *mut zend_class_entry) {
-        match &self.inner {
+        match &mut *self.inner.borrow_mut() {
             InnerClassEntry::Ptr(p) => {
-                *p.borrow_mut() = ptr;
+                *p = ptr;
             }
             InnerClassEntry::Name(_) => {
                 unreachable!("Cannot bind() an Interface created with from_name()");
@@ -418,9 +422,13 @@ impl Interface {
 
     /// Converts to class entry.
     pub fn as_class_entry(&self) -> &ClassEntry {
-        match &self.inner {
-            InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_mut_ptr(*ptr.borrow()) },
-            InnerClassEntry::Name(name) => ClassEntry::from_globals(name).unwrap(),
+        match self.inner.borrow().clone() {
+            InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_ptr(ptr) },
+            InnerClassEntry::Name(name) => {
+                let entry = ClassEntry::from_globals(name).unwrap();
+                *self.inner.borrow_mut() = InnerClassEntry::Ptr(entry.as_ptr());
+                entry
+            }
         }
     }
 }
