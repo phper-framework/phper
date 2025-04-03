@@ -244,7 +244,8 @@ fn integrate_dependent_classes(module: &mut Module) {
             .add_static_method("createB", Visibility::Public, move |_| {
                 let borrow = b_ref.borrow();
                 let b_state: &StateClass<()> = borrow.as_ref().unwrap();
-                Ok::<_, phper::Error>(b_state.init_object()?)
+                let val = b_state.init_object()?;
+                Ok::<_, phper::Error>(val)
             })
             .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(B_CLS.into())));
     }
@@ -255,7 +256,8 @@ fn integrate_dependent_classes(module: &mut Module) {
             .add_static_method("createA", Visibility::Public, move |_| {
                 let borrow = a_ref.borrow();
                 let a_state: &StateClass<()> = borrow.as_ref().unwrap();
-                Ok::<_, phper::Error>(a_state.init_object()?)
+                let val = a_state.init_object()?;
+                Ok::<_, phper::Error>(val)
             })
             .return_type(ReturnType::new(ReturnTypeHint::ClassEntry(A_CLS.into())));
     }
