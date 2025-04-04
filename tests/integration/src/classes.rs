@@ -181,6 +181,8 @@ fn integrate_i_bar(module: &mut Module) {
         .add_method("doSomethings")
         .argument(Argument::new("job_name"));
 
+    interface.add_static_method("myStaticMethod");
+
     module.add_interface(interface);
 }
 

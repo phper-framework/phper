@@ -58,7 +58,7 @@ interface Foo extends ArrayAccess, Iterator {}
 
 ## Add methods
 
-Interface can add public abstract methods.
+Interface can add public abstract methods, and public static abstract methods.
 
 ```rust,no_run
 use phper::classes::{InterfaceEntity, ClassEntry, Visibility};
@@ -68,6 +68,7 @@ use phper::values::ZVal;
 
 let mut foo = InterfaceEntity::new("Foo");
 foo.add_method("doSomethings").argument(Argument::new("name"));
+foo.add_static_method("test");
 ```
 
 Note that abstract has no method body, so you don't need to add the handler to the method.

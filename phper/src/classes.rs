@@ -837,6 +837,15 @@ impl InterfaceEntity {
         self.method_entities.last_mut().unwrap()
     }
 
+    /// Add static member method to interface.
+    pub fn add_static_method(&mut self, name: impl Into<String>) -> &mut MethodEntity {
+        let mut entity = MethodEntity::new(name, None, Visibility::Public);
+        entity.set_vis_abstract();
+        entity.set_vis_static();
+        self.method_entities.push(entity);
+        self.method_entities.last_mut().unwrap()
+    }
+
     /// Add constant to interface
     pub fn add_constant(&mut self, name: impl Into<String>, value: impl Into<Scalar>) {
         let constant = ConstantEntity::new(name, value);
