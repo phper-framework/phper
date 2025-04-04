@@ -32,9 +32,9 @@ repository = "https://github.com/phper-framework/phper"
 rust-version = "1.85"
 
 [workspace.dependencies]
-phper = { version = "0.15.0", path = "./phper" }
-phper-alloc = { version = "0.15.0", path = "./phper-alloc" }
-phper-build = { version = "0.15.0", path = "./phper-build" }
-phper-macros = { version = "0.15.0", path = "./phper-macros" }
-phper-sys = { version = "0.15.0", path = "./phper-sys" }
-phper-test = { version = "0.15.0", path = "./phper-test" }
+phper = { version = "0.16.0", path = "./phper" }
+phper-alloc = { version = "0.15.1", path = "./phper-alloc" }
+phper-build = { version = "0.15.1", path = "./phper-build" }
+phper-macros = { version = "0.15.1", path = "./phper-macros" }
+phper-sys = { version = "0.15.1", path = "./phper-sys" }
+phper-test = { version = "0.15.1", path = "./phper-test" }
