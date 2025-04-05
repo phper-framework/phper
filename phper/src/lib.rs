@@ -11,6 +11,7 @@
 #![warn(rust_2018_idioms, missing_docs)]
 #![warn(clippy::dbg_macro, clippy::print_stdout)]
 #![doc = include_str!("../README.md")]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[macro_use]
 mod macros;
@@ -18,6 +19,7 @@ mod macros;
 pub mod arrays;
 pub mod classes;
 pub(crate) mod constants;
+pub mod enums;
 pub mod errors;
 pub mod functions;
 pub mod ini;

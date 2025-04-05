@@ -13,6 +13,7 @@
 use crate::{
     classes::{ClassEntity, Interface, InterfaceEntity, StateClass},
     constants::Constant,
+    enums::{EnumEntity, StateEnum},
     errors::Throwable,
     functions::{Function, FunctionEntity, FunctionEntry, HandlerMap},
     ini,
@@ -59,6 +60,11 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
             let ce = class_entity.init();
             class_entity.declare_properties(ce);
             module.handler_map.extend(class_entity.handler_map());
+        }
+
+        for enum_entity in &module.enum_entities {
+            let ce = enum_entity.init();
+            module.handler_map.extend(enum_entity.handler_map());
         }
 
         if let Some(f) = take(&mut module.module_init) {
@@ -140,6 +146,7 @@ pub struct Module {
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
     interface_entities: Vec<InterfaceEntity>,
+    enum_entities: Vec<EnumEntity<(), ()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
     infos: HashMap<CString, CString>,
@@ -163,6 +170,7 @@ impl Module {
             function_entities: vec![],
             class_entities: Default::default(),
             interface_entities: Default::default(),
+            enum_entities: Default::default(),
             constants: Default::default(),
             ini_entities: Default::default(),
             infos: Default::default(),
@@ -217,6 +225,20 @@ impl Module {
         let bound_interface = interface.bound_interface();
         self.interface_entities.push(interface);
         bound_interface
+    }
+
+    /// Register enum to module.
+    #[cfg(phper_enum_supported)]
+    pub fn add_enum<B: crate::enums::EnumBackingType, T: 'static>(
+        &mut self, enum_entity: crate::enums::EnumEntity<B, T>,
+    ) -> crate::enums::StateEnum<T> {
+        let bound_enum = enum_entity.bound_enum();
+        self.enum_entities.push(unsafe {
+            transmute::<crate::enums::EnumEntity<B, T>, crate::enums::EnumEntity<(), ()>>(
+                enum_entity,
+            )
+        });
+        bound_enum
     }
 
     /// Register constant to module.

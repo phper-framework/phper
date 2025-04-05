@@ -28,6 +28,7 @@ indexmap = "2.7.1"
 phper-alloc = { workspace = true }
 phper-macros = { workspace = true }
 phper-sys = { workspace = true }
+sealed = "0.6.0"
 thiserror = "2.0.11"
 
 [build-dependencies]
@@ -44,4 +45,9 @@ unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(phper_minor_version, values("3"))',
     'cfg(phper_minor_version, values("4"))',
     'cfg(phper_zts)',
+    'cfg(phper_enum_supported)',
 ] }
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true

@@ -233,7 +233,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
 }
 
 #[derive(Clone)]
-enum InnerClassEntry {
+pub(crate) enum InnerClassEntry {
     Ptr(*const zend_class_entry),
     Name(String),
 }
@@ -931,7 +931,7 @@ pub struct ConstantEntity {
 }
 
 impl ConstantEntity {
-    fn new(name: impl Into<String>, value: impl Into<Scalar>) -> Self {
+    pub(crate) fn new(name: impl Into<String>, value: impl Into<Scalar>) -> Self {
         Self {
             name: name.into(),
             value: value.into(),
@@ -1027,7 +1027,7 @@ pub enum Visibility {
 pub(crate) type RawVisibility = u32;
 
 #[allow(clippy::useless_conversion)]
-unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
+pub(crate) unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut zend_object {
     unsafe {
         // Get real ce which hold state_constructor.
         let real_ce = find_real_ce(ce).unwrap();
@@ -1146,7 +1146,9 @@ unsafe fn clone_object_common(object: *mut zend_object) -> *mut zend_object {
     }
 }
 
-unsafe fn add_class_constant(class_ce: *mut _zend_class_entry, constant: &ConstantEntity) {
+pub(crate) unsafe fn add_class_constant(
+    class_ce: *mut _zend_class_entry, constant: &ConstantEntity,
+) {
     let name_ptr = constant.name.as_ptr() as *const c_char;
     let name_len = constant.name.len();
     unsafe {

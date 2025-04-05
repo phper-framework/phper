@@ -22,6 +22,10 @@
 #include <zend_observer.h>
 #endif
 
+#if PHP_VERSION_ID >= 80100
+#include <zend_enum.h>
+#endif
+
 typedef ZEND_INI_MH(phper_zend_ini_mh);
 
 typedef zend_class_entry *
