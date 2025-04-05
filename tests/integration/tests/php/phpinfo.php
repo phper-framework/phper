@@ -10,4 +10,8 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
+ob_start();
 phpinfo();
+$output = ob_get_contents();
+ob_end_clean();
+echo substr($output, 0, 100) . '...';

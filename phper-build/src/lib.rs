@@ -24,24 +24,28 @@ pub fn register_all() {
 pub fn register_configures() {
     // versions
     println!(
-        "cargo:rustc-cfg=phper_major_version=\"{}\"",
+        "cargo::rustc-cfg=phper_major_version=\"{}\"",
         PHP_MAJOR_VERSION
     );
     println!(
-        "cargo:rustc-cfg=phper_minor_version=\"{}\"",
+        "cargo::rustc-cfg=phper_minor_version=\"{}\"",
         PHP_MINOR_VERSION
     );
     println!(
-        "cargo:rustc-cfg=phper_release_version=\"{}\"",
+        "cargo::rustc-cfg=phper_release_version=\"{}\"",
         PHP_RELEASE_VERSION
     );
 
     if PHP_DEBUG != 0 {
-        println!("cargo:rustc-cfg=phper_debug");
+        println!("cargo::rustc-cfg=phper_debug");
     }
 
     if USING_ZTS != 0 {
-        println!("cargo:rustc-cfg=phper_zts");
+        println!("cargo::rustc-cfg=phper_zts");
+    }
+
+    if PHP_VERSION_ID >= 80100 {
+        println!("cargo::rustc-cfg=phper_enum_supported");
     }
 }
 
@@ -49,7 +53,7 @@ pub fn register_configures() {
 pub fn register_link_args() {
     #[cfg(target_os = "macos")]
     {
-        println!("cargo:rustc-link-arg=-undefined");
-        println!("cargo:rustc-link-arg=dynamic_lookup");
+        println!("cargo::rustc-link-arg=-undefined");
+        println!("cargo::rustc-link-arg=dynamic_lookup");
     }
 }

@@ -43,6 +43,7 @@ fn test_cli() {
             &tests_php_dir.join("errors.php"),
             &tests_php_dir.join("reflection.php"),
             &tests_php_dir.join("typehints.php"),
+            &tests_php_dir.join("enums.php"),
         ],
     );
 }
@@ -70,4 +71,5 @@ fn test_fpm() {
     test_fpm_request("GET", &tests_php_dir, "/values.php", None, None);
     test_fpm_request("GET", &tests_php_dir, "/constants.php", None, None);
     test_fpm_request("GET", &tests_php_dir, "/ini.php", None, None);
+    test_fpm_request("GET", &tests_php_dir, "/enums.php", None, None);
 }
