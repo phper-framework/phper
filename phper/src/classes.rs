@@ -940,14 +940,16 @@ impl ConstantEntity {
 }
 
 /// Builder for declare class property.
-struct PropertyEntity {
+pub(crate) struct PropertyEntity {
     name: String,
     visibility: RawVisibility,
     value: Scalar,
 }
 
 impl PropertyEntity {
-    fn new(name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>) -> Self {
+    pub(crate) fn new(
+        name: impl Into<String>, visibility: Visibility, value: impl Into<Scalar>,
+    ) -> Self {
         Self {
             name: name.into(),
             visibility: visibility as RawVisibility,

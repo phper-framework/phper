@@ -146,7 +146,7 @@ pub struct Module {
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
     interface_entities: Vec<InterfaceEntity>,
-    enum_entities: Vec<EnumEntity<(), ()>>,
+    enum_entities: Vec<EnumEntity<()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
     infos: HashMap<CString, CString>,
@@ -229,16 +229,12 @@ impl Module {
 
     /// Register enum to module.
     #[cfg(phper_enum_supported)]
-    pub fn add_enum<B: crate::enums::EnumBackingType, T: 'static>(
-        &mut self, enum_entity: crate::enums::EnumEntity<B, T>,
-    ) -> crate::enums::StateEnum<T> {
-        let bound_enum = enum_entity.bound_enum();
+    pub fn add_enum<B: crate::enums::EnumBackingType>(
+        &mut self, enum_entity: crate::enums::EnumEntity<B>,
+    ) {
         self.enum_entities.push(unsafe {
-            transmute::<crate::enums::EnumEntity<B, T>, crate::enums::EnumEntity<(), ()>>(
-                enum_entity,
-            )
+            transmute::<crate::enums::EnumEntity<B>, crate::enums::EnumEntity<()>>(enum_entity)
         });
-        bound_enum
     }
 
     /// Register constant to module.
