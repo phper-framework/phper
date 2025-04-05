@@ -13,12 +13,12 @@
 
 use crate::{
     classes::{
-        ClassEntry, ConstantEntity, InnerClassEntry, Interface, RawVisibility, StateCloner,
-        StateConstructor, Visibility, add_class_constant, create_object,
+        ClassEntry, ConstantEntity, InnerClassEntry, Interface, StateConstructor, Visibility,
+        add_class_constant, create_object,
     },
     errors::Throwable,
-    functions::{Function, FunctionEntry, HandlerMap, Method, MethodEntity},
-    objects::{AnyState, StateObj, ZObj},
+    functions::{FunctionEntry, HandlerMap, Method, MethodEntity},
+    objects::StateObj,
     sys::*,
     types::Scalar,
     utils::ensure_end_with_zero,
@@ -28,11 +28,9 @@ use sealed::sealed;
 use std::{
     any::Any,
     cell::RefCell,
-    ffi::{CStr, CString, c_char, c_void},
-    fmt::Debug,
+    ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{ManuallyDrop, size_of, zeroed},
-    ops::{Deref, DerefMut},
+    mem::zeroed,
     ptr::{null, null_mut},
     rc::Rc,
 };
@@ -80,6 +78,98 @@ pub enum EnumType {
 struct EnumCase {
     name: CString,
     value: Scalar,
+}
+
+/// Reference to a specific enum case
+pub struct StateEnumCase<T> {
+    enum_name: CString,
+    case_name: CString,
+    bound_enum: StateEnum<T>,
+    _p: PhantomData<T>,
+}
+
+impl<T> StateEnumCase<T> {
+    fn new(enum_name: CString, case_name: CString, bound_enum: StateEnum<T>) -> Self {
+        Self {
+            enum_name,
+            case_name,
+            bound_enum,
+            _p: PhantomData,
+        }
+    }
+
+    /// Gets the name of this enum case
+    pub fn name(&self) -> &CStr {
+        &self.case_name
+    }
+
+    /// Gets the StateEnum this case belongs to
+    pub fn enum_type(&self) -> StateEnum<T> {
+        self.bound_enum.clone()
+    }
+
+    /// Gets the corresponding enum case object instance
+    ///
+    /// This requires the enum to be fully registered in PHP.
+    pub fn get_case_object(&self) -> crate::Result<&StateObj<T>> {
+        // Get the class entry for the enum
+        let ce = self.bound_enum.as_class_entry();
+
+        unsafe {
+            // Find the case in the enum
+            let case_zval = zend_enum_get_case_cstr(ce.as_ptr() as *mut _, self.case_name.as_ptr());
+
+            if case_zval.is_null() {
+                return Err(crate::Error::boxed(format!(
+                    "Enum case {} not found in enum {}",
+                    self.case_name.to_string_lossy(),
+                    self.enum_name.to_string_lossy()
+                )));
+            }
+
+            // Convert to StateObj
+            Ok(StateObj::<T>::from_object_ptr(phper_z_obj_p(
+                case_zval as *const _,
+            )))
+        }
+    }
+
+    /// Gets the corresponding enum case object instance
+    ///
+    /// This requires the enum to be fully registered in PHP.
+    pub fn get_mut_case_object(&mut self) -> crate::Result<&mut StateObj<T>> {
+        // Get the class entry for the enum
+        let ce = self.bound_enum.as_class_entry();
+
+        unsafe {
+            // Find the case in the enum
+            let case_zval = zend_enum_get_case_cstr(ce.as_ptr() as *mut _, self.case_name.as_ptr());
+
+            if case_zval.is_null() {
+                return Err(crate::Error::boxed(format!(
+                    "Enum case {} not found in enum {}",
+                    self.case_name.to_string_lossy(),
+                    self.enum_name.to_string_lossy()
+                )));
+            }
+
+            // Convert to StateObj
+            Ok(StateObj::<T>::from_mut_object_ptr(phper_z_obj_p(
+                case_zval as *const _,
+            )))
+        }
+    }
+}
+
+impl<T> Clone for StateEnumCase<T> {
+    fn clone(&self) -> Self {
+        Self {
+            enum_name: self.enum_name.clone(),
+            case_name: self.case_name.clone(),
+            bound_enum: self.bound_enum.clone(),
+            _p: PhantomData,
+        }
+    }
 }
 
 /// Builder for registering an enum.
@@ -164,13 +254,14 @@ impl<B: EnumBackingType, T: 'static> EnumEntity<B, T> {
     ///
     /// # Returns
     ///
-    /// Returns `&mut Self` to allow method chaining
-    pub fn add_case(&mut self, name: impl Into<String>, value: B) -> &mut Self {
+    /// Returns a reference to the created enum case
+    pub fn add_case(&mut self, name: impl Into<String>, value: B) -> StateEnumCase<T> {
+        let case_name = ensure_end_with_zero(name);
         self.cases.push(EnumCase {
-            name: ensure_end_with_zero(name),
+            name: case_name.clone(),
             value: value.into(),
         });
-        self
+        StateEnumCase::new(self.enum_name.clone(), case_name, self.bound_enum.clone())
     }
 
     /// Add member method to enum that can access the enum state.
