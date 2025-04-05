@@ -1027,6 +1027,7 @@ name = "phper-doc"
 version = "0.15.1"
 dependencies = [
  "phper",
+ "phper-build",
  "reqwest",
  "thiserror 2.0.11",
 ]

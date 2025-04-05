@@ -13,7 +13,6 @@
 use crate::{
     classes::{ClassEntity, Interface, InterfaceEntity, StateClass},
     constants::Constant,
-    enums::EnumEntity,
     errors::Throwable,
     functions::{Function, FunctionEntity, FunctionEntry, HandlerMap},
     ini,
@@ -62,6 +61,7 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
             module.handler_map.extend(class_entity.handler_map());
         }
 
+        #[cfg(phper_enum_supported)]
         for enum_entity in &module.enum_entities {
             enum_entity.init();
             module.handler_map.extend(enum_entity.handler_map());
@@ -146,7 +146,8 @@ pub struct Module {
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
     interface_entities: Vec<InterfaceEntity>,
-    enum_entities: Vec<EnumEntity<()>>,
+    #[cfg(phper_enum_supported)]
+    enum_entities: Vec<crates::enums::EnumEntity<()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
     infos: HashMap<CString, CString>,
@@ -170,6 +171,7 @@ impl Module {
             function_entities: vec![],
             class_entities: Default::default(),
             interface_entities: Default::default(),
+            #[cfg(phper_enum_supported)]
             enum_entities: Default::default(),
             constants: Default::default(),
             ini_entities: Default::default(),

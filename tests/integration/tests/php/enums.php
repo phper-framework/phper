@@ -29,21 +29,21 @@ assert_eq(IntegrationTest\PureEnum::VERSION, '1.0.0', 'PureEnum VERSION constant
 assert_eq(IntegrationTest\PureEnum::getDescription(), 'Pure enum implementation', 'PureEnum::getDescription() should return proper value');
 
 // Test direct access to enum members
-assert_eq(IntegrationTest\PureEnum::ONE->name, 'ONE');
-assert_eq(IntegrationTest\PureEnum::TWO->name, 'TWO');
-assert_eq(IntegrationTest\PureEnum::THREE->name, 'THREE');
+assert_eq((IntegrationTest\PureEnum::ONE)->name, 'ONE');
+assert_eq((IntegrationTest\PureEnum::TWO)->name, 'TWO');
+assert_eq((IntegrationTest\PureEnum::THREE)->name, 'THREE');
 
 // Test int-backed enum
 assert_true(enum_exists('IntegrationTest\IntEnum'), 'IntEnum should exist');
-assert_eq(IntegrationTest\IntEnum::LOW->value, 1, 'IntEnum::LOW value should be 1');
-assert_eq(IntegrationTest\IntEnum::MEDIUM->value, 5, 'IntEnum::MEDIUM value should be 5');
-assert_eq(IntegrationTest\IntEnum::HIGH->value, 10, 'IntEnum::HIGH value should be 10');
+assert_eq((IntegrationTest\IntEnum::LOW)->value, 1, 'IntEnum::LOW value should be 1');
+assert_eq((IntegrationTest\IntEnum::MEDIUM)->value, 5, 'IntEnum::MEDIUM value should be 5');
+assert_eq((IntegrationTest\IntEnum::HIGH)->value, 10, 'IntEnum::HIGH value should be 10');
 
 // Test string-backed enum
 assert_true(enum_exists('IntegrationTest\StringEnum'), 'StringEnum should exist');
-assert_eq(IntegrationTest\StringEnum::RED->value, 'FF0000', 'StringEnum::RED value should be FF0000');
-assert_eq(IntegrationTest\StringEnum::GREEN->value, '00FF00', 'StringEnum::GREEN value should be 00FF00');
-assert_eq(IntegrationTest\StringEnum::BLUE->value, '0000FF', 'StringEnum::BLUE value should be 0000FF');
+assert_eq((IntegrationTest\StringEnum::RED)->value, 'FF0000', 'StringEnum::RED value should be FF0000');
+assert_eq((IntegrationTest\StringEnum::GREEN)->value, '00FF00', 'StringEnum::GREEN value should be 00FF00');
+assert_eq((IntegrationTest\StringEnum::BLUE)->value, '0000FF', 'StringEnum::BLUE value should be 0000FF');
 
 // Test reflection API
 $reflection = new ReflectionEnum(IntegrationTest\StringEnum::class);
