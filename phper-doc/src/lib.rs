@@ -11,6 +11,7 @@
 #![warn(rust_2018_idioms, missing_docs)]
 #![warn(clippy::dbg_macro, clippy::print_stdout)]
 #![doc = include_str!("../README.md")]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 pub use phper;
 
