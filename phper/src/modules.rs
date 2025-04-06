@@ -61,6 +61,12 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
             module.handler_map.extend(class_entity.handler_map());
         }
 
+        #[cfg(phper_enum_supported)]
+        for enum_entity in &module.enum_entities {
+            enum_entity.init();
+            module.handler_map.extend(enum_entity.handler_map());
+        }
+
         if let Some(f) = take(&mut module.module_init) {
             f();
         }
@@ -140,6 +146,8 @@ pub struct Module {
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
     interface_entities: Vec<InterfaceEntity>,
+    #[cfg(phper_enum_supported)]
+    enum_entities: Vec<crate::enums::EnumEntity<()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
     infos: HashMap<CString, CString>,
@@ -163,6 +171,8 @@ impl Module {
             function_entities: vec![],
             class_entities: Default::default(),
             interface_entities: Default::default(),
+            #[cfg(phper_enum_supported)]
+            enum_entities: Default::default(),
             constants: Default::default(),
             ini_entities: Default::default(),
             infos: Default::default(),
@@ -217,6 +227,16 @@ impl Module {
         let bound_interface = interface.bound_interface();
         self.interface_entities.push(interface);
         bound_interface
+    }
+
+    /// Register enum to module.
+    #[cfg(phper_enum_supported)]
+    pub fn add_enum<B: crate::enums::EnumBackingType>(
+        &mut self, enum_entity: crate::enums::EnumEntity<B>,
+    ) {
+        self.enum_entities.push(unsafe {
+            transmute::<crate::enums::EnumEntity<B>, crate::enums::EnumEntity<()>>(enum_entity)
+        });
     }
 
     /// Register constant to module.

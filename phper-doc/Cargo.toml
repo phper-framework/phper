@@ -25,3 +25,11 @@ phper = { workspace = true }
 [dev-dependencies]
 thiserror = "2.0.11"
 reqwest = { version = "0.12.12", features = ["blocking", "cookies"] }
+
+[build-dependencies]
+phper-build = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(phper_enum_supported)',
+] }

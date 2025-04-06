@@ -14,6 +14,7 @@ mod arguments;
 mod arrays;
 mod classes;
 mod constants;
+mod enums;
 mod errors;
 mod functions;
 mod ini;
@@ -45,6 +46,8 @@ pub fn get_module() -> Module {
     errors::integrate(&mut module);
     references::integrate(&mut module);
     typehints::integrate(&mut module);
+    #[cfg(phper_enum_supported)]
+    enums::integrate(&mut module);
 
     module
 }
