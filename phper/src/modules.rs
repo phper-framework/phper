@@ -147,7 +147,7 @@ pub struct Module {
     class_entities: Vec<ClassEntity<()>>,
     interface_entities: Vec<InterfaceEntity>,
     #[cfg(phper_enum_supported)]
-    enum_entities: Vec<crates::enums::EnumEntity<()>>,
+    enum_entities: Vec<crate::enums::EnumEntity<()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
     infos: HashMap<CString, CString>,
