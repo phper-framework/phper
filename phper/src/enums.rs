@@ -32,7 +32,7 @@ use sealed::sealed;
 use std::{
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::zeroed,
+    mem::{MaybeUninit, zeroed},
     ptr::null_mut,
     rc::Rc,
 };
@@ -287,7 +287,7 @@ unsafe fn register_enum_case(
                     value.len().try_into().unwrap(),
                     true.into(),
                 );
-                let mut value = ZVal::from(());
+                let mut value = MaybeUninit::<zval>::uninit();
                 phper_zval_str(value.as_mut_ptr(), value_ptr);
 
                 zend_enum_add_case_cstr(class_ce, case_name.as_ptr(), value.as_mut_ptr());
