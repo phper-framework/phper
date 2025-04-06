@@ -33,3 +33,7 @@ phper-build = { workspace = true }
 unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(phper_enum_supported)',
 ] }
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
