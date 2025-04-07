@@ -13,7 +13,7 @@
 use crate::sys::*;
 use phper_alloc::ToRefOwned;
 use std::{
-    borrow::Borrow,
+    borrow::{Borrow, Cow},
     ffi::{CStr, FromBytesWithNulError},
     fmt::{self, Debug},
     marker::PhantomData,
@@ -21,8 +21,7 @@ use std::{
     ops::{Deref, DerefMut},
     os::raw::c_char,
     slice::from_raw_parts,
-    str,
-    str::Utf8Error,
+    str::{self, Utf8Error},
 };
 
 /// Like str, CStr for [zend_string].
@@ -130,6 +129,11 @@ impl ZStr {
     /// Yields a str slice if the `ZStr` contains valid UTF-8.
     pub fn to_str(&self) -> Result<&str, Utf8Error> {
         str::from_utf8(self.to_bytes())
+    }
+
+    /// Converts a slice of bytes to a string, including invalid characters.
+    pub fn to_string_lossy(&self) -> Cow<'_, str> {
+        String::from_utf8_lossy(self.to_bytes())
     }
 }
 

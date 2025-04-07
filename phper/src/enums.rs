@@ -20,9 +20,13 @@
 #![cfg(phper_enum_supported)]
 
 use crate::{
-    classes::{ConstantEntity, Interface, Visibility, add_class_constant},
-    errors::Throwable,
+    classes::{
+        ClassEntry, ConstantEntity, InnerClassEntry, Interface, Visibility, add_class_constant,
+    },
+    errors::{EnumCaseNotFoundError, Throwable},
     functions::{Function, FunctionEntry, HandlerMap, MethodEntity},
+    objects::ZObj,
+    strings::ZString,
     sys::*,
     types::Scalar,
     utils::ensure_end_with_zero,
@@ -30,10 +34,11 @@ use crate::{
 };
 use sealed::sealed;
 use std::{
+    cell::RefCell,
     ffi::{CStr, CString},
     marker::PhantomData,
     mem::{MaybeUninit, zeroed},
-    ptr::null_mut,
+    ptr::{null, null_mut},
     rc::Rc,
 };
 
@@ -94,6 +99,158 @@ struct EnumCase {
     value: Scalar,
 }
 
+/// The [Enum] holds [zend_class_entry] for PHP enum, created by
+/// [Module::add_enum](crate::modules::Module::add_enum) or
+/// [EnumEntity::bound_enum].
+///
+/// When the enum registered (module initialized), the [Enum] will
+/// be initialized, so you can use the [Enum] to get enum cases, etc.
+///
+/// # Examples
+///
+/// ```rust
+/// use phper::{
+///     enums::{Enum, EnumEntity},
+///     modules::Module,
+///     php_get_module,
+/// };
+///
+/// fn make_status_enum() -> EnumEntity {
+///     let mut enum_entity = EnumEntity::new("Status");
+///     enum_entity.add_case("Active", ());
+///     enum_entity.add_case("Inactive", ());
+///     enum_entity.add_case("Pending", ());
+///     enum_entity
+/// }
+///
+/// #[php_get_module]
+/// pub fn get_module() -> Module {
+///     let mut module = Module::new(
+///         env!("CARGO_CRATE_NAME"),
+///         env!("CARGO_PKG_VERSION"),
+///         env!("CARGO_PKG_AUTHORS"),
+///     );
+///
+///     let _status_enum: Enum = module.add_enum(make_status_enum());
+///
+///     module
+/// }
+/// ```
+#[derive(Clone)]
+pub struct Enum {
+    inner: Rc<RefCell<InnerClassEntry>>,
+}
+
+impl Enum {
+    /// Creates a null Enum reference. Used internally.
+    fn null() -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(InnerClassEntry::Ptr(null()))),
+        }
+    }
+
+    /// Create from name, which will be looked up from globals.
+    pub fn from_name(name: impl Into<String>) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(InnerClassEntry::Name(name.into()))),
+        }
+    }
+
+    fn bind(&self, ptr: *mut zend_class_entry) {
+        match &mut *self.inner.borrow_mut() {
+            InnerClassEntry::Ptr(p) => {
+                *p = ptr;
+            }
+            InnerClassEntry::Name(_) => {
+                unreachable!("Cannot bind() an Enum created with from_name()");
+            }
+        }
+    }
+
+    /// Converts to class entry.
+    pub fn as_class_entry(&self) -> &ClassEntry {
+        let inner = self.inner.borrow().clone();
+        match inner {
+            InnerClassEntry::Ptr(ptr) => unsafe { ClassEntry::from_ptr(ptr) },
+            InnerClassEntry::Name(name) => {
+                let entry = ClassEntry::from_globals(name).unwrap();
+                *self.inner.borrow_mut() = InnerClassEntry::Ptr(entry.as_ptr());
+                entry
+            }
+        }
+    }
+
+    /// Get an enum case by name.
+    ///
+    /// # Parameters
+    ///
+    /// * `case_name` - The name of the enum case to retrieve
+    ///
+    /// # Returns
+    ///
+    /// A reference to ZObj representing the enum case, or an error if the case
+    /// doesn't exist
+    pub fn get_case<'a>(&self, case_name: impl AsRef<str>) -> crate::Result<&'a ZObj> {
+        unsafe {
+            let ce = self.as_class_entry().as_ptr() as *mut _;
+            let case_name_str = case_name.as_ref();
+            let mut name_zstr = ZString::new(case_name_str);
+
+            // Get the enum case
+            let case_obj = zend_enum_get_case(ce, name_zstr.as_mut_ptr());
+
+            if case_obj.is_null() {
+                return Err(EnumCaseNotFoundError::new(
+                    self.as_class_entry()
+                        .get_name()
+                        .to_string_lossy()
+                        .to_string(),
+                    case_name_str.to_owned(),
+                )
+                .into());
+            }
+
+            // Convert to &ZObj
+            Ok(ZObj::from_ptr(case_obj))
+        }
+    }
+
+    /// Get a mutable reference to an enum case by name.
+    ///
+    /// # Parameters
+    ///
+    /// * `case_name` - The name of the enum case to retrieve
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to ZObj representing the enum case, or an error if
+    /// the case doesn't exist
+    pub fn get_mut_case<'a>(&mut self, case_name: impl AsRef<str>) -> crate::Result<&'a mut ZObj> {
+        unsafe {
+            let ce = self.as_class_entry().as_ptr() as *mut _;
+            let case_name_str = case_name.as_ref();
+            let mut name_zstr = ZString::new(case_name_str);
+
+            // Get the enum case
+            let case_obj = zend_enum_get_case(ce, name_zstr.as_mut_ptr());
+
+            if case_obj.is_null() {
+                return Err(EnumCaseNotFoundError::new(
+                    self.as_class_entry()
+                        .get_name()
+                        .to_string_lossy()
+                        .to_string(),
+                    case_name_str.to_owned(),
+                )
+                .into());
+            }
+
+            // Convert to &mut ZObj
+            Ok(ZObj::from_mut_ptr(case_obj as *mut _))
+        }
+    }
+}
+
 /// Builder for registering a PHP enum.
 ///
 /// This struct facilitates the creation and registration of PHP enums from Rust
@@ -112,6 +269,7 @@ pub struct EnumEntity<B: EnumBackingType = ()> {
     cases: Vec<EnumCase>,
     constants: Vec<ConstantEntity>,
     interfaces: Vec<Interface>,
+    bound_enum: Enum,
     _p: PhantomData<(B, *mut ())>,
 }
 
@@ -133,6 +291,7 @@ impl<B: EnumBackingType> EnumEntity<B> {
             cases: Vec::new(),
             constants: Vec::new(),
             interfaces: Vec::new(),
+            bound_enum: Enum::null(),
             _p: PhantomData,
         }
     }
@@ -199,6 +358,30 @@ impl<B: EnumBackingType> EnumEntity<B> {
         self.interfaces.push(interface);
     }
 
+    /// Get the bound enum.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use phper::enums::{EnumEntity, Visibility};
+    ///
+    /// pub fn make_status_enum() -> EnumEntity {
+    ///     let mut enum_entity = EnumEntity::new("Status");
+    ///     enum_entity.add_case("Active", ());
+    ///     enum_entity.add_case("Inactive", ());
+    ///     let status_enum = enum_entity.bound_enum();
+    ///     enum_entity.add_static_method("getActiveCase", Visibility::Public, move |_| {
+    ///         let active_case = status_enum.get_case("Active")?;
+    ///         Ok::<_, phper::Error>(active_case)
+    ///     });
+    ///     enum_entity
+    /// }
+    /// ```
+    #[inline]
+    pub fn bound_enum(&self) -> Enum {
+        self.bound_enum.clone()
+    }
+
     unsafe fn function_entries(&self) -> *const zend_function_entry {
         unsafe {
             let mut methods = self
@@ -241,6 +424,8 @@ impl<B: EnumBackingType> EnumEntity<B> {
                 backing_type,
                 self.function_entries(),
             );
+
+            self.bound_enum.bind(class_ce);
 
             for interface in &self.interfaces {
                 let interface_ce = interface.as_class_entry().as_ptr();

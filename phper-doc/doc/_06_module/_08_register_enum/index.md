@@ -225,6 +225,106 @@ $colorFromValue = Color::from("FF0000"); // Returns RED
 $colorOrNull = Color::tryFrom("INVALID"); // Returns null (when the value doesn't exist)
 ```
 
+## Accessing Enums from Rust Code
+
+After registering an enum, you might need to access it from Rust code. `PHPER` provides two ways to do this:
+
+1. Using the returned `Enum` instance when registering the enum
+2. Using `Enum::from_name` to look up an enum by name
+
+### Using the Returned `Enum` Instance
+
+When you register an enum using `module.add_enum()`, it returns an `Enum` instance that you can save and use later.
+
+```rust,no_run
+use phper::{modules::Module, php_get_module, enums::{EnumEntity, Enum}};
+
+#[php_get_module]
+pub fn get_module() -> Module {
+    let mut module = Module::new(
+        env!("CARGO_CRATE_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
+
+    // Create and register the enum
+    let mut status_entity = EnumEntity::new("Status");
+    status_entity.add_case("ACTIVE", ());
+    status_entity.add_case("INACTIVE", ());
+    
+    // Save the returned Enum instance
+    let status_enum: Enum = module.add_enum(status_entity);
+    
+    // Use the saved enum instance in a function
+    module.add_function("get_active_status", move |_| {
+        // Get the ACTIVE case from the enum
+        let active_case = status_enum.get_case("ACTIVE")?;
+        Ok::<_, phper::Error>(active_case)
+    });
+
+    module
+}
+```
+
+### Using `Enum::from_name`
+
+If you don't have the original `Enum` instance, you can use `Enum::from_name` to look up an enum by its name.
+
+```rust,no_run
+use phper::{enums::Enum, modules::Module, php_get_module};
+
+#[php_get_module]
+pub fn get_module() -> Module {
+    let mut module = Module::new(
+        env!("CARGO_CRATE_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
+    
+    // Register functions that use enums
+    module.add_function("get_status_case", |args| {
+        // Look up the Status enum by name
+        let status_enum = Enum::from_name("Status");
+        
+        // Get the case name from the function arguments
+        let case_name = args[0].as_z_str()?.to_str()?;
+        
+        // Get the requested enum case
+        let case = status_enum.get_case(case_name)?;
+        
+        Ok::<_, phper::Error>(case)
+    });
+
+    module
+}
+```
+
+## Getting Enum Cases
+
+Once you have an `Enum` instance, you can use the `get_case` method to access specific enum cases:
+
+```rust,no_run
+// Get a case from a pure enum
+let status_enum = Enum::from_name("Status");
+let active_case = status_enum.get_case("ACTIVE")?;
+
+// Get a case from a backed enum
+let level_enum = Enum::from_name("Level");
+let high_level = level_enum.get_case("HIGH")?;
+```
+
+If you need to modify an enum case's properties, you can use `get_case_mut` to get a mutable reference:
+
+```rust,no_run
+// Get a mutable reference to an enum case
+let mut status_enum = Enum::from_name("Status");
+let mut active_case = status_enum.get_case_mut("ACTIVE")?;
+
+// Now you can modify the case object if needed
+```
+
+If the specified case doesn't exist in the enum, both `get_case` and `get_case_mut` will return an `EnumCaseNotFoundError`.
+
 ## Complete Example
 
 Here's a comprehensive example using both pure and backed enums:

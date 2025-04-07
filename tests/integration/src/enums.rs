@@ -10,7 +10,13 @@
 
 #![cfg(phper_enum_supported)]
 
-use phper::{classes::Visibility, enums::EnumEntity, modules::Module};
+use phper::{
+    alloc::ToRefOwned,
+    classes::Visibility,
+    enums::{Enum, EnumEntity},
+    modules::Module,
+    objects::ZObject,
+};
 use std::convert::Infallible;
 
 pub fn integrate(module: &mut Module) {
@@ -22,6 +28,9 @@ pub fn integrate(module: &mut Module) {
 
     // Create string-backed enum
     create_string_backed_enum(module);
+
+    // Add test function for Enum::from_name
+    test_enum_from_name(module);
 }
 
 fn create_pure_enum(module: &mut Module) {
@@ -63,4 +72,56 @@ fn create_string_backed_enum(module: &mut Module) {
     enum_entity.add_case("BLUE", "0000FF".to_string());
 
     module.add_enum(enum_entity);
+}
+
+// Add test function to test Enum::from_name and get_case functionality, and
+// convert the result to ZObject
+fn test_enum_from_name(module: &mut Module) {
+    // Test getting a case from pure enum
+    module.add_function("test_enum_from_name_pure", |_args| {
+        // Use Enum::from_name to get the created enum
+        let mut pure_enum = Enum::from_name("IntegrationTest\\PureEnum");
+
+        // Test the get_case method and convert the result to ZObject
+        let one_case = pure_enum.get_mut_case("ONE")?;
+        let zobj: ZObject = one_case.to_ref_owned();
+
+        Ok::<_, phper::Error>(zobj)
+    });
+
+    // Test getting a case from int-backed enum
+    module.add_function("test_enum_from_name_int", |_args| {
+        // Use Enum::from_name to get the created enum
+        let mut int_enum = Enum::from_name("IntegrationTest\\IntEnum");
+
+        // Test the get_case method and convert the result to ZObject
+        let low_case = int_enum.get_mut_case("LOW")?;
+        let zobj: ZObject = low_case.to_ref_owned();
+
+        Ok::<_, phper::Error>(zobj)
+    });
+
+    // Test getting a case from string-backed enum
+    module.add_function("test_enum_from_name_string", |_args| {
+        // Use Enum::from_name to get the created enum
+        let mut string_enum = Enum::from_name("IntegrationTest\\StringEnum");
+
+        // Test the get_case method and convert the result to ZObject
+        let red_case = string_enum.get_mut_case("RED")?;
+        let zobj: ZObject = red_case.to_ref_owned();
+
+        Ok::<_, phper::Error>(zobj)
+    });
+
+    // Test getting a non-existent case
+    module.add_function("test_enum_get_invalid_case", |_args| {
+        let pure_enum = Enum::from_name("IntegrationTest\\PureEnum");
+
+        // Try to get a non-existent enum case
+        phper::ok(match pure_enum.get_case("NONEXISTENT") {
+            Ok(_) => false,
+            Err(phper::Error::EnumCaseNotFound(_)) => true,
+            Err(_) => false,
+        })
+    });
 }
