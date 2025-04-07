@@ -31,6 +31,9 @@ pub fn integrate(module: &mut Module) {
 
     // Add test function for Enum::from_name
     test_enum_from_name(module);
+
+    // Add test for EnumCase
+    test_enum_case(module);
 }
 
 fn create_pure_enum(module: &mut Module) {
@@ -83,7 +86,7 @@ fn test_enum_from_name(module: &mut Module) {
         let mut pure_enum = Enum::from_name("IntegrationTest\\PureEnum");
 
         // Test the get_case method and convert the result to ZObject
-        let one_case = pure_enum.get_mut_case("ONE")?;
+        let one_case = unsafe { pure_enum.get_mut_case("ONE")? };
         let zobj: ZObject = one_case.to_ref_owned();
 
         Ok::<_, phper::Error>(zobj)
@@ -95,7 +98,7 @@ fn test_enum_from_name(module: &mut Module) {
         let mut int_enum = Enum::from_name("IntegrationTest\\IntEnum");
 
         // Test the get_case method and convert the result to ZObject
-        let low_case = int_enum.get_mut_case("LOW")?;
+        let low_case = unsafe { int_enum.get_mut_case("LOW")? };
         let zobj: ZObject = low_case.to_ref_owned();
 
         Ok::<_, phper::Error>(zobj)
@@ -107,9 +110,72 @@ fn test_enum_from_name(module: &mut Module) {
         let mut string_enum = Enum::from_name("IntegrationTest\\StringEnum");
 
         // Test the get_case method and convert the result to ZObject
-        let red_case = string_enum.get_mut_case("RED")?;
+        let red_case = unsafe { string_enum.get_mut_case("RED")? };
         let zobj: ZObject = red_case.to_ref_owned();
 
         Ok::<_, phper::Error>(zobj)
+    });
+}
+
+// Add test function for EnumCase
+fn test_enum_case(module: &mut Module) {
+    // First create and register all test enums
+    // Create pure enum
+    let mut pure_enum_entity = EnumEntity::new("IntegrationTest\\TestPureEnum");
+    let one_case = pure_enum_entity.add_case("ONE", ());
+    let _two_case = pure_enum_entity.add_case("TWO", ());
+    let _pure_enum = module.add_enum(pure_enum_entity);
+
+    // Create integer-backed enum
+    let mut int_enum_entity = EnumEntity::<i64>::new("IntegrationTest\\TestIntEnum");
+    let low_case = int_enum_entity.add_case("LOW", 10);
+    let _high_case = int_enum_entity.add_case("HIGH", 100);
+    let _int_enum = module.add_enum(int_enum_entity);
+
+    // Create string-backed enum
+    let mut string_enum_entity = EnumEntity::<String>::new("IntegrationTest\\TestStringEnum");
+    let red_case = string_enum_entity.add_case("RED", "red".to_string());
+    let _blue_case = string_enum_entity.add_case("BLUE", "blue".to_string());
+    let _string_enum = module.add_enum(string_enum_entity);
+
+    // Now use previously created EnumCase instances in closures
+
+    // Create EnumCase from Pure Enum
+    module.add_function("test_enum_case_pure", {
+        move |_args| {
+            // Test that we can use the EnumCase to get the case directly
+            let mut one_case = one_case.clone();
+            let one_obj = one_case.get_mut_case();
+            let one_zobj: ZObject = one_obj.to_ref_owned();
+
+            // Return the object for PHP side verification
+            phper::ok(one_zobj)
+        }
+    });
+
+    // Create EnumCase from Int Backed Enum
+    module.add_function("test_enum_case_int", {
+        move |_args| {
+            // Test that we can use the EnumCase to get the case directly
+            let mut low_case = low_case.clone();
+            let low_obj = low_case.get_mut_case();
+            let low_zobj: ZObject = low_obj.to_ref_owned();
+
+            // Return the object for PHP side verification
+            phper::ok(low_zobj)
+        }
+    });
+
+    // Create EnumCase from String Backed Enum
+    module.add_function("test_enum_case_string", {
+        move |_args| {
+            // Test EnumCase methods
+            let mut red_case = red_case.clone();
+            let red_obj = red_case.get_mut_case();
+            let red_zobj: ZObject = red_obj.to_ref_owned();
+
+            // Return the object for PHP side verification
+            phper::ok(red_zobj)
+        }
     });
 }

@@ -23,7 +23,7 @@ use crate::{
     classes::{
         ClassEntry, ConstantEntity, InnerClassEntry, Interface, Visibility, add_class_constant,
     },
-    errors::{EnumCaseNotFoundError, Throwable},
+    errors::Throwable,
     functions::{Function, FunctionEntry, HandlerMap, MethodEntity},
     objects::ZObj,
     strings::ZString,
@@ -94,9 +94,65 @@ pub enum EnumType {
 ///
 /// Represents a single case within a PHP enum, storing its name
 /// and associated value.
-struct EnumCase {
+struct EnumCaseEntity {
     name: CString,
     value: Scalar,
+}
+
+/// Represents an enum case within a PHP enum.
+///
+/// `EnumCase` provides a convenient way to access a specific enum case
+/// without repeatedly calling `Enum::get_case()` with the case name.
+/// It stores a reference to the enum and the name of the case.
+#[derive(Clone)]
+pub struct EnumCase {
+    r#enum: Enum,
+    case_name: String,
+}
+
+impl EnumCase {
+    /// Creates a new `EnumCase` with the specified enum and case name.
+    ///
+    /// # Parameters
+    ///
+    /// * `enum_obj` - The enum containing the case
+    /// * `case_name` - The name of the enum case
+    fn new(enum_obj: Enum, case_name: impl Into<String>) -> Self {
+        Self {
+            r#enum: enum_obj,
+            case_name: case_name.into(),
+        }
+    }
+
+    /// Gets a reference to the enum case.
+    ///
+    /// # Returns
+    ///
+    /// A reference to ZObj representing the enum case, or an error if the case
+    /// doesn't exist
+    pub fn get_case<'a>(&self) -> &'a ZObj {
+        unsafe { self.r#enum.get_case(&self.case_name).unwrap() }
+    }
+
+    /// Gets a mutable reference to the enum case.
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to ZObj representing the enum case, or an error if
+    /// the case doesn't exist
+    pub fn get_mut_case<'a>(&mut self) -> &'a mut ZObj {
+        unsafe { self.r#enum.get_mut_case(&self.case_name).unwrap() }
+    }
+
+    /// Gets the name of the enum case.
+    pub fn name(&self) -> &str {
+        &self.case_name
+    }
+
+    /// Gets the enum this case belongs to.
+    pub fn as_enum(&self) -> &Enum {
+        &self.r#enum
+    }
 }
 
 /// The [Enum] holds [zend_class_entry] for PHP enum, created by
@@ -193,12 +249,14 @@ impl Enum {
     ///
     /// # Safety
     ///
-    /// This function is marked as unsafe because the underlying `zend_enum_get_case` 
-    /// function may cause a SIGSEGV (segmentation fault) when the case doesn't exist.
-    /// Even though this method attempts to check for null and return an error instead,
-    /// there might still be scenarios where the PHP internal function behaves unpredictably.
-    /// Callers must ensure the enum and case name are valid before calling this function.
-    pub fn get_case<'a>(&self, case_name: impl AsRef<str>) -> crate::Result<&'a ZObj> {
+    /// This function is marked as unsafe because the underlying
+    /// `zend_enum_get_case` function may cause a SIGSEGV (segmentation
+    /// fault) when the case doesn't exist. Even though this method attempts
+    /// to check for null and return an error instead, there might still be
+    /// scenarios where the PHP internal function behaves unpredictably.
+    /// Callers must ensure the enum and case name are valid before calling this
+    /// function.
+    pub unsafe fn get_case<'a>(&self, case_name: impl AsRef<str>) -> crate::Result<&'a ZObj> {
         unsafe {
             let ce = self.as_class_entry().as_ptr() as *mut _;
             let case_name_str = case_name.as_ref();
@@ -206,17 +264,6 @@ impl Enum {
 
             // Get the enum case
             let case_obj = zend_enum_get_case(ce, name_zstr.as_mut_ptr());
-
-            if case_obj.is_null() {
-                return Err(EnumCaseNotFoundError::new(
-                    self.as_class_entry()
-                        .get_name()
-                        .to_string_lossy()
-                        .to_string(),
-                    case_name_str.to_owned(),
-                )
-                .into());
-            }
 
             // Convert to &ZObj
             Ok(ZObj::from_ptr(case_obj))
@@ -236,12 +283,16 @@ impl Enum {
     ///
     /// # Safety
     ///
-    /// This function is marked as unsafe because the underlying `zend_enum_get_case` 
-    /// function may cause a SIGSEGV (segmentation fault) when the case doesn't exist.
-    /// Even though this method attempts to check for null and return an error instead,
-    /// there might still be scenarios where the PHP internal function behaves unpredictably.
-    /// Callers must ensure the enum and case name are valid before calling this function.
-    pub fn get_mut_case<'a>(&mut self, case_name: impl AsRef<str>) -> crate::Result<&'a mut ZObj> {
+    /// This function is marked as unsafe because the underlying
+    /// `zend_enum_get_case` function may cause a SIGSEGV (segmentation
+    /// fault) when the case doesn't exist. Even though this method attempts
+    /// to check for null and return an error instead, there might still be
+    /// scenarios where the PHP internal function behaves unpredictably.
+    /// Callers must ensure the enum and case name are valid before calling this
+    /// function.
+    pub unsafe fn get_mut_case<'a>(
+        &mut self, case_name: impl AsRef<str>,
+    ) -> crate::Result<&'a mut ZObj> {
         unsafe {
             let ce = self.as_class_entry().as_ptr() as *mut _;
             let case_name_str = case_name.as_ref();
@@ -249,17 +300,6 @@ impl Enum {
 
             // Get the enum case
             let case_obj = zend_enum_get_case(ce, name_zstr.as_mut_ptr());
-
-            if case_obj.is_null() {
-                return Err(EnumCaseNotFoundError::new(
-                    self.as_class_entry()
-                        .get_name()
-                        .to_string_lossy()
-                        .to_string(),
-                    case_name_str.to_owned(),
-                )
-                .into());
-            }
 
             // Convert to &mut ZObj
             Ok(ZObj::from_mut_ptr(case_obj as *mut _))
@@ -282,7 +322,7 @@ pub struct EnumEntity<B: EnumBackingType = ()> {
     enum_name: CString,
     enum_type: EnumType,
     method_entities: Vec<MethodEntity>,
-    cases: Vec<EnumCase>,
+    cases: Vec<EnumCaseEntity>,
     constants: Vec<ConstantEntity>,
     interfaces: Vec<Interface>,
     bound_enum: Enum,
@@ -319,12 +359,18 @@ impl<B: EnumBackingType> EnumEntity<B> {
     /// * `name` - The name of the enum case
     /// * `value` - The value associated with the enum case, type determined by
     ///   backing type B
-    pub fn add_case(&mut self, name: impl Into<String>, value: B) {
-        let case_name = ensure_end_with_zero(name);
-        self.cases.push(EnumCase {
-            name: case_name.clone(),
+    ///
+    /// # Returns
+    ///
+    /// An `EnumCase` instance representing the added case
+    pub fn add_case(&mut self, name: impl Into<String>, value: B) -> EnumCase {
+        let case_name_str = name.into();
+        let case_name = ensure_end_with_zero(&case_name_str);
+        self.cases.push(EnumCaseEntity {
+            name: case_name,
             value: value.into(),
         });
+        EnumCase::new(self.bound_enum(), case_name_str)
     }
 
     /// Adds a static method to the enum.
@@ -379,16 +425,16 @@ impl<B: EnumBackingType> EnumEntity<B> {
     /// # Examples
     ///
     /// ```
-    /// use phper::enums::{EnumEntity, Visibility};
+    /// use phper::{alloc::ToRefOwned, classes::Visibility, enums::EnumEntity};
     ///
     /// pub fn make_status_enum() -> EnumEntity {
     ///     let mut enum_entity = EnumEntity::new("Status");
     ///     enum_entity.add_case("Active", ());
     ///     enum_entity.add_case("Inactive", ());
-    ///     let status_enum = enum_entity.bound_enum();
+    ///     let mut status_enum = enum_entity.bound_enum();
     ///     enum_entity.add_static_method("getActiveCase", Visibility::Public, move |_| {
-    ///         let active_case = status_enum.get_case("Active")?;
-    ///         Ok::<_, phper::Error>(active_case)
+    ///         let active_case = unsafe { status_enum.clone().get_mut_case("Active")? };
+    ///         phper::ok(active_case.to_ref_owned())
     ///     });
     ///     enum_entity
     /// }

@@ -210,11 +210,6 @@ pub enum Error {
     /// Failed when the object isn't implement PHP `Throwable`.
     #[error(transparent)]
     NotImplementThrowable(#[from] NotImplementThrowableError),
-
-    /// Failed when an enum case is not found in the enum.
-    #[cfg(phper_enum_supported)]
-    #[error(transparent)]
-    EnumCaseNotFound(#[from] EnumCaseNotFoundError),
 }
 
 impl Error {
@@ -245,8 +240,6 @@ impl Throwable for Error {
             Error::InitializeObject(e) => Throwable::get_class(e),
             Error::ExpectType(e) => Throwable::get_class(e),
             Error::NotImplementThrowable(e) => Throwable::get_class(e),
-            #[cfg(phper_enum_supported)]
-            Error::EnumCaseNotFound(e) => Throwable::get_class(e),
         }
     }
 
@@ -263,8 +256,6 @@ impl Throwable for Error {
             Error::InitializeObject(e) => Throwable::get_code(e),
             Error::ExpectType(e) => Throwable::get_code(e),
             Error::NotImplementThrowable(e) => Throwable::get_code(e),
-            #[cfg(phper_enum_supported)]
-            Error::EnumCaseNotFound(e) => Throwable::get_code(e),
         }
     }
 
@@ -280,8 +271,6 @@ impl Throwable for Error {
             Error::InitializeObject(e) => Throwable::get_message(e),
             Error::ExpectType(e) => Throwable::get_message(e),
             Error::NotImplementThrowable(e) => Throwable::get_message(e),
-            #[cfg(phper_enum_supported)]
-            Error::EnumCaseNotFound(e) => Throwable::get_message(e),
         }
     }
 
@@ -297,8 +286,6 @@ impl Throwable for Error {
             Error::InitializeObject(e) => Throwable::to_object(e),
             Error::ExpectType(e) => Throwable::to_object(e),
             Error::NotImplementThrowable(e) => Throwable::to_object(e),
-            #[cfg(phper_enum_supported)]
-            Error::EnumCaseNotFound(e) => Throwable::to_object(e),
         }
     }
 }
@@ -477,22 +464,6 @@ pub struct NotImplementThrowableError;
 impl Throwable for NotImplementThrowableError {
     fn get_class(&self) -> &ClassEntry {
         type_error_class()
-    }
-}
-
-/// Failed when an enum case is not found in the enum.
-#[cfg(phper_enum_supported)]
-#[derive(Debug, thiserror::Error, Constructor)]
-#[error("Enum case '{case_name}' not found in enum '{enum_name}'")]
-pub struct EnumCaseNotFoundError {
-    enum_name: String,
-    case_name: String,
-}
-
-#[cfg(phper_enum_supported)]
-impl Throwable for EnumCaseNotFoundError {
-    fn get_class(&self) -> &ClassEntry {
-        error_class()
     }
 }
 

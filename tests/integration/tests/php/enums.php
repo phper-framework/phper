@@ -71,3 +71,26 @@ assert_true($red_case instanceof IntegrationTest\StringEnum, 'Should return a St
 assert_eq($red_case->name, 'RED', 'Should be the RED case');
 assert_eq($red_case->value, 'FF0000', 'RED value should be FF0000');
 assert_eq($red_case, IntegrationTest\StringEnum::RED, 'Should be equal to the enum case');
+
+// Test pure EnumCase
+assert_true(enum_exists('IntegrationTest\TestPureEnum'), 'TestPureEnum should exist');
+$pure_case = test_enum_case_pure();
+assert_true($pure_case instanceof IntegrationTest\TestPureEnum, 'Should return a TestPureEnum object');
+assert_eq($pure_case->name, 'ONE', 'Should be the ONE case');
+assert_eq($pure_case, IntegrationTest\TestPureEnum::ONE, 'Should be equal to the enum case');
+
+// Test int-backed EnumCase
+assert_true(enum_exists('IntegrationTest\TestIntEnum'), 'TestIntEnum should exist');
+$int_case = test_enum_case_int();
+assert_true($int_case instanceof IntegrationTest\TestIntEnum, 'Should return a TestIntEnum object');
+assert_eq($int_case->name, 'LOW', 'Should be the LOW case');
+assert_eq($int_case->value, 10, 'LOW value should be 10');
+assert_eq($int_case, IntegrationTest\TestIntEnum::LOW, 'Should be equal to the enum case');
+
+// Test string-backed EnumCase
+assert_true(enum_exists('IntegrationTest\TestStringEnum'), 'TestStringEnum should exist');
+$string_case = test_enum_case_string();
+assert_true($string_case instanceof IntegrationTest\TestStringEnum, 'Should return a TestStringEnum object');
+assert_eq($string_case->name, 'RED', 'Should be the RED case');
+assert_eq($string_case->value, 'red', 'RED value should be "red"');
+assert_eq($string_case, IntegrationTest\TestStringEnum::RED, 'Should be equal to the enum case');
