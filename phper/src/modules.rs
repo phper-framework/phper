@@ -233,10 +233,12 @@ impl Module {
     #[cfg(phper_enum_supported)]
     pub fn add_enum<B: crate::enums::EnumBackingType>(
         &mut self, enum_entity: crate::enums::EnumEntity<B>,
-    ) {
+    ) -> crate::enums::Enum {
+        let bound_enum = enum_entity.bound_enum();
         self.enum_entities.push(unsafe {
             transmute::<crate::enums::EnumEntity<B>, crate::enums::EnumEntity<()>>(enum_entity)
         });
+        bound_enum
     }
 
     /// Register constant to module.
