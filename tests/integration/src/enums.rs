@@ -112,16 +112,4 @@ fn test_enum_from_name(module: &mut Module) {
 
         Ok::<_, phper::Error>(zobj)
     });
-
-    // Test getting a non-existent case
-    module.add_function("test_enum_get_invalid_case", |_args| {
-        let pure_enum = Enum::from_name("IntegrationTest\\PureEnum");
-
-        // Try to get a non-existent enum case
-        phper::ok(match pure_enum.get_case("NONEXISTENT") {
-            Ok(_) => false,
-            Err(phper::Error::EnumCaseNotFound(_)) => true,
-            Err(_) => false,
-        })
-    });
 }

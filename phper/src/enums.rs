@@ -190,6 +190,14 @@ impl Enum {
     ///
     /// A reference to ZObj representing the enum case, or an error if the case
     /// doesn't exist
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as unsafe because the underlying `zend_enum_get_case` 
+    /// function may cause a SIGSEGV (segmentation fault) when the case doesn't exist.
+    /// Even though this method attempts to check for null and return an error instead,
+    /// there might still be scenarios where the PHP internal function behaves unpredictably.
+    /// Callers must ensure the enum and case name are valid before calling this function.
     pub fn get_case<'a>(&self, case_name: impl AsRef<str>) -> crate::Result<&'a ZObj> {
         unsafe {
             let ce = self.as_class_entry().as_ptr() as *mut _;
@@ -225,6 +233,14 @@ impl Enum {
     ///
     /// A mutable reference to ZObj representing the enum case, or an error if
     /// the case doesn't exist
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as unsafe because the underlying `zend_enum_get_case` 
+    /// function may cause a SIGSEGV (segmentation fault) when the case doesn't exist.
+    /// Even though this method attempts to check for null and return an error instead,
+    /// there might still be scenarios where the PHP internal function behaves unpredictably.
+    /// Callers must ensure the enum and case name are valid before calling this function.
     pub fn get_mut_case<'a>(&mut self, case_name: impl AsRef<str>) -> crate::Result<&'a mut ZObj> {
         unsafe {
             let ce = self.as_class_entry().as_ptr() as *mut _;

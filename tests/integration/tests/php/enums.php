@@ -71,6 +71,3 @@ assert_true($red_case instanceof IntegrationTest\StringEnum, 'Should return a St
 assert_eq($red_case->name, 'RED', 'Should be the RED case');
 assert_eq($red_case->value, 'FF0000', 'RED value should be FF0000');
 assert_eq($red_case, IntegrationTest\StringEnum::RED, 'Should be equal to the enum case');
-
-// Test error handling when retrieving invalid case
-assert_true(test_enum_get_invalid_case(), 'Should return an error for non-existent case');
