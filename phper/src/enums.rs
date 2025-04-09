@@ -26,7 +26,7 @@ use crate::{
     errors::Throwable,
     functions::{Function, FunctionEntry, HandlerMap, MethodEntity},
     objects::ZObj,
-    strings::{ZStr, ZString},
+    strings::ZString,
     sys::*,
     types::Scalar,
     utils::ensure_end_with_zero,
@@ -37,7 +37,7 @@ use std::{
     cell::RefCell,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{ManuallyDrop, MaybeUninit, zeroed},
+    mem::{ManuallyDrop, zeroed},
     ptr::{null, null_mut},
     rc::Rc,
 };

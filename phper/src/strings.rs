@@ -195,9 +195,6 @@ impl ZString {
     }
 
     /// Creates a new persistent zend string from a container of bytes.
-    ///
-    /// Persistent strings will remain in memory until the PHP process
-    /// terminates.
     #[allow(clippy::useless_conversion)]
     pub fn new_persistent(s: impl AsRef<[u8]>) -> Self {
         unsafe {
