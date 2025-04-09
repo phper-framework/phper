@@ -37,7 +37,7 @@ use std::{
     cell::RefCell,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{MaybeUninit, zeroed},
+    mem::{ManuallyDrop, zeroed},
     ptr::{null, null_mut},
     rc::Rc,
 };
@@ -528,15 +528,8 @@ unsafe fn register_enum_case(
                 );
             }
             Scalar::String(value) => {
-                #[allow(clippy::useless_conversion)]
-                let value_ptr = phper_zend_string_init(
-                    value.as_ptr().cast(),
-                    value.len().try_into().unwrap(),
-                    true.into(),
-                );
-                let mut value = MaybeUninit::<zval>::uninit();
-                phper_zval_str(value.as_mut_ptr(), value_ptr);
-
+                let value = ZString::new_persistent(value);
+                let mut value = ManuallyDrop::new(ZVal::from(value));
                 zend_enum_add_case_cstr(class_ce, case_name.as_ptr(), value.as_mut_ptr());
             }
             Scalar::Null => {

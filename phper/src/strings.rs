@@ -194,6 +194,17 @@ impl ZString {
         }
     }
 
+    /// Creates a new persistent zend string from a container of bytes.
+    #[allow(clippy::useless_conversion)]
+    pub fn new_persistent(s: impl AsRef<[u8]>) -> Self {
+        unsafe {
+            let s = s.as_ref();
+            let ptr =
+                phper_zend_string_init(s.as_ptr().cast(), s.len().try_into().unwrap(), true.into());
+            Self::from_raw(ptr)
+        }
+    }
+
     /// Create owned object From raw pointer, usually used in pairs with
     /// `into_raw`.
     ///
