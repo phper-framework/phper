@@ -60,7 +60,7 @@ pub fn integrate(module: &mut Module) {
         )
         .argument(
             Argument::new("ce")
-                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from("Stringable")))
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from("Stringable"))),
         )
         .return_type(ReturnType::new(ReturnTypeHint::Void));
 }
