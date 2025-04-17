@@ -571,7 +571,7 @@ zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
     zend_string *zstr = zend_string_init(class_name, strlen(class_name), /*persistent*/ 1);
     //this macro uses name and class_name as literals, so we overwrite them immediately
     zend_internal_arg_info infos[] = {
-        ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(pass_by_ref, name, class_name, allow_null, NULL)
+        ZEND_ARG_OBJ_INFO(pass_by_ref, name, class_name, allow_null)
     };
     zend_internal_arg_info info = infos[0];
     info.name = name;
