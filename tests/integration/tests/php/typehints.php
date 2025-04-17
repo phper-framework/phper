@@ -58,9 +58,9 @@ $argumentTypehintProvider = [
 
     ['testNull', 'null', true, true, '8.2'],
 
-    ['testClassEntry', 'class_name', false, true, '8.0'],
-    ['testClassEntryOptional', 'class_name', false, false, '8.0'],
-    ['testClassEntryNullable', 'class_name', true, true, '8.0'],
+    ['testClassEntry', 'IntegrationTest\\TypeHints\\IFoo', false, true, '8.0'],
+    ['testClassEntryOptional', 'IntegrationTest\\TypeHints\\IFoo', false, false, '8.0'],
+    ['testClassEntryNullable', 'IntegrationTest\\TypeHints\\IFoo', true, true, '8.0'],
 ];
 
 // typehints
@@ -113,8 +113,8 @@ $returnTypehintProvider = [
     ['returnMixed', 'mixed', true, '8.0'],
     ['returnNever', 'never', false, '8.1'],
     ['returnVoid', 'void', false],
-    ['returnClassEntry', 'class_name', false, '8.0'],
-    ['returnClassEntryNullable', 'class_name', true, '8.0'],
+    ['returnClassEntry', 'IntegrationTest\\TypeHints\\IFoo', false, '8.0'],
+    ['returnClassEntryNullable', 'IntegrationTest\\TypeHints\\IFoo', true, '8.0'],
 ];
 echo PHP_EOL . 'Testing return typehints' . PHP_EOL;
 $cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
@@ -186,13 +186,14 @@ foreach ($argumentDefaultValueProvider as $input) {
 }
 
 $expectedArgs = [
+    // <arg name>, <type>, <default value>
     ['s', 'string', 'foobarbaz'],
     ['i', 'int', 42],
     ['f', 'float', 7.89],
     ['b', 'bool', true],
     ['a', 'array', ['a'=>'b']],
     ['m', 'mixed', 1.23],
-
+    ['ce', 'Stringable'], //default value not supported for ClassEntry
 ];
 if (PHP_VERSION_ID >= 80000) {
     echo PHP_EOL . 'Testing function typehints' . PHP_EOL;
@@ -202,7 +203,9 @@ if (PHP_VERSION_ID >= 80000) {
         echo(sprintf("argument %d..", $i));
         assert_eq($input[0], $params[$i]->getName(), sprintf('argument %d has correct name', $i));
         assert_eq($input[1], $params[$i]->getType()->getName(), sprintf('argument %d has correct type', $i));
-        assert_eq($input[2], $params[$i]->getDefaultValue(), sprintf('argument %d has correct default value', $i));
+        if ($input[2]) {
+            assert_eq($input[2], $params[$i]->getDefaultValue(), sprintf('argument %d has correct default value', $i));
+        }
         echo "PASS" . PHP_EOL;
     }
     assert_eq('void', $reflection->getReturnType()->getName(), 'integration_function_typehints return type is void');

@@ -58,6 +58,10 @@ pub fn integrate(module: &mut Module) {
                 .with_type_hint(ArgumentTypeHint::Mixed)
                 .with_default_value("1.23"),
         )
+        .argument(
+            Argument::new("ce")
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from("Stringable")))
+        )
         .return_type(ReturnType::new(ReturnTypeHint::Void));
 }
 
@@ -417,7 +421,7 @@ fn make_arg_typehint_class() -> ClassEntity<()> {
             phper::ok(())
         })
         .argument(
-            Argument::new("classentry")
+            Argument::new("some_class_entry")
                 .with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO))),
         );
 
@@ -426,7 +430,7 @@ fn make_arg_typehint_class() -> ClassEntity<()> {
             phper::ok(())
         })
         .argument(
-            Argument::new("classentry")
+            Argument::new("some_class_entry")
                 .with_type_hint(ArgumentTypeHint::ClassEntry(String::from(I_FOO)))
                 .allow_null(),
         );
