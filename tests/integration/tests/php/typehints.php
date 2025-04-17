@@ -203,7 +203,7 @@ if (PHP_VERSION_ID >= 80000) {
         echo(sprintf("argument %d..", $i));
         assert_eq($input[0], $params[$i]->getName(), sprintf('argument %d has correct name', $i));
         assert_eq($input[1], $params[$i]->getType()->getName(), sprintf('argument %d has correct type', $i));
-        if ($input[2]) {
+        if (array_key_exists(2, $input)) {
             assert_eq($input[2], $params[$i]->getDefaultValue(), sprintf('argument %d has correct default value', $i));
         }
         echo "PASS" . PHP_EOL;

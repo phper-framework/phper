@@ -521,7 +521,11 @@ phper_zend_begin_arg_with_return_obj_info_ex(bool return_reference,
     ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(infos, return_reference, required_num_args, class_name, allow_null)
     ZEND_END_ARG_INFO()
     zend_internal_arg_info info = infos[0];
-    info.type.ptr = zstr;
+    #if PHP_VERSION_ID >= 80300
+        info.type.ptr = zstr;
+    #else
+        info.type.ptr = ZSTR_VAL(zstr);
+    #endif
     info.type.type_mask = _ZEND_TYPE_NAME_BIT | (allow_null ? MAY_BE_NULL : 0);
     return info;
 #else
@@ -575,7 +579,11 @@ zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
     };
     zend_internal_arg_info info = infos[0];
     info.name = name;
-    info.type.ptr = zstr;
+    #if PHP_VERSION_ID >= 80300
+        info.type.ptr = zstr;
+    #else
+        info.type.ptr = ZSTR_VAL(zstr);
+    #endif
     info.type.type_mask = _ZEND_TYPE_NAME_BIT | (allow_null ? MAY_BE_NULL : 0);
     return info;
 #elif PHP_VERSION_ID >= 70200
