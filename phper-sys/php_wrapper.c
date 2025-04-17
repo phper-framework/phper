@@ -516,12 +516,24 @@ phper_zend_begin_arg_with_return_obj_info_ex(bool return_reference,
 #define static
 #define const
 #if PHP_VERSION_ID >= 80000
-    ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(info, return_reference, required_num_args, class_name, allow_null)
+    zend_string *zstr = zend_string_init(class_name, strlen(class_name), /*persistent*/ 1);
+    //this macro uses class_name as a literal, so we overwrite it immediately
+    ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(infos, return_reference, required_num_args, class_name, allow_null)
+    ZEND_END_ARG_INFO()
+    zend_internal_arg_info info = infos[0];
+    #if PHP_VERSION_ID >= 80300
+        info.type.ptr = zstr;
+    #else
+        info.type.ptr = ZSTR_VAL(zstr);
+    #endif
+    info.type.type_mask = _ZEND_TYPE_NAME_BIT | (allow_null ? MAY_BE_NULL : 0);
+    return info;
 #else
     ZEND_BEGIN_ARG_INFO_EX(info, 0, return_reference, required_num_args)
-#endif
     ZEND_END_ARG_INFO()
     return info[0];
+#endif
+
 #undef static
 #undef const
 }
@@ -560,10 +572,20 @@ zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
 (void)class_name;
 (void)allow_null;
 #if PHP_VERSION_ID >= 80000
-    zend_internal_arg_info info[] = {
-        ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(pass_by_ref, name, class_name, allow_null, NULL)
+    zend_string *zstr = zend_string_init(class_name, strlen(class_name), /*persistent*/ 1);
+    //this macro uses name and class_name as literals, so we overwrite them immediately
+    zend_internal_arg_info infos[] = {
+        ZEND_ARG_OBJ_INFO(pass_by_ref, name, class_name, allow_null)
     };
-    return info[0];
+    zend_internal_arg_info info = infos[0];
+    info.name = name;
+    #if PHP_VERSION_ID >= 80300
+        info.type.ptr = zstr;
+    #else
+        info.type.ptr = ZSTR_VAL(zstr);
+    #endif
+    info.type.type_mask = _ZEND_TYPE_NAME_BIT | (allow_null ? MAY_BE_NULL : 0);
+    return info;
 #elif PHP_VERSION_ID >= 70200
     zend_internal_arg_info info = {
         .name = name,
