@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2](https://github.com/phper-framework/phper/compare/phper-doc-v0.15.1...phper-doc-v0.15.2) - 2025-05-01
+
+### Added
+
+- Enhance enum functionality with access methods ([#203](https://github.com/phper-framework/phper/pull/203))
+- Add preliminary support for enums ([#201](https://github.com/phper-framework/phper/pull/201))
+
+### Other
+
+- Adjust the documentation of the enum ([#202](https://github.com/phper-framework/phper/pull/202))
+
 ## [0.15.1](https://github.com/phper-framework/phper/compare/phper-doc-v0.15.0...phper-doc-v0.15.1) - 2025-04-04
 
 ### Other
