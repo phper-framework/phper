@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.1](https://github.com/phper-framework/phper/compare/phper-v0.16.0...phper-v0.16.1) - 2025-05-01
+
+### Added
+
+- Introduce new_persistent method for ZString ([#204](https://github.com/phper-framework/phper/pull/204))
+- Enhance enum functionality with access methods ([#203](https://github.com/phper-framework/phper/pull/203))
+- Add preliminary support for enums ([#201](https://github.com/phper-framework/phper/pull/201))
+
 ## [0.16.0](https://github.com/phper-framework/phper/compare/phper-v0.15.1...phper-v0.16.0) - 2025-04-04
 
 ### Added

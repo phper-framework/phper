@@ -994,7 +994,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "phper"
-version = "0.16.0"
+version = "0.16.1"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -1009,7 +1009,7 @@ dependencies = [
 
 [[package]]
 name = "phper-alloc"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "phper-build",
  "phper-sys",
@@ -1017,14 +1017,14 @@ dependencies = [
 
 [[package]]
 name = "phper-build"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "phper-sys",
 ]
 
 [[package]]
 name = "phper-doc"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "phper",
  "phper-build",
@@ -1091,7 +1091,7 @@ dependencies = [
 
 [[package]]
 name = "phper-sys"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "bindgen",
  "cc",
