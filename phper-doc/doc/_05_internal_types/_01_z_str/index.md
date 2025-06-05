@@ -18,7 +18,7 @@ use phper::strings::ZString;
 let s = ZString::new("Hello world!");
 
 // Will leak memory.
-let ptr = s.into_raw();
+let ptr = ZString::into_raw(s);
 
 // retake pointer.
 let ss = unsafe { ZString::from_raw(ptr) };

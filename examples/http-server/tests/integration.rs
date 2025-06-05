@@ -9,6 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use axum::http::header::CONTENT_TYPE;
+use hyper::StatusCode;
 use phper_test::{cli::test_long_term_php_script_with_condition, utils::get_lib_path};
 use reqwest::blocking::Client;
 use std::{
@@ -17,7 +18,6 @@ use std::{
     thread::sleep,
     time::Duration,
 };
-use hyper::StatusCode;
 
 #[test]
 fn test_php() {
