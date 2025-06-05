@@ -407,14 +407,6 @@ impl<T: 'static> StateObj<T> {
     }
 }
 
-impl<T> Drop for StateObj<T> {
-    fn drop(&mut self) {
-        unsafe {
-            phper_zend_object_release(self.as_mut_ptr());
-        }
-    }
-}
-
 impl<T> Deref for StateObj<T> {
     type Target = ZObj;
 

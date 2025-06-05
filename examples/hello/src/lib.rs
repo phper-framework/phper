@@ -8,7 +8,9 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::{echo, functions::Argument, modules::Module, php_get_module, values::ZVal};
+use phper::{
+    arrays::ZArray, echo, functions::Argument, modules::Module, php_get_module, values::ZVal,
+};
 
 /// The php function, receive arguments with type `ZVal`.
 fn say_hello(arguments: &mut [ZVal]) -> phper::Result<()> {
