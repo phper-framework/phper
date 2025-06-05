@@ -20,14 +20,13 @@
 #![cfg(phper_enum_supported)]
 
 use crate::{
-    alloc::EBox,
     classes::{
         ClassEntry, ConstantEntity, InnerClassEntry, Interface, Visibility, add_class_constant,
     },
     errors::Throwable,
     functions::{Function, FunctionEntry, HandlerMap, MethodEntity},
     objects::ZObj,
-    strings::ZStr,
+    strings::ZString,
     sys::*,
     types::Scalar,
     utils::ensure_end_with_zero,
@@ -261,7 +260,7 @@ impl Enum {
         unsafe {
             let ce = self.as_class_entry().as_ptr() as *mut _;
             let case_name_str = case_name.as_ref();
-            let mut name_zstr = EBox::<ZStr>::new(case_name_str);
+            let mut name_zstr = ZString::new(case_name_str);
 
             // Get the enum case
             let case_obj = zend_enum_get_case(ce, name_zstr.as_mut_ptr());
@@ -297,7 +296,7 @@ impl Enum {
         unsafe {
             let ce = self.as_class_entry().as_ptr() as *mut _;
             let case_name_str = case_name.as_ref();
-            let mut name_zstr = EBox::<ZStr>::new(case_name_str);
+            let mut name_zstr = ZString::new(case_name_str);
 
             // Get the enum case
             let case_obj = zend_enum_get_case(ce, name_zstr.as_mut_ptr());
@@ -529,7 +528,7 @@ unsafe fn register_enum_case(
                 );
             }
             Scalar::String(value) => {
-                let value = EBox::<ZStr>::new_persistent(value);
+                let value = ZString::new_persistent(value);
                 let mut value = ManuallyDrop::new(ZVal::from(value));
                 zend_enum_add_case_cstr(class_ce, case_name.as_ptr(), value.as_mut_ptr());
             }

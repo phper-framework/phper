@@ -127,7 +127,6 @@ impl ClassEntry {
     ///
     /// If the `__construct` is private, or protected and the called scope isn't
     /// parent class, it will throw PHP Error.
-    #[allow(deprecated)]
     pub fn new_object(&self, arguments: impl AsMut<[ZVal]>) -> crate::Result<ZObject> {
         let mut object = self.init_object()?;
         object.call_construct(arguments)?;
@@ -137,7 +136,6 @@ impl ClassEntry {
     /// Create the object from class, without calling `__construct`.
     ///
     /// **Be careful when `__construct` is necessary.**
-    #[allow(deprecated)]
     pub fn init_object(&self) -> crate::Result<ZObject> {
         unsafe {
             let ptr = self.as_ptr() as *mut _;
@@ -333,7 +331,6 @@ impl<T: 'static> StateClass<T> {
     ///
     /// If the `__construct` is private, or protected and the called scope isn't
     /// parent class, it will throw PHP Error.
-    #[allow(deprecated)]
     pub fn new_object(&self, arguments: impl AsMut<[ZVal]>) -> crate::Result<StateObject<T>> {
         self.as_class_entry()
             .new_object(arguments)
@@ -345,7 +342,6 @@ impl<T: 'static> StateClass<T> {
     /// Create the object from class, without calling `__construct`.
     ///
     /// **Be careful when `__construct` is necessary.**
-    #[allow(deprecated)]
     pub fn init_object(&self) -> crate::Result<StateObject<T>> {
         self.as_class_entry()
             .init_object()

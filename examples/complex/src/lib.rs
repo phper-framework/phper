@@ -9,8 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    alloc::EBox,
-    arrays::ZArr,
+    arrays::ZArray,
     classes::{ClassEntity, Visibility},
     functions::Argument,
     ini::{Policy, ini_get},
@@ -62,7 +61,7 @@ pub fn get_module() -> Module {
         .argument(Argument::new("name"));
     module.add_function("complex_throw_exception", throw_exception);
     module.add_function("complex_get_all_ini", |_: &mut [ZVal]| {
-        let mut arr = EBox::<ZArr>::new();
+        let mut arr = ZArray::new();
 
         let complex_enable = ZVal::from(ini_get::<bool>("complex.enable"));
         arr.insert("complex.enable", complex_enable);

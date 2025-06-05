@@ -347,7 +347,6 @@ impl Debug for ZArr {
     }
 }
 
-#[allow(deprecated)]
 impl ToOwned for ZArr {
     type Owned = ZArray;
 
@@ -399,7 +398,6 @@ impl ZArray {
     }
 }
 
-#[allow(deprecated)]
 impl Default for ZArray {
     fn default() -> Self {
         Self::new()
