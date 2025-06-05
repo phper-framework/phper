@@ -10,7 +10,9 @@
 
 //! The errors for crate and php.
 
-use crate::{classes::ClassEntry, objects::ZObject, sys::*, types::TypeInfo, values::ZVal};
+use crate::{
+    alloc::EBox, classes::ClassEntry, objects::ZObj, sys::*, types::TypeInfo, values::ZVal,
+};
 use derive_more::Constructor;
 use phper_alloc::ToRefOwned;
 use std::{
@@ -105,9 +107,9 @@ pub trait Throwable: error::Error {
     ///
     /// By default, the Exception is instance of `get_class()`, the code is
     /// `get_code` and message is `get_message`;
-    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
-        let mut object =
-            ZObject::new(self.get_class(), []).map_err(|e| Box::new(e) as Box<dyn Throwable>)?;
+    fn to_object(&mut self) -> result::Result<EBox<ZObj>, Box<dyn Throwable>> {
+        let mut object = EBox::<ZObj>::new(self.get_class(), [])
+            .map_err(|e| Box::new(e) as Box<dyn Throwable>)?;
         if let Some(code) = self.get_code() {
             object.set_property("code", code);
         }
@@ -131,7 +133,8 @@ impl<T: Throwable> Throwable for Box<T> {
         Throwable::get_message(self.deref())
     }
 
-    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
+    #[allow(deprecated)]
+    fn to_object(&mut self) -> result::Result<EBox<ZObj>, Box<dyn Throwable>> {
         Throwable::to_object(self.deref_mut())
     }
 }
@@ -155,7 +158,8 @@ impl Throwable for Infallible {
         match *self {}
     }
 
-    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
+    #[allow(deprecated)]
+    fn to_object(&mut self) -> result::Result<EBox<ZObj>, Box<dyn Throwable>> {
         match *self {}
     }
 }
@@ -274,7 +278,7 @@ impl Throwable for Error {
         }
     }
 
-    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
+    fn to_object(&mut self) -> result::Result<EBox<ZObj>, Box<dyn Throwable>> {
         match self {
             Error::Io(e) => Throwable::to_object(e as &mut dyn error::Error),
             Error::Utf8(e) => Throwable::to_object(e as &mut dyn error::Error),
@@ -292,13 +296,13 @@ impl Throwable for Error {
 
 /// Wrapper of Throwable object.
 #[derive(Debug)]
-pub struct ThrowObject(ZObject);
+pub struct ThrowObject(EBox<ZObj>);
 
 impl ThrowObject {
     /// Construct from Throwable object.
     ///
     /// Failed if the object is not instance of php `Throwable`.
-    pub fn new(obj: ZObject) -> result::Result<Self, NotImplementThrowableError> {
+    pub fn new(obj: EBox<ZObj>) -> result::Result<Self, NotImplementThrowableError> {
         if !obj.get_class().is_instance_of(throwable_class()) {
             return Err(NotImplementThrowableError);
         }
@@ -318,7 +322,7 @@ impl ThrowObject {
         Self::from_result(Throwable::to_object(e))
     }
 
-    fn from_result(mut result: result::Result<ZObject, Box<dyn Throwable>>) -> Self {
+    fn from_result(mut result: result::Result<EBox<ZObj>, Box<dyn Throwable>>) -> Self {
         let mut i = 0;
 
         let obj = loop {
@@ -339,7 +343,7 @@ impl ThrowObject {
 
     /// Consumes the `ThrowObject`, returning the wrapped object.
     #[inline]
-    pub fn into_inner(self) -> ZObject {
+    pub fn into_inner(self) -> EBox<ZObj> {
         self.0
     }
 
@@ -386,7 +390,7 @@ impl Throwable for ThrowObject {
     }
 
     #[inline]
-    fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
+    fn to_object(&mut self) -> result::Result<EBox<ZObj>, Box<dyn Throwable>> {
         Ok(self.0.to_ref_owned())
     }
 }

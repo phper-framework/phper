@@ -9,7 +9,6 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    alloc::{EBox, ebox},
     arrays::{InsertKey, ZArray},
     modules::Module,
     objects::ZObject,
@@ -70,10 +69,6 @@ fn integrate_returns(module: &mut Module) {
     module.add_function(
         "integration_values_return_option_i64_none",
         integration_values_return_option_i64_none,
-    );
-    module.add_function(
-        "integration_values_return_ebox_i64",
-        integration_values_return_ebox_i64,
     );
     module.add_function(
         "integration_values_return_result_string_ok",
@@ -144,10 +139,6 @@ fn integration_values_return_option_i64_some(_: &mut [ZVal]) -> Result<Option<i6
 
 fn integration_values_return_option_i64_none(_: &mut [ZVal]) -> Result<Option<i64>, Infallible> {
     Ok(None)
-}
-
-fn integration_values_return_ebox_i64(_: &mut [ZVal]) -> Result<EBox<i64>, Infallible> {
-    Ok(ebox!(64))
 }
 
 fn integration_values_return_result_string_ok(

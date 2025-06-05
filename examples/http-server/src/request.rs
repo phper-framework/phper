@@ -9,7 +9,8 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
-    arrays::ZArray,
+    alloc::EBox,
+    arrays::ZArr,
     classes::{ClassEntity, StateClass, Visibility},
 };
 use std::convert::Infallible;
@@ -31,7 +32,7 @@ pub fn make_request_class() -> ClassEntity<()> {
     // Register the constructor method with public visibility, initialize the
     // headers with empty array.
     class.add_method("__construct", Visibility::Public, |this, _arguments| {
-        this.set_property("headers", ZArray::new());
+        this.set_property("headers", EBox::<ZArr>::new());
         Ok::<_, Infallible>(())
     });
 

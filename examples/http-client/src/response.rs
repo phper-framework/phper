@@ -10,7 +10,8 @@
 
 use crate::errors::HttpClientError;
 use phper::{
-    arrays::{InsertKey, ZArray},
+    alloc::EBox,
+    arrays::{InsertKey, ZArr},
     classes::{ClassEntity, StateClass, Visibility},
     values::ZVal,
 };
@@ -50,16 +51,19 @@ pub fn make_response_class() -> ClassEntity<Option<Response>> {
                 .ok_or_else(|| HttpClientError::ResponseAfterRead {
                     method_name: "headers".to_owned(),
                 })?;
-        let headers_map = response
-            .headers()
-            .iter()
-            .fold(ZArray::new(), |mut acc, (key, value)| {
-                let arr = acc.entry(key.as_str()).or_insert(ZVal::from(ZArray::new()));
-                arr.as_mut_z_arr()
-                    .unwrap()
-                    .insert(InsertKey::NextIndex, ZVal::from(value.as_bytes()));
-                acc
-            });
+        let headers_map =
+            response
+                .headers()
+                .iter()
+                .fold(EBox::<ZArr>::new(), |mut acc, (key, value)| {
+                    let arr = acc
+                        .entry(key.as_str())
+                        .or_insert(ZVal::from(EBox::<ZArr>::new()));
+                    arr.as_mut_z_arr()
+                        .unwrap()
+                        .insert(InsertKey::NextIndex, ZVal::from(value.as_bytes()));
+                    acc
+                });
         Ok::<_, HttpClientError>(headers_map)
     });
 
