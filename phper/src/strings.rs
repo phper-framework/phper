@@ -235,8 +235,7 @@ impl AsRef<[u8]> for ZString {
 
 impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZString {
     fn eq(&self, other: &Rhs) -> bool {
-        let this: &[u8] = self.as_ref();
-        this == other.as_ref()
+        AsRef::<[u8]>::as_ref(self) == other.as_ref()
     }
 }
 

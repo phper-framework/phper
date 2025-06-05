@@ -18,8 +18,7 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(zs.to_str()?, "hello");
 
             let zs = ZString::new([1, 2, 3]);
-            let zs: &[u8] = zs.as_ref();
-            assert_eq!(zs, &[1, 2, 3]);
+            assert_eq!(AsRef::<[u8]>::as_ref(&zs), &[1, 2, 3]);
 
             assert!(ZString::new("hello") == ZString::new(b"hello"));
 
@@ -34,8 +33,7 @@ pub fn integrate(module: &mut Module) {
             assert_eq!(zs.to_str()?, "persistent_hello");
 
             let zs = ZString::new_persistent([4, 5, 6]);
-            let zs: &[u8] = zs.as_ref();
-            assert_eq!(zs, &[4, 5, 6]);
+            assert_eq!(AsRef::<[u8]>::as_ref(&zs), &[4, 5, 6]);
 
             assert!(
                 ZString::new_persistent("persistent") == ZString::new_persistent(b"persistent")
