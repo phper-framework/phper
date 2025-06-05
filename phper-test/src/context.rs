@@ -82,7 +82,6 @@ impl Context {
         ContextCommand { cmd, args }
     }
 
-    #[cfg_attr(docsrs, doc(cfg(feature = "fpm")))]
     pub fn find_php_fpm(&self) -> Option<String> {
         use std::ffi::OsStr;
 
