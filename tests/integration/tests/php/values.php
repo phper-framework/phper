@@ -25,7 +25,6 @@ assert_eq(integration_values_return_kv_array(), ["a" => 1, "b" => "foo"]);
 assert_object(integration_values_return_object(), "stdClass", ["foo" => "bar"]);
 assert_eq(integration_values_return_option_i64_some(), 64);
 assert_eq(integration_values_return_option_i64_none(), null);
-assert_eq(integration_values_return_ebox_i64(), 64);
 assert_eq(integration_values_return_result_string_ok(), "foo");
 assert_throw("integration_values_return_result_string_err", "ErrorException", 0, "a zhe");
 assert_eq(integration_values_return_val(), "foo");

@@ -3,3 +3,4 @@
 /.cargo
 /vendor
 core
+compile_commands.json

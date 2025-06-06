@@ -9,6 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use axum::http::header::CONTENT_TYPE;
+use hyper::StatusCode;
 use phper_test::{cli::test_long_term_php_script_with_condition, utils::get_lib_path};
 use reqwest::blocking::Client;
 use std::{
@@ -39,6 +40,7 @@ fn test_php() {
             let client = Client::new();
             for _ in 0..5 {
                 let response = client.get("http://127.0.0.1:9000/").send().unwrap();
+                assert_eq!(response.status(), StatusCode::OK);
                 let content_type = response.headers().get(CONTENT_TYPE).unwrap();
                 assert_eq!(content_type, "text/plain");
                 let body = response.text().unwrap();

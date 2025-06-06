@@ -11,7 +11,6 @@
 //! Apis relate to [zval].
 
 use crate::{
-    alloc::EBox,
     arrays::{ZArr, ZArray},
     errors::ExpectTypeError,
     functions::{ZFunc, call_internal},
@@ -737,7 +736,7 @@ impl From<ZString> for ZVal {
     fn from(s: ZString) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_str(val.as_mut_ptr().cast(), s.into_raw());
+            phper_zval_str(val.as_mut_ptr().cast(), ZString::into_raw(s).cast());
             val.assume_init()
         }
     }
@@ -747,7 +746,7 @@ impl From<ZArray> for ZVal {
     fn from(arr: ZArray) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_arr(val.as_mut_ptr().cast(), arr.into_raw());
+            phper_zval_arr(val.as_mut_ptr().cast(), ZArray::into_raw(arr).cast());
             val.assume_init()
         }
     }
@@ -757,7 +756,7 @@ impl From<ZObject> for ZVal {
     fn from(obj: ZObject) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_obj(val.as_mut_ptr().cast(), obj.into_raw());
+            phper_zval_obj(val.as_mut_ptr().cast(), ZObject::into_raw(obj).cast());
             val.assume_init()
         }
     }
@@ -775,11 +774,5 @@ impl<T: Into<ZVal>> From<Option<T>> for ZVal {
             Some(t) => t.into(),
             None => ().into(),
         }
-    }
-}
-
-impl<T: Into<ZVal>> From<EBox<T>> for ZVal {
-    fn from(t: EBox<T>) -> Self {
-        t.into_inner().into()
     }
 }

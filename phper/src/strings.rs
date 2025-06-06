@@ -10,15 +10,13 @@
 
 //! Apis relate to [zend_string].
 
-use crate::sys::*;
+use crate::{alloc::EBox, sys::*};
 use phper_alloc::ToRefOwned;
 use std::{
-    borrow::{Borrow, Cow},
+    borrow::Cow,
     ffi::{CStr, FromBytesWithNulError},
     fmt::{self, Debug},
     marker::PhantomData,
-    mem::forget,
-    ops::{Deref, DerefMut},
     os::raw::c_char,
     slice::from_raw_parts,
     str::{self, Utf8Error},
@@ -137,6 +135,14 @@ impl ZStr {
     }
 }
 
+impl Drop for ZStr {
+    fn drop(&mut self) {
+        unsafe {
+            phper_zend_string_release(self.as_mut_ptr());
+        }
+    }
+}
+
 impl Debug for ZStr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         common_fmt(self, f, "ZStr")
@@ -169,15 +175,17 @@ impl ToRefOwned for ZStr {
     fn to_ref_owned(&mut self) -> Self::Owned {
         unsafe {
             let ptr = phper_zend_string_copy(self.as_mut_ptr());
-            ZString::from_raw(ptr)
+            ZString::from_raw(ptr.cast())
         }
     }
 }
 
-/// Like String, CString for [zend_string].
-pub struct ZString {
-    inner: *mut ZStr,
-}
+/// An owned PHP string value.
+///
+/// `ZString` represents an owned PHP string (zend_string) allocated in the Zend
+/// Engine memory. It provides safe access to PHP string operations and
+/// automatically manages memory cleanup using reference counting.
+pub type ZString = EBox<ZStr>;
 
 impl ZString {
     /// Creates a new zend string from a container of bytes.
@@ -190,7 +198,7 @@ impl ZString {
                 s.len().try_into().unwrap(),
                 false.into(),
             );
-            Self::from_raw(ptr)
+            Self::from_raw(ptr.cast())
         }
     }
 
@@ -201,40 +209,8 @@ impl ZString {
             let s = s.as_ref();
             let ptr =
                 phper_zend_string_init(s.as_ptr().cast(), s.len().try_into().unwrap(), true.into());
-            Self::from_raw(ptr)
+            Self::from_raw(ptr.cast())
         }
-    }
-
-    /// Create owned object From raw pointer, usually used in pairs with
-    /// `into_raw`.
-    ///
-    /// # Safety
-    ///
-    /// This function is unsafe because improper use may lead to memory
-    /// problems. For example, a double-free may occur if the function is called
-    /// twice on the same raw pointer.
-    #[inline]
-    pub unsafe fn from_raw(ptr: *mut zend_string) -> Self {
-        unsafe {
-            Self {
-                inner: ZStr::from_mut_ptr(ptr),
-            }
-        }
-    }
-
-    /// Consumes the ZString and transfers ownership of the string to a raw
-    /// pointer.
-    #[inline]
-    pub fn into_raw(mut self) -> *mut zend_string {
-        let ptr = self.as_mut_ptr();
-        forget(self);
-        ptr
-    }
-}
-
-impl Debug for ZString {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        common_fmt(self, f, "ZString")
     }
 }
 
@@ -246,30 +222,8 @@ impl Clone for ZString {
                 phper_zstr_len(self.as_ptr()).try_into().unwrap(),
                 false.into(),
             );
-            Self {
-                inner: ZStr::from_mut_ptr(ptr.cast()),
-            }
+            Self::from_raw(ZStr::from_mut_ptr(ptr.cast()))
         }
-    }
-}
-
-impl Deref for ZString {
-    type Target = ZStr;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.inner.as_ref().unwrap() }
-    }
-}
-
-impl DerefMut for ZString {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.inner.as_mut().unwrap() }
-    }
-}
-
-impl Borrow<ZStr> for ZString {
-    fn borrow(&self) -> &ZStr {
-        self.deref()
     }
 }
 
@@ -281,15 +235,7 @@ impl AsRef<[u8]> for ZString {
 
 impl<Rhs: AsRef<[u8]>> PartialEq<Rhs> for ZString {
     fn eq(&self, other: &Rhs) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-
-impl Drop for ZString {
-    fn drop(&mut self) {
-        unsafe {
-            phper_zend_string_release(self.as_mut_ptr());
-        }
+        AsRef::<[u8]>::as_ref(self) == other.as_ref()
     }
 }
 

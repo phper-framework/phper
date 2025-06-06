@@ -147,7 +147,7 @@ impl ClassEntry {
                 // day of debugging time here).
                 let mut val = ManuallyDrop::new(val);
                 let ptr = phper_z_obj_p(val.as_mut_ptr());
-                Ok(ZObject::from_raw(ptr))
+                Ok(ZObject::from_raw(ptr.cast()))
             }
         }
     }
@@ -335,6 +335,7 @@ impl<T: 'static> StateClass<T> {
         self.as_class_entry()
             .new_object(arguments)
             .map(ZObject::into_raw)
+            .map(|ptr| ptr.cast())
             .map(StateObject::<T>::from_raw_object)
     }
 
@@ -345,6 +346,7 @@ impl<T: 'static> StateClass<T> {
         self.as_class_entry()
             .init_object()
             .map(ZObject::into_raw)
+            .map(|ptr| ptr.cast())
             .map(StateObject::<T>::from_raw_object)
     }
 }

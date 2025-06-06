@@ -16,6 +16,7 @@
 #[macro_use]
 mod macros;
 
+pub mod alloc;
 pub mod arrays;
 pub mod classes;
 pub(crate) mod constants;
@@ -34,6 +35,5 @@ mod utils;
 pub mod values;
 
 pub use crate::errors::{Error, Result, ok};
-pub use phper_alloc as alloc;
 pub use phper_macros::*;
 pub use phper_sys as sys;

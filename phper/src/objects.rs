@@ -11,6 +11,7 @@
 //! Apis relate to [zend_object].
 
 use crate::{
+    alloc::EBox,
     classes::ClassEntry,
     functions::{ZFunc, call_internal, call_raw_common},
     sys::*,
@@ -19,7 +20,6 @@ use crate::{
 use phper_alloc::{RefClone, ToRefOwned};
 use std::{
     any::Any,
-    borrow::Borrow,
     ffi::c_void,
     fmt::{self, Debug},
     marker::PhantomData,
@@ -266,6 +266,14 @@ impl ZObj {
     }
 }
 
+impl Drop for ZObj {
+    fn drop(&mut self) {
+        unsafe {
+            phper_zend_object_release(self.as_mut_ptr());
+        }
+    }
+}
+
 impl ToRefOwned for ZObj {
     type Owned = ZObject;
 
@@ -274,7 +282,7 @@ impl ToRefOwned for ZObj {
         unsafe {
             phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
             phper_z_addref_p(val.as_mut_ptr());
-            ZObject::from_raw(val.as_mut_z_obj().unwrap().as_mut_ptr())
+            ZObject::from_raw(val.as_mut_z_obj().unwrap().as_mut_ptr().cast())
         }
     }
 }
@@ -285,10 +293,12 @@ impl Debug for ZObj {
     }
 }
 
-/// Wrapper of [zend_object].
-pub struct ZObject {
-    inner: *mut ZObj,
-}
+/// An owned PHP object value.
+///
+/// `ZObject` represents an owned PHP object allocated in the Zend Engine
+/// memory. It provides safe access to PHP object operations and automatically
+/// manages memory cleanup.
+pub type ZObject = EBox<ZObj>;
 
 impl ZObject {
     /// Another way to new object like [crate::classes::ClassEntry::new_object].
@@ -308,69 +318,12 @@ impl ZObject {
     pub fn new_by_std_class() -> Self {
         Self::new_by_class_name("stdclass", &mut []).unwrap()
     }
-
-    /// Create owned object From raw pointer, usually used in pairs with
-    /// `into_raw`.
-    ///
-    /// # Safety
-    ///
-    /// This function is unsafe because improper use may lead to memory
-    /// problems. For example, a double-free may occur if the function is called
-    /// twice on the same raw pointer.
-    #[inline]
-    pub unsafe fn from_raw(ptr: *mut zend_object) -> Self {
-        unsafe {
-            Self {
-                inner: ZObj::from_mut_ptr(ptr),
-            }
-        }
-    }
-
-    /// Consumes and returning a wrapped raw pointer.
-    #[inline]
-    pub fn into_raw(self) -> *mut zend_object {
-        ManuallyDrop::new(self).as_mut_ptr()
-    }
 }
 
 impl RefClone for ZObject {
     #[inline]
     fn ref_clone(&mut self) -> Self {
         self.to_ref_owned()
-    }
-}
-
-impl Deref for ZObject {
-    type Target = ZObj;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.inner.as_ref().unwrap() }
-    }
-}
-
-impl DerefMut for ZObject {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.inner.as_mut().unwrap() }
-    }
-}
-
-impl Borrow<ZObj> for ZObject {
-    fn borrow(&self) -> &ZObj {
-        self.deref()
-    }
-}
-
-impl Drop for ZObject {
-    fn drop(&mut self) {
-        unsafe {
-            phper_zend_object_release(self.as_mut_ptr());
-        }
-    }
-}
-
-impl Debug for ZObject {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        common_fmt(self, f, "ZObject")
     }
 }
 
@@ -474,20 +427,17 @@ impl<T> Debug for StateObj<T> {
     }
 }
 
-/// The object owned state, usually crated by
-/// [StateClass](crate::classes::StateClass).
-pub struct StateObject<T> {
-    inner: *mut StateObj<T>,
-}
+/// An owned PHP object with associated Rust state.
+///
+/// `StateObject<T>` represents an owned PHP object that contains additional
+/// Rust state of type `T`. This allows embedding custom Rust data structures
+/// within PHP objects while maintaining proper memory management and cleanup.
+pub type StateObject<T> = EBox<StateObj<T>>;
 
 impl<T> StateObject<T> {
     #[inline]
     pub(crate) fn from_raw_object(object: *mut zend_object) -> Self {
-        unsafe {
-            Self {
-                inner: StateObj::from_mut_object_ptr(object),
-            }
-        }
+        unsafe { Self::from_raw(StateObj::from_mut_object_ptr(object)) }
     }
 
     #[inline]
@@ -497,7 +447,7 @@ impl<T> StateObject<T> {
 
     /// Converts into [ZObject].
     pub fn into_z_object(self) -> ZObject {
-        unsafe { ZObject::from_raw(self.into_raw_object()) }
+        unsafe { ZObject::from_raw(self.into_raw_object().cast()) }
     }
 }
 
@@ -517,34 +467,6 @@ impl<T: 'static> StateObject<T> {
             let ptr = replace(self.as_mut_any_state(), null);
             Some(*Box::from_raw(ptr).downcast().unwrap())
         }
-    }
-}
-
-impl<T> Drop for StateObject<T> {
-    fn drop(&mut self) {
-        unsafe {
-            drop(ZObject::from_raw(self.as_mut_ptr()));
-        }
-    }
-}
-
-impl<T> Deref for StateObject<T> {
-    type Target = StateObj<T>;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.inner.as_ref().unwrap() }
-    }
-}
-
-impl<T> DerefMut for StateObject<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.inner.as_mut().unwrap() }
-    }
-}
-
-impl<T> Debug for StateObject<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        common_fmt(self, f, "StateObject")
     }
 }
 

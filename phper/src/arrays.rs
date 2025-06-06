@@ -10,14 +10,14 @@
 
 //! Apis relate to [zend_array].
 
-use crate::{alloc::ToRefOwned, strings::ZStr, sys::*, values::ZVal};
+use crate::{alloc::EBox, strings::ZStr, sys::*, values::ZVal};
 use derive_more::From;
+use phper_alloc::ToRefOwned;
 use std::{
-    borrow::Borrow,
     fmt::{self, Debug},
     marker::PhantomData,
     mem::ManuallyDrop,
-    ops::{Deref, DerefMut},
+    ops::Deref,
     ptr::null_mut,
 };
 
@@ -333,6 +333,14 @@ impl ZArr {
     }
 }
 
+impl Drop for ZArr {
+    fn drop(&mut self) {
+        unsafe {
+            zend_array_destroy(self.as_mut_ptr());
+        }
+    }
+}
+
 impl Debug for ZArr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         common_fmt(self, f, "ZArr")
@@ -346,7 +354,7 @@ impl ToOwned for ZArr {
         unsafe {
             // TODO The source really immutable?
             let dest = phper_zend_array_dup(self.as_ptr() as *mut _);
-            ZArray::from_raw(dest)
+            ZArray::from_raw(dest.cast())
         }
     }
 }
@@ -359,16 +367,17 @@ impl ToRefOwned for ZArr {
         unsafe {
             phper_zval_arr(val.as_mut_ptr(), self.as_mut_ptr());
             phper_z_addref_p(val.as_mut_ptr());
-            ZArray::from_raw(val.as_mut_z_arr().unwrap().as_mut_ptr())
+            ZArray::from_raw(val.as_mut_z_arr().unwrap().as_mut_ptr().cast())
         }
     }
 }
 
-/// Wrapper of [zend_array].
-#[repr(transparent)]
-pub struct ZArray {
-    inner: *mut ZArr,
-}
+/// An owned PHP array value.
+///
+/// `ZArray` represents an owned PHP array (hashtable) allocated in the Zend
+/// Engine memory. It provides safe access to PHP array operations and
+/// automatically manages memory cleanup.
+pub type ZArray = EBox<ZArr>;
 
 impl ZArray {
     /// Creates an empty `ZArray`.
@@ -384,39 +393,8 @@ impl ZArray {
     pub fn with_capacity(n: usize) -> Self {
         unsafe {
             let ptr = phper_zend_new_array(n.try_into().unwrap());
-            Self::from_raw(ptr)
+            Self::from_raw(ptr.cast())
         }
-    }
-
-    /// Create owned object From raw pointer, usually used in pairs with
-    /// `into_raw`.
-    ///
-    /// # Safety
-    ///
-    /// This function is unsafe because improper use may lead to memory
-    /// problems. For example, a double-free may occur if the function is called
-    /// twice on the same raw pointer.
-    #[inline]
-    pub unsafe fn from_raw(ptr: *mut zend_array) -> Self {
-        unsafe {
-            Self {
-                inner: ZArr::from_mut_ptr(ptr),
-            }
-        }
-    }
-
-    /// Consumes the `ZArray` and transfers ownership to a raw pointer.
-    ///
-    /// Failure to call [`ZArray::from_raw`] will lead to a memory leak.
-    #[inline]
-    pub fn into_raw(self) -> *mut zend_array {
-        ManuallyDrop::new(self).as_mut_ptr()
-    }
-}
-
-impl Debug for ZArray {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        common_fmt(self, f, "ZArray")
     }
 }
 
@@ -426,37 +404,9 @@ impl Default for ZArray {
     }
 }
 
-impl Deref for ZArray {
-    type Target = ZArr;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.inner.as_ref().unwrap() }
-    }
-}
-
-impl DerefMut for ZArray {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.inner.as_mut().unwrap() }
-    }
-}
-
-impl Borrow<ZArr> for ZArray {
-    fn borrow(&self) -> &ZArr {
-        self.deref()
-    }
-}
-
 impl Clone for ZArray {
     fn clone(&self) -> Self {
         self.deref().to_owned()
-    }
-}
-
-impl Drop for ZArray {
-    fn drop(&mut self) {
-        unsafe {
-            zend_array_destroy(self.as_mut_ptr());
-        }
     }
 }
 
