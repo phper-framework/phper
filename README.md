@@ -1,9 +1,17 @@
-# PHPER (PHP Enjoy Rust)
+<div align="center">
 
-[![CI](https://github.com/phper-framework/phper/actions/workflows/ci.yml/badge.svg)](https://github.com/phper-framework/phper/actions/workflows/ci.yml)
-[![Crates](https://img.shields.io/crates/v/phper)](https://crates.io/crates/phper)
-[![Docs](https://img.shields.io/docsrs/phper)](https://docs.rs/phper)
-[![License](https://img.shields.io/crates/l/phper)](https://github.com/phper-framework/phper/blob/master/LICENSE)
+<h1>PHPER (PHP Enjoy Rust)</h1>
+
+<img src="https://avatars.githubusercontent.com/u/112468984?s=380&v=4" alt="PHPER Logo">
+
+<p>
+<a href="https://github.com/phper-framework/phper/actions/workflows/ci.yml"><img src="https://github.com/phper-framework/phper/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="https://crates.io/crates/phper"><img src="https://img.shields.io/crates/v/phper" alt="Crates"></a>
+<a href="https://docs.rs/phper"><img src="https://img.shields.io/docsrs/phper" alt="Docs"></a>
+<a href="https://github.com/phper-framework/phper/blob/master/LICENSE"><img src="https://img.shields.io/crates/l/phper" alt="License"></a>
+</p>
+
+</div>
 
 ## Rust ❤️ PHP
 
