@@ -175,7 +175,7 @@ impl ToRefOwned for ZStr {
     fn to_ref_owned(&mut self) -> Self::Owned {
         unsafe {
             let ptr = phper_zend_string_copy(self.as_mut_ptr());
-            ZString::from_raw(ptr.cast())
+            ZString::from_raw_cast(ptr)
         }
     }
 }
@@ -198,7 +198,7 @@ impl ZString {
                 s.len().try_into().unwrap(),
                 false.into(),
             );
-            Self::from_raw(ptr.cast())
+            Self::from_raw_cast(ptr)
         }
     }
 
@@ -209,7 +209,7 @@ impl ZString {
             let s = s.as_ref();
             let ptr =
                 phper_zend_string_init(s.as_ptr().cast(), s.len().try_into().unwrap(), true.into());
-            Self::from_raw(ptr.cast())
+            Self::from_raw_cast(ptr)
         }
     }
 }
@@ -222,7 +222,7 @@ impl Clone for ZString {
                 phper_zstr_len(self.as_ptr()).try_into().unwrap(),
                 false.into(),
             );
-            Self::from_raw(ZStr::from_mut_ptr(ptr.cast()))
+            Self::from_raw_cast(ZStr::from_mut_ptr(ptr))
         }
     }
 }

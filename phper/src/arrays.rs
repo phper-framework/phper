@@ -356,7 +356,7 @@ impl ToOwned for ZArr {
         unsafe {
             // TODO The source really immutable?
             let dest = phper_zend_array_dup(self.as_ptr() as *mut _);
-            ZArray::from_raw(dest.cast())
+            ZArray::from_raw_cast(dest)
         }
     }
 }
@@ -369,7 +369,7 @@ impl ToRefOwned for ZArr {
         unsafe {
             phper_zval_arr(val.as_mut_ptr(), self.as_mut_ptr());
             phper_z_addref_p(val.as_mut_ptr());
-            ZArray::from_raw(val.as_mut_z_arr().unwrap().as_mut_ptr().cast())
+            ZArray::from_raw_cast(val.as_mut_z_arr().unwrap().as_mut_ptr())
         }
     }
 }
@@ -395,7 +395,7 @@ impl ZArray {
     pub fn with_capacity(n: usize) -> Self {
         unsafe {
             let ptr = phper_zend_new_array(n.try_into().unwrap());
-            Self::from_raw(ptr.cast())
+            Self::from_raw_cast(ptr)
         }
     }
 }

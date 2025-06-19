@@ -651,7 +651,7 @@ impl ZFunc {
     pub fn get_function_or_method_name(&self) -> ZString {
         unsafe {
             let s = phper_get_function_or_method_name(self.as_ptr());
-            ZString::from_raw(s.cast())
+            ZString::from_raw_cast(s)
         }
     }
 
@@ -890,7 +890,7 @@ pub(crate) fn call_raw_common(call_fn: impl FnOnce(&mut ZVal)) -> crate::Result<
         if !eg!(exception).is_null() {
             #[allow(static_mut_refs)]
             let e = ptr::replace(&mut eg!(exception), null_mut());
-            let obj = ZObject::from_raw(e.cast());
+            let obj = ZObject::from_raw_cast(e);
             match ThrowObject::new(obj) {
                 Ok(e) => return Err(e.into()),
                 Err(e) => return Err(e.into()),

@@ -37,11 +37,33 @@ impl<T> EBox<T> {
         Self { ptr: raw }
     }
 
+    /// Constructs from a raw pointer with cast.
+    ///
+    /// # Safety
+    ///
+    /// Make sure the pointer is from `into_raw`, or created from `emalloc`.
+    pub(crate) unsafe fn from_raw_cast<U>(raw: *mut U) -> Self {
+        const {
+            assert!(size_of::<U>() == size_of::<T>());
+        }
+        Self { ptr: raw.cast() }
+    }
+
     /// Consumes and returning a wrapped raw pointer.
     ///
     /// Will leak memory.
     pub fn into_raw(b: EBox<T>) -> *mut T {
         ManuallyDrop::new(b).ptr
+    }
+
+    /// Consumes and returning a wrapped raw pointer with cast.
+    ///
+    /// Will leak memory.
+    pub(crate) fn into_raw_cast<U>(b: EBox<T>) -> *mut U {
+        const {
+            assert!(size_of::<U>() == size_of::<T>());
+        }
+        ManuallyDrop::new(b).ptr.cast()
     }
 }
 
