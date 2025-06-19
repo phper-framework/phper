@@ -736,7 +736,7 @@ impl From<ZString> for ZVal {
     fn from(s: ZString) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_str(val.as_mut_ptr().cast(), ZString::into_raw(s).cast());
+            phper_zval_str(val.as_mut_ptr().cast(), ZString::into_raw_cast(s));
             val.assume_init()
         }
     }
@@ -746,7 +746,7 @@ impl From<ZArray> for ZVal {
     fn from(arr: ZArray) -> Self {
         unsafe {
             let mut val = MaybeUninit::<ZVal>::uninit();
-            phper_zval_arr(val.as_mut_ptr().cast(), ZArray::into_raw(arr).cast());
+            phper_zval_arr(val.as_mut_ptr().cast(), ZArray::into_raw_cast(arr));
             val.assume_init()
         }
     }

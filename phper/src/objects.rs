@@ -282,7 +282,7 @@ impl ToRefOwned for ZObj {
         unsafe {
             phper_zval_obj(val.as_mut_ptr(), self.as_mut_ptr());
             phper_z_addref_p(val.as_mut_ptr());
-            ZObject::from_raw(val.as_mut_z_obj().unwrap().as_mut_ptr().cast())
+            ZObject::from_raw_cast(val.as_mut_z_obj().unwrap().as_mut_ptr())
         }
     }
 }
@@ -447,7 +447,7 @@ impl<T> StateObject<T> {
 
     /// Converts into [ZObject].
     pub fn into_z_object(self) -> ZObject {
-        unsafe { ZObject::from_raw(self.into_raw_object().cast()) }
+        unsafe { ZObject::from_raw_cast(self.into_raw_object()) }
     }
 }
 
