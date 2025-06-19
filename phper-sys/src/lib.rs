@@ -19,5 +19,6 @@
 // TODO unsafe_op_in_unsafe_fn warning in edition 2024, temporary suppression.
 #![allow(unsafe_op_in_unsafe_fn)]
 #![doc = include_str!("../README.md")]
+#![doc(html_logo_url = "https://avatars.githubusercontent.com/u/112468984?s=200&v=4")]
 
 include!(concat!(env!("OUT_DIR"), "/php_bindings.rs"));
