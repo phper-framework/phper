@@ -16,7 +16,7 @@ use phper_alloc::ToRefOwned;
 use std::{
     fmt::{self, Debug},
     marker::PhantomData,
-    mem::ManuallyDrop,
+    mem::{ManuallyDrop, MaybeUninit},
     ops::Deref,
     ptr::null_mut,
 };
@@ -335,8 +335,10 @@ impl ZArr {
 
 impl Drop for ZArr {
     fn drop(&mut self) {
+        let mut val = MaybeUninit::<zval>::uninit();
         unsafe {
-            zend_array_destroy(self.as_mut_ptr());
+            phper_zval_arr(val.as_mut_ptr().cast(), self.as_mut_ptr());
+            phper_zval_ptr_dtor(val.as_mut_ptr());
         }
     }
 }

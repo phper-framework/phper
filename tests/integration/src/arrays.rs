@@ -9,6 +9,7 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
+    alloc::ToRefOwned,
     arrays::{InsertKey, IterKey, ZArray},
     modules::Module,
     objects::{ZObj, ZObject},
@@ -29,6 +30,16 @@ pub fn integrate(module: &mut Module) {
             a2.insert("bar", ZVal::from("BAR"));
             let bar = a2.get("bar").unwrap();
             let bar = bar.as_z_str().unwrap().to_str().unwrap();
+
+            {
+                let mut arr1 = ZArray::with_capacity(4);
+                let mut arr2 = arr1.to_ref_owned();
+                arr2.insert((), "1");
+                arr2.insert((), "2");
+                arr2.insert((), "3");
+                arr2.insert((), "4");
+                arr2.insert((), "5");
+            }
 
             Ok(format!("{} {}", val, bar))
         },
