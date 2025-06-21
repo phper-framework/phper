@@ -22,9 +22,23 @@ use std::{
 ///
 /// - `lib_path` is the path of extension lib.
 ///
-/// - `scripts` is the path of your php test scripts.
+/// - `script` is the path of your php test script.
+pub fn test_php_script(lib_path: impl AsRef<Path>, scripts: impl AsRef<Path>) {
+    let condition = |output: Output| output.status.success();
+    let scripts = Some(scripts);
+    let scripts = scripts
+        .iter()
+        .map(|s| (s as _, &condition as _))
+        .collect::<Vec<_>>();
+    test_php_scripts_with_condition(lib_path, &scripts);
+}
+
+/// Check your extension by executing the php script, if the all executing
+/// return success, than the test is pass.
 ///
-/// See [example hello integration test](https://github.com/phper-framework/phper/blob/master/examples/hello/tests/integration.rs).
+/// - `lib_path` is the path of extension lib.
+///
+/// - `scripts` is the path of your php test scripts.
 pub fn test_php_scripts(lib_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
     let condition = |output: Output| output.status.success();
     let scripts = scripts
