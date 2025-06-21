@@ -18,7 +18,7 @@ publish = false
 license = { workspace = true }
 
 [lib]
-crate-type = ["lib", "cdylib"]
+crate-type = ["cdylib"]
 
 [dependencies]
 indexmap = "2.7.1"
@@ -26,6 +26,7 @@ phper = { workspace = true }
 
 [dev-dependencies]
 phper-test = { workspace = true }
+tokio = { version = "1.43.0", features = ["full"] }
 
 [build-dependencies]
 phper-build = { workspace = true }

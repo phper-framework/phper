@@ -39,7 +39,7 @@ fn test_php() {
 
             let client = Client::new();
             for _ in 0..5 {
-                let response = client.get("http://127.0.0.1:9000/").send().unwrap();
+                let response = client.get("http://127.0.0.1:9010/").send().unwrap();
                 assert_eq!(response.status(), StatusCode::OK);
                 let content_type = response.headers().get(CONTENT_TYPE).unwrap();
                 assert_eq!(content_type, "text/plain");
