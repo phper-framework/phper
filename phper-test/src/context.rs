@@ -80,7 +80,7 @@ impl Context {
             script.as_ref().display().to_string(),
         ];
         cmd.args(&args);
-        ContextCommand { cmd, args }
+        ContextCommand { cmd }
     }
 
     pub fn find_php_fpm(&self) -> Option<String> {
@@ -122,7 +122,6 @@ impl Context {
 
 pub struct ContextCommand {
     cmd: Command,
-    args: Vec<String>,
 }
 
 impl ContextCommand {
@@ -132,10 +131,6 @@ impl ContextCommand {
         let mut command = vec![program];
         command.extend(args);
         command
-    }
-
-    pub fn get_args(&self) -> &[String] {
-        &self.args
     }
 }
 
