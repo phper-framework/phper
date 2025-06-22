@@ -18,6 +18,7 @@ use std::{
 
 pub static DYLIB_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
     let result = CargoBuilder::new()
+        .arg("-j1")
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .build()
         .unwrap();
