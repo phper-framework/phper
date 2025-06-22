@@ -10,80 +10,95 @@
 
 mod common;
 
-use crate::common::{DYLIB_PATH, TESTS_PHP_DIR};
+use crate::common::{DYLIB_PATH, TESTS_PHP_DIR, setup};
 use phper_test::cli::test_php_script;
 
 #[test]
 fn test_phpinfo() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("phpinfo.php"));
 }
 
 #[test]
 fn test_arguments() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("arguments.php"));
 }
 
 #[test]
 fn test_arrays() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("arrays.php"));
 }
 
 #[test]
 fn test_classes() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("classes.php"));
 }
 
 #[test]
 fn test_functions() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("functions.php"));
 }
 
 #[test]
 fn test_objects() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("objects.php"));
 }
 
 #[test]
 fn test_strings() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("strings.php"));
 }
 
 #[test]
 fn test_values() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("values.php"));
 }
 
 #[test]
 fn test_constants() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("constants.php"));
 }
 
 #[test]
 fn test_ini() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("ini.php"));
 }
 
 #[test]
 fn test_references() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("references.php"));
 }
 
 #[test]
 fn test_errors() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("errors.php"));
 }
 
 #[test]
 fn test_reflection() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("reflection.php"));
 }
 
 #[test]
 fn test_typehints() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("typehints.php"));
 }
 
 #[test]
 fn test_enums() {
+    setup();
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("enums.php"));
 }

@@ -11,6 +11,7 @@
 use crate::utils;
 use std::{
     env,
+    ffi::OsStr,
     fs::read_to_string,
     io::Write,
     ops::{Deref, DerefMut},
@@ -125,6 +126,14 @@ pub struct ContextCommand {
 }
 
 impl ContextCommand {
+    pub fn get_command(&self) -> Vec<&OsStr> {
+        let program = self.cmd.get_program();
+        let args = self.cmd.get_args();
+        let mut command = vec![program];
+        command.extend(args);
+        command
+    }
+
     pub fn get_args(&self) -> &[String] {
         &self.args
     }

@@ -11,6 +11,7 @@
 //! Cargo build utilities for building and analyzing Rust libraries.
 
 use cargo_metadata::Message;
+use log::debug;
 use std::{
     io::{self, BufReader},
     path::{Path, PathBuf},
@@ -60,6 +61,7 @@ impl CargoBuilder {
         let reader = BufReader::new(stdout);
         let mut messages = Vec::new();
         for message in cargo_metadata::Message::parse_stream(reader) {
+            debug!(message:?; "cargo build message");
             let message = message?;
             messages.push(message);
         }

@@ -12,7 +12,9 @@
 use crate::{context::Context, utils::spawn_command};
 use fastcgi_client::{Client, Params, Request};
 use libc::{SIGTERM, atexit, kill, pid_t};
+use log::debug;
 use std::{
+    borrow::Cow,
     fs,
     path::Path,
     process::Child,
@@ -82,13 +84,11 @@ impl FpmHandle {
             "-y",
             &fpm_conf_file.path().display().to_string(),
         ];
-        eprintln!("===== setup php-fpm =====");
-        eprintln!("{}", argv.join(" "));
+        debug!(argv:% = argv.join(" "); "setup php-fpm");
 
         let child = spawn_command(&argv, Some(Duration::from_secs(3)));
         let log = fs::read_to_string("/tmp/.php-fpm.log").unwrap();
-        eprintln!("===== php-fpm log =====");
-        eprintln!("{}", log);
+        debug!(log:%; "php-fpm log");
         // fs::remove_file("/tmp/.php-fpm.log").unwrap();
 
         let handle = FpmHandle {
@@ -191,24 +191,16 @@ impl FpmHandle {
 
         let no_error = stderr.is_empty();
 
-        let f = |out: Vec<u8>| {
-            String::from_utf8(out)
-                .map(|out| {
-                    if out.is_empty() {
-                        "<empty>".to_owned()
-                    } else {
-                        out
-                    }
-                })
-                .unwrap_or_else(|_| "<not utf8 string>".to_owned())
+        let f = |out| {
+            let out = String::from_utf8_lossy(out);
+            if out.is_empty() {
+                Cow::Borrowed("<empty>")
+            } else {
+                out
+            }
         };
 
-        eprintln!("===== request =====");
-        eprintln!("{}", request_uri);
-        eprintln!("===== stdout ======");
-        eprintln!("{}", f(stdout));
-        eprintln!("===== stderr ======");
-        eprintln!("{}", f(stderr));
+        debug!(uri:% = request_uri, stdout:% = f(&stdout), stderr:% = f(&stderr); "test php request");
 
         assert!(no_error, "request not success: {}", request_uri);
     }
