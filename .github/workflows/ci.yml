@@ -42,7 +42,7 @@ jobs:
       matrix:
         os:
           - ubuntu-24.04
-          - macos-14
+          - macos-14-large
         php-version:
           - "7.0"
           - "7.1"
