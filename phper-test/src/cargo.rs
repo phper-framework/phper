@@ -34,8 +34,9 @@ impl CargoBuilder {
         let mut command = Command::new(env!("CARGO"));
         command
             .args(["build", "--lib", "--message-format", "json"])
+            .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .stderr(Stdio::null());
         Self { command }
     }
 
