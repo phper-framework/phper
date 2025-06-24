@@ -11,7 +11,7 @@
 //! Cargo build utilities for building and analyzing Rust libraries.
 
 use cargo_metadata::Message;
-use log::debug;
+use log::{debug, trace};
 use std::{
     io::{self, BufReader},
     path::{Path, PathBuf},
@@ -31,9 +31,13 @@ pub struct CargoBuildResult {
 impl CargoBuilder {
     /// Create a new CargoBuilder instance
     pub fn new() -> Self {
+        let mut args = vec!["build", "--lib", "--message-format", "json"];
+        if !cfg!(debug_assertions) {
+            args.push("--release");
+        }
         let mut command = Command::new(env!("CARGO"));
         command
-            .args(["build", "--lib", "--message-format", "json"])
+            .args(&args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
@@ -54,6 +58,14 @@ impl CargoBuilder {
 
     /// Execute the cargo build command and return the result
     pub fn build(&mut self) -> io::Result<CargoBuildResult> {
+        debug!(command:% = {
+            let program = self.command.get_program();
+            let args = self.command.get_args();
+            let mut command = vec![program];
+            command.extend(args);
+            command.join(" ".as_ref()).to_string_lossy().to_string()
+        }; "run cargo build command");
+
         let mut child = self.command.spawn()?;
         let stdout = child
             .stdout
@@ -62,7 +74,7 @@ impl CargoBuilder {
         let reader = BufReader::new(stdout);
         let mut messages = Vec::new();
         for message in cargo_metadata::Message::parse_stream(reader) {
-            debug!(message:?; "cargo build message");
+            trace!(message:?; "cargo build message");
             let message = message?;
             messages.push(message);
         }

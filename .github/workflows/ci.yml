@@ -135,7 +135,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release -- --nocapture --test-threads=1
+          args: --release -- --nocapture
 
       - name: Cargo doc
         uses: actions-rs/cargo@v1
