@@ -11,6 +11,7 @@
 //! Test tools for php cli program.
 
 use crate::context::Context;
+use log::debug;
 use std::{
     panic::{UnwindSafe, catch_unwind, resume_unwind},
     path::Path,
@@ -22,9 +23,23 @@ use std::{
 ///
 /// - `lib_path` is the path of extension lib.
 ///
-/// - `scripts` is the path of your php test scripts.
+/// - `script` is the path of your php test script.
+pub fn test_php_script(lib_path: impl AsRef<Path>, scripts: impl AsRef<Path>) {
+    let condition = |output: Output| output.status.success();
+    let scripts = Some(scripts);
+    let scripts = scripts
+        .iter()
+        .map(|s| (s as _, &condition as _))
+        .collect::<Vec<_>>();
+    test_php_scripts_with_condition(lib_path, &scripts);
+}
+
+/// Check your extension by executing the php script, if the all executing
+/// return success, than the test is pass.
 ///
-/// See [example hello integration test](https://github.com/phper-framework/phper/blob/master/examples/hello/tests/integration.rs).
+/// - `lib_path` is the path of extension lib.
+///
+/// - `scripts` is the path of your php test scripts.
 pub fn test_php_scripts(lib_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
     let condition = |output: Output| output.status.success();
     let scripts = scripts
@@ -58,31 +73,32 @@ pub fn test_php_scripts_with_condition(
         let output = cmd.output().unwrap();
         let path = script.as_ref().to_str().unwrap();
 
-        let mut stdout = String::from_utf8(output.stdout.clone()).unwrap();
+        let mut stdout = String::from_utf8_lossy(&output.stdout).to_string();
         if stdout.is_empty() {
             stdout.push_str("<empty>");
         }
 
-        let mut stderr = String::from_utf8(output.stderr.clone()).unwrap();
+        let mut stderr = String::from_utf8_lossy(&output.stderr).to_string();
         if stderr.is_empty() {
             stderr.push_str("<empty>");
-        }
+        };
 
-        eprintln!(
-            "===== command =====\n{} {}\n===== stdout ======\n{}\n===== stderr ======\n{}",
-            &context.php_bin,
-            cmd.get_args().join(" "),
-            stdout,
-            stderr,
-        );
-        #[cfg(target_os = "linux")]
-        if output.status.code().is_none() {
-            use std::os::unix::process::ExitStatusExt;
-            eprintln!(
-                "===== signal ======\nExitStatusExt is None, the signal is: {:?}",
-                output.status.signal()
-            );
-        }
+        debug!(command:% = cmd.get_command().join(" ".as_ref()).to_string_lossy(),
+               status:? = output.status.code(),
+               stdout = &*stdout,
+               stderr:%,
+               signal:? = {
+                   #[cfg(unix)]
+                   {
+                       use std::os::unix::process::ExitStatusExt as _;
+                       output.status.signal()
+                   }
+                   #[cfg(not(unix))]
+                   {
+                       None
+                   }
+               };
+               "execute php test command");
 
         if !condition(output) {
             panic!("test php file `{}` failed", path);

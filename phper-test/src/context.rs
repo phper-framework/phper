@@ -11,6 +11,7 @@
 use crate::utils;
 use std::{
     env,
+    ffi::OsStr,
     fs::read_to_string,
     io::Write,
     ops::{Deref, DerefMut},
@@ -79,7 +80,7 @@ impl Context {
             script.as_ref().display().to_string(),
         ];
         cmd.args(&args);
-        ContextCommand { cmd, args }
+        ContextCommand { cmd }
     }
 
     pub fn find_php_fpm(&self) -> Option<String> {
@@ -121,12 +122,15 @@ impl Context {
 
 pub struct ContextCommand {
     cmd: Command,
-    args: Vec<String>,
 }
 
 impl ContextCommand {
-    pub fn get_args(&self) -> &[String] {
-        &self.args
+    pub fn get_command(&self) -> Vec<&OsStr> {
+        let program = self.cmd.get_program();
+        let args = self.cmd.get_args();
+        let mut command = vec![program];
+        command.extend(args);
+        command
     }
 }
 
