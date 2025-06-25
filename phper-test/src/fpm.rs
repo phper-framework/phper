@@ -16,6 +16,7 @@ use log::debug;
 use std::{
     borrow::Cow,
     fs,
+    net::TcpListener,
     path::Path,
     process::Child,
     sync::{Mutex, Once, OnceLock},
@@ -39,9 +40,28 @@ pub struct FpmHandle {
     fpm_child: Child,
     /// Temporary configuration file for PHP-FPM
     fpm_conf_file: Mutex<Option<NamedTempFile>>,
+    /// The port number that PHP-FPM is listening on
+    port: u16,
 }
 
 impl FpmHandle {
+    /// Finds an available port on localhost.
+    ///
+    /// # Returns
+    ///
+    /// An available port number
+    ///
+    /// # Panics
+    ///
+    /// Panics if no available port can be found
+    fn find_available_port() -> u16 {
+        TcpListener::bind("127.0.0.1:0")
+            .expect("Failed to bind to an available port")
+            .local_addr()
+            .expect("Failed to get local address")
+            .port()
+    }
+
     /// Sets up and starts a PHP-FPM process for testing.
     ///
     /// This method creates a singleton FpmHandle instance that manages a
@@ -63,17 +83,18 @@ impl FpmHandle {
     /// - PHP-FPM binary cannot be found
     /// - FPM process fails to start
     /// - FpmHandle has already been initialized
-    pub fn setup(lib_path: impl AsRef<Path>) -> &'static FpmHandle {
+    pub fn setup(lib_path: impl AsRef<Path>, log_path: impl AsRef<Path>) -> &'static FpmHandle {
         if FPM_HANDLE.get().is_some() {
             panic!("FPM_HANDLE has set");
         }
 
         let lib_path = lib_path.as_ref().to_owned();
+        let port = Self::find_available_port();
 
         // Run php-fpm.
         let context = Context::get_global();
         let php_fpm = context.find_php_fpm().unwrap();
-        let fpm_conf_file = context.create_tmp_fpm_conf_file();
+        let fpm_conf_file = context.create_tmp_fpm_conf_file(port, log_path.as_ref());
 
         let argv = [
             &*php_fpm,
@@ -84,16 +105,16 @@ impl FpmHandle {
             "-y",
             &fpm_conf_file.path().display().to_string(),
         ];
-        debug!(argv:% = argv.join(" "); "setup php-fpm");
+        debug!(argv:% = argv.join(" "), port:% = port; "setup php-fpm");
 
         let child = spawn_command(&argv, Some(Duration::from_secs(3)));
-        let log = fs::read_to_string("/tmp/.php-fpm.log").unwrap();
+        let log = fs::read_to_string(log_path.as_ref()).unwrap();
         debug!(log:%; "php-fpm log");
-        // fs::remove_file("/tmp/.php-fpm.log").unwrap();
 
         let handle = FpmHandle {
             fpm_child: child,
             fpm_conf_file: Mutex::new(Some(fpm_conf_file)),
+            port,
         };
 
         // shutdown hook.
@@ -135,7 +156,7 @@ impl FpmHandle {
     ///
     /// Panics if:
     /// - FpmHandle has not been initialized via `setup()` first
-    /// - Cannot connect to the FPM process on port 9000
+    /// - Cannot connect to the FPM process on port
     /// - The PHP script execution results in errors (stderr is not empty)
     pub async fn test_fpm_request(
         &self, method: &str, root: impl AsRef<Path>, request_uri: &str,
@@ -148,7 +169,7 @@ impl FpmHandle {
         tmp.push(script_name.trim_start_matches('/'));
         let script_filename = tmp.as_path().to_str().unwrap();
 
-        let stream = TcpStream::connect(("127.0.0.1", 9000)).await.unwrap();
+        let stream = TcpStream::connect(("127.0.0.1", self.port)).await.unwrap();
         let local_addr = stream.local_addr().unwrap();
         let peer_addr = stream.peer_addr().unwrap();
         let local_ip = local_addr.ip().to_string();
