@@ -9,11 +9,11 @@
 // See the Mulan PSL v2 for more details.
 
 use crate::utils;
+use ini::Ini;
 use std::{
     env,
     ffi::OsStr,
     fs::read_to_string,
-    io::Write,
     ops::{Deref, DerefMut},
     path::Path,
     process::Command,
@@ -111,11 +111,23 @@ impl Context {
         })
     }
 
-    pub fn create_tmp_fpm_conf_file(&self) -> NamedTempFile {
+    pub fn create_tmp_fpm_conf_file(&self, port: u16, error_log: &Path) -> NamedTempFile {
         let mut tmp = NamedTempFile::new().unwrap();
         let file = tmp.as_file_mut();
-        file.write_all(include_bytes!("../etc/php-fpm.conf"))
-            .unwrap();
+
+        let mut conf = Ini::new();
+        conf.with_section(Some("global"))
+            .set("error_log", error_log.display().to_string());
+        conf.with_section(Some("www"))
+            .set("user", "$USER")
+            .set("group", "$USER")
+            .set("listen", format!("127.0.0.1:{port}"))
+            .set("pm", "static")
+            .set("pm.max_children", "6")
+            .set("pm.max_requests", "500");
+
+        conf.write_to(file).unwrap();
+
         tmp
     }
 }

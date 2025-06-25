@@ -8,15 +8,14 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use env_logger::fmt::Formatter;
-use log::kv::{self, Key, Value};
-use phper_test::{cargo::CargoBuilder, fpm::FpmHandle};
+use phper_test::{cargo::CargoBuilder, fpm::FpmHandle, log};
 use std::{
     path::{Path, PathBuf},
-    sync::{LazyLock, Once},
+    sync::LazyLock,
 };
 
 pub static DYLIB_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
+    log::setup();
     let result = CargoBuilder::new()
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .build()
@@ -31,30 +30,5 @@ pub static TESTS_PHP_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 });
 
 #[allow(dead_code)]
-pub static FPM_HANDLE: LazyLock<&FpmHandle> = LazyLock::new(|| FpmHandle::setup(&*DYLIB_PATH));
-
-pub fn setup() {
-    static ONCE: Once = Once::new();
-    ONCE.call_once(|| {
-        env_logger::Builder::from_default_env()
-            .default_format()
-            .is_test(true)
-            .format_key_values(|buf, args| {
-                use std::io::Write as _;
-                struct Visitor<'a>(&'a mut Formatter);
-                impl<'kvs> kv::VisitSource<'kvs> for Visitor<'kvs> {
-                    fn visit_pair(
-                        &mut self, key: Key<'kvs>, value: Value<'kvs>,
-                    ) -> Result<(), kv::Error> {
-                        writeln!(self.0).unwrap();
-                        writeln!(self.0, "===== {} =====", key).unwrap();
-                        writeln!(self.0, "{}", value).unwrap();
-                        Ok(())
-                    }
-                }
-                args.visit(&mut Visitor(buf)).unwrap();
-                Ok(())
-            })
-            .init();
-    });
-}
+pub static FPM_HANDLE: LazyLock<&FpmHandle> =
+    LazyLock::new(|| FpmHandle::setup(&*DYLIB_PATH, "/tmp/.php-fpm.log"));

@@ -10,25 +10,29 @@
 
 use axum::http::header::CONTENT_TYPE;
 use hyper::StatusCode;
-use phper_test::{cli::test_long_term_php_script_with_condition, utils::get_lib_path};
+use phper_test::{cargo::CargoBuilder, cli::test_long_term_php_script_with_condition, log};
 use reqwest::blocking::Client;
 use std::{
     env,
     path::{Path, PathBuf},
+    sync::LazyLock,
     thread::sleep,
     time::Duration,
 };
 
+pub static DYLIB_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
+    log::setup();
+    let result = CargoBuilder::new()
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .build()
+        .unwrap();
+    result.get_cdylib().unwrap()
+});
+
 #[test]
 fn test_php() {
     test_long_term_php_script_with_condition(
-        get_lib_path(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("..")
-                .join("..")
-                .join("target"),
-            "http_server",
-        ),
+        &*DYLIB_PATH,
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("php")

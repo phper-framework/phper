@@ -18,4 +18,5 @@ pub mod cargo;
 pub mod cli;
 mod context;
 pub mod fpm;
+pub mod log;
 pub mod utils;
