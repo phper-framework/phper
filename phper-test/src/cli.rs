@@ -49,15 +49,6 @@ pub fn test_php_script(lib_path: impl AsRef<Path>, script: impl AsRef<Path>) {
 /// # Panics
 ///
 /// Panics if any script execution fails or returns non-success status.
-///
-/// # Examples
-///
-/// ```rust,no_run
-/// use phper_test::cli::test_php_scripts;
-///
-/// let scripts = &[&"test1.php", &"test2.php"];
-/// test_php_scripts("/path/to/extension.so", scripts);
-/// ```
 pub fn test_php_scripts(lib_path: impl AsRef<Path>, scripts: &[&dyn AsRef<Path>]) {
     let condition = |output: Output| output.status.success();
     let scripts = scripts
