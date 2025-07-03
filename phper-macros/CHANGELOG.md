@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2](https://github.com/phper-framework/phper/compare/phper-macros-v0.15.1...phper-macros-v0.15.2) - 2025-07-03
+
+### Added
+
+- Add HTML logo URL to documentation for improved branding ([#210](https://github.com/phper-framework/phper/pull/210))
+
 ## [0.15.1](https://github.com/phper-framework/phper/compare/phper-macros-v0.15.0...phper-macros-v0.15.1) - 2025-04-04
 
 ### Other

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0](https://github.com/phper-framework/phper/compare/phper-alloc-v0.15.2...phper-alloc-v0.16.0) - 2025-07-03
+
+### Added
+
+- Add HTML logo URL to documentation for improved branding ([#210](https://github.com/phper-framework/phper/pull/210))
+
+### Other
+
+- Migration of ZString, ZArray, ZObject to EBox ([#208](https://github.com/phper-framework/phper/pull/208))
+
 ## [0.15.2](https://github.com/phper-framework/phper/compare/phper-alloc-v0.15.1...phper-alloc-v0.15.2) - 2025-05-01
 
 ### Other
