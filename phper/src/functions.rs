@@ -647,6 +647,28 @@ impl ZFunc {
         }
     }
 
+    /// Get the type of the function (ZEND_USER_FUNCTION, ZEND_INTERNAL_FUNCTION, etc).
+    pub fn get_type(&self) -> u8 {
+        unsafe { self.inner.type_ as u8 }
+    }
+
+    /// For a user function or eval'd code, get the filename from op_array.
+    pub fn get_filename(&self) -> Option<&ZStr> {
+        unsafe {
+            match u32::from(self.inner.type_) {
+                ZEND_USER_FUNCTION | ZEND_EVAL_CODE => {
+                    let filename_ptr = self.inner.op_array.filename;
+                    if !filename_ptr.is_null() {
+                        ZStr::try_from_ptr(filename_ptr)
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }
+        }
+    }
+
     /// Get the function or method fully-qualified name.
     pub fn get_function_or_method_name(&self) -> ZString {
         unsafe {
