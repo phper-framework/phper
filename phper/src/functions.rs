@@ -647,7 +647,8 @@ impl ZFunc {
         }
     }
 
-    /// Get the type of the function (ZEND_USER_FUNCTION, ZEND_INTERNAL_FUNCTION, etc).
+    /// Get the type of the function (ZEND_USER_FUNCTION,
+    /// ZEND_INTERNAL_FUNCTION, etc).
     pub fn get_type(&self) -> u8 {
         unsafe { self.inner.type_ as u8 }
     }
