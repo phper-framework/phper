@@ -70,15 +70,6 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: php-config
 
-      - name: Setup php-fpm for Linux
-        if: matrix.os == 'ubuntu-24.04'
-        run: |
-          find /usr/sbin -name "php-fpm*"
-          sudo apt-get update
-          sudo apt-get install -y php${{ matrix.php-version }}-fpm
-          sudo rm -f /usr/sbin/php-fpm
-          sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
-
       - name: PHP version
         run: |
           which php
