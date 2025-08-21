@@ -32,9 +32,7 @@ pub static TESTS_PHP_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 
 #[test]
 fn test_php() {
-    use std::process::Command;
-    use std::thread::sleep;
-    use std::time::Duration;
+    use std::{process::Command, thread::sleep, time::Duration};
 
     let router = TESTS_PHP_DIR.join("router.php");
     let server = Command::new("php")
