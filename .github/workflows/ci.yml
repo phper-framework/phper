@@ -81,12 +81,15 @@ jobs:
       - name: Setup php-fpm for Macos
         if: matrix.os == 'macos-14'
         run: |
-          find /usr/local -name "php-fpm*"
+          find /opt/homebrew/Cellar -name "php-fpm*"
 
       - name: PHP version
         run: |
+          which php
           php --version
+          which php-fpm
           php-fpm --version
+          which php-config
           php-config || true
 
           [[ `php --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
