@@ -73,7 +73,7 @@ jobs:
       - name: Setup php-fpm for Linux
         if: matrix.os == 'ubuntu-24.04'
         run: |
-          find /usr -name "php-fpm*"
+          find /usr/sbin -name "php-fpm*"
           sudo apt-get update
           sudo apt-get install -y php${{ matrix.php-version }}-fpm
           sudo rm -f /usr/sbin/php-fpm
