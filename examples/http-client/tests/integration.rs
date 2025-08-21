@@ -32,5 +32,30 @@ pub static TESTS_PHP_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 
 #[test]
 fn test_php() {
+    use std::process::Command;
+    use std::thread::sleep;
+    use std::time::Duration;
+
+    let router = TESTS_PHP_DIR.join("router.php");
+    let server = Command::new("php")
+        .arg("-S")
+        .arg("127.0.0.1:8000")
+        .arg("-t")
+        .arg(TESTS_PHP_DIR.to_str().unwrap())
+        .arg(router.to_str().unwrap())
+        .spawn()
+        .expect("Failed to start PHP built-in server");
+
+    struct ServerGuard(std::process::Child);
+    impl Drop for ServerGuard {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+        }
+    }
+    let _guard = ServerGuard(server);
+
+    // Give the server time to start
+    sleep(Duration::from_secs(1));
+
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("test.php"));
 }
