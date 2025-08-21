@@ -650,7 +650,7 @@ impl ZFunc {
     /// Get the type of the function (ZEND_USER_FUNCTION,
     /// ZEND_INTERNAL_FUNCTION, etc).
     pub fn get_type(&self) -> u8 {
-        unsafe { self.inner.type_ as u8 }
+        unsafe { self.inner.type_ }
     }
 
     /// For a user function or eval'd code, get the filename from op_array.

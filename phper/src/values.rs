@@ -139,7 +139,7 @@ impl ExecuteData {
                 ZEND_USER_FUNCTION | ZEND_EVAL_CODE => {
                     let opline = self.inner.opline;
                     if !opline.is_null() {
-                        Some((*opline).lineno as u32)
+                        Some((*opline).lineno)
                     } else {
                         None
                     }
