@@ -157,7 +157,7 @@ impl ExecuteData {
         }
     }
 
-    /// Gets associated return value.
+    /// Gets mutable reference to associated return value.
     pub fn get_return_value_mut(&mut self) -> Option<&mut ZVal> {
         unsafe {
             let val = self.inner.return_value;
@@ -170,7 +170,7 @@ impl ExecuteData {
         self.inner.return_value as *mut ZVal
     }
 
-    /// Gets associated return value pointer.
+    /// Gets immutable pointer to associated return value.
     pub fn get_return_value_ptr(&self) -> *const ZVal {
         self.inner.return_value as *const ZVal
     }
