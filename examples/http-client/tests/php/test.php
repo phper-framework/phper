@@ -24,7 +24,7 @@ $client = (new HttpClientBuilder())
     ->cookie_store(true)
     ->build();
 
-$response = $client->get("https://example.com/")->send();
+$response = $client->get("http://localhost:8000/")->send();
 var_dump([
     "status" => $response->status(),
     "headers" => $response->headers(),
