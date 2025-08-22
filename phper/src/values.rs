@@ -138,10 +138,10 @@ impl ExecuteData {
             match u32::from((*self.inner.func).type_) {
                 ZEND_USER_FUNCTION | ZEND_EVAL_CODE => {
                     let opline = self.inner.opline;
-                    if !opline.is_null() {
-                        Some((*opline).lineno)
-                    } else {
+                    if opline.is_null() {
                         None
+                    } else {
+                        Some((*opline).lineno)
                     }
                 }
                 _ => None,
