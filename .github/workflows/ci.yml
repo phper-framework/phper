@@ -78,17 +78,13 @@ jobs:
           sudo rm -f /usr/sbin/php-fpm
           sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
 
-      - name: Setup php-fpm for Macos
-        if: matrix.os == 'macos-14'
-        run: |
-          brew install php@${{ matrix.php-version }}
-          echo "/opt/homebrew/opt/php@${{ matrix.php-version }}/bin" >> "$GITHUB_PATH"
-          echo "/opt/homebrew/opt/php@${{ matrix.php-version }}/sbin" >> "$GITHUB_PATH"
-
       - name: PHP version
         run: |
+          which php
           php --version
+          which php-fpm
           php-fpm --version
+          which php-config
           php-config || true
 
           [[ `php --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
