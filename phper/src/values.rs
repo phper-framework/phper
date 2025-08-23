@@ -130,6 +130,51 @@ impl ExecuteData {
         unsafe { ZFunc::from_mut_ptr(self.inner.func) }
     }
 
+    /// Gets the current opline line number if available. This represents the
+    /// line number in the source code where the current operation is being
+    /// executed.
+    pub fn get_lineno(&self) -> Option<u32> {
+        unsafe {
+            match u32::from((*self.inner.func).type_) {
+                ZEND_USER_FUNCTION | ZEND_EVAL_CODE => {
+                    let opline = self.inner.opline;
+                    if opline.is_null() {
+                        None
+                    } else {
+                        Some((*opline).lineno)
+                    }
+                }
+                _ => None,
+            }
+        }
+    }
+
+    /// Gets associated return value.
+    pub fn get_return_value(&self) -> Option<&ZVal> {
+        unsafe {
+            let val = self.inner.return_value;
+            ZVal::try_from_ptr(val)
+        }
+    }
+
+    /// Gets mutable reference to associated return value.
+    pub fn get_return_value_mut(&mut self) -> Option<&mut ZVal> {
+        unsafe {
+            let val = self.inner.return_value;
+            ZVal::try_from_mut_ptr(val)
+        }
+    }
+
+    /// Gets associated return value pointer.
+    pub fn get_return_value_mut_ptr(&mut self) -> *mut ZVal {
+        self.inner.return_value as *mut ZVal
+    }
+
+    /// Gets immutable pointer to associated return value.
+    pub fn get_return_value_ptr(&self) -> *const ZVal {
+        self.inner.return_value as *const ZVal
+    }
+
     /// Gets associated `$this` object if exists.
     pub fn get_this(&mut self) -> Option<&ZObj> {
         unsafe {
