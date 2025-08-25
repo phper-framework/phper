@@ -670,6 +670,17 @@ impl ZFunc {
         }
     }
 
+    /// Gets the line number of the declaration of the currently
+    /// executing function.
+    pub fn get_lineno(&self) -> Option<u32> {
+        unsafe {
+            match u32::from(self.inner.type_) {
+                ZEND_USER_FUNCTION | ZEND_EVAL_CODE => Some(self.inner.op_array.line_start),
+                _ => None,
+            }
+        }
+    }
+
     /// Get the function or method fully-qualified name.
     pub fn get_function_or_method_name(&self) -> ZString {
         unsafe {

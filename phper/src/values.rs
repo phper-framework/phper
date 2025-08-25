@@ -133,7 +133,7 @@ impl ExecuteData {
     /// Gets the current opline line number if available. This represents the
     /// line number in the source code where the current operation is being
     /// executed.
-    pub fn get_lineno(&self) -> Option<u32> {
+    pub fn get_opline_lineno(&self) -> Option<u32> {
         unsafe {
             match u32::from((*self.inner.func).type_) {
                 ZEND_USER_FUNCTION | ZEND_EVAL_CODE => {
