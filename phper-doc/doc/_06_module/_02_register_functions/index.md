@@ -115,7 +115,7 @@ The output of `php --re` for this function would look like:
     Function [ <internal:integration> function my_function ] {
 
       - Parameters [3] {
-        Parameter #0 [ <required> ?class_name $a_class ]
+        Parameter #0 [ <required> ?\MyNamespace\MyInterface $a_class ]
         Parameter #1 [ <optional> string $name = 'my_default' ]
         Parameter #2 [ <optional> bool $optional_bool = <default> ]
       }
