@@ -670,12 +670,23 @@ impl ZFunc {
         }
     }
 
-    /// Gets the line number of the declaration of the currently
+    /// Gets the start line number of the declaration of the currently
     /// executing function.
-    pub fn get_lineno(&self) -> Option<u32> {
+    pub fn get_line_start(&self) -> Option<u32> {
         unsafe {
             match u32::from(self.inner.type_) {
                 ZEND_USER_FUNCTION | ZEND_EVAL_CODE => Some(self.inner.op_array.line_start),
+                _ => None,
+            }
+        }
+    }
+
+    /// Gets the end line number of the declaration of the currently
+    /// executing function.
+    pub fn get_line_end(&self) -> Option<u32> {
+        unsafe {
+            match u32::from(self.inner.type_) {
+                ZEND_USER_FUNCTION | ZEND_EVAL_CODE => Some(self.inner.op_array.line_end),
                 _ => None,
             }
         }
