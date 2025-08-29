@@ -179,6 +179,8 @@ pub fn test_php_scripts_with_condition(
                "execute php test command");
 
         if !condition(output) {
+            eprintln!("--- stdout ---\n{}", stdout);
+            eprintln!("--- stderr ---\n{}", stderr);
             panic!("test php file `{}` failed", path);
         }
     }

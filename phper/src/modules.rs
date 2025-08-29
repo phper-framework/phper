@@ -55,6 +55,13 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
             interface_entity.init();
         }
 
+        for function_entity in &module.function_entities {
+            module.handler_map.insert(
+                (None, function_entity.name.clone()),
+                function_entity.handler.clone(),
+            );
+        }
+
         for class_entity in &module.class_entities {
             let ce = class_entity.init();
             class_entity.declare_properties(ce);
