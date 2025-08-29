@@ -28,15 +28,10 @@ use std::{
     collections::HashMap,
     ffi::{CStr, CString},
     marker::PhantomData,
-    mem::{ManuallyDrop, size_of, transmute, zeroed},
+    mem::{ManuallyDrop, transmute, zeroed},
     ptr::{self, null_mut},
     rc::Rc,
-    slice,
 };
-
-/// Used to mark the arguments obtained by the invoke function as mysterious
-/// codes from phper
-const INVOKE_MYSTERIOUS_CODE: &[u8] = b"PHPER";
 
 /// Used to find the handler in the invoke function.
 pub(crate) type HandlerMap = HashMap<(Option<CString>, CString), Rc<dyn Callable>>;
@@ -371,9 +366,6 @@ impl FunctionEntry {
 
             infos.push(zeroed::<zend_internal_arg_info>());
 
-            // Will be checked in `invoke` function.
-            infos.push(Self::create_mysterious_code());
-
             let raw_handler = handler.as_ref().map(|_| invoke as _);
 
             if let Some(handler) = handler {
@@ -397,22 +389,12 @@ impl FunctionEntry {
             }
         }
     }
-
-    unsafe fn create_mysterious_code() -> zend_internal_arg_info {
-        unsafe {
-            let mut mysterious_code = [0u8; size_of::<zend_internal_arg_info>()];
-            for (i, n) in INVOKE_MYSTERIOUS_CODE.iter().enumerate() {
-                mysterious_code[i] = *n;
-            }
-            transmute(mysterious_code)
-        }
-    }
 }
 
 /// Builder for registering php function.
 pub struct FunctionEntity {
-    name: CString,
-    handler: Rc<dyn Callable>,
+    pub(crate) name: CString,
+    pub(crate) handler: Rc<dyn Callable>,
     arguments: Vec<Argument>,
     return_type: Option<ReturnType>,
 }
@@ -797,7 +779,6 @@ impl ZFunc {
 pub(crate) union CallableTranslator {
     pub(crate) callable: *const dyn Callable,
     pub(crate) internal_arg_info: zend_internal_arg_info,
-    pub(crate) arg_info: zend_arg_info,
 }
 
 /// The entry for all registered PHP functions.
@@ -806,25 +787,7 @@ unsafe extern "C" fn invoke(execute_data: *mut zend_execute_data, return_value: 
         let execute_data = ExecuteData::from_mut_ptr(execute_data);
         let return_value = ZVal::from_mut_ptr(return_value);
 
-        let num_args = execute_data.common_num_args();
-        let arg_info = execute_data.common_arg_info();
-
-        // should be mysterious code
-        let mysterious_arg_info = arg_info.offset((num_args + 1) as isize);
-        let mysterious_code = slice::from_raw_parts(
-            mysterious_arg_info as *const u8,
-            INVOKE_MYSTERIOUS_CODE.len(),
-        );
-
-        let handler = if mysterious_code == INVOKE_MYSTERIOUS_CODE {
-            // hiddden real handler
-            let last_arg_info = arg_info.offset((num_args + 2) as isize);
-            let translator = CallableTranslator {
-                arg_info: *last_arg_info,
-            };
-            let handler = translator.callable;
-            handler.as_ref().expect("handler is null")
-        } else {
+        let handler = {
             let function_name = execute_data
                 .func()
                 .get_function_name()

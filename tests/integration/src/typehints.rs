@@ -9,12 +9,14 @@
 // See the Mulan PSL v2 for more details.
 
 use phper::{
+    arrays::ZArray,
     classes::{ClassEntity, Interface, InterfaceEntity, StateClass, Visibility},
     functions::{Argument, ReturnType},
     modules::Module,
     types::{ArgumentTypeHint, ReturnTypeHint},
     values::ZVal,
 };
+use std::convert::Infallible;
 
 const I_FOO: &str = r"IntegrationTest\TypeHints\IFoo";
 
@@ -26,6 +28,20 @@ pub fn integrate(module: &mut Module) {
     module.add_class(make_arg_typehint_class());
     module.add_class(make_return_typehint_class());
     module.add_class(make_arg_default_value_class());
+    module.add_function("integration_function_return_bool", |_| -> Result<bool, Infallible> { Ok(true)} )
+        .return_type(ReturnType::new(ReturnTypeHint::Bool));
+    module.add_function("integration_function_return_int", |_| -> Result<i64, Infallible> { Ok(42)} )
+        .return_type(ReturnType::new(ReturnTypeHint::Int));
+    module.add_function("integration_function_return_float", |_| -> Result<f64, Infallible> { Ok(3.14)} )
+        .return_type(ReturnType::new(ReturnTypeHint::Float));
+    module.add_function("integration_function_return_string", |_| -> Result<&'static str, Infallible> { Ok("phper")} )
+        .return_type(ReturnType::new(ReturnTypeHint::String));
+    module.add_function("integration_function_return_array", |_| -> Result<ZArray, Infallible> { Ok(ZArray::new()) } )
+        .return_type(ReturnType::new(ReturnTypeHint::Array));
+    module.add_function("integration_function_return_mixed", |_| -> Result<ZVal, Infallible> { Ok(ZVal::from(1.23))} )
+        .return_type(ReturnType::new(ReturnTypeHint::Mixed));
+    module.add_function("integration_function_return_void", |_| phper::ok(()))
+        .return_type(ReturnType::new(ReturnTypeHint::Void));
     module
         .add_function("integration_function_typehints", |_| phper::ok(()))
         .argument(
@@ -458,7 +474,7 @@ fn make_return_typehint_class() -> ClassEntity<()> {
         .add_method(
             "returnString",
             Visibility::Public,
-            move |_, _| phper::ok(()),
+            move |_, _| phper::ok("phper"),
         )
         .return_type(ReturnType::new(ReturnTypeHint::String));
 
@@ -469,7 +485,7 @@ fn make_return_typehint_class() -> ClassEntity<()> {
         .return_type(ReturnType::new(ReturnTypeHint::String).allow_null());
 
     class
-        .add_method("returnBool", Visibility::Public, move |_, _| phper::ok(()))
+        .add_method("returnBool", Visibility::Public, move |_, _| phper::ok(true))
         .return_type(ReturnType::new(ReturnTypeHint::Bool));
 
     class
@@ -479,7 +495,7 @@ fn make_return_typehint_class() -> ClassEntity<()> {
         .return_type(ReturnType::new(ReturnTypeHint::Bool).allow_null());
 
     class
-        .add_method("returnInt", Visibility::Public, move |_, _| phper::ok(()))
+        .add_method("returnInt", Visibility::Public, move |_, _| phper::ok(42))
         .return_type(ReturnType::new(ReturnTypeHint::Int));
 
     class
@@ -489,7 +505,7 @@ fn make_return_typehint_class() -> ClassEntity<()> {
         .return_type(ReturnType::new(ReturnTypeHint::Int).allow_null());
 
     class
-        .add_method("returnFloat", Visibility::Public, move |_, _| phper::ok(()))
+        .add_method("returnFloat", Visibility::Public, move |_, _| phper::ok(3.14))
         .return_type(ReturnType::new(ReturnTypeHint::Float));
 
     class
@@ -499,7 +515,7 @@ fn make_return_typehint_class() -> ClassEntity<()> {
         .return_type(ReturnType::new(ReturnTypeHint::Float).allow_null());
 
     class
-        .add_method("returnArray", Visibility::Public, move |_, _| phper::ok(()))
+        .add_method("returnArray", Visibility::Public, move |_, _| phper::ok(ZArray::new()))
         .return_type(ReturnType::new(ReturnTypeHint::Array));
 
     class

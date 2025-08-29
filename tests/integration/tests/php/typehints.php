@@ -210,3 +210,26 @@ if (PHP_VERSION_ID >= 80000) {
     }
     assert_eq('void', $reflection->getReturnType()->getName(), 'integration_function_typehints return type is void');
 }
+
+//invoke type-hinted functions to exercise handlers
+echo PHP_EOL . 'Testing return type-hinted function invocation' . PHP_EOL;
+assert_true(integration_function_return_bool());
+assert_eq(42, integration_function_return_int());
+assert_eq(3.14, integration_function_return_float());
+assert_eq('phper', integration_function_return_string());
+assert_eq(array(), integration_function_return_array());
+assert_eq(1.23, integration_function_return_mixed());
+
+//invoke type-hinted class methods to exercise handlers
+echo PHP_EOL . 'Testing return type-hinted method invocation' . PHP_EOL;
+$cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
+assert_eq(true, $cls->returnBool(), 'returnBool');
+assert_eq(null, $cls->returnBoolNullable(), 'returnBoolNullable');
+assert_eq(42, $cls->returnInt(), 'returnInt');
+assert_eq(null, $cls->returnIntNullable(), 'returnIntNullable');
+assert_eq(3.14, $cls->returnFloat(), 'returnFloat');
+assert_eq(null, $cls->returnFloatNullable(), 'returnFloatNullable');
+assert_eq('phper', $cls->returnString(), 'returnString');
+assert_eq(null, $cls->returnStringNullable(), 'returnStringNullable');
+assert_eq(array(), $cls->returnArray(), 'returnArray');
+assert_eq(null, $cls->returnArrayNullable(), 'returnArrayNullable');
