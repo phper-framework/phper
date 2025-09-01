@@ -187,8 +187,13 @@ impl ExecuteData {
     /// Gets associated mutable `$this` object if exists.
     pub fn get_this_mut(&mut self) -> Option<&mut ZObj> {
         unsafe {
-            let val = ZVal::from_mut_ptr(phper_get_this(&mut self.inner));
-            val.as_mut_z_obj()
+            let ptr = phper_get_this(&mut self.inner);
+            if ptr.is_null() {
+                None
+            } else {
+                let val = ZVal::from_mut_ptr(ptr);
+                val.as_mut_z_obj()
+            }
         }
     }
 
