@@ -12,6 +12,7 @@
 
 use crate::{
     arrays::{ZArr, ZArray},
+    classes::ClassEntry,
     errors::ExpectTypeError,
     functions::{ZFunc, call_internal},
     objects::{StateObject, ZObj, ZObject},
@@ -192,10 +193,14 @@ impl ExecuteData {
     }
 
     /// Gets associated called scope if it exists
-    pub fn get_called_scope(&mut self) -> Option<&ZStr> {
+    pub fn get_called_scope(&mut self) -> Option<&ClassEntry> {
         unsafe {
-            let val = ZVal::from_ptr(phper_get_called_scope(&mut self.inner));
-            val.as_z_str()
+            let ptr = phper_get_called_scope(&mut self.inner);
+            if ptr.is_null() {
+                None
+            } else {
+                Some(ClassEntry::from_ptr(ptr))
+            }
         }
     }
 

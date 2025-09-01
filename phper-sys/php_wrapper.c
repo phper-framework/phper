@@ -348,6 +348,10 @@ zval *phper_get_this(zend_execute_data *execute_data) {
     return getThis();
 }
 
+zend_class_entry *phper_get_called_scope(zend_execute_data *execute_data) {
+    return zend_get_called_scope(execute_data);
+}
+
 size_t phper_zend_object_properties_size(zend_class_entry *ce) {
     return zend_object_properties_size(ce);
 }
