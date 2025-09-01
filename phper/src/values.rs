@@ -209,7 +209,7 @@ impl ExecuteData {
         }
     }
 
-    pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
+    pub unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
         unsafe {
             let num_args = self.num_args();
             let mut arguments = vec![zeroed::<zval>(); num_args];
