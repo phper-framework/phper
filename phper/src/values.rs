@@ -191,6 +191,14 @@ impl ExecuteData {
         }
     }
 
+    /// Gets associated called scope if it exists
+    pub fn get_called_scope(&mut self) -> Option<&ZStr> {
+        unsafe {
+            let val = ZVal::from_ptr(phper_get_called_scope(&mut self.inner));
+            val.as_z_str()
+        }
+    }
+
     pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
         unsafe {
             let num_args = self.num_args();
