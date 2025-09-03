@@ -209,7 +209,7 @@ impl ExecuteData {
         }
     }
 
-    pub unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
+    pub(crate) unsafe fn get_parameters_array(&mut self) -> Vec<ManuallyDrop<ZVal>> {
         unsafe {
             let num_args = self.num_args();
             let mut arguments = vec![zeroed::<zval>(); num_args];
@@ -236,6 +236,18 @@ impl ExecuteData {
         unsafe {
             let val = phper_zend_call_var_num(self.as_mut_ptr(), index.try_into().unwrap());
             ZVal::from_mut_ptr(val)
+        }
+    }
+
+    /// Ensure parameter slot exists, if not, create it and set to null.
+    pub fn ensure_parameter_slot(&mut self, index: usize) {
+        let num_args = self.num_args();
+        if index >= num_args {
+            unsafe {
+                let params_ptr = phper_zend_call_var_num(self.as_mut_ptr(), index as i32);
+                phper_zval_null(params_ptr);
+                (*self.inner.func).common.num_args = (index + 1) as u32;
+            }
         }
     }
 }
