@@ -178,16 +178,12 @@ impl ExecuteData {
 
     /// Gets associated `$this` object if exists.
     pub fn get_this(&mut self) -> Option<&ZObj> {
-        unsafe {
-            ZVal::try_from_ptr(phper_get_this(&mut self.inner))?.as_z_obj()
-        }
+        unsafe { ZVal::try_from_ptr(phper_get_this(&mut self.inner))?.as_z_obj() }
     }
 
     /// Gets associated mutable `$this` object if exists.
     pub fn get_this_mut(&mut self) -> Option<&mut ZObj> {
-        unsafe {
-            ZVal::try_from_mut_ptr(phper_get_this(&mut self.inner))?.as_mut_z_obj()
-        }
+        unsafe { ZVal::try_from_mut_ptr(phper_get_this(&mut self.inner))?.as_mut_z_obj() }
     }
 
     /// Gets associated called scope if it exists
