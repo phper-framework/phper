@@ -471,13 +471,13 @@ void phper_zend_add_call_flag(zend_execute_data *execute_data, uint32_t flag) {
     ZEND_ADD_CALL_FLAG(execute_data, flag);
 }
 
-uint32_t phper_zend_call_may_have_undef() {
-    return ZEND_CALL_MAY_HAVE_UNDEF;
-}
-
 bool phper_zend_get_parameters_array_ex(uint32_t param_count,
                                         zval *argument_array) {
     return zend_get_parameters_array_ex(param_count, argument_array) != 0;
+}
+
+uint32_t phper_zend_call_may_have_undef() {
+    return ZEND_CALL_MAY_HAVE_UNDEF;
 }
 
 int phper_zend_result_success() {
