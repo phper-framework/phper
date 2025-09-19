@@ -50,6 +50,10 @@ phper_init_class_entry_handler(zend_class_entry *class_ce, void *argument);
 #define IS_VOID 0x1D
 #endif
 
+#ifndef ZEND_CALL_MAY_HAVE_UNDEF
+#define ZEND_CALL_MAY_HAVE_UNDEF (1 << 26)
+#endif
+
 // ==================================================
 // zval apis:
 // ==================================================
