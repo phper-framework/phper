@@ -629,6 +629,11 @@ impl ZFunc {
         }
     }
 
+    /// Detects if the function is static.
+    pub fn is_static(&self) -> bool {
+        unsafe { (self.inner.op_array.fn_flags & ZEND_ACC_STATIC) != 0 }
+    }
+
     /// Get the type of the function (sys::ZEND_USER_FUNCTION,
     /// sys::ZEND_INTERNAL_FUNCTION, or sys::ZEND_EVAL_CODE).
     pub fn get_type(&self) -> u32 {

@@ -50,6 +50,10 @@ phper_init_class_entry_handler(zend_class_entry *class_ce, void *argument);
 #define IS_VOID 0x1D
 #endif
 
+#ifndef ZEND_CALL_MAY_HAVE_UNDEF
+#define ZEND_CALL_MAY_HAVE_UNDEF (1 << 26)
+#endif
+
 // ==================================================
 // zval apis:
 // ==================================================
@@ -196,6 +200,10 @@ void phper_zval_double(zval *zv, double d) {
 
 void phper_zval_str(zval *zv, zend_string *s) {
     ZVAL_STR(zv, s);
+}
+
+void phper_zval_undef(zval *zv) {
+    ZVAL_UNDEF(zv);
 }
 
 void phper_convert_to_long(zval *op) {
@@ -348,6 +356,10 @@ zval *phper_get_this(zend_execute_data *execute_data) {
     return getThis();
 }
 
+zend_class_entry *phper_get_called_scope(zend_execute_data *execute_data) {
+    return zend_get_called_scope(execute_data);
+}
+
 size_t phper_zend_object_properties_size(zend_class_entry *ce) {
     return zend_object_properties_size(ce);
 }
@@ -447,9 +459,37 @@ uint32_t phper_zend_num_args(const zend_execute_data *execute_data) {
     return ZEND_NUM_ARGS();
 }
 
+uint32_t phper_zend_call_num_args(const zend_execute_data *execute_data) {
+    return ZEND_CALL_NUM_ARGS(execute_data);
+}
+
+void phper_zend_set_call_num_args(zend_execute_data *execute_data, uint32_t num) {
+    ZEND_CALL_NUM_ARGS(execute_data) = num;
+}
+
+uint32_t phper_zend_call_info(zend_execute_data *execute_data) {
+    return ZEND_CALL_INFO(execute_data);
+}
+
+void phper_zend_add_call_flag(zend_execute_data *execute_data, uint32_t flag) {
+    ZEND_ADD_CALL_FLAG(execute_data, flag);
+}
+
 bool phper_zend_get_parameters_array_ex(uint32_t param_count,
                                         zval *argument_array) {
     return zend_get_parameters_array_ex(param_count, argument_array) != 0;
+}
+
+uint32_t phper_zend_call_may_have_undef() {
+    return ZEND_CALL_MAY_HAVE_UNDEF;
+}
+
+int phper_zend_result_success() {
+    return SUCCESS;
+}
+
+int phper_zend_result_failure() {
+    return FAILURE;
 }
 
 // ==================================================

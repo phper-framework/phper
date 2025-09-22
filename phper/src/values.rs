@@ -12,6 +12,7 @@
 
 use crate::{
     arrays::{ZArr, ZArray},
+    classes::ClassEntry,
     errors::ExpectTypeError,
     functions::{ZFunc, call_internal},
     objects::{StateObject, ZObj, ZObject},
@@ -177,17 +178,23 @@ impl ExecuteData {
 
     /// Gets associated `$this` object if exists.
     pub fn get_this(&mut self) -> Option<&ZObj> {
-        unsafe {
-            let val = ZVal::from_ptr(phper_get_this(&mut self.inner));
-            val.as_z_obj()
-        }
+        unsafe { ZVal::try_from_ptr(phper_get_this(&mut self.inner))?.as_z_obj() }
     }
 
     /// Gets associated mutable `$this` object if exists.
     pub fn get_this_mut(&mut self) -> Option<&mut ZObj> {
+        unsafe { ZVal::try_from_mut_ptr(phper_get_this(&mut self.inner))?.as_mut_z_obj() }
+    }
+
+    /// Gets associated called scope if it exists
+    pub fn get_called_scope(&mut self) -> Option<&ClassEntry> {
         unsafe {
-            let val = ZVal::from_mut_ptr(phper_get_this(&mut self.inner));
-            val.as_mut_z_obj()
+            let ptr = phper_get_called_scope(&mut self.inner);
+            if ptr.is_null() {
+                None
+            } else {
+                Some(ClassEntry::from_ptr(ptr))
+            }
         }
     }
 
