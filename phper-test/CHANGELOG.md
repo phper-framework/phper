@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.1](https://github.com/phper-framework/phper/compare/phper-test-v0.16.0...phper-test-v0.16.1) - 2025-10-09
+
+### Fixed
+
+- Update feature attribute for documentation configuration ([#224](https://github.com/phper-framework/phper/pull/224))
+- fix invocation of functions with type hint ([#220](https://github.com/phper-framework/phper/pull/220))
+
 ## [0.16.0](https://github.com/phper-framework/phper/compare/phper-test-v0.15.1...phper-test-v0.16.0) - 2025-07-03
 
 ### Added

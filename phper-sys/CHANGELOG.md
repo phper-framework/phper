@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.4](https://github.com/phper-framework/phper/compare/phper-sys-v0.15.3...phper-sys-v0.15.4) - 2025-10-09
+
+### Other
+
+- adding functions for interacting with execution context ([#221](https://github.com/phper-framework/phper/pull/221))
+
 ## [0.15.3](https://github.com/phper-framework/phper/compare/phper-sys-v0.15.2...phper-sys-v0.15.3) - 2025-07-03
 
 ### Added

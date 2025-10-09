@@ -12,7 +12,7 @@
 name = "phper-test"
 description = "PHPer testing utilities."
 keywords = ["php", "binding"]
-version = "0.16.0"
+version = "0.16.1"
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
