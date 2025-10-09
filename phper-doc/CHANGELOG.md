@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.4](https://github.com/phper-framework/phper/compare/phper-doc-v0.15.3...phper-doc-v0.15.4) - 2025-10-09
+
+### Fixed
+
+- Update feature attribute for documentation configuration ([#224](https://github.com/phper-framework/phper/pull/224))
+
+### Other
+
+- adding function start and end line number ([#219](https://github.com/phper-framework/phper/pull/219))
+
 ## [0.15.3](https://github.com/phper-framework/phper/compare/phper-doc-v0.15.2...phper-doc-v0.15.3) - 2025-07-03
 
 ### Added

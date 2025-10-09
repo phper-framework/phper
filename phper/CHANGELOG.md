@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.1](https://github.com/phper-framework/phper/compare/phper-v0.17.0...phper-v0.17.1) - 2025-10-09
+
+### Fixed
+
+- Update feature attribute for documentation configuration ([#224](https://github.com/phper-framework/phper/pull/224))
+- fix invocation of functions with type hint ([#220](https://github.com/phper-framework/phper/pull/220))
+
+### Other
+
+- adding functions for interacting with execution context ([#221](https://github.com/phper-framework/phper/pull/221))
+- adding function start and end line number ([#219](https://github.com/phper-framework/phper/pull/219))
+- provide access to return_value, function's type, filename, line number ([#217](https://github.com/phper-framework/phper/pull/217))
+
 ## [0.17.0](https://github.com/phper-framework/phper/compare/phper-v0.16.1...phper-v0.17.0) - 2025-07-03
 
 ### Added
