@@ -54,6 +54,9 @@ phper_init_class_entry_handler(zend_class_entry *class_ce, void *argument);
 #define ZEND_CALL_MAY_HAVE_UNDEF (1 << 26)
 #endif
 
+const int PHPER_HASH_KEY_IS_STRING = (int) HASH_KEY_IS_STRING;
+const int PHPER_HASH_KEY_IS_LONG   = (int) HASH_KEY_IS_LONG;
+
 // ==================================================
 // zval apis:
 // ==================================================
