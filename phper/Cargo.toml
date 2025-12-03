@@ -44,6 +44,7 @@ unexpected_cfgs = { level = "warn", check-cfg = [
     'cfg(phper_minor_version, values("2"))',
     'cfg(phper_minor_version, values("3"))',
     'cfg(phper_minor_version, values("4"))',
+    'cfg(phper_minor_version, values("5"))',
     'cfg(phper_zts)',
     'cfg(phper_enum_supported)',
 ] }

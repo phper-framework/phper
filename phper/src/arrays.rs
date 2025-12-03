@@ -11,6 +11,7 @@
 //! Apis relate to [zend_array].
 
 use crate::{alloc::EBox, strings::ZStr, sys::*, values::ZVal};
+use cfg_if::cfg_if;
 use derive_more::From;
 use phper_alloc::ToRefOwned;
 use std::{
@@ -463,9 +464,29 @@ impl<'a> Iterator for RawIter<'a> {
                 &mut self.pos,
             ) as u32;
 
-            let iter_key = if result == HASH_KEY_IS_STRING {
+            const IS_STRING: u32 = {
+                cfg_if! {
+                    if #[cfg(all(phper_major_version = "8", phper_minor_version = "5"))] {
+                        zend_hash_key_type_HASH_KEY_IS_STRING
+                    } else {
+                        HASH_KEY_IS_STRING
+                    }
+                }
+            };
+
+            const IS_LONG: u32 = {
+                cfg_if! {
+                    if #[cfg(all(phper_major_version = "8", phper_minor_version = "5"))] {
+                        zend_hash_key_type_HASH_KEY_IS_LONG
+                    } else {
+                        HASH_KEY_IS_LONG
+                    }
+                }
+            };
+
+            let iter_key = if result == IS_STRING {
                 IterKey::ZStr(ZStr::from_mut_ptr(str_index))
-            } else if result == HASH_KEY_IS_LONG {
+            } else if result == IS_LONG {
                 #[allow(clippy::unnecessary_cast)]
                 IterKey::Index(num_index as u64)
             } else {
@@ -473,6 +494,7 @@ impl<'a> Iterator for RawIter<'a> {
                 return None;
             };
 
+            #[allow(clippy::unnecessary_mut_passed)]
             let val = zend_hash_get_current_data_ex(self.arr, &mut self.pos);
             if val.is_null() {
                 self.finished = true;

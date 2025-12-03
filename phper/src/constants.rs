@@ -75,7 +75,7 @@ impl Constant {
                         module_number,
                     )
                 }
-            }
+            };
         }
     }
 }
