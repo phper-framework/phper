@@ -12,7 +12,7 @@
 name = "phper-doc"
 description = "The documentation of phper."
 keywords = ["php", "documentation"]
-version = "0.15.4"
+version = "0.15.5"
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }

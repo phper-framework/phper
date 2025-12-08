@@ -32,7 +32,7 @@ repository = "https://github.com/phper-framework/phper"
 rust-version = "1.85"
 
 [workspace.dependencies]
-phper = { version = "0.17.1", path = "./phper" }
+phper = { version = "0.17.2", path = "./phper" }
 phper-alloc = { version = "0.16.1", path = "./phper-alloc" }
 phper-build = { version = "0.15.4", path = "./phper-build" }
 phper-macros = { version = "0.15.2", path = "./phper-macros" }
