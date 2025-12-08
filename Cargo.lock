@@ -1240,7 +1240,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "phper"
-version = "0.17.1"
+version = "0.17.2"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -1270,7 +1270,7 @@ dependencies = [
 
 [[package]]
 name = "phper-doc"
-version = "0.15.4"
+version = "0.15.5"
 dependencies = [
  "phper",
  "phper-build",

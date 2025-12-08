@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.2](https://github.com/phper-framework/phper/compare/phper-v0.17.1...phper-v0.17.2) - 2025-12-08
+
+### Other
+
+- Adds 8.5 ([#225](https://github.com/phper-framework/phper/pull/225))
+
 ## [0.17.1](https://github.com/phper-framework/phper/compare/phper-v0.17.0...phper-v0.17.1) - 2025-10-09
 
 ### Fixed
