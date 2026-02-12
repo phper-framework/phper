@@ -68,7 +68,7 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
             module.handler_map.extend(class_entity.handler_map());
         }
 
-        #[cfg(phper_enum_supported)]
+        #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
         for enum_entity in &module.enum_entities {
             enum_entity.init();
             module.handler_map.extend(enum_entity.handler_map());
@@ -153,7 +153,7 @@ pub struct Module {
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
     interface_entities: Vec<InterfaceEntity>,
-    #[cfg(phper_enum_supported)]
+    #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
     enum_entities: Vec<crate::enums::EnumEntity<()>>,
     constants: Vec<Constant>,
     ini_entities: Vec<ini::IniEntity>,
@@ -178,7 +178,7 @@ impl Module {
             function_entities: vec![],
             class_entities: Default::default(),
             interface_entities: Default::default(),
-            #[cfg(phper_enum_supported)]
+            #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
             enum_entities: Default::default(),
             constants: Default::default(),
             ini_entities: Default::default(),
@@ -237,7 +237,7 @@ impl Module {
     }
 
     /// Register enum to module.
-    #[cfg(phper_enum_supported)]
+    #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
     pub fn add_enum<B: crate::enums::EnumBackingType>(
         &mut self, enum_entity: crate::enums::EnumEntity<B>,
     ) -> crate::enums::Enum {

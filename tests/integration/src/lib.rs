@@ -46,7 +46,7 @@ pub fn get_module() -> Module {
     errors::integrate(&mut module);
     references::integrate(&mut module);
     typehints::integrate(&mut module);
-    #[cfg(phper_enum_supported)]
+    #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
     enums::integrate(&mut module);
 
     module

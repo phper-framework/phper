@@ -17,7 +17,7 @@
 //!
 //! The implementation respects the PHP 8.1+ enum feature set and provides a
 //! type-safe interface for creating enum cases and handling enum values.
-#![cfg(phper_enum_supported)]
+#![cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
 
 use crate::{
     classes::{

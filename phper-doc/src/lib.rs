@@ -72,7 +72,7 @@ pub mod _06_module {
     #[doc = include_str!("../doc/_06_module/_07_register_interface/index.md")]
     pub mod _07_register_interface {}
 
-    #[cfg(phper_enum_supported)]
+    #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
     #[doc = include_str!("../doc/_06_module/_08_register_enum/index.md")]
     pub mod _08_register_enum {}
 }
