@@ -8,6 +8,7 @@
 # NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
+condense_wildcard_suffixes = true
 fn_params_layout = "Compressed"
 format_code_in_doc_comments = true
 format_macro_bodies = true

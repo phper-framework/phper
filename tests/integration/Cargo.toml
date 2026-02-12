@@ -35,6 +35,6 @@ phper-build = { workspace = true }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(phper_major_version, values("8"))',
-    'cfg(phper_enum_supported)',
+    'cfg(phper_major_version, values(any()))',
+    'cfg(phper_minor_version, values(any()))',
 ] }

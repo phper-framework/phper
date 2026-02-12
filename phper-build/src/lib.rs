@@ -44,10 +44,6 @@ pub fn register_configures() {
     if USING_ZTS != 0 {
         println!("cargo::rustc-cfg=phper_zts");
     }
-
-    if PHP_VERSION_ID >= 80100 {
-        println!("cargo::rustc-cfg=phper_enum_supported");
-    }
 }
 
 /// Register link arguments for os-specified situation.

@@ -8,7 +8,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#![cfg(phper_enum_supported)]
+#![cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
 
 use phper::{
     alloc::ToRefOwned,
