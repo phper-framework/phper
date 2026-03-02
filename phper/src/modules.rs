@@ -28,22 +28,40 @@ use std::{
     os::raw::{c_int, c_uchar, c_uint, c_ushort},
     ptr::{null, null_mut},
     rc::Rc,
+    sync::atomic::{AtomicPtr, Ordering},
 };
 
 /// Global pointer hold the Module builder.
 /// Because PHP is single threaded, so there is no lock here.
-static mut GLOBAL_MODULE: *mut Module = null_mut();
+static GLOBAL_MODULE: AtomicPtr<Module> = AtomicPtr::new(null_mut());
 
-static mut GLOBAL_MODULE_ENTRY: *mut zend_module_entry = null_mut();
+static GLOBAL_MODULE_ENTRY: AtomicPtr<zend_module_entry> = AtomicPtr::new(null_mut());
 
 #[inline]
 pub(crate) unsafe fn global_module<'a>() -> &'a Module {
-    unsafe { GLOBAL_MODULE.as_ref().unwrap() }
+    unsafe {
+        let module = GLOBAL_MODULE.load(Ordering::Acquire);
+        module.as_ref().unwrap()
+    }
 }
+
+#[inline]
+unsafe fn global_module_mut<'a>() -> &'a mut Module {
+    unsafe {
+        let module = GLOBAL_MODULE.load(Ordering::Acquire);
+        module.as_mut().unwrap()
+    }
+}
+
+#[cfg(phper_zts)]
+type RequestHook = dyn Fn() + Send + Sync;
+
+#[cfg(not(phper_zts))]
+type RequestHook = dyn Fn();
 
 unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int {
     unsafe {
-        let module = GLOBAL_MODULE.as_mut().unwrap();
+        let module = global_module_mut();
 
         ini::register(&module.ini_entities, module_number);
 
@@ -84,7 +102,7 @@ unsafe extern "C" fn module_startup(_type: c_int, module_number: c_int) -> c_int
 
 unsafe extern "C" fn module_shutdown(_type: c_int, module_number: c_int) -> c_int {
     unsafe {
-        let module = GLOBAL_MODULE.as_mut().unwrap();
+        let module = global_module_mut();
 
         ini::unregister(module_number);
 
@@ -98,7 +116,7 @@ unsafe extern "C" fn module_shutdown(_type: c_int, module_number: c_int) -> c_in
 
 unsafe extern "C" fn request_startup(_type: c_int, _module_number: c_int) -> c_int {
     unsafe {
-        let module = GLOBAL_MODULE.as_ref().unwrap();
+        let module = global_module();
 
         if let Some(f) = &module.request_init {
             f();
@@ -110,7 +128,7 @@ unsafe extern "C" fn request_startup(_type: c_int, _module_number: c_int) -> c_i
 
 unsafe extern "C" fn request_shutdown(_type: c_int, _module_number: c_int) -> c_int {
     unsafe {
-        let module = GLOBAL_MODULE.as_ref().unwrap();
+        let module = global_module();
 
         if let Some(f) = &module.request_shutdown {
             f();
@@ -122,7 +140,7 @@ unsafe extern "C" fn request_shutdown(_type: c_int, _module_number: c_int) -> c_
 
 unsafe extern "C" fn module_info(zend_module: *mut zend_module_entry) {
     unsafe {
-        let module = GLOBAL_MODULE.as_ref().unwrap();
+        let module = global_module();
 
         php_info_print_table_start();
         if !module.version.as_bytes().is_empty() {
@@ -148,8 +166,8 @@ pub struct Module {
     author: CString,
     module_init: Option<Box<dyn FnOnce()>>,
     module_shutdown: Option<Box<dyn FnOnce()>>,
-    request_init: Option<Box<dyn Fn()>>,
-    request_shutdown: Option<Box<dyn Fn()>>,
+    request_init: Option<Box<RequestHook>>,
+    request_shutdown: Option<Box<RequestHook>>,
     function_entities: Vec<FunctionEntity>,
     class_entities: Vec<ClassEntity<()>>,
     interface_entities: Vec<InterfaceEntity>,
@@ -198,11 +216,25 @@ impl Module {
     }
 
     /// Register `RINIT` hook.
+    #[cfg(phper_zts)]
+    pub fn on_request_init(&mut self, func: impl Fn() + Send + Sync + 'static) {
+        self.request_init = Some(Box::new(func));
+    }
+
+    /// Register `RINIT` hook.
+    #[cfg(not(phper_zts))]
     pub fn on_request_init(&mut self, func: impl Fn() + 'static) {
         self.request_init = Some(Box::new(func));
     }
 
     /// Register `RSHUTDOWN` hook.
+    #[cfg(phper_zts)]
+    pub fn on_request_shutdown(&mut self, func: impl Fn() + Send + Sync + 'static) {
+        self.request_shutdown = Some(Box::new(func));
+    }
+
+    /// Register `RSHUTDOWN` hook.
+    #[cfg(not(phper_zts))]
     pub fn on_request_shutdown(&mut self, func: impl Fn() + 'static) {
         self.request_shutdown = Some(Box::new(func));
     }
@@ -277,8 +309,9 @@ impl Module {
     #[doc(hidden)]
     pub unsafe fn module_entry(self) -> *const zend_module_entry {
         unsafe {
-            if !GLOBAL_MODULE_ENTRY.is_null() {
-                return GLOBAL_MODULE_ENTRY;
+            let entry = GLOBAL_MODULE_ENTRY.load(Ordering::Acquire);
+            if !entry.is_null() {
+                return entry;
             }
 
             assert!(!self.name.as_bytes().is_empty(), "module name must be set");
@@ -319,10 +352,31 @@ impl Module {
                 build_id: phper_get_zend_module_build_id(),
             });
 
-            GLOBAL_MODULE = Box::into_raw(module);
-            GLOBAL_MODULE_ENTRY = Box::into_raw(entry);
+            let module_ptr = Box::into_raw(module);
+            let entry_ptr = Box::into_raw(entry);
 
-            GLOBAL_MODULE_ENTRY
+            match GLOBAL_MODULE.compare_exchange(
+                null_mut(),
+                module_ptr,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    GLOBAL_MODULE_ENTRY.store(entry_ptr, Ordering::Release);
+                    entry_ptr
+                }
+                Err(_) => {
+                    drop(Box::from_raw(module_ptr));
+                    drop(Box::from_raw(entry_ptr));
+                    loop {
+                        let existing_entry = GLOBAL_MODULE_ENTRY.load(Ordering::Acquire);
+                        if !existing_entry.is_null() {
+                            break existing_entry;
+                        }
+                        std::hint::spin_loop();
+                    }
+                }
+            }
         }
     }
 

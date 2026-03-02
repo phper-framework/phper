@@ -64,6 +64,11 @@ fn test_ini() {
 }
 
 #[test]
+fn test_macros() {
+    test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("macros.php"));
+}
+
+#[test]
 fn test_references() {
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("references.php"));
 }

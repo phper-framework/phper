@@ -21,7 +21,7 @@ use std::{
     fmt::{self, Debug, Display},
     io,
     marker::PhantomData,
-    mem::{ManuallyDrop, replace},
+    mem::ManuallyDrop,
     ops::{Deref, DerefMut},
     ptr::null_mut,
     result,
@@ -482,10 +482,10 @@ thread_local! {
 impl Default for ExceptionGuard {
     fn default() -> Self {
         EXCEPTION_STACK.with(|stack| unsafe {
-            #[allow(static_mut_refs)]
-            stack
-                .borrow_mut()
-                .push(replace(&mut eg!(exception), null_mut()));
+            let exception_ptr = &raw mut crate::eg!(exception);
+            let exception = *exception_ptr;
+            *exception_ptr = null_mut();
+            stack.borrow_mut().push(exception);
         });
         Self(PhantomData)
     }
@@ -494,7 +494,8 @@ impl Default for ExceptionGuard {
 impl Drop for ExceptionGuard {
     fn drop(&mut self) {
         EXCEPTION_STACK.with(|stack| unsafe {
-            eg!(exception) = stack.borrow_mut().pop().expect("exception stack is empty");
+            let exception = stack.borrow_mut().pop().expect("exception stack is empty");
+            *(&raw mut crate::eg!(exception)) = exception;
         });
     }
 }

@@ -29,7 +29,7 @@ use std::{
     ffi::{CStr, CString},
     marker::PhantomData,
     mem::{ManuallyDrop, transmute, zeroed},
-    ptr::{self, null_mut},
+    ptr::null_mut,
     rc::Rc,
 };
 
@@ -874,7 +874,7 @@ pub(crate) fn call_internal(
 
     call_raw_common(|ret| unsafe {
         phper_call_user_function(
-            cg!(function_table),
+            crate::cg!(function_table),
             object_val
                 .as_mut()
                 .map(|o| o.as_mut_ptr())
@@ -900,9 +900,10 @@ pub(crate) fn call_raw_common(call_fn: impl FnOnce(&mut ZVal)) -> crate::Result<
     }
 
     unsafe {
-        if !eg!(exception).is_null() {
-            #[allow(static_mut_refs)]
-            let e = ptr::replace(&mut eg!(exception), null_mut());
+        let exception_ptr = &raw mut crate::eg!(exception);
+        if !(*exception_ptr).is_null() {
+            let e = *exception_ptr;
+            *exception_ptr = null_mut();
             let obj = ZObject::from_raw_cast(e);
             match ThrowObject::new(obj) {
                 Ok(e) => return Err(e.into()),

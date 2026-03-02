@@ -1,3 +1,5 @@
+<?php
+
 // Copyright (c) 2022 PHPER Framework Team
 // PHPER is licensed under Mulan PSL v2.
 // You can use this software according to the terms and conditions of the Mulan
@@ -8,6 +10,7 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-fn main() {
-    phper_build::register_all();
-}
+
+require_once __DIR__ . '/_common.php';
+
+integrate_macros_globals();
