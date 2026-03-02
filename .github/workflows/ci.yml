@@ -80,26 +80,12 @@ jobs:
         env:
           phpts: ${{ matrix.ts == true && 'ts' || 'nts' }}
 
-      - name: Setup php-fpm for Linux
-        if: matrix.os == 'ubuntu-24.04' && matrix.ts != true
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y php${{ matrix.php-version }}-fpm
-          sudo rm -f /usr/sbin/php-fpm
-          sudo ln -s /usr/sbin/php-fpm${{ matrix.php-version }} /usr/sbin/php-fpm
-
       - name: PHP version
         run: |
           which php
           php --version
           which php-config
           php-config || true
-
-          if [[ "${{ matrix.ts }}" != "true" ]]; then
-            which php-fpm
-            php-fpm --version
-            [[ `php-fpm --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
-          fi
 
           [[ `php --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
           [[ `php-config --version` == ${{ matrix.php-version }}.* ]] || exit 1;
@@ -141,18 +127,10 @@ jobs:
           args: --release
 
       - name: Cargo test
-        if: matrix.ts != true
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --release -- --nocapture
-
-      - name: Cargo test lib (ZTS)
-        if: matrix.ts == true
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --lib --release -- --nocapture
 
       - name: Cargo doc
         uses: actions-rs/cargo@v1
