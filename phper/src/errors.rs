@@ -482,7 +482,7 @@ thread_local! {
 impl Default for ExceptionGuard {
     fn default() -> Self {
         EXCEPTION_STACK.with(|stack| unsafe {
-            let exception_ptr = phper_eg_exception_ptr();
+            let exception_ptr = &raw mut crate::eg!(exception);
             let exception = *exception_ptr;
             *exception_ptr = null_mut();
             stack.borrow_mut().push(exception);
@@ -495,7 +495,7 @@ impl Drop for ExceptionGuard {
     fn drop(&mut self) {
         EXCEPTION_STACK.with(|stack| unsafe {
             let exception = stack.borrow_mut().pop().expect("exception stack is empty");
-            *phper_eg_exception_ptr() = exception;
+            *(&raw mut crate::eg!(exception)) = exception;
         });
     }
 }

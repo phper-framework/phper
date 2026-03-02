@@ -85,7 +85,7 @@ macro_rules! cg {
     ($x:ident) => {
         (*($crate::sys::ts_resource_ex($crate::sys::compiler_globals_id, std::ptr::null_mut())
             as *mut $crate::sys::zend_compiler_globals))
-        .$x
+            .$x
     };
 }
 
@@ -105,7 +105,7 @@ macro_rules! eg {
     ($x:ident) => {
         (*($crate::sys::ts_resource_ex($crate::sys::executor_globals_id, std::ptr::null_mut())
             as *mut $crate::sys::zend_executor_globals))
-        .$x
+            .$x
     };
 }
 
@@ -125,7 +125,7 @@ macro_rules! pg {
     ($x:ident) => {
         (*($crate::sys::ts_resource_ex($crate::sys::core_globals_id, std::ptr::null_mut())
             as *mut $crate::sys::php_core_globals))
-        .$x
+            .$x
     };
 }
 
@@ -145,7 +145,7 @@ macro_rules! sg {
     ($x:ident) => {
         (*($crate::sys::ts_resource_ex($crate::sys::sapi_globals_id, std::ptr::null_mut())
             as *mut $crate::sys::sapi_globals_struct))
-        .$x
+            .$x
     };
 }
 

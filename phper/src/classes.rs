@@ -224,7 +224,7 @@ fn find_global_class_entry_ptr(name: impl AsRef<str>) -> *mut zend_class_entry {
     let name = name.to_lowercase();
     unsafe {
         phper_zend_hash_str_find_ptr(
-            phper_cg_class_table(),
+            crate::cg!(class_table),
             name.as_ptr().cast(),
             name.len().try_into().unwrap(),
         )

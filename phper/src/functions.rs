@@ -874,7 +874,7 @@ pub(crate) fn call_internal(
 
     call_raw_common(|ret| unsafe {
         phper_call_user_function(
-            phper_cg_function_table(),
+            crate::cg!(function_table),
             object_val
                 .as_mut()
                 .map(|o| o.as_mut_ptr())
@@ -900,7 +900,7 @@ pub(crate) fn call_raw_common(call_fn: impl FnOnce(&mut ZVal)) -> crate::Result<
     }
 
     unsafe {
-        let exception_ptr = phper_eg_exception_ptr();
+        let exception_ptr = &raw mut crate::eg!(exception);
         if !(*exception_ptr).is_null() {
             let e = *exception_ptr;
             *exception_ptr = null_mut();
