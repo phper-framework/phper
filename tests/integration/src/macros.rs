@@ -1,0 +1,25 @@
+// Copyright (c) 2022 PHPER Framework Team
+// PHPER is licensed under Mulan PSL v2.
+// You can use this software according to the terms and conditions of the Mulan
+// PSL v2. You may obtain a copy of Mulan PSL v2 at:
+//          http://license.coscl.org.cn/MulanPSL2
+// THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+// KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+// See the Mulan PSL v2 for more details.
+
+use phper::modules::Module;
+use std::convert::Infallible;
+
+pub fn integrate(module: &mut Module) {
+    module.add_function("integrate_macros_globals", |_| {
+        unsafe {
+            let _compiler_options = phper::cg!(compiler_options);
+            let _error_reporting = phper::eg!(error_reporting);
+            let _connection_status = phper::pg!(connection_status);
+            let _headers_sent = phper::sg!(headers_sent);
+        }
+
+        Ok::<_, Infallible>(())
+    });
+}

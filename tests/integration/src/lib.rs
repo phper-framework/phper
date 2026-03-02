@@ -18,6 +18,7 @@ mod enums;
 mod errors;
 mod functions;
 mod ini;
+mod macros;
 mod objects;
 mod references;
 mod strings;
@@ -43,6 +44,7 @@ pub fn get_module() -> Module {
     values::integrate(&mut module);
     constants::integrate(&mut module);
     ini::integrate(&mut module);
+    macros::integrate(&mut module);
     errors::integrate(&mut module);
     references::integrate(&mut module);
     typehints::integrate(&mut module);

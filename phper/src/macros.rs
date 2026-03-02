@@ -80,6 +80,18 @@ macro_rules! deprecated {
 
 /// Equivalent to the php `CG`.
 #[macro_export]
+#[cfg(phper_zts)]
+macro_rules! cg {
+    ($x:ident) => {
+        (*($crate::sys::ts_resource_ex($crate::sys::compiler_globals_id, std::ptr::null_mut())
+            as *mut $crate::sys::zend_compiler_globals))
+        .$x
+    };
+}
+
+/// Equivalent to the php `CG`.
+#[macro_export]
+#[cfg(not(phper_zts))]
 macro_rules! cg {
     ($x:ident) => {
         $crate::sys::compiler_globals.$x
@@ -88,6 +100,18 @@ macro_rules! cg {
 
 /// Equivalent to the php `EG`.
 #[macro_export]
+#[cfg(phper_zts)]
+macro_rules! eg {
+    ($x:ident) => {
+        (*($crate::sys::ts_resource_ex($crate::sys::executor_globals_id, std::ptr::null_mut())
+            as *mut $crate::sys::zend_executor_globals))
+        .$x
+    };
+}
+
+/// Equivalent to the php `EG`.
+#[macro_export]
+#[cfg(not(phper_zts))]
 macro_rules! eg {
     ($x:ident) => {
         $crate::sys::executor_globals.$x
@@ -96,6 +120,18 @@ macro_rules! eg {
 
 /// Equivalent to the php `PG`.
 #[macro_export]
+#[cfg(phper_zts)]
+macro_rules! pg {
+    ($x:ident) => {
+        (*($crate::sys::ts_resource_ex($crate::sys::core_globals_id, std::ptr::null_mut())
+            as *mut $crate::sys::php_core_globals))
+        .$x
+    };
+}
+
+/// Equivalent to the php `PG`.
+#[macro_export]
+#[cfg(not(phper_zts))]
 macro_rules! pg {
     ($x:ident) => {
         $crate::sys::core_globals.$x
@@ -104,6 +140,18 @@ macro_rules! pg {
 
 /// Equivalent to the php `SG`.
 #[macro_export]
+#[cfg(phper_zts)]
+macro_rules! sg {
+    ($x:ident) => {
+        (*($crate::sys::ts_resource_ex($crate::sys::sapi_globals_id, std::ptr::null_mut())
+            as *mut $crate::sys::sapi_globals_struct))
+        .$x
+    };
+}
+
+/// Equivalent to the php `SG`.
+#[macro_export]
+#[cfg(not(phper_zts))]
 macro_rules! sg {
     ($x:ident) => {
         $crate::sys::sapi_globals.$x
