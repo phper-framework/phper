@@ -447,6 +447,18 @@ bool phper_call_user_function(HashTable *function_table, zval *object,
                               param_count, params) == SUCCESS;
 }
 
+HashTable *phper_cg_function_table() {
+    return CG(function_table);
+}
+
+HashTable *phper_cg_class_table() {
+    return CG(class_table);
+}
+
+zend_object **phper_eg_exception_ptr() {
+    return &EG(exception);
+}
+
 zval *phper_zend_call_var_num(zend_execute_data *execute_data, int index) {
     return ZEND_CALL_VAR_NUM(execute_data, index);
 }
