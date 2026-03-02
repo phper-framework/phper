@@ -82,13 +82,16 @@ jobs:
 
       - name: PHP version
         run: |
-          which php
-          php --version
-          which php-config
-          php-config || true
+          echo "=== php path ===" && which php
+          echo "=== php --version ===" && php --version
+          echo "=== php-config path ===" && which php-config
+          echo "=== php-config --version ===" && php-config --version
+          echo "=== php-fpm path ===" && which php-fpm
+          echo "=== php-fpm --version ===" && php-fpm --version
 
           [[ `php --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
           [[ `php-config --version` == ${{ matrix.php-version }}.* ]] || exit 1;
+          [[ `php-fpm --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
 
       - name: Install Rust Nightly
         uses: actions-rs/toolchain@v1
