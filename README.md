@@ -34,17 +34,17 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 | **Category**    | **Item**  | **Status** |
 | --------------- | --------- | ---------- |
-| **OS**          | Linux     | ✅          |
-|                 | macOS     | ✅          |
-|                 | Windows   | ❌          |
-| **PHP Version** | 7.0 ~ 7.4 | ✅          |
-|                 | 8.0 ~ 8.5 | ✅          |
-| **PHP Mode**    | NTS       | ✅          |
-|                 | ZTS       | ❌          |
-| **SAPI**        | CLI       | ✅          |
-|                 | FPM       | ✅          |
-| **Debug**       | Disable   | ✅          |
-|                 | Enable    | ❌          |
+| **OS**          | Linux     | ✅         |
+|                 | macOS     | ✅         |
+|                 | Windows   | ❌         |
+| **PHP Version** | 7.0 ~ 7.4 | ✅         |
+|                 | 8.0 ~ 8.5 | ✅         |
+| **PHP Mode**    | NTS       | ✅         |
+|                 | ZTS       | ✅         |
+| **SAPI**        | CLI       | ✅         |
+|                 | FPM       | ✅         |
+| **Debug**       | Disable   | ✅         |
+|                 | Enable    | ❌         |
 
 ## Examples
 
