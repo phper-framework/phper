@@ -18,7 +18,6 @@ use std::convert::Infallible;
 
 pub fn integrate(module: &mut Module) {
     integrate_returns(module);
-    integrate_as(module);
 }
 
 fn integrate_returns(module: &mut Module) {
@@ -82,6 +81,7 @@ fn integrate_returns(module: &mut Module) {
         "integration_values_return_val",
         integration_values_return_val,
     );
+    module.add_function("integration_values_as", integration_values_as);
 }
 
 fn integration_values_return_null(_: &mut [ZVal]) -> Result<(), Infallible> {
@@ -155,7 +155,7 @@ fn integration_values_return_val(_: &mut [ZVal]) -> Result<ZVal, Infallible> {
     Ok(ZVal::from("foo"))
 }
 
-fn integrate_as(_module: &mut Module) {
+fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
     {
         let val = ZVal::default();
         assert_eq!(val.as_null(), Some(()));
@@ -279,4 +279,6 @@ fn integrate_as(_module: &mut Module) {
 
         assert!(val.expect_type::<&phper::arrays::ZArr>().is_err());
     }
+
+    Ok(())
 }

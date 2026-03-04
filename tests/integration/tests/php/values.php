@@ -28,3 +28,4 @@ assert_eq(integration_values_return_option_i64_none(), null);
 assert_eq(integration_values_return_result_string_ok(), "foo");
 assert_throw("integration_values_return_result_string_err", "ErrorException", 0, "a zhe");
 assert_eq(integration_values_return_val(), "foo");
+assert_eq(integration_values_as(), null);

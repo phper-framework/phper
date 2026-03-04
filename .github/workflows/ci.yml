@@ -123,12 +123,6 @@ jobs:
           command: clippy
           args: --release
 
-      - name: Cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
-
       - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
