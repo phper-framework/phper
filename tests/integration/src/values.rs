@@ -18,7 +18,6 @@ use std::convert::Infallible;
 
 pub fn integrate(module: &mut Module) {
     integrate_returns(module);
-    integrate_as(module);
 }
 
 fn integrate_returns(module: &mut Module) {
@@ -82,6 +81,7 @@ fn integrate_returns(module: &mut Module) {
         "integration_values_return_val",
         integration_values_return_val,
     );
+    module.add_function("integration_values_as", integration_values_as);
 }
 
 fn integration_values_return_null(_: &mut [ZVal]) -> Result<(), Infallible> {
@@ -155,7 +155,7 @@ fn integration_values_return_val(_: &mut [ZVal]) -> Result<ZVal, Infallible> {
     Ok(ZVal::from("foo"))
 }
 
-fn integrate_as(_module: &mut Module) {
+fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
     {
         let val = ZVal::default();
         assert_eq!(val.as_null(), Some(()));
@@ -187,4 +187,98 @@ fn integrate_as(_module: &mut Module) {
         }
         assert_eq!(val.as_double(), Some(200.));
     }
+
+    {
+        let val = ZVal::default();
+        assert_eq!(val.as_type::<()>(), Some(()));
+        assert!(val.expect_type::<()>().is_ok());
+        assert!(val.expect_type::<bool>().is_err());
+    }
+
+    {
+        let val = ZVal::from(true);
+        assert_eq!(val.as_type::<bool>(), Some(true));
+        assert_eq!(val.as_type::<i64>(), None);
+        assert!(val.expect_type::<i64>().is_err());
+    }
+
+    {
+        let mut val = ZVal::from(100i64);
+        assert_eq!(val.as_type::<i64>(), Some(100));
+        if let Some(l) = val.as_mut_type::<&mut i64>() {
+            *l += 100;
+        }
+        assert_eq!(val.expect_type::<i64>().unwrap(), 200);
+        assert!(val.expect_mut_type::<&mut f64>().is_err());
+    }
+
+    {
+        let mut val = ZVal::from(100f64);
+        assert_eq!(val.as_type::<f64>(), Some(100.));
+        if let Some(d) = val.as_mut_type::<&mut f64>() {
+            *d += 100.;
+        }
+        assert_eq!(val.expect_type::<f64>().unwrap(), 200.);
+        assert!(val.expect_mut_type::<&mut i64>().is_err());
+    }
+
+    {
+        let val = ZVal::from("foo");
+        assert_eq!(
+            val.as_type::<&phper::strings::ZStr>().unwrap().to_bytes(),
+            b"foo"
+        );
+        assert!(val.expect_type::<&phper::arrays::ZArr>().is_err());
+    }
+
+    {
+        let mut arr = ZArray::new();
+        arr.insert(InsertKey::NextIndex, ZVal::from("a"));
+        arr.insert(InsertKey::NextIndex, ZVal::from("b"));
+        let mut val = ZVal::from(arr);
+
+        {
+            let zarr = val.expect_type::<&phper::arrays::ZArr>().unwrap();
+            let got = zarr.get(1).unwrap().expect_z_str().unwrap().to_bytes();
+            assert_eq!(got, b"b");
+        }
+
+        {
+            let zarr = val.expect_mut_type::<&mut phper::arrays::ZArr>().unwrap();
+            zarr.insert(InsertKey::NextIndex, ZVal::from("c"));
+            assert_eq!(zarr.len(), 3);
+        }
+
+        assert!(val.expect_type::<&phper::objects::ZObj>().is_err());
+    }
+
+    {
+        let mut obj = ZObject::new_by_std_class();
+        obj.set_property("foo", ZVal::from("bar"));
+        let mut val = ZVal::from(obj);
+
+        {
+            let zobj = val.expect_type::<&phper::objects::ZObj>().unwrap();
+            let got = zobj.get_property("foo").expect_z_str().unwrap().to_bytes();
+            assert_eq!(got, b"bar");
+        }
+
+        {
+            let zobj = val.expect_mut_type::<&mut phper::objects::ZObj>().unwrap();
+            zobj.set_property("foo", ZVal::from("baz"));
+        }
+
+        let got = val
+            .expect_type::<&phper::objects::ZObj>()
+            .unwrap()
+            .get_property("foo")
+            .expect_z_str()
+            .unwrap()
+            .to_bytes();
+        assert_eq!(got, b"baz");
+
+        assert!(val.expect_type::<&phper::arrays::ZArr>().is_err());
+    }
+
+    Ok(())
 }
