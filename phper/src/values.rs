@@ -259,6 +259,120 @@ pub trait FromZValMut<'a>: Sized {
     fn expect(val: &'a mut ZVal) -> crate::Result<Self>;
 }
 
+/// Borrowed value set converted from immutable [`ZVal`].
+#[derive(Debug)]
+pub enum ZValRef<'a> {
+    /// `null`
+    Null,
+    /// `bool`
+    Bool(bool),
+    /// `int`
+    Long(i64),
+    /// `float`
+    Double(f64),
+    /// `string`
+    Str(&'a ZStr),
+    /// `array`
+    Arr(&'a ZArr),
+    /// `object`
+    Obj(&'a ZObj),
+    /// `resource`
+    Res(&'a ZRes),
+    /// `reference`
+    Ref(&'a ZRef),
+}
+
+impl<'a> ZValRef<'a> {
+    /// Converts from immutable [`ZVal`].
+    #[inline]
+    pub fn from_z_val(val: &'a ZVal) -> crate::Result<Self> {
+        <Self as FromZVal>::expect(val)
+    }
+}
+
+impl<'a> FromZVal<'a> for ZValRef<'a> {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        let t = val.get_type_info();
+
+        if t.is_null() {
+            Ok(Self::Null)
+        } else if t.is_bool() {
+            Ok(Self::Bool(val.expect_bool()?))
+        } else if t.is_long() {
+            Ok(Self::Long(val.expect_long()?))
+        } else if t.is_double() {
+            Ok(Self::Double(val.expect_double()?))
+        } else if t.is_string() {
+            Ok(Self::Str(val.expect_z_str()?))
+        } else if t.is_array() {
+            Ok(Self::Arr(val.expect_z_arr()?))
+        } else if t.is_object() {
+            Ok(Self::Obj(val.expect_z_obj()?))
+        } else if t.is_resource() {
+            Ok(Self::Res(val.expect_z_res()?))
+        } else if t.is_reference() {
+            Ok(Self::Ref(val.expect_z_ref()?))
+        } else {
+            Err(ExpectTypeError::new(TypeInfo::NULL, t).into())
+        }
+    }
+}
+
+/// Borrowed value set converted from mutable [`ZVal`].
+#[derive(Debug)]
+pub enum ZValMut<'a> {
+    /// `null`
+    Null,
+    /// `int`
+    Long(&'a mut i64),
+    /// `float`
+    Double(&'a mut f64),
+    /// `string`
+    Str(&'a mut ZStr),
+    /// `array`
+    Arr(&'a mut ZArr),
+    /// `object`
+    Obj(&'a mut ZObj),
+    /// `resource`
+    Res(&'a mut ZRes),
+    /// `reference`
+    Ref(&'a mut ZRef),
+}
+
+impl<'a> ZValMut<'a> {
+    /// Converts from mutable [`ZVal`].
+    #[inline]
+    pub fn from_z_val_mut(val: &'a mut ZVal) -> crate::Result<Self> {
+        <Self as FromZValMut>::expect(val)
+    }
+}
+
+impl<'a> FromZValMut<'a> for ZValMut<'a> {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        let t = val.get_type_info();
+
+        if t.is_null() {
+            Ok(Self::Null)
+        } else if t.is_long() {
+            Ok(Self::Long(val.expect_mut_long()?))
+        } else if t.is_double() {
+            Ok(Self::Double(val.expect_mut_double()?))
+        } else if t.is_string() {
+            Ok(Self::Str(val.expect_mut_z_str()?))
+        } else if t.is_array() {
+            Ok(Self::Arr(val.expect_mut_z_arr()?))
+        } else if t.is_object() {
+            Ok(Self::Obj(val.expect_mut_z_obj()?))
+        } else if t.is_resource() {
+            Ok(Self::Res(val.expect_mut_z_res()?))
+        } else if t.is_reference() {
+            Ok(Self::Ref(val.expect_mut_z_ref()?))
+        } else {
+            Err(ExpectTypeError::new(TypeInfo::LONG, t).into())
+        }
+    }
+}
+
 impl ZVal {
     /// Wraps a raw pointer.
     ///
@@ -363,6 +477,18 @@ impl ZVal {
         T: FromZValMut<'a>,
     {
         T::expect(self)
+    }
+
+    /// Converts current [`ZVal`] to borrowed [`ZValRef`].
+    #[inline]
+    pub fn to_value(&self) -> crate::Result<ZValRef<'_>> {
+        ZValRef::from_z_val(self)
+    }
+
+    /// Converts current mutable [`ZVal`] to borrowed [`ZValMut`].
+    #[inline]
+    pub fn to_value_mut(&mut self) -> crate::Result<ZValMut<'_>> {
+        ZValMut::from_z_val_mut(self)
     }
 
     /// Converts to null if `ZVal` is null.

@@ -12,7 +12,7 @@ use phper::{
     arrays::{InsertKey, ZArray},
     modules::Module,
     objects::ZObject,
-    values::ZVal,
+    values::{ZVal, ZValMut, ZValRef},
 };
 use std::convert::Infallible;
 
@@ -278,6 +278,113 @@ fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
         assert_eq!(got, b"baz");
 
         assert!(val.expect_type::<&phper::arrays::ZArr>().is_err());
+    }
+
+    {
+        let val = ZVal::default();
+        match val.to_value().unwrap() {
+            ZValRef::Null => {}
+            other => panic!("expect Null, got {other:?}"),
+        }
+    }
+
+    {
+        let val = ZVal::from("foo");
+        match ZValRef::from_z_val(&val).unwrap() {
+            ZValRef::Str(s) => assert_eq!(s.to_bytes(), b"foo"),
+            other => panic!("expect Str, got {other:?}"),
+        }
+    }
+
+    {
+        let mut val = ZVal::default();
+        match val.to_value_mut().unwrap() {
+            ZValMut::Null => {}
+            other => panic!("expect Null, got {other:?}"),
+        }
+    }
+
+    {
+        let mut val = ZVal::from(100i64);
+        match ZValMut::from_z_val_mut(&mut val).unwrap() {
+            ZValMut::Long(i) => *i += 23,
+            other => panic!("expect Long, got {other:?}"),
+        }
+        assert_eq!(val.expect_long().unwrap(), 123);
+    }
+
+    {
+        let mut val = ZVal::from("bar");
+        match val.to_value_mut().unwrap() {
+            ZValMut::Str(s) => {
+                assert_eq!(s.to_bytes(), b"bar");
+            }
+            other => panic!("expect Str, got {other:?}"),
+        }
+    }
+
+    {
+        let mut arr = ZArray::new();
+        arr.insert(InsertKey::NextIndex, ZVal::from("x"));
+        let val = ZVal::from(arr);
+
+        match val.to_value().unwrap() {
+            ZValRef::Arr(a) => {
+                let got = a.get(0).unwrap().expect_z_str().unwrap().to_bytes();
+                assert_eq!(got, b"x");
+            }
+            other => panic!("expect Arr, got {other:?}"),
+        }
+    }
+
+    {
+        let mut obj = ZObject::new_by_std_class();
+        obj.set_property("name", ZVal::from("copilot"));
+        let val = ZVal::from(obj);
+
+        match val.to_value().unwrap() {
+            ZValRef::Obj(o) => {
+                let got = o.get_property("name").expect_z_str().unwrap().to_bytes();
+                assert_eq!(got, b"copilot");
+            }
+            other => panic!("expect Obj, got {other:?}"),
+        }
+    }
+
+    {
+        let mut arr = ZArray::new();
+        arr.insert(InsertKey::NextIndex, ZVal::from("a"));
+        let mut val = ZVal::from(arr);
+
+        match val.to_value_mut().unwrap() {
+            ZValMut::Arr(a) => {
+                a.insert(InsertKey::NextIndex, ZVal::from("b"));
+                assert_eq!(a.len(), 2);
+            }
+            other => panic!("expect Arr, got {other:?}"),
+        }
+    }
+
+    {
+        let mut obj = ZObject::new_by_std_class();
+        obj.set_property("foo", ZVal::from("bar"));
+        let mut val = ZVal::from(obj);
+
+        match val.to_value_mut().unwrap() {
+            ZValMut::Obj(o) => {
+                o.set_property("foo", ZVal::from("baz"));
+            }
+            other => panic!("expect Obj, got {other:?}"),
+        }
+
+        let got = val
+            .expect_type::<&phper::objects::ZObj>()
+            .unwrap()
+            .get_property("foo")
+            .expect_z_str()
+            .unwrap()
+            .to_bytes();
+        assert_eq!(got, b"baz");
     }
 
     Ok(())
