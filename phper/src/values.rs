@@ -236,6 +236,29 @@ pub struct ZVal {
     _p: PhantomData<*mut ()>,
 }
 
+/// Conversion from immutable [`ZVal`].
+pub trait FromZVal<'a>: Sized {
+    /// Converts from `ZVal`, return `None` when type mismatch.
+    fn as_(val: &'a ZVal) -> Option<Self> {
+        Self::expect(val).ok()
+    }
+
+    /// Converts from `ZVal`, return [`ExpectTypeError`] when type mismatch.
+    fn expect(val: &'a ZVal) -> crate::Result<Self>;
+}
+
+/// Conversion from mutable [`ZVal`].
+pub trait FromZValMut<'a>: Sized {
+    /// Converts from mutable `ZVal`, return `None` when type mismatch.
+    fn as_(val: &'a mut ZVal) -> Option<Self> {
+        Self::expect(val).ok()
+    }
+
+    /// Converts from mutable `ZVal`, return [`ExpectTypeError`] when type
+    /// mismatch.
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self>;
+}
+
 impl ZVal {
     /// Wraps a raw pointer.
     ///
@@ -306,6 +329,40 @@ impl ZVal {
     pub fn get_type_info(&self) -> TypeInfo {
         let t = unsafe { phper_z_type_info_p(self.as_ptr()) };
         t.into()
+    }
+
+    /// Converts to target type by [`FromZVal`].
+    pub fn as_type<'a, T>(&'a self) -> Option<T>
+    where
+        T: FromZVal<'a>,
+    {
+        T::as_(self)
+    }
+
+    /// Converts to target type by [`FromZVal`], otherwise returns
+    /// [`ExpectTypeError`].
+    pub fn expect_type<'a, T>(&'a self) -> crate::Result<T>
+    where
+        T: FromZVal<'a>,
+    {
+        T::expect(self)
+    }
+
+    /// Converts to target mutable type by [`FromZValMut`].
+    pub fn as_mut_type<'a, T>(&'a mut self) -> Option<T>
+    where
+        T: FromZValMut<'a>,
+    {
+        T::as_(self)
+    }
+
+    /// Converts to target mutable type by [`FromZValMut`], otherwise returns
+    /// [`ExpectTypeError`].
+    pub fn expect_mut_type<'a, T>(&'a mut self) -> crate::Result<T>
+    where
+        T: FromZValMut<'a>,
+    {
+        T::expect(self)
     }
 
     /// Converts to null if `ZVal` is null.
@@ -656,6 +713,102 @@ impl Debug for ZVal {
         }
 
         d.finish()
+    }
+}
+
+impl<'a> FromZVal<'a> for () {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_null()
+    }
+}
+
+impl<'a> FromZVal<'a> for bool {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_bool()
+    }
+}
+
+impl<'a> FromZVal<'a> for i64 {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_long()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut i64 {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_long()
+    }
+}
+
+impl<'a> FromZVal<'a> for f64 {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_double()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut f64 {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_double()
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a ZStr {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_z_str()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut ZStr {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_z_str()
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a ZArr {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_z_arr()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut ZArr {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_z_arr()
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a ZObj {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_z_obj()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut ZObj {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_z_obj()
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a ZRes {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_z_res()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut ZRes {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_z_res()
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a ZRef {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_z_ref()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut ZRef {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_z_ref()
     }
 }
 
