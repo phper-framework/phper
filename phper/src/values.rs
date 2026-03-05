@@ -238,22 +238,12 @@ pub struct ZVal {
 
 /// Conversion from immutable [`ZVal`].
 pub trait FromZVal<'a>: Sized {
-    /// Converts from `ZVal`, return `None` when type mismatch.
-    fn as_(val: &'a ZVal) -> Option<Self> {
-        Self::expect(val).ok()
-    }
-
     /// Converts from `ZVal`, return [`ExpectTypeError`] when type mismatch.
     fn expect(val: &'a ZVal) -> crate::Result<Self>;
 }
 
 /// Conversion from mutable [`ZVal`].
 pub trait FromZValMut<'a>: Sized {
-    /// Converts from mutable `ZVal`, return `None` when type mismatch.
-    fn as_(val: &'a mut ZVal) -> Option<Self> {
-        Self::expect(val).ok()
-    }
-
     /// Converts from mutable `ZVal`, return [`ExpectTypeError`] when type
     /// mismatch.
     fn expect(val: &'a mut ZVal) -> crate::Result<Self>;
@@ -445,14 +435,6 @@ impl ZVal {
         t.into()
     }
 
-    /// Converts to target type by [`FromZVal`].
-    pub fn as_type<'a, T>(&'a self) -> Option<T>
-    where
-        T: FromZVal<'a>,
-    {
-        T::as_(self)
-    }
-
     /// Converts to target type by [`FromZVal`], otherwise returns
     /// [`ExpectTypeError`].
     pub fn expect_type<'a, T>(&'a self) -> crate::Result<T>
@@ -460,14 +442,6 @@ impl ZVal {
         T: FromZVal<'a>,
     {
         T::expect(self)
-    }
-
-    /// Converts to target mutable type by [`FromZValMut`].
-    pub fn as_mut_type<'a, T>(&'a mut self) -> Option<T>
-    where
-        T: FromZValMut<'a>,
-    {
-        T::as_(self)
     }
 
     /// Converts to target mutable type by [`FromZValMut`], otherwise returns
@@ -613,6 +587,24 @@ impl ZVal {
     /// [`ExpectTypeError`].
     pub fn expect_z_str(&self) -> crate::Result<&ZStr> {
         self.inner_expect_z_str().map(|x| &*x)
+    }
+
+    /// Converts to bytes if `ZVal` is string, otherwise returns
+    /// [`ExpectTypeError`].
+    pub fn expect_bytes(&self) -> crate::Result<&[u8]> {
+        self.expect_z_str().map(ZStr::to_bytes)
+    }
+
+    /// Converts to str if `ZVal` is string and valid UTF-8, otherwise returns
+    /// error.
+    pub fn expect_str(&self) -> crate::Result<&str> {
+        Ok(self.expect_z_str()?.to_str()?)
+    }
+
+    /// Converts to CStr if `ZVal` is string and contains a valid trailing nul,
+    /// otherwise returns error.
+    pub fn expect_c_str(&self) -> crate::Result<&CStr> {
+        Ok(self.expect_z_str()?.to_c_str()?)
     }
 
     /// Converts to mutable string if `ZVal` is string.
@@ -854,6 +846,24 @@ impl<'a> FromZVal<'a> for bool {
     }
 }
 
+impl<'a> FromZVal<'a> for &'a ZVal {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        Ok(val)
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a ZVal {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        Ok(val)
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut ZVal {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        Ok(val)
+    }
+}
+
 impl<'a> FromZVal<'a> for i64 {
     fn expect(val: &'a ZVal) -> crate::Result<Self> {
         val.expect_long()
@@ -881,6 +891,42 @@ impl<'a> FromZValMut<'a> for &'a mut f64 {
 impl<'a> FromZVal<'a> for &'a ZStr {
     fn expect(val: &'a ZVal) -> crate::Result<Self> {
         val.expect_z_str()
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a [u8] {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_bytes()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a [u8] {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        val.expect_mut_z_str().map(|s| s.to_bytes())
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a str {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_str()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a str {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        Ok(val.expect_mut_z_str()?.to_str()?)
+    }
+}
+
+impl<'a> FromZVal<'a> for &'a CStr {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        val.expect_c_str()
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a CStr {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        Ok(val.expect_mut_z_str()?.to_c_str()?)
     }
 }
 
