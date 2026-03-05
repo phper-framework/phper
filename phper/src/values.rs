@@ -846,6 +846,24 @@ impl<'a> FromZVal<'a> for bool {
     }
 }
 
+impl<'a> FromZVal<'a> for &'a ZVal {
+    fn expect(val: &'a ZVal) -> crate::Result<Self> {
+        Ok(val)
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a ZVal {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        Ok(val)
+    }
+}
+
+impl<'a> FromZValMut<'a> for &'a mut ZVal {
+    fn expect(val: &'a mut ZVal) -> crate::Result<Self> {
+        Ok(val)
+    }
+}
+
 impl<'a> FromZVal<'a> for i64 {
     fn expect(val: &'a ZVal) -> crate::Result<Self> {
         val.expect_long()

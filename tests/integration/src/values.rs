@@ -204,6 +204,21 @@ fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
 
     {
         let mut val = ZVal::from(100i64);
+        let borrowed = val.expect_type::<&ZVal>().unwrap();
+        assert_eq!(borrowed.expect_long().unwrap(), 100);
+        let borrowed_from_mut = val.expect_mut_type::<&ZVal>().unwrap();
+        assert_eq!(borrowed_from_mut.expect_long().unwrap(), 100);
+
+        {
+            let borrowed_mut = val.expect_mut_type::<&mut ZVal>().unwrap();
+            *borrowed_mut.expect_mut_long().unwrap() += 1;
+        }
+
+        assert_eq!(val.expect_long().unwrap(), 101);
+    }
+
+    {
+        let mut val = ZVal::from(100i64);
         assert_eq!(val.expect_type::<i64>().ok(), Some(100));
         if let Some(l) = val.expect_mut_type::<&mut i64>().ok() {
             *l += 100;
