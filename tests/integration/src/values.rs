@@ -225,7 +225,9 @@ fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
     {
         let val = ZVal::from("foo");
         assert_eq!(
-            val.expect_type::<&phper::strings::ZStr>().unwrap().to_bytes(),
+            val.expect_type::<&phper::strings::ZStr>()
+                .unwrap()
+                .to_bytes(),
             b"foo"
         );
         assert!(val.expect_type::<&phper::arrays::ZArr>().is_err());
