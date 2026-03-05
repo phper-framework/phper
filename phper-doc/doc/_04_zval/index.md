@@ -73,6 +73,41 @@ fn say_hello(arguments: &mut [ZVal]) -> phper::Result<()> {
 }
 ```
 
+### Generic conversion via `FromZVal` / `FromZValMut`
+
+Besides calling `expect_*` directly, you can also use generic conversion traits:
+
+- [`phper::values::FromZVal`]: converts from `&ZVal`.
+- [`phper::values::FromZValMut`]: converts from `&mut ZVal`.
+
+And call [`phper::values::ZVal::expect_type`] /
+[`phper::values::ZVal::expect_mut_type`] to perform conversion.
+
+```rust,no_run
+use phper::values::{FromZVal, FromZValMut, ZVal};
+
+fn expect_immutable<'a, T: FromZVal<'a>>(val: &'a ZVal) -> phper::Result<T> {
+    val.expect_type()
+}
+
+fn expect_mutable<'a, T: FromZValMut<'a>>(val: &'a mut ZVal) -> phper::Result<T> {
+    val.expect_mut_type()
+}
+
+fn demo() -> phper::Result<()> {
+    let z = ZVal::from(123i64);
+    let immutable: i64 = expect_immutable(&z)?;
+    assert_eq!(immutable, 123);
+
+    let mut z = ZVal::from(456i64);
+    let mutable: &mut i64 = expect_mutable(&mut z)?;
+    *mutable += 1;
+    assert_eq!(z.expect_long()?, 457);
+
+    Ok(())
+}
+```
+
 ## Value copy & reference counting copy
 
 The [`phper::values::ZVal`] both implements [`std::clone::Clone`] and
