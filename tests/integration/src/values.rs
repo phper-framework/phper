@@ -190,22 +190,22 @@ fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
 
     {
         let val = ZVal::default();
-        assert_eq!(val.as_type::<()>(), Some(()));
+        assert_eq!(val.expect_type::<()>().ok(), Some(()));
         assert!(val.expect_type::<()>().is_ok());
         assert!(val.expect_type::<bool>().is_err());
     }
 
     {
         let val = ZVal::from(true);
-        assert_eq!(val.as_type::<bool>(), Some(true));
-        assert_eq!(val.as_type::<i64>(), None);
+        assert_eq!(val.expect_type::<bool>().ok(), Some(true));
+        assert_eq!(val.expect_type::<i64>().ok(), None);
         assert!(val.expect_type::<i64>().is_err());
     }
 
     {
         let mut val = ZVal::from(100i64);
-        assert_eq!(val.as_type::<i64>(), Some(100));
-        if let Some(l) = val.as_mut_type::<&mut i64>() {
+        assert_eq!(val.expect_type::<i64>().ok(), Some(100));
+        if let Some(l) = val.expect_mut_type::<&mut i64>().ok() {
             *l += 100;
         }
         assert_eq!(val.expect_type::<i64>().unwrap(), 200);
@@ -214,8 +214,8 @@ fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
 
     {
         let mut val = ZVal::from(100f64);
-        assert_eq!(val.as_type::<f64>(), Some(100.));
-        if let Some(d) = val.as_mut_type::<&mut f64>() {
+        assert_eq!(val.expect_type::<f64>().ok(), Some(100.));
+        if let Some(d) = val.expect_mut_type::<&mut f64>().ok() {
             *d += 100.;
         }
         assert_eq!(val.expect_type::<f64>().unwrap(), 200.);
@@ -225,7 +225,7 @@ fn integration_values_as(_: &mut [ZVal]) -> Result<(), Infallible> {
     {
         let val = ZVal::from("foo");
         assert_eq!(
-            val.as_type::<&phper::strings::ZStr>().unwrap().to_bytes(),
+            val.expect_type::<&phper::strings::ZStr>().unwrap().to_bytes(),
             b"foo"
         );
         assert!(val.expect_type::<&phper::arrays::ZArr>().is_err());
