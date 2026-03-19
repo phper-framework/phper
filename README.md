@@ -44,7 +44,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 | **SAPI**        | CLI       | ✅         |
 |                 | FPM       | ✅         |
 | **Debug**       | Disable   | ✅         |
-|                 | Enable    | ❌         |
+|                 | Enable    | ✅         |
 
 ## Examples
 
