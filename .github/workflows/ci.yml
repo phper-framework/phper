@@ -110,7 +110,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ toJSON(matrix) }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-ts-${{ matrix.ts }}-debug-${{ matrix.debug }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
