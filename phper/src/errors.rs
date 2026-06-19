@@ -28,6 +28,43 @@ use std::{
     str::Utf8Error,
 };
 
+/// Helper macro to delegate `Throwable` trait methods for the `Error` enum.
+///
+/// Call with `& self` for shared-reference methods, or `& mut self` for
+/// mutable-reference methods.
+macro_rules! throwable_delegate {
+    // For `&self` methods (get_class, get_code, get_message).
+    ($self:expr, &self, $method:ident) => {
+        match $self {
+            Self::Io(e) => Throwable::$method(e as &dyn error::Error),
+            Self::Utf8(e) => Throwable::$method(e as &dyn error::Error),
+            Self::FromBytesWithNul(e) => Throwable::$method(e as &dyn error::Error),
+            Self::Boxed(e) => Throwable::$method(e.deref()),
+            Self::Throw(e) => Throwable::$method(e),
+            Self::ClassNotFound(e) => Throwable::$method(e),
+            Self::ArgumentCount(e) => Throwable::$method(e),
+            Self::InitializeObject(e) => Throwable::$method(e),
+            Self::ExpectType(e) => Throwable::$method(e),
+            Self::NotImplementThrowable(e) => Throwable::$method(e),
+        }
+    };
+    // For `&mut self` methods (to_object).
+    ($self:expr, &mut self, $method:ident) => {
+        match $self {
+            Self::Io(e) => Throwable::$method(e as &mut dyn error::Error),
+            Self::Utf8(e) => Throwable::$method(e as &mut dyn error::Error),
+            Self::FromBytesWithNul(e) => Throwable::$method(e as &mut dyn error::Error),
+            Self::Boxed(e) => Throwable::$method(e.deref_mut()),
+            Self::Throw(e) => Throwable::$method(e),
+            Self::ClassNotFound(e) => Throwable::$method(e),
+            Self::ArgumentCount(e) => Throwable::$method(e),
+            Self::InitializeObject(e) => Throwable::$method(e),
+            Self::ExpectType(e) => Throwable::$method(e),
+            Self::NotImplementThrowable(e) => Throwable::$method(e),
+        }
+    };
+}
+
 /// Predefined interface `Throwable`.
 #[inline]
 pub fn throwable_class<'a>() -> &'a ClassEntry {
@@ -227,66 +264,20 @@ impl Error {
 }
 
 impl Throwable for Error {
-    #[inline]
     fn get_class(&self) -> &ClassEntry {
-        match self {
-            Error::Io(e) => Throwable::get_class(e as &dyn error::Error),
-            Error::Utf8(e) => Throwable::get_class(e as &dyn error::Error),
-            Error::FromBytesWithNul(e) => Throwable::get_class(e as &dyn error::Error),
-            Error::Boxed(e) => Throwable::get_class(e.deref()),
-            Error::Throw(e) => Throwable::get_class(e),
-            Error::ClassNotFound(e) => Throwable::get_class(e),
-            Error::ArgumentCount(e) => Throwable::get_class(e),
-            Error::InitializeObject(e) => Throwable::get_class(e),
-            Error::ExpectType(e) => Throwable::get_class(e),
-            Error::NotImplementThrowable(e) => Throwable::get_class(e),
-        }
+        throwable_delegate!(self, &self, get_class)
     }
 
-    #[inline]
     fn get_code(&self) -> Option<i64> {
-        match self {
-            Error::Io(e) => Throwable::get_code(e as &dyn error::Error),
-            Error::Utf8(e) => Throwable::get_code(e as &dyn error::Error),
-            Error::FromBytesWithNul(e) => Throwable::get_code(e as &dyn error::Error),
-            Error::Boxed(e) => Throwable::get_code(e.deref()),
-            Error::Throw(e) => Throwable::get_code(e),
-            Error::ClassNotFound(e) => Throwable::get_code(e),
-            Error::ArgumentCount(e) => Throwable::get_code(e),
-            Error::InitializeObject(e) => Throwable::get_code(e),
-            Error::ExpectType(e) => Throwable::get_code(e),
-            Error::NotImplementThrowable(e) => Throwable::get_code(e),
-        }
+        throwable_delegate!(self, &self, get_code)
     }
 
     fn get_message(&self) -> Option<String> {
-        match self {
-            Error::Io(e) => Throwable::get_message(e as &dyn error::Error),
-            Error::Utf8(e) => Throwable::get_message(e as &dyn error::Error),
-            Error::FromBytesWithNul(e) => Throwable::get_message(e as &dyn error::Error),
-            Error::Boxed(e) => Throwable::get_message(e.deref()),
-            Error::Throw(e) => Throwable::get_message(e),
-            Error::ClassNotFound(e) => Throwable::get_message(e),
-            Error::ArgumentCount(e) => Throwable::get_message(e),
-            Error::InitializeObject(e) => Throwable::get_message(e),
-            Error::ExpectType(e) => Throwable::get_message(e),
-            Error::NotImplementThrowable(e) => Throwable::get_message(e),
-        }
+        throwable_delegate!(self, &self, get_message)
     }
 
     fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
-        match self {
-            Error::Io(e) => Throwable::to_object(e as &mut dyn error::Error),
-            Error::Utf8(e) => Throwable::to_object(e as &mut dyn error::Error),
-            Error::FromBytesWithNul(e) => Throwable::to_object(e as &mut dyn error::Error),
-            Error::Boxed(e) => Throwable::to_object(e.deref_mut()),
-            Error::Throw(e) => Throwable::to_object(e),
-            Error::ClassNotFound(e) => Throwable::to_object(e),
-            Error::ArgumentCount(e) => Throwable::to_object(e),
-            Error::InitializeObject(e) => Throwable::to_object(e),
-            Error::ExpectType(e) => Throwable::to_object(e),
-            Error::NotImplementThrowable(e) => Throwable::to_object(e),
-        }
+        throwable_delegate!(self, &mut self, to_object)
     }
 }
 

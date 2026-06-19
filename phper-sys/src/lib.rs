@@ -15,7 +15,15 @@
 #![allow(non_snake_case)]
 // TODO Because `bindgen` generates codes contains deref nullptr, temporary suppression.
 #![allow(deref_nullptr)]
-#![allow(clippy::all)]
+// Allow specific clippy lints triggered by bindgen-generated code.
+#![allow(
+    clippy::missing_safety_doc,
+    clippy::too_many_arguments,
+    clippy::useless_transmute,
+    clippy::redundant_static_lifetimes,
+    clippy::unreadable_literal,
+    clippy::ptr_offset_with_cast
+)]
 // TODO unsafe_op_in_unsafe_fn warning in edition 2024, temporary suppression.
 #![allow(unsafe_op_in_unsafe_fn)]
 #![doc = include_str!("../README.md")]

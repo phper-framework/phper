@@ -245,6 +245,26 @@ pub enum ArgumentTypeHint {
     ClassEntry(String),
 }
 
+impl ArgumentTypeHint {
+    /// Returns the Zend type constant for this type hint, if it maps to a
+    /// simple constant.
+    pub(crate) fn zend_type_const(&self) -> Option<u32> {
+        match self {
+            Self::Null => Some(IS_NULL),
+            Self::Bool => Some(_IS_BOOL),
+            Self::Int => Some(IS_LONG),
+            Self::Float => Some(IS_DOUBLE),
+            Self::String => Some(IS_STRING),
+            Self::Array => Some(IS_ARRAY),
+            Self::Object => Some(IS_OBJECT),
+            Self::Callable => Some(IS_CALLABLE),
+            Self::Iterable => Some(IS_ITERABLE),
+            Self::Mixed => Some(IS_MIXED),
+            Self::ClassEntry(_) => None,
+        }
+    }
+}
+
 /// PHP return typehints
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReturnTypeHint {
@@ -274,4 +294,24 @@ pub enum ReturnTypeHint {
     Never,
     /// void typehint
     Void,
+}
+
+impl ReturnTypeHint {
+    /// Returns the Zend type constant for this type hint, if it maps to a
+    /// simple constant.
+    pub(crate) fn zend_type_const(&self) -> Option<u32> {
+        match self {
+            Self::Null => Some(IS_NULL),
+            Self::Bool => Some(_IS_BOOL),
+            Self::Int => Some(IS_LONG),
+            Self::Float => Some(IS_DOUBLE),
+            Self::String => Some(IS_STRING),
+            Self::Array => Some(IS_ARRAY),
+            Self::Object => Some(IS_OBJECT),
+            Self::Callable => Some(IS_CALLABLE),
+            Self::Iterable => Some(IS_ITERABLE),
+            Self::Mixed => Some(IS_MIXED),
+            Self::ClassEntry(_) | Self::Never | Self::Void => None,
+        }
+    }
 }

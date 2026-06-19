@@ -72,7 +72,12 @@ fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
     command.args(&argv[1..]);
     let output = command
         .output()
-        .unwrap_or_else(|_| panic!("Execute command {:?} failed", &argv))
+        .unwrap_or_else(|e| {
+            panic!(
+                "Failed to execute `{:?}`: {}. Is php-config installed and in PATH?",
+                &argv, e
+            )
+        })
         .stdout;
     String::from_utf8(output).unwrap().trim().to_owned()
 }
