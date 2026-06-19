@@ -14,7 +14,6 @@
 #![doc(html_logo_url = "https://avatars.githubusercontent.com/u/112468984?s=200&v=4")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-#[macro_use]
 mod macros;
 
 pub mod alloc;
@@ -36,5 +35,5 @@ mod utils;
 pub mod values;
 
 pub use crate::errors::{Error, Result, ok};
-pub use phper_macros::*;
+pub use phper_macros::php_get_module;
 pub use phper_sys as sys;

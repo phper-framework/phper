@@ -256,6 +256,9 @@ impl Module {
     /// Register class to module.
     pub fn add_class<T>(&mut self, class: ClassEntity<T>) -> StateClass<T> {
         let bound_class = class.bound_class();
+        // SAFETY: The type parameter `T` is erased to `()` for storage in the
+        // heterogeneous collection. The actual type is recovered later via
+        // `StateObj<T>` at handler invocation time through the bound class.
         self.class_entities
             .push(unsafe { transmute::<ClassEntity<T>, ClassEntity<()>>(class) });
         bound_class
@@ -274,6 +277,9 @@ impl Module {
         &mut self, enum_entity: crate::enums::EnumEntity<B>,
     ) -> crate::enums::Enum {
         let bound_enum = enum_entity.bound_enum();
+        // SAFETY: The type parameter `B` is erased to `()` for storage in the
+        // heterogeneous collection. The actual type is recovered later through
+        // the bound enum handle.
         self.enum_entities.push(unsafe {
             transmute::<crate::enums::EnumEntity<B>, crate::enums::EnumEntity<()>>(enum_entity)
         });

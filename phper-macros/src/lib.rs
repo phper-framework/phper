@@ -13,8 +13,8 @@
 #![doc = include_str!("../README.md")]
 #![doc(html_logo_url = "https://avatars.githubusercontent.com/u/112468984?s=200&v=4")]
 
-// TODO Write a bridge macro for easy usage about register functions and
-// classes, like `cxx`.
+// TODO Implement a bridge macro (similar to `cxx`) to simplify registering
+// functions and classes with less boilerplate.
 
 mod alloc;
 mod derives;

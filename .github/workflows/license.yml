@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Check License Header
         uses: apache/skywalking-eyes/header/@d5466651aaded6fbd588d2278eccc469afc89d92
         with:

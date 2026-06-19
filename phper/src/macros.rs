@@ -27,7 +27,7 @@ macro_rules! echo {
 /// # Examples
 ///
 /// ```no_test
-/// phper::errro!("Hello, {}!", message)
+/// phper::error!("Hello, {}!", message)
 /// ```
 #[macro_export]
 macro_rules! error {

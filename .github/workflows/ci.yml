@@ -67,7 +67,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install libclang for Linux
         if: matrix.os == 'ubuntu-24.04'
@@ -95,14 +95,13 @@ jobs:
           [[ `php-config --version` == ${{ matrix.php-version }}.* ]] || exit 1;
           [[ `php-fpm --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
 
-      - name: Install Rust Nightly
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly
-          components: rustfmt
+          components: rustfmt, clippy
 
       - name: Setup cargo cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -113,29 +112,15 @@ jobs:
           key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-ts-${{ matrix.ts }}-debug-${{ matrix.debug }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: fmt
-          args: --all -- --check
+        run: cargo +nightly fmt --all -- --check
 
       - name: Cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --release
+        run: cargo clippy --release
 
       - name: Cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release -- --nocapture
+        run: cargo test --release -- --nocapture
 
       - name: Cargo doc
-        uses: actions-rs/cargo@v1
+        run: cargo +nightly doc --workspace --no-deps --all-features
         env:
           RUSTDOCFLAGS: "-D warnings --cfg docsrs"
-        with:
-          toolchain: nightly
-          command: doc
-          args: --workspace --no-deps --all-features

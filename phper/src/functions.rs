@@ -10,7 +10,7 @@
 
 //! Apis relate to [zend_function_entry].
 //!
-//! TODO Add lambda.
+//! TODO Add support for closures / lambda functions.
 
 use crate::{
     classes::{ClassEntry, RawVisibility, Visibility},
@@ -138,89 +138,26 @@ impl FunctionEntry {
         name: &CStr, arguments: &[Argument], return_type: Option<&ReturnType>,
         handler: Option<Rc<dyn Callable>>, visibility: Option<RawVisibility>,
     ) -> zend_function_entry {
-        unsafe {
-            let mut infos = Vec::new();
+        let mut infos = Vec::new();
 
-            let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
+        let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
 
-            let return_info = if let Some(return_type) = return_type {
-                match &return_type.type_hint {
-                    ReturnTypeHint::Null => Some(phper_zend_begin_arg_with_return_type_info_ex(
+        // Build return type info.
+        let return_info = if let Some(return_type) = return_type {
+            match &return_type.type_hint {
+                ReturnTypeHint::Null => unsafe {
+                    Some(phper_zend_begin_arg_with_return_type_info_ex(
                         false,
                         require_arg_count,
                         IS_NULL,
                         true,
-                    )),
-                    ReturnTypeHint::Bool => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        _IS_BOOL,
-                        return_type.allow_null,
-                    )),
-                    ReturnTypeHint::Int => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        IS_LONG,
-                        return_type.allow_null,
-                    )),
-                    ReturnTypeHint::Float => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        IS_DOUBLE,
-                        return_type.allow_null,
-                    )),
-                    ReturnTypeHint::String => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        IS_STRING,
-                        return_type.allow_null,
-                    )),
-                    ReturnTypeHint::Array => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        IS_ARRAY,
-                        return_type.allow_null,
-                    )),
-                    ReturnTypeHint::Object => Some(phper_zend_begin_arg_with_return_type_info_ex(
-                        return_type.ret_by_ref,
-                        require_arg_count,
-                        IS_OBJECT,
-                        return_type.allow_null,
-                    )),
-                    ReturnTypeHint::Callable => {
-                        Some(phper_zend_begin_arg_with_return_type_info_ex(
-                            return_type.ret_by_ref,
-                            require_arg_count,
-                            IS_CALLABLE,
-                            return_type.allow_null,
-                        ))
-                    }
-                    ReturnTypeHint::Iterable => {
-                        Some(phper_zend_begin_arg_with_return_type_info_ex(
-                            return_type.ret_by_ref,
-                            require_arg_count,
-                            IS_ITERABLE,
-                            return_type.allow_null,
-                        ))
-                    }
-                    ReturnTypeHint::Mixed => {
-                        if PHP_MAJOR_VERSION < 8 {
-                            None
-                        } else {
-                            Some(phper_zend_begin_arg_with_return_type_info_ex(
-                                return_type.ret_by_ref,
-                                require_arg_count,
-                                IS_MIXED,
-                                true,
-                            ))
-                        }
-                    }
-                    ReturnTypeHint::Never => {
-                        if PHP_MAJOR_VERSION < 8
-                            || (PHP_MAJOR_VERSION == 8 && PHP_MINOR_VERSION < 2)
-                        {
-                            None
-                        } else {
+                    ))
+                },
+                ReturnTypeHint::Never => {
+                    if PHP_MAJOR_VERSION < 8 || (PHP_MAJOR_VERSION == 8 && PHP_MINOR_VERSION < 2) {
+                        None
+                    } else {
+                        unsafe {
                             Some(phper_zend_begin_arg_with_return_type_info_ex(
                                 return_type.ret_by_ref,
                                 require_arg_count,
@@ -229,15 +166,18 @@ impl FunctionEntry {
                             ))
                         }
                     }
-                    ReturnTypeHint::Void => Some(phper_zend_begin_arg_with_return_type_info_ex(
+                }
+                ReturnTypeHint::Void => unsafe {
+                    Some(phper_zend_begin_arg_with_return_type_info_ex(
                         return_type.ret_by_ref,
                         require_arg_count,
                         IS_VOID,
                         false,
-                    )),
-                    ReturnTypeHint::ClassEntry(class_name) => {
-                        let class_name =
-                            CString::new(class_name.clone()).expect("CString::new failed");
+                    ))
+                },
+                ReturnTypeHint::ClassEntry(class_name) => {
+                    let class_name = CString::new(class_name.clone()).expect("CString::new failed");
+                    unsafe {
                         Some(phper_zend_begin_arg_with_return_obj_info_ex(
                             return_type.ret_by_ref,
                             require_arg_count,
@@ -246,94 +186,42 @@ impl FunctionEntry {
                         ))
                     }
                 }
-            } else {
-                None
-            };
+                hint => hint.zend_type_const().map(|type_const| unsafe {
+                    let allow_null = match hint {
+                        ReturnTypeHint::Mixed => true,
+                        _ => return_type.allow_null,
+                    };
+                    phper_zend_begin_arg_with_return_type_info_ex(
+                        return_type.ret_by_ref,
+                        require_arg_count,
+                        type_const,
+                        allow_null,
+                    )
+                }),
+            }
+        } else {
+            None
+        };
 
-            infos.push(
-                return_info
-                    .unwrap_or_else(|| phper_zend_begin_arg_info_ex(false, require_arg_count)),
-            );
+        infos.push(
+            return_info.unwrap_or_else(|| unsafe {
+                phper_zend_begin_arg_info_ex(false, require_arg_count)
+            }),
+        );
 
-            for arg in arguments {
-                let default_value_ptr = arg
-                    .default_value
-                    .as_ref()
-                    .map(|s| s.as_ptr())
-                    .unwrap_or(std::ptr::null());
-                let arg_info = if let Some(ref type_hint) = arg.type_hint {
-                    match type_hint {
-                        ArgumentTypeHint::Null => Some(phper_zend_arg_info_with_type(
-                            arg.pass_by_ref,
-                            arg.name.as_ptr(),
-                            IS_NULL,
-                            true,
-                            default_value_ptr,
-                        )),
-                        ArgumentTypeHint::Bool => Some(phper_zend_arg_info_with_type(
-                            arg.pass_by_ref,
-                            arg.name.as_ptr(),
-                            _IS_BOOL,
-                            arg.nullable,
-                            default_value_ptr,
-                        )),
-                        ArgumentTypeHint::Int => Some(phper_zend_arg_info_with_type(
-                            arg.pass_by_ref,
-                            arg.name.as_ptr(),
-                            IS_LONG,
-                            arg.nullable,
-                            default_value_ptr,
-                        )),
-                        ArgumentTypeHint::Float => Some(phper_zend_arg_info_with_type(
-                            arg.pass_by_ref,
-                            arg.name.as_ptr(),
-                            IS_DOUBLE,
-                            arg.nullable,
-                            default_value_ptr,
-                        )),
-                        ArgumentTypeHint::String => Some(phper_zend_arg_info_with_type(
-                            arg.pass_by_ref,
-                            arg.name.as_ptr(),
-                            IS_STRING,
-                            arg.nullable,
-                            default_value_ptr,
-                        )),
-                        ArgumentTypeHint::Array => Some(phper_zend_arg_info_with_type(
-                            arg.pass_by_ref,
-                            arg.name.as_ptr(),
-                            IS_ARRAY,
-                            arg.nullable,
-                            default_value_ptr,
-                        )),
-                        ArgumentTypeHint::Object => Some(
-                            phper_zend_arg_info_with_type(
-                                arg.pass_by_ref,
-                                arg.name.as_ptr(),
-                                IS_OBJECT,
-                                arg.nullable,
-                                std::ptr::null(),
-                            ), // default value not supported
-                        ),
-                        ArgumentTypeHint::Callable => Some(
-                            phper_zend_arg_info_with_type(
-                                arg.pass_by_ref,
-                                arg.name.as_ptr(),
-                                IS_CALLABLE,
-                                arg.nullable,
-                                std::ptr::null(),
-                            ), // default value not supported
-                        ),
-                        ArgumentTypeHint::Iterable => Some(phper_zend_arg_info_with_type(
-                            arg.pass_by_ref,
-                            arg.name.as_ptr(),
-                            IS_ITERABLE,
-                            arg.nullable,
-                            default_value_ptr,
-                        )),
-                        ArgumentTypeHint::Mixed => {
-                            if PHP_MAJOR_VERSION < 8 {
-                                None
-                            } else {
+        for arg in arguments {
+            let default_value_ptr = arg
+                .default_value
+                .as_ref()
+                .map(|s| s.as_ptr())
+                .unwrap_or(std::ptr::null());
+            let arg_info = if let Some(ref type_hint) = arg.type_hint {
+                match type_hint {
+                    ArgumentTypeHint::Mixed => {
+                        if PHP_MAJOR_VERSION < 8 {
+                            None
+                        } else {
+                            unsafe {
                                 Some(phper_zend_arg_info_with_type(
                                     arg.pass_by_ref,
                                     arg.name.as_ptr(),
@@ -343,9 +231,11 @@ impl FunctionEntry {
                                 ))
                             }
                         }
-                        ArgumentTypeHint::ClassEntry(class_name) => {
-                            let c_class_name =
-                                CString::new(class_name.clone()).expect("CString::new failed");
+                    }
+                    ArgumentTypeHint::ClassEntry(class_name) => {
+                        let c_class_name =
+                            CString::new(class_name.clone()).expect("CString::new failed");
+                        unsafe {
                             Some(phper_zend_arg_obj_info(
                                 arg.pass_by_ref,
                                 arg.name.as_ptr(),
@@ -354,39 +244,47 @@ impl FunctionEntry {
                             ))
                         }
                     }
-                } else {
-                    None
-                };
+                    hint => hint.zend_type_const().map(|type_const| unsafe {
+                        phper_zend_arg_info_with_type(
+                            arg.pass_by_ref,
+                            arg.name.as_ptr(),
+                            type_const,
+                            arg.nullable,
+                            default_value_ptr,
+                        )
+                    }),
+                }
+            } else {
+                None
+            };
 
-                infos
-                    .push(arg_info.unwrap_or_else(|| {
-                        phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr())
-                    }));
-            }
+            infos.push(arg_info.unwrap_or_else(|| unsafe {
+                phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr())
+            }));
+        }
 
-            infos.push(zeroed::<zend_internal_arg_info>());
+        infos.push(unsafe { zeroed::<zend_internal_arg_info>() });
 
-            let raw_handler = handler.as_ref().map(|_| invoke as _);
+        let raw_handler = handler.as_ref().map(|_| invoke as _);
 
-            if let Some(handler) = handler {
-                let translator = CallableTranslator {
-                    callable: Rc::into_raw(handler),
-                };
-                let last_arg_info: zend_internal_arg_info = translator.internal_arg_info;
-                infos.push(last_arg_info);
-            }
+        if let Some(handler) = handler {
+            let translator = CallableTranslator {
+                callable: Rc::into_raw(handler),
+            };
+            let last_arg_info: zend_internal_arg_info = unsafe { translator.internal_arg_info };
+            infos.push(last_arg_info);
+        }
 
-            let flags = visibility.unwrap_or(Visibility::default() as u32);
+        let flags = visibility.unwrap_or(Visibility::default() as u32);
 
-            #[allow(clippy::needless_update)]
-            zend_function_entry {
-                fname: name.as_ptr().cast(),
-                handler: raw_handler,
-                arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
-                num_args: arguments.len() as u32,
-                flags,
-                ..Default::default()
-            }
+        #[allow(clippy::needless_update)]
+        zend_function_entry {
+            fname: name.as_ptr().cast(),
+            handler: raw_handler,
+            arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
+            num_args: arguments.len() as u32,
+            flags,
+            ..Default::default()
         }
     }
 }
