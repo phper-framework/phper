@@ -29,30 +29,32 @@ use std::{
 };
 
 /// Helper macro to delegate `Throwable` trait methods for the `Error` enum.
+///
+/// Call with `& self` for shared-reference methods, or `& mut self` for
+/// mutable-reference methods.
 macro_rules! throwable_delegate {
-    // For `&mut self` method (to_object) - must come first since it's the
-    // most specific pattern.
-    ($self:expr,to_object) => {
-        match $self {
-            Self::Io(e) => Throwable::to_object(e as &mut dyn error::Error),
-            Self::Utf8(e) => Throwable::to_object(e as &mut dyn error::Error),
-            Self::FromBytesWithNul(e) => Throwable::to_object(e as &mut dyn error::Error),
-            Self::Boxed(e) => Throwable::to_object(e.deref_mut()),
-            Self::Throw(e) => Throwable::to_object(e),
-            Self::ClassNotFound(e) => Throwable::to_object(e),
-            Self::ArgumentCount(e) => Throwable::to_object(e),
-            Self::InitializeObject(e) => Throwable::to_object(e),
-            Self::ExpectType(e) => Throwable::to_object(e),
-            Self::NotImplementThrowable(e) => Throwable::to_object(e),
-        }
-    };
     // For `&self` methods (get_class, get_code, get_message).
-    ($self:expr, $method:ident) => {
+    ($self:expr, &self, $method:ident) => {
         match $self {
             Self::Io(e) => Throwable::$method(e as &dyn error::Error),
             Self::Utf8(e) => Throwable::$method(e as &dyn error::Error),
             Self::FromBytesWithNul(e) => Throwable::$method(e as &dyn error::Error),
             Self::Boxed(e) => Throwable::$method(e.deref()),
+            Self::Throw(e) => Throwable::$method(e),
+            Self::ClassNotFound(e) => Throwable::$method(e),
+            Self::ArgumentCount(e) => Throwable::$method(e),
+            Self::InitializeObject(e) => Throwable::$method(e),
+            Self::ExpectType(e) => Throwable::$method(e),
+            Self::NotImplementThrowable(e) => Throwable::$method(e),
+        }
+    };
+    // For `&mut self` methods (to_object).
+    ($self:expr, &mut self, $method:ident) => {
+        match $self {
+            Self::Io(e) => Throwable::$method(e as &mut dyn error::Error),
+            Self::Utf8(e) => Throwable::$method(e as &mut dyn error::Error),
+            Self::FromBytesWithNul(e) => Throwable::$method(e as &mut dyn error::Error),
+            Self::Boxed(e) => Throwable::$method(e.deref_mut()),
             Self::Throw(e) => Throwable::$method(e),
             Self::ClassNotFound(e) => Throwable::$method(e),
             Self::ArgumentCount(e) => Throwable::$method(e),
@@ -263,19 +265,19 @@ impl Error {
 
 impl Throwable for Error {
     fn get_class(&self) -> &ClassEntry {
-        throwable_delegate!(self, get_class)
+        throwable_delegate!(self, &self, get_class)
     }
 
     fn get_code(&self) -> Option<i64> {
-        throwable_delegate!(self, get_code)
+        throwable_delegate!(self, &self, get_code)
     }
 
     fn get_message(&self) -> Option<String> {
-        throwable_delegate!(self, get_message)
+        throwable_delegate!(self, &self, get_message)
     }
 
     fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
-        throwable_delegate!(self, to_object)
+        throwable_delegate!(self, &mut self, to_object)
     }
 }
 
