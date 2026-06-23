@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.3](https://github.com/phper-framework/phper/compare/phper-v0.17.2...phper-v0.17.3) - 2026-06-23
+
+### Added
+
+- Enhance CI configuration with debug options for PHP versions ([#236](https://github.com/phper-framework/phper/pull/236))
+- Add documentation attributes for global macros ([#233](https://github.com/phper-framework/phper/pull/233))
+- Add ZValRef and ZValMut enums ([#232](https://github.com/phper-framework/phper/pull/232))
+- Implement conversion traits for ZVal ([#231](https://github.com/phper-framework/phper/pull/231))
+- Update configuration for PHP 8.1+ enum support and adjust linting ([#227](https://github.com/phper-framework/phper/pull/227))
+
+### Other
+
+- Refactor type hints, improve CI workflows, and enhance safety comments ([#237](https://github.com/phper-framework/phper/pull/237))
+- Implements more elements for FromZVal/FromZValMut ([#234](https://github.com/phper-framework/phper/pull/234))
+- Update README ([#230](https://github.com/phper-framework/phper/pull/230))
+- Add ZTS Support ([#229](https://github.com/phper-framework/phper/pull/229))
+
 ## [0.17.2](https://github.com/phper-framework/phper/compare/phper-v0.17.1...phper-v0.17.2) - 2025-12-08
 
 ### Other
