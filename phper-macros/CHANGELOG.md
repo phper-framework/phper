@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.3](https://github.com/phper-framework/phper/compare/phper-macros-v0.15.2...phper-macros-v0.15.3) - 2026-06-23
+
+### Other
+
+- Refactor type hints, improve CI workflows, and enhance safety comments ([#237](https://github.com/phper-framework/phper/pull/237))
+
 ## [0.15.2](https://github.com/phper-framework/phper/compare/phper-macros-v0.15.1...phper-macros-v0.15.2) - 2025-07-03
 
 ### Added
