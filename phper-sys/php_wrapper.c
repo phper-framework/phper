@@ -480,6 +480,12 @@ bool phper_zend_get_parameters_array_ex(uint32_t param_count,
     return zend_get_parameters_array_ex(param_count, argument_array) != 0;
 }
 
+void phper_zend_init_call_arg(zend_execute_data *execute_data, uint32_t index, zval *value) {
+    zval *arg = ZEND_CALL_VAR_NUM(execute_data, index);
+    ZVAL_COPY_VALUE(arg, value);
+    ZVAL_UNDEF(value);
+}
+
 uint32_t phper_zend_call_may_have_undef() {
     return ZEND_CALL_MAY_HAVE_UNDEF;
 }

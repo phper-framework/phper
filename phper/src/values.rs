@@ -13,7 +13,7 @@
 use crate::{
     arrays::{ZArr, ZArray},
     classes::ClassEntry,
-    errors::ExpectTypeError,
+    errors::{CallArgError, ExpectTypeError},
     functions::{ZFunc, call_internal},
     objects::{StateObject, ZObj, ZObject},
     references::ZRef,
@@ -213,6 +213,8 @@ impl ExecuteData {
     }
 
     /// Gets parameter by index.
+    ///
+    /// `index` is 0-based (the first parameter is at index 0).
     pub fn get_parameter(&self, index: usize) -> &ZVal {
         unsafe {
             let val = phper_zend_call_var_num(self.as_ptr() as *mut _, index.try_into().unwrap());
@@ -221,11 +223,65 @@ impl ExecuteData {
     }
 
     /// Gets mutable parameter by index.
+    ///
+    /// `index` is 0-based (the first parameter is at index 0).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= num_args()`. Accessing a slot beyond the
+    /// actually-passed arguments would return an uninitialized `zval`.
     pub fn get_mut_parameter(&mut self, index: usize) -> &mut ZVal {
+        assert!(
+            index < self.num_args(),
+            "parameter index {index} out of bounds: num_args is {}",
+            self.num_args(),
+        );
         unsafe {
             let val = phper_zend_call_var_num(self.as_mut_ptr(), index.try_into().unwrap());
             ZVal::from_mut_ptr(val)
         }
+    }
+
+    /// Fills missing optional parameters from `num_args()` upward with the
+    /// given default values. Stops when the iterator runs out or
+    /// `common_num_args()` is reached.
+    ///
+    /// `num_args` is updated to reflect the new count.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CallArgError`] if filling would exceed `common_num_args()`.
+    pub fn materialize_missing(
+        &mut self, defaults: impl IntoIterator<Item = ZVal>,
+    ) -> crate::Result<()> {
+        let declared_len = self.common_num_args() as usize;
+        let passed_len = self.num_args();
+        let execute_data_ptr = self.as_mut_ptr();
+        let mut i = passed_len;
+
+        for mut default in defaults {
+            if i >= declared_len {
+                return Err(CallArgError::new(i, declared_len).into());
+            }
+            unsafe {
+                phper_zend_init_call_arg(
+                    execute_data_ptr,
+                    i.try_into().unwrap(),
+                    default.as_mut_ptr(),
+                );
+            }
+            i += 1;
+        }
+
+        if i != declared_len {
+            return Err(CallArgError::new(i, declared_len).into());
+        }
+        if i > passed_len {
+            unsafe {
+                phper_zend_set_call_num_args(execute_data_ptr, i.try_into().unwrap());
+            }
+        }
+        Ok(())
     }
 }
 
