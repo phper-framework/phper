@@ -242,24 +242,35 @@ impl ExecuteData {
         }
     }
 
-    /// Fills missing optional parameters from `num_args()` upward with the
-    /// given default values. Stops when the iterator runs out or
-    /// `common_num_args()` is reached.
+    /// Fills missing optional parameters with their default values.
+    ///
+    /// `defaults` is the full list of default values for **all** optional
+    /// parameters of the function. Already-provided optional arguments are
+    /// skipped automatically.
     ///
     /// `num_args` is updated to reflect the new count.
     ///
     /// # Errors
     ///
-    /// Returns [`CallArgError`] if filling would exceed `common_num_args()`.
+    /// Returns [`CallArgError`] if the total after filling would not match
+    /// `common_num_args()`.
     pub fn materialize_missing(
         &mut self, defaults: impl IntoIterator<Item = ZVal>,
     ) -> crate::Result<()> {
         let declared_len = self.common_num_args() as usize;
+        let required_len = self.common_required_num_args();
         let passed_len = self.num_args();
+
+        if passed_len >= declared_len {
+            return Ok(());
+        }
+
         let execute_data_ptr = self.as_mut_ptr();
+
+        let provided_optionals = passed_len.saturating_sub(required_len);
         let mut i = passed_len;
 
-        for mut default in defaults {
+        for mut default in defaults.into_iter().skip(provided_optionals) {
             if i >= declared_len {
                 return Err(CallArgError::new(i, declared_len).into());
             }
@@ -276,10 +287,8 @@ impl ExecuteData {
         if i != declared_len {
             return Err(CallArgError::new(i, declared_len).into());
         }
-        if i > passed_len {
-            unsafe {
-                phper_zend_set_call_num_args(execute_data_ptr, i.try_into().unwrap());
-            }
+        unsafe {
+            phper_zend_set_call_num_args(execute_data_ptr, i.try_into().unwrap());
         }
         Ok(())
     }
