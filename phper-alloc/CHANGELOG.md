@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.3](https://github.com/phper-framework/phper/compare/phper-alloc-v0.16.2...phper-alloc-v0.16.3) - 2026-06-25
+
+### Other
+
+- updated the following local packages: phper-sys, phper-build
+
 ## [0.16.2](https://github.com/phper-framework/phper/compare/phper-alloc-v0.16.1...phper-alloc-v0.16.2) - 2026-06-23
 
 ### Other
