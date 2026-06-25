@@ -29,10 +29,7 @@ fn materialize_missing_fill(module: &mut Module) {
                 Ok(format!("{}, {}", a, b))
             },
         )
-        .arguments([
-            Argument::new("a").optional(),
-            Argument::new("b").optional(),
-        ]);
+        .arguments([Argument::new("a").optional(), Argument::new("b").optional()]);
 }
 
 fn materialize_missing_noop(module: &mut Module) {
@@ -47,10 +44,7 @@ fn materialize_missing_noop(module: &mut Module) {
                 Ok(format!("{}, {}, {}", passed, a, b))
             },
         )
-        .arguments([
-            Argument::new("a"),
-            Argument::new("b"),
-        ]);
+        .arguments([Argument::new("a"), Argument::new("b")]);
 }
 
 fn materialize_missing_partial(module: &mut Module) {
@@ -64,10 +58,7 @@ fn materialize_missing_partial(module: &mut Module) {
                 Ok(format!("{}, {}", a, b))
             },
         )
-        .arguments([
-            Argument::new("a").optional(),
-            Argument::new("b").optional(),
-        ]);
+        .arguments([Argument::new("a").optional(), Argument::new("b").optional()]);
 }
 
 fn materialize_missing_exceed_error(module: &mut Module) {
@@ -79,10 +70,7 @@ fn materialize_missing_exceed_error(module: &mut Module) {
                 Ok("ok".to_owned())
             },
         )
-        .arguments([
-            Argument::new("a").optional(),
-            Argument::new("b").optional(),
-        ]);
+        .arguments([Argument::new("a").optional(), Argument::new("b").optional()]);
 }
 
 fn materialize_missing_insufficient_error(module: &mut Module) {
@@ -94,8 +82,5 @@ fn materialize_missing_insufficient_error(module: &mut Module) {
                 Ok("ok".to_owned())
             },
         )
-        .arguments([
-            Argument::new("a").optional(),
-            Argument::new("b").optional(),
-        ]);
+        .arguments([Argument::new("a").optional(), Argument::new("b").optional()]);
 }

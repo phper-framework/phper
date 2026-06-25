@@ -83,7 +83,9 @@ where
     Z: Into<ZVal>,
     E: Throwable,
 {
-    fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal) {
+    fn call(
+        &self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal,
+    ) {
         match (self.0)(execute_data, arguments) {
             Ok(z) => {
                 *return_value = z.into();

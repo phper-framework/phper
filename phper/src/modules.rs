@@ -266,8 +266,10 @@ impl Module {
         Z: Into<ZVal> + 'static,
         E: Throwable + 'static,
     {
-        self.function_entities
-            .push(FunctionEntity::new(name, Rc::new(FunctionExecuteData::new(handler))));
+        self.function_entities.push(FunctionEntity::new(
+            name,
+            Rc::new(FunctionExecuteData::new(handler)),
+        ));
         self.function_entities.last_mut().unwrap()
     }
 
