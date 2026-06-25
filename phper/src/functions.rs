@@ -69,6 +69,35 @@ where
     }
 }
 
+pub(crate) struct FunctionExecuteData<F, Z, E>(F, PhantomData<(Z, E)>);
+
+impl<F, Z, E> FunctionExecuteData<F, Z, E> {
+    pub fn new(f: F) -> Self {
+        Self(f, PhantomData)
+    }
+}
+
+impl<F, Z, E> Callable for FunctionExecuteData<F, Z, E>
+where
+    F: Fn(&mut ExecuteData, &mut [ZVal]) -> Result<Z, E>,
+    Z: Into<ZVal>,
+    E: Throwable,
+{
+    fn call(&self, execute_data: &mut ExecuteData, arguments: &mut [ZVal], return_value: &mut ZVal) {
+        match (self.0)(execute_data, arguments) {
+            Ok(z) => {
+                *return_value = z.into();
+            }
+            Err(e) => {
+                unsafe {
+                    throw(e);
+                }
+                *return_value = ().into();
+            }
+        }
+    }
+}
+
 pub(crate) struct Method<F, Z, E, T>(F, PhantomData<(Z, E, T)>);
 
 impl<F, Z, E, T> Method<F, Z, E, T> {

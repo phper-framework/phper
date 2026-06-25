@@ -14,7 +14,7 @@ use crate::{
     classes::{ClassEntity, Interface, InterfaceEntity, StateClass},
     constants::Constant,
     errors::Throwable,
-    functions::{Function, FunctionEntity, FunctionEntry, HandlerMap},
+    functions::{Function, FunctionEntity, FunctionEntry, FunctionExecuteData, HandlerMap},
     ini,
     sys::*,
     types::Scalar,
@@ -250,6 +250,24 @@ impl Module {
     {
         self.function_entities
             .push(FunctionEntity::new(name, Rc::new(Function::new(handler))));
+        self.function_entities.last_mut().unwrap()
+    }
+
+    /// Register function with [`ExecuteData`] access.
+    ///
+    /// Unlike [`add_function`], the handler receives `&mut ExecuteData`
+    /// alongside `&mut [ZVal]`, enabling methods like
+    /// [`ExecuteData::materialize_missing`].
+    pub fn add_function_with_execute_data<F, Z, E>(
+        &mut self, name: impl Into<String>, handler: F,
+    ) -> &mut FunctionEntity
+    where
+        F: Fn(&mut crate::values::ExecuteData, &mut [ZVal]) -> Result<Z, E> + 'static,
+        Z: Into<ZVal> + 'static,
+        E: Throwable + 'static,
+    {
+        self.function_entities
+            .push(FunctionEntity::new(name, Rc::new(FunctionExecuteData::new(handler))));
         self.function_entities.last_mut().unwrap()
     }
 
