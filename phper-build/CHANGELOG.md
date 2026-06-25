@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.6](https://github.com/phper-framework/phper/compare/phper-build-v0.15.5...phper-build-v0.15.6) - 2026-06-25
+
+### Other
+
+- updated the following local packages: phper-sys
+
 ## [0.15.5](https://github.com/phper-framework/phper/compare/phper-build-v0.15.4...phper-build-v0.15.5) - 2026-06-23
 
 ### Added
