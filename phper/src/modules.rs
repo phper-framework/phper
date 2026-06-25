@@ -253,7 +253,8 @@ impl Module {
         self.function_entities.last_mut().unwrap()
     }
 
-    /// Register function with [`ExecuteData`](crate::values::ExecuteData) access.
+    /// Register function with [`ExecuteData`](crate::values::ExecuteData)
+    /// access.
     ///
     /// Unlike [`add_function`], the handler receives `&mut ExecuteData`
     /// alongside `&mut [ZVal]`, enabling methods like
