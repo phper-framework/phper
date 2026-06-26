@@ -11,57 +11,48 @@
 use phper::{functions::Argument, modules::Module, values::ZVal};
 
 pub fn integrate(module: &mut Module) {
-    materialize_missing_fill(module);
-    materialize_missing_noop(module);
-    materialize_missing_partial(module);
-    materialize_missing_exceed_error(module);
-    materialize_missing_insufficient_error(module);
+    register_two_optionals(module);
+    register_no_optionals(module);
+    register_exceed_error(module);
+    register_insufficient_error(module);
 }
 
-fn materialize_missing_fill(module: &mut Module) {
+fn register_two_optionals(module: &mut Module) {
     module
         .add_function_with_execute_data(
-            "materialize_missing_fill",
+            "materialize_missing_two_optionals",
             |execute_data, _arguments| -> phper::Result<String> {
                 execute_data.materialize_missing([ZVal::from(42), ZVal::from("hello")])?;
                 let a = execute_data.get_parameter(0).expect_long()?;
                 let b = execute_data.get_parameter(1).expect_z_str()?.to_str()?;
-                Ok(format!("{}, {}", a, b))
+                let c = execute_data.get_parameter(2).expect_long()?;
+                let d = execute_data.get_parameter(3).expect_z_str()?.to_str()?;
+                Ok(format!("{}, {}, {}, {}", a, b, c, d))
             },
         )
-        .arguments([Argument::new("a").optional(), Argument::new("b").optional()]);
+        .arguments([
+            Argument::new("a"),
+            Argument::new("b"),
+            Argument::new("c").optional(),
+            Argument::new("d").optional(),
+        ]);
 }
 
-fn materialize_missing_noop(module: &mut Module) {
+fn register_no_optionals(module: &mut Module) {
     module
         .add_function_with_execute_data(
-            "materialize_missing_noop",
+            "materialize_missing_no_optionals",
             |execute_data, _arguments| -> phper::Result<String> {
-                let passed = execute_data.num_args();
                 execute_data.materialize_missing([])?;
                 let a = execute_data.get_parameter(0).expect_long()?;
                 let b = execute_data.get_parameter(1).expect_z_str()?.to_str()?;
-                Ok(format!("{}, {}, {}", passed, a, b))
+                Ok(format!("{}, {}", a, b))
             },
         )
         .arguments([Argument::new("a"), Argument::new("b")]);
 }
 
-fn materialize_missing_partial(module: &mut Module) {
-    module
-        .add_function_with_execute_data(
-            "materialize_missing_partial",
-            |execute_data, _arguments| -> phper::Result<String> {
-                execute_data.materialize_missing([ZVal::from(42)])?;
-                let a = execute_data.get_parameter(0).expect_z_str()?.to_str()?;
-                let b = execute_data.get_parameter(1).expect_long()?;
-                Ok(format!("{}, {}", a, b))
-            },
-        )
-        .arguments([Argument::new("a").optional(), Argument::new("b").optional()]);
-}
-
-fn materialize_missing_exceed_error(module: &mut Module) {
+fn register_exceed_error(module: &mut Module) {
     module
         .add_function_with_execute_data(
             "materialize_missing_exceed_error",
@@ -73,7 +64,7 @@ fn materialize_missing_exceed_error(module: &mut Module) {
         .arguments([Argument::new("a").optional(), Argument::new("b").optional()]);
 }
 
-fn materialize_missing_insufficient_error(module: &mut Module) {
+fn register_insufficient_error(module: &mut Module) {
     module
         .add_function_with_execute_data(
             "materialize_missing_insufficient_error",

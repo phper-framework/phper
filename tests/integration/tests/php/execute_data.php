@@ -13,16 +13,19 @@
 
 require_once __DIR__ . '/_common.php';
 
-// Test 1: fill all missing arguments with defaults
-assert_eq(materialize_missing_fill(), "42, hello");
+// 2 required + 2 optional, 2 args provided → fill both optionals
+assert_eq(materialize_missing_two_optionals(1, "world"), "1, world, 42, hello");
 
-// Test 2: provide all arguments, no filling needed
-assert_eq(materialize_missing_noop(1, "world"), "2, 1, world");
+// 2 required + 2 optional, 3 args provided → skip 1st default, fill 2nd
+assert_eq(materialize_missing_two_optionals(1, "world", 10), "1, world, 10, hello");
 
-// Test 3: partial fill - only second arg is missing
-assert_eq(materialize_missing_partial("hello"), "hello, 42");
+// 2 required + 2 optional, all 4 args provided → no-op
+assert_eq(materialize_missing_two_optionals(1, "world", 10, "foo"), "1, world, 10, foo");
 
-// Test 4: exceed declared args causes TypeError
+// no optional params → no-op
+assert_eq(materialize_missing_no_optionals(1, "world"), "1, world");
+
+// defaults exceed declared param count
 assert_throw(
     function () { materialize_missing_exceed_error(); },
     "TypeError",
@@ -30,7 +33,7 @@ assert_throw(
     "call arg index 2 out of bounds: must be in [0, 2) (declared_len = 2)"
 );
 
-// Test 5: insufficient defaults causes TypeError
+// not enough defaults
 assert_throw(
     function () { materialize_missing_insufficient_error(); },
     "TypeError",
