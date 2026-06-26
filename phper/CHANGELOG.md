@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.5](https://github.com/phper-framework/phper/compare/phper-v0.17.4...phper-v0.17.5) - 2026-06-26
+
+### Other
+
+- simplify materialize_missing to accept full defaults list ([#241](https://github.com/phper-framework/phper/pull/241))
+
 ## [0.17.4](https://github.com/phper-framework/phper/compare/phper-v0.17.3...phper-v0.17.4) - 2026-06-25
 
 ### Added
