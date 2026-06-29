@@ -463,10 +463,6 @@ uint32_t phper_zend_call_num_args(const zend_execute_data *execute_data) {
     return ZEND_CALL_NUM_ARGS(execute_data);
 }
 
-void phper_zend_set_call_num_args(zend_execute_data *execute_data, uint32_t num) {
-    ZEND_CALL_NUM_ARGS(execute_data) = num;
-}
-
 uint32_t phper_zend_call_info(zend_execute_data *execute_data) {
     return ZEND_CALL_INFO(execute_data);
 }

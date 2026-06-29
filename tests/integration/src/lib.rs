@@ -16,7 +16,6 @@ mod classes;
 mod constants;
 mod enums;
 mod errors;
-mod execute_data;
 mod functions;
 mod ini;
 mod macros;
@@ -47,7 +46,6 @@ pub fn get_module() -> Module {
     ini::integrate(&mut module);
     macros::integrate(&mut module);
     errors::integrate(&mut module);
-    execute_data::integrate(&mut module);
     references::integrate(&mut module);
     typehints::integrate(&mut module);
     #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]

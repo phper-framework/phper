@@ -46,7 +46,6 @@ macro_rules! throwable_delegate {
             Self::InitializeObject(e) => Throwable::$method(e),
             Self::ExpectType(e) => Throwable::$method(e),
             Self::NotImplementThrowable(e) => Throwable::$method(e),
-            Self::CallArg(e) => Throwable::$method(e),
         }
     };
     // For `&mut self` methods (to_object).
@@ -62,7 +61,6 @@ macro_rules! throwable_delegate {
             Self::InitializeObject(e) => Throwable::$method(e),
             Self::ExpectType(e) => Throwable::$method(e),
             Self::NotImplementThrowable(e) => Throwable::$method(e),
-            Self::CallArg(e) => Throwable::$method(e),
         }
     };
 }
@@ -250,9 +248,6 @@ pub enum Error {
     #[error(transparent)]
     NotImplementThrowable(#[from] NotImplementThrowableError),
 
-    /// Call argument index out of bounds.
-    #[error(transparent)]
-    CallArg(#[from] CallArgError),
 }
 
 impl Error {
@@ -385,23 +380,6 @@ impl Throwable for ThrowObject {
     #[inline]
     fn to_object(&mut self) -> result::Result<ZObject, Box<dyn Throwable>> {
         Ok(self.0.to_ref_owned())
-    }
-}
-
-/// Call argument index out of bounds.
-#[derive(Debug, thiserror::Error, Constructor)]
-#[error(
-    "call arg index {index} out of bounds: must be in [0, {declared_len}) (declared_len = \
-     {declared_len})"
-)]
-pub struct CallArgError {
-    index: usize,
-    declared_len: usize,
-}
-
-impl Throwable for CallArgError {
-    fn get_class(&self) -> &ClassEntry {
-        type_error_class()
     }
 }
 
