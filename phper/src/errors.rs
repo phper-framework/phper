@@ -247,7 +247,6 @@ pub enum Error {
     /// Failed when the object isn't implement PHP `Throwable`.
     #[error(transparent)]
     NotImplementThrowable(#[from] NotImplementThrowableError),
-
 }
 
 impl Error {

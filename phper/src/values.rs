@@ -241,9 +241,6 @@ impl ExecuteData {
             ZVal::from_mut_ptr(val)
         }
     }
-
-
-
 }
 
 /// Wrapper of [zval].
