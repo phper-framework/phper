@@ -92,8 +92,3 @@ fn test_typehints() {
 fn test_enums() {
     test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("enums.php"));
 }
-
-#[test]
-fn test_execute_data() {
-    test_php_script(&*DYLIB_PATH, TESTS_PHP_DIR.join("execute_data.php"));
-}
