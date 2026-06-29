@@ -257,8 +257,7 @@ impl Module {
     /// access.
     ///
     /// Unlike [`add_function`], the handler receives `&mut ExecuteData`
-    /// alongside `&mut [ZVal]`, enabling methods like
-    /// [`materialize_missing`](crate::values::ExecuteData::materialize_missing).
+    /// alongside `&mut [ZVal]`.
     pub fn add_function_with_execute_data<F, Z, E>(
         &mut self, name: impl Into<String>, handler: F,
     ) -> &mut FunctionEntity
