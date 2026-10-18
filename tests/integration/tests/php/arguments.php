@@ -47,3 +47,29 @@ assert_throw(function () { integrate_arguments_optional(); }, $argumentCountErro
 assert_eq(integrate_arguments_optional("foo"), "foo: false");
 assert_eq(integrate_arguments_optional("foo", true), "foo: true");
 assert_eq(integrate_arguments_optional("foo", true, "bar"), "foo: true");
+
+// A required argument after an optional one: PHP promotes the optional one to
+// required, so all three must be passed. Same expectation as php-src's
+// Zend/tests/required_param_after_optional_named_args.phpt.
+$requiredAfterOptional = [
+    'integrate_arguments_required_after_optional',
+    'integrate_arguments_required_after_default_value',
+];
+foreach ($requiredAfterOptional as $function) {
+    $reflection = new ReflectionFunction($function);
+    assert_eq(3, $reflection->getNumberOfParameters(), sprintf('%s has 3 parameters', $function));
+    assert_eq(3, $reflection->getNumberOfRequiredParameters(), sprintf('%s requires 3 parameters', $function));
+    foreach ($reflection->getParameters() as $param) {
+        assert_false($param->isOptional());
+    }
+
+    assert_throw(function () use ($function) { $function("foo"); }, $argumentCountErrorName, 0, sprintf("%s(): expects at least 3 parameter(s), 1 given", $function));
+    assert_throw(function () use ($function) { $function("foo", true); }, $argumentCountErrorName, 0, sprintf("%s(): expects at least 3 parameter(s), 2 given", $function));
+    assert_eq($function("foo", true, "bar"), "foo: true: bar");
+
+    // eval() because named-argument syntax is a parse error before 8.0.
+    if (PHP_VERSION_ID >= 80000) {
+        assert_throw(function () use ($function) { eval(sprintf('%s(a: "foo", b: true);', $function)); }, $argumentCountErrorName, 0, sprintf("%s(): expects at least 3 parameter(s), 2 given", $function));
+        assert_eq(eval(sprintf('return %s(a: "foo", b: true, c: "bar");', $function)), "foo: true: bar");
+    }
+}

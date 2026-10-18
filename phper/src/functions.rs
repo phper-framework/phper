@@ -171,7 +171,14 @@ impl FunctionEntry {
     ) -> zend_function_entry {
         let mut infos = Vec::new();
 
-        let require_arg_count = arguments.iter().filter(|arg| arg.required).count();
+        // Zend reads `required_num_args` as a prefix length, not a count, so a
+        // required argument after an optional one must not lower it -- the
+        // handler would be called with an empty slot. Same formula as
+        // `zend_compile_params` in php-src's `Zend/zend_compile.c`.
+        let require_arg_count = arguments
+            .iter()
+            .rposition(|arg| arg.required)
+            .map_or(0, |pos| pos + 1);
 
         // Build return type info.
         let return_info = if let Some(return_type) = return_type {
@@ -429,7 +436,7 @@ pub struct Argument {
 }
 
 impl Argument {
-    /// Create a new argument with default values
+    /// Create a new required argument with no type hint
     pub fn new(name: impl Into<String>) -> Self {
         let name = ensure_end_with_zero(name);
         Self {
@@ -461,6 +468,10 @@ impl Argument {
     }
 
     /// Argument is optional
+    ///
+    /// Has no effect if a later argument is required. PHP derives optionality
+    /// from position, so an optional argument declared before a required one is
+    /// promoted back to required.
     pub fn optional(mut self) -> Self {
         self.required = false;
         self
@@ -468,10 +479,13 @@ impl Argument {
 
     /// Argument default value. Example: "'a-string'", "A_CONST", "42",
     /// "[0=>'zero']"
+    ///
+    /// Implies [`optional`](Self::optional), and is subject to the same
+    /// positional promotion.
     pub fn with_default_value(mut self, default_value: impl Into<String>) -> Self {
         let default_value = ensure_end_with_zero(default_value);
         self.default_value = Some(default_value);
-        self.required = false; // arg with default value does not count towards required arg count
+        self.required = false; // an arg with a default value is optional, unless a later arg is required
         self
     }
 }
