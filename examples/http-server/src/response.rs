@@ -27,8 +27,8 @@ pub const HTTP_RESPONSE_CLASS_NAME: &str = "HttpServer\\HttpResponse";
 pub fn make_response_class() -> ClassEntity<Response<Body>> {
     let mut class = ClassEntity::new_with_default_state_constructor(HTTP_RESPONSE_CLASS_NAME);
 
-    // Register the header method with public visibility, accept `name` and `value`
-    // parameters.
+    // Register the header method with public visibility, accept `name` and
+    // `value` parameters.
     class
         .add_method("header", Visibility::Public, |this, arguments| {
             let name = arguments[0].expect_z_str()?.to_bytes();

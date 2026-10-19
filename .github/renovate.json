@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "schedule:monthly"
+  ],
+  "packageRules": [
+    {
+      "description": "One PR a month for all of cargo. `chore` keeps dependency bumps out of the release-plz changelog, which is generated from commit subjects.",
+      "matchManagers": [
+        "cargo"
+      ],
+      "groupName": "cargo dependencies",
+      "rangeStrategy": "update-lockfile",
+      "semanticCommitType": "chore"
+    },
+    {
+      "description": "Renovate cannot filter crates by rust-version (constraintsFiltering is python-only), so MSRV bumps must be a deliberate human change, not a side effect of a dependency PR.",
+      "matchManagers": [
+        "rust-toolchain"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Bumping nightly reformats the tree, so the Rustfmt job gates the PR rather than the diff being reviewable.",
+      "matchDepNames": [
+        "rust"
+      ],
+      "commitMessageTopic": "nightly toolchain",
+      "semanticCommitType": "ci"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The nightly pin used by the Rustfmt job and cargo doc.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "NIGHTLY_TOOLCHAIN:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "rust",
+      "datasourceTemplate": "rust-version",
+      "versioningTemplate": "rust-release-channel"
+    }
+  ]
+}

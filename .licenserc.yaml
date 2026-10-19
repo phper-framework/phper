@@ -17,6 +17,7 @@ header:
   paths-ignore:
     - '**/*.lock'
     - '**/*.md'
+    - '**/*.json'
     - '**/.gitignore'
     - '**/.gitmodules'
     - '.cargo'
