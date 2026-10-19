@@ -143,8 +143,8 @@ impl ClassEntry {
             if !phper_object_init_ex(val.as_mut_ptr(), ptr) {
                 Err(InitializeObjectError::new(self.get_name().to_str()?.to_owned()).into())
             } else {
-                // Can't drop val here! Otherwise the object will be dropped too (wasting me a
-                // day of debugging time here).
+                // Can't drop val here! Otherwise the object will be dropped too
+                // (wasting me a day of debugging time here).
                 let mut val = ManuallyDrop::new(val);
                 let ptr = phper_z_obj_p(val.as_mut_ptr());
                 Ok(ZObject::from_raw_cast(ptr))
@@ -984,7 +984,8 @@ impl PropertyEntity {
                     zend_declare_property_double(ce, name, name_length, *f, access_type);
                 }
                 Scalar::String(s) => {
-                    // If the `ce` is `ZEND_INTERNAL_CLASS`, then the `zend_string` is allocated
+                    // If the `ce` is `ZEND_INTERNAL_CLASS`, then the
+                    // `zend_string` is allocated
                     // as persistent.
                     zend_declare_property_stringl(
                         ce,

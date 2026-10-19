@@ -193,7 +193,8 @@ unsafe fn entries(ini_entries: &[IniEntity]) -> *const zend_ini_entry_def {
         let mut entries = Vec::with_capacity(ini_entries.len() + 1);
 
         ini_entries.iter().for_each(|entity| {
-            // Ini entity will exist throughout the whole application life cycle.
+            // Ini entity will exist throughout the whole application life
+            // cycle.
             entries.push(entity.entry());
         });
 

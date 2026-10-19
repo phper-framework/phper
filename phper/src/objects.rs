@@ -240,8 +240,8 @@ impl ZObj {
                 return Ok(());
             };
 
-            // The `get_constructor` is possible to throw PHP Error, so call it inside
-            // `call_raw_common`.
+            // The `get_constructor` is possible to throw PHP Error, so call it
+            // inside `call_raw_common`.
             let mut val = call_raw_common(|val| {
                 let f = get_constructor(self.as_mut_ptr());
                 if !f.is_null() {
