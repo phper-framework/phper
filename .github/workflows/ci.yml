@@ -23,17 +23,45 @@ env:
   RUST_BACKTRACE: "1"
   RUSTFLAGS: "-D warnings"
   LLVM_CONFIG_PATH: llvm-config-18
+  # bumped periodically by renovate
+  NIGHTLY_TOOLCHAIN: "nightly-2026-10-16"
 
 jobs:
   required:
     name: Required
     needs:
       - ci
+      - lint
     runs-on: ubuntu-24.04
     steps:
       - name: Check results
         run: |
           [[ ${{ needs.ci.result }} == 'success' ]] || exit 1;
+          [[ ${{ needs.lint.result }} == 'success' ]] || exit 1;
+
+  # standalone checks that do not rely on PHP version
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+          components: rustfmt
+
+      # Most of .rustfmt.toml is nightly-only, and stable rustfmt skips those
+      # options with a warning rather than failing. So `cargo fmt` on the
+      # rust-toolchain.toml channel exits 0 while leaving imports unmerged and
+      # comments unwrapped -- run it with this toolchain to match.
+      - name: Cargo fmt
+        run: cargo +${{ env.NIGHTLY_TOOLCHAIN }} fmt --all -- --check
+
+      - name: Cargo lockfile is up to date
+        run: cargo +${{ env.NIGHTLY_TOOLCHAIN }} metadata --locked --format-version 1 > /dev/null
 
   ci:
     name: CI
@@ -95,10 +123,18 @@ jobs:
           [[ `php-config --version` == ${{ matrix.php-version }}.* ]] || exit 1;
           [[ `php-fpm --version` == PHP\ ${{ matrix.php-version }}.* ]] || exit 1;
 
+      # `cargo doc` needs nightly for doc_cfg. Clippy and test instead run on
+      # the channel in rust-toolchain.toml: a toolchain file overrides the
+      # default this action sets, so a bare `cargo` in this repo gets that
+      # channel and not the nightly installed here. Step order does not matter.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@master
         with:
-          components: rustfmt, clippy
+          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+
+      # No argument: installs the channel named in rust-toolchain.toml.
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install
 
       - name: Setup cargo cache
         uses: actions/cache@v4
@@ -111,16 +147,13 @@ jobs:
             target/
           key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-ts-${{ matrix.ts }}-debug-${{ matrix.debug }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Cargo fmt
-        run: cargo +nightly fmt --all -- --check
-
       - name: Cargo clippy
-        run: cargo clippy --release
+        run: cargo clippy --release --locked
 
       - name: Cargo test
-        run: cargo test --release -- --nocapture
+        run: cargo test --release --locked -- --nocapture
 
       - name: Cargo doc
-        run: cargo +nightly doc --workspace --no-deps --all-features
+        run: cargo +${{ env.NIGHTLY_TOOLCHAIN }} doc --workspace --no-deps --all-features --locked
         env:
           RUSTDOCFLAGS: "-D warnings --cfg docsrs"
