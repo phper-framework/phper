@@ -70,9 +70,9 @@ let mut foo = ClassEntity::new("Foo");
 foo.set_final();
 ```
 
-Userland code extending `Foo` then fails to compile with
-`Class Bar cannot extend final class Foo`, exactly as for a `final` class
-declared in PHP.
+Userland code extending `Foo` then fails to compile with a fatal error, exactly
+as for a `final` class declared in PHP. `final` classes are available in every
+PHP version `PHPER` supports, so this needs no minimum version.
 
 Note that this applies to classes registered by your extension too: if another
 `ClassEntity` extends `Foo`, the error is raised while the module starts up
