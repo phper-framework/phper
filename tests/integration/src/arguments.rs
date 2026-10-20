@@ -95,4 +95,34 @@ fn integrate_arguments(module: &mut Module) {
         )
         .argument(Argument::new("a"))
         .argument(Argument::new("b").optional());
+
+    // Deliberately malformed: a required argument after an optional one, which
+    // PHP rejects at compile time but a runtime-built declaration can express.
+    module
+        .add_function(
+            "integrate_arguments_required_after_optional",
+            |arguments: &mut [ZVal]| -> phper::Result<String> {
+                let a = arguments[0].expect_z_str()?.to_str()?;
+                let b = arguments[1].expect_bool()?;
+                let c = arguments[2].expect_z_str()?.to_str()?;
+                Ok(format!("{}: {}: {}", a, b, c))
+            },
+        )
+        .argument(Argument::new("a"))
+        .argument(Argument::new("b").optional())
+        .argument(Argument::new("c"));
+
+    module
+        .add_function(
+            "integrate_arguments_required_after_default_value",
+            |arguments: &mut [ZVal]| -> phper::Result<String> {
+                let a = arguments[0].expect_z_str()?.to_str()?;
+                let b = arguments[1].expect_bool()?;
+                let c = arguments[2].expect_z_str()?.to_str()?;
+                Ok(format!("{}: {}: {}", a, b, c))
+            },
+        )
+        .argument(Argument::new("a"))
+        .argument(Argument::new("b").with_default_value("true"))
+        .argument(Argument::new("c"));
 }

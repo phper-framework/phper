@@ -83,8 +83,18 @@ the `count` parameter is no longer long, but a reference.
 
 ## Argument and return type modifiers
 
-Arguments can have type-hints, nullability and default values applied. Here we define a function that accepts
-a nullable class (in this case, an interface), and a string with a default value:
+An argument is **required** and untyped unless you say otherwise. The
+modifiers that change that:
+
+| Modifier | Effect |
+|---|---|
+| [`optional`](phper::functions::Argument::optional) | the argument may be omitted |
+| [`with_default_value`](phper::functions::Argument::with_default_value) | the value used when it is omitted — implies `optional` |
+| [`with_type_hint`](phper::functions::Argument::with_type_hint) / [`allow_null`](phper::functions::Argument::allow_null) | the declared type, and whether it accepts `null` |
+| [`by_ref`](phper::functions::Argument::by_ref) | pass by reference rather than by value |
+
+Here we define a function that accepts a nullable class (in this case, an
+interface), a string with a default value, and an optional bool:
 
 ```rust,no_run
 use phper::{modules::Module, php_get_module, functions::Argument, echo};
@@ -121,3 +131,54 @@ The output of `php --re` for this function would look like:
       }
     }
 ```
+
+### Optional arguments must come last
+
+Note the ordering in that example: the two optional arguments come after the
+required one. That is not a style choice.
+
+PHP derives optionality from *position*, not from a per-argument flag — it
+records the index of the last required parameter and treats everything before
+it as required, however that argument was declared. So an `optional` argument
+placed *before* a required one is promoted back to required, and its default
+value is never used. This is the same rule the PHP compiler applies to
+userland functions, where writing it raises a deprecation notice as of PHP
+8.0.
+
+```rust,no_run
+use phper::{modules::Module, php_get_module, functions::Argument};
+
+#[php_get_module]
+pub fn get_module() -> Module {
+    let mut module = Module::new(
+        env!("CARGO_CRATE_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
+
+    module.add_function("my_function", |_| -> phper::Result<()> {
+        Ok(())
+    })
+    .argument(Argument::new("a"))
+    .argument(Argument::new("b").optional())
+    .argument(Argument::new("c"));
+
+    module
+}
+```
+
+Despite `b` being declared optional, all three parameters are required, and
+calling with fewer than three raises `ArgumentCountError`:
+
+```txt
+    Function [ <internal:integration> function my_function ] {
+
+      - Parameters [3] {
+        Parameter #0 [ <required> $a ]
+        Parameter #1 [ <required> $b ]
+        Parameter #2 [ <required> $c ]
+      }
+    }
+```
+
+Declare optional arguments last, so the signature means what it reads as.
