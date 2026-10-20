@@ -568,7 +568,8 @@ phper_zend_begin_arg_with_return_obj_info_ex(bool return_reference,
     #else
         info.type.ptr = ZSTR_VAL(zstr);
     #endif
-    info.type.type_mask = _ZEND_TYPE_NAME_BIT | (allow_null ? MAY_BE_NULL : 0);
+    // swap only the type kind: the macro also set the nullable and return-by-ref bits
+    info.type.type_mask = (info.type.type_mask & ~_ZEND_TYPE_KIND_MASK) | _ZEND_TYPE_NAME_BIT;
     return info;
 #else
     ZEND_BEGIN_ARG_INFO_EX(info, 0, return_reference, required_num_args)
@@ -626,7 +627,8 @@ zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
     #else
         info.type.ptr = ZSTR_VAL(zstr);
     #endif
-    info.type.type_mask = _ZEND_TYPE_NAME_BIT | (allow_null ? MAY_BE_NULL : 0);
+    // swap only the type kind: the macro also set the nullable and pass-by-ref bits
+    info.type.type_mask = (info.type.type_mask & ~_ZEND_TYPE_KIND_MASK) | _ZEND_TYPE_NAME_BIT;
     return info;
 #elif PHP_VERSION_ID >= 70200
     zend_internal_arg_info info = {
