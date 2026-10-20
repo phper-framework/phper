@@ -26,6 +26,7 @@ pub fn integrate(module: &mut Module) {
     integrate_i_constants(module);
     integrate_bar_extends_foo(module, foo_class);
     integrate_dependent_classes(module);
+    integrate_final_class(module);
     #[cfg(phper_major_version = "8")]
     integrate_stringable(module);
 }
@@ -259,6 +260,15 @@ fn integrate_dependent_classes(module: &mut Module) {
     // Register both classes
     module.add_class(a_cls);
     module.add_class(b_cls);
+}
+
+fn integrate_final_class(module: &mut Module) {
+    let mut cls = ClassEntity::new(r"IntegrationTest\FinalClass");
+    cls.set_final();
+    module.add_class(cls);
+
+    // Control for the `final` assertions: same shape, flag not set.
+    module.add_class(ClassEntity::new(r"IntegrationTest\NonFinalClass"));
 }
 
 #[cfg(phper_major_version = "8")]

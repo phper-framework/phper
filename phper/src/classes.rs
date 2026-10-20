@@ -457,6 +457,7 @@ pub struct ClassEntity<T: 'static> {
     constants: Vec<ConstantEntity>,
     bound_class: StateClass<T>,
     state_cloner: Option<Rc<StateCloner>>,
+    ce_flags: u32,
     _p: PhantomData<(*mut (), T)>,
 }
 
@@ -495,6 +496,7 @@ impl<T: 'static> ClassEntity<T> {
             constants: Vec::new(),
             bound_class: StateClass::null(),
             state_cloner: None,
+            ce_flags: 0,
             _p: PhantomData,
         }
     }
@@ -539,6 +541,11 @@ impl<T: 'static> ClassEntity<T> {
         entity.set_vis_abstract();
         self.method_entities.push(entity);
         self.method_entities.last_mut().unwrap()
+    }
+
+    /// Mark the class as `final`, so userland cannot extend it
+    pub fn set_final(&mut self) {
+        self.ce_flags |= ZEND_ACC_FINAL;
     }
 
     /// Declare property.
@@ -691,6 +698,11 @@ impl<T: 'static> ClassEntity<T> {
                 Some(class_init_handler),
                 parent.cast(),
             );
+
+            // Applied after registration rather than to the stack entry, as
+            // `build/gen_stub.php` does below 8.4 —
+            // `zend_register_internal_class_with_flags` is 8.4+ only.
+            (*class_ce).ce_flags |= self.ce_flags;
 
             self.bound_class.bind(class_ce);
 

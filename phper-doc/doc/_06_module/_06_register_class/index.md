@@ -59,6 +59,25 @@ foo.implements(Interface::from_name("Stringable"));
 You should implement the method `Stringable::__toString` after implementing
 `Stringable`, otherwise the class `Foo` will become abstract class.
 
+## Final classes
+
+To forbid extending a class, use `ClassEntity::set_final`:
+
+```rust,no_run
+use phper::classes::ClassEntity;
+
+let mut foo = ClassEntity::new("Foo");
+foo.set_final();
+```
+
+Userland code extending `Foo` then fails to compile with a fatal error, exactly
+as for a `final` class declared in PHP. `final` classes are available in every
+PHP version `PHPER` supports, so this needs no minimum version.
+
+Note that this applies to classes registered by your extension too: if another
+`ClassEntity` extends `Foo`, the error is raised while the module starts up
+rather than when userland calls into it.
+
 ## Add properties
 
 Due to the limitation of PHP, you can only use copyable values as class properties.
