@@ -112,6 +112,12 @@ $bar = new \IntegrationTest\BarExtendsFoo; //Bar should extend Foo
 $reflection = new ReflectionClass($bar);
 assert_true($reflection->isSubclassOf(IntegrationTest\Foo::class));
 
+// Test final classes. Extending one is a compile error rather than a catchable
+// throwable, so assert the flag by reflection as Zend/tests/enum/final.phpt
+// does; the non-final class is the control.
+assert_true((new ReflectionClass(IntegrationTest\FinalClass::class))->isFinal());
+assert_false((new ReflectionClass(IntegrationTest\NonFinalClass::class))->isFinal());
+
 // Test co-dependent classes
 $b = IntegrationTest\Dependency\A::createB();
 assert_true($b instanceof IntegrationTest\Dependency\B);
