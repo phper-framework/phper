@@ -8,7 +8,11 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use phper::{functions::Argument, modules::Module};
+use phper::{
+    functions::{Argument, ReturnType},
+    modules::Module,
+    types::{ArgumentTypeHint, ReturnTypeHint},
+};
 
 #[allow(clippy::disallowed_names)]
 pub fn integrate(module: &mut Module) {
@@ -25,4 +29,27 @@ pub fn integrate(module: &mut Module) {
             Ok::<_, phper::Error>(())
         })
         .arguments([Argument::new("foo").by_ref(), Argument::new("bar").by_ref()]);
+
+    module
+        .add_function("integrate_test_reference_class_type", |arguments| {
+            let obj = arguments[0].expect_mut_z_ref()?;
+            *obj.val_mut() = "replaced".into();
+            Ok::<_, phper::Error>(())
+        })
+        .argument(
+            Argument::new("obj")
+                .by_ref()
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from("stdClass")))
+                .allow_null(),
+        );
+
+    module
+        .add_function("integrate_test_reference_return_class_type", |_| {
+            phper::ok(())
+        })
+        .return_type(
+            ReturnType::new(ReturnTypeHint::ClassEntry(String::from("stdClass")))
+                .allow_null()
+                .by_ref(),
+        );
 }
