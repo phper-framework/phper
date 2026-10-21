@@ -89,7 +89,7 @@ modifiers that change that:
 | Modifier | Effect |
 |---|---|
 | [`optional`](phper::functions::Argument::optional) | the argument may be omitted |
-| [`with_default_value`](phper::functions::Argument::with_default_value) | the value used when it is omitted — implies `optional` |
+| [`with_default_value`](phper::functions::Argument::with_default_value) | the default shown by reflection, and used for an argument skipped by name. Implies `optional`. On PHP 7.x, the same as `optional` |
 | [`with_type_hint`](phper::functions::Argument::with_type_hint) / [`allow_null`](phper::functions::Argument::allow_null) | the declared type, and whether it accepts `null` |
 | [`by_ref`](phper::functions::Argument::by_ref) | pass by reference rather than by value |
 
@@ -130,6 +130,86 @@ The output of `php --re` for this function would look like:
         Parameter #2 [ <optional> bool $optional_bool = <default> ]
       }
     }
+```
+
+### Default values reach the handler only through named arguments
+
+A default value works with any type hint, or none. It is recorded on PHP 8.0
+and later. Older versions ignore it, but the argument is still optional.
+
+In userland, PHP binds every default to its parameter, even when the caller
+leaves it off:
+
+```php
+function my_function(?\MyNamespace\MyInterface $a_class, string $name = 'my_default', bool $optional_bool = false) {
+    var_dump(func_get_args(), $name, $optional_bool);
+}
+
+my_function(null);
+// func_get_args() is [null]
+// $name is 'my_default'
+// $optional_bool is false
+```
+
+`func_get_args()` holds only the passed arguments. As the
+[PHP manual](https://www.php.net/manual/en/function.func-get-args.php) puts
+it, it "does not account for default (non-passed) arguments".
+
+A phper handler has no parameter variables. Its `arguments` slice holds what
+`func_get_args()` would return, and nothing more:
+
+```php
+// All three passed. The handler gets null, 'x', true.
+my_function(null, 'x', true);
+
+// $name skipped by name. PHP fills the gap from the declared default, so the
+// handler gets null, 'my_default', true.
+my_function(null, optional_bool: true);
+
+// Only $a_class passed. The handler gets null, and nothing for $name or
+// $optional_bool.
+my_function(null);
+```
+
+PHP's own internal functions work the same way. `str_pad` declares
+`$pad_string = " "`, but the default it uses is a C local variable. The
+declared default is for reflection and named-argument gaps.
+
+Read optional arguments with `arguments.get(n)`. Indexing past the end of the
+slice panics, which aborts the PHP process. What to do with a missing argument
+is up to the handler. This one falls back to the declared defaults, as a
+userland function would:
+
+```rust,no_run
+use phper::{modules::Module, php_get_module, functions::Argument, echo};
+use phper::types::ArgumentTypeHint;
+
+#[php_get_module]
+pub fn get_module() -> Module {
+    let mut module = Module::new(
+        env!("CARGO_CRATE_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
+
+    module.add_function("my_function", |arguments| -> phper::Result<()> {
+        let name = match arguments.get(1) {
+            Some(name) => name.expect_z_str()?.to_str()?,
+            None => "my_default",
+        };
+        let optional_bool = match arguments.get(2) {
+            Some(optional_bool) => optional_bool.expect_bool()?,
+            None => false,
+        };
+        echo!("{} {}\n", name, optional_bool);
+        Ok(())
+    })
+    .argument(Argument::new("a_class").with_type_hint(ArgumentTypeHint::ClassEntry(String::from(r"\MyNamespace\MyInterface"))).allow_null())
+    .argument(Argument::new("name").with_type_hint(ArgumentTypeHint::String).with_default_value("'my_default'"))
+    .argument(Argument::new("optional_bool").with_type_hint(ArgumentTypeHint::Bool).optional());
+
+    module
+}
 ```
 
 ### Optional arguments must come last

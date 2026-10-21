@@ -279,6 +279,7 @@ impl FunctionEntry {
                                 arg.name.as_ptr(),
                                 c_class_name.as_ptr(),
                                 arg.nullable,
+                                default_value_ptr,
                             ))
                         }
                     }
@@ -297,7 +298,7 @@ impl FunctionEntry {
             };
 
             infos.push(arg_info.unwrap_or_else(|| unsafe {
-                phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr())
+                phper_zend_arg_info(arg.pass_by_ref, arg.name.as_ptr(), default_value_ptr)
             }));
         }
 
@@ -481,7 +482,8 @@ impl Argument {
     /// "[0=>'zero']"
     ///
     /// Implies [`optional`](Self::optional), and is subject to the same
-    /// positional promotion.
+    /// positional promotion. Recorded on PHP 8.0 and later. On earlier
+    /// versions it is the same as [`optional`](Self::optional).
     pub fn with_default_value(mut self, default_value: impl Into<String>) -> Self {
         let default_value = ensure_end_with_zero(default_value);
         self.default_value = Some(default_value);
