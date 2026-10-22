@@ -213,6 +213,81 @@ if (PHP_VERSION_ID >= 80000) {
     assert_eq('void', $reflection->getReturnType()->getName(), 'integration_function_typehints return type is void');
 }
 
+$unionArgumentProvider = [
+    // <method>, <expected type string>, <reflection class>, <is nullable>, <is required>
+    ['testFalse', 'false', 'ReflectionNamedType', false, true],
+    ['testUnionClassFalseNull', 'IntegrationTest\\TypeHints\\IFoo|false|null', 'ReflectionUnionType', true, false],
+    ['testUnionIntString', 'string|int', 'ReflectionUnionType', false, true],
+    ['testUnionIntStringNullable', 'string|int|null', 'ReflectionUnionType', true, true],
+    ['testUnionIntNull', '?int', 'ReflectionNamedType', true, true],
+    ['testUnionClasses', 'IntegrationTest\\TypeHints\\IFoo|Countable', 'ReflectionUnionType', false, true],
+    // iterable is an alias of Traversable|array from 8.2
+    ['testUnionIterableInt', php_at_least('8.2') ? 'Traversable|array|int' : 'iterable|int', 'ReflectionUnionType', false, true],
+    ['testUnionByRef', 'string|int', 'ReflectionUnionType', false, true],
+];
+echo PHP_EOL . 'Testing union argument typehints' . PHP_EOL;
+$reflection = new ReflectionClass(\IntegrationTest\TypeHints\ArgumentTypeHintTest::class);
+foreach ($unionArgumentProvider as $input) {
+    echo(sprintf("%s..", $input[0]));
+    $params = $reflection->getMethod($input[0])->getParameters();
+    assert_eq(1, count($params), 'has 1 param');
+    $param = $params[0];
+    $type = $param->getType();
+    if (PHP_VERSION_ID < 80000) {
+        assert_eq(null, $type, sprintf('%s is untyped before 8.0', $input[0]));
+    } else {
+        assert_eq($input[1], (string)$type, sprintf('%s has typehint type', $input[0]));
+        assert_eq($input[2], get_class($type), sprintf('%s has reflection type', $input[0]));
+        assert_eq($input[3], $type->allowsNull(), sprintf('%s allows null', $input[0]));
+        assert_eq($input[4], !$param->isOptional(), sprintf('%s is optional', $input[0]));
+    }
+    echo "PASS" . PHP_EOL;
+}
+$params = $reflection->getMethod('testUnionByRef')->getParameters();
+assert_true($params[0]->isPassedByReference());
+if (PHP_VERSION_ID >= 80000) {
+    $params = $reflection->getMethod('testUnionClassFalseNull')->getParameters();
+    assert_true($params[0]->isDefaultValueAvailable());
+    assert_eq(null, $params[0]->getDefaultValue(), 'testUnionClassFalseNull defaults to null');
+}
+
+$unionReturnProvider = [
+    // <method>, <expected type string>, <reflection class>, <is nullable>
+    ['returnFalse', 'false', 'ReflectionNamedType', false],
+    ['returnUnionClassFalse', 'IntegrationTest\\TypeHints\\IFoo|false', 'ReflectionUnionType', false],
+    ['returnUnionIntStringNullable', 'string|int|null', 'ReflectionUnionType', true],
+];
+echo PHP_EOL . 'Testing union return typehints' . PHP_EOL;
+$reflection = new ReflectionClass(\IntegrationTest\TypeHints\ReturnTypeHintTest::class);
+foreach ($unionReturnProvider as $input) {
+    echo(sprintf("%s..", $input[0]));
+    $return = $reflection->getMethod($input[0])->getReturnType();
+    if (PHP_VERSION_ID < 80000) {
+        assert_eq(null, $return, sprintf('%s is untyped before 8.0', $input[0]));
+    } else {
+        assert_eq($input[1], (string)$return, sprintf('%s has typehint type', $input[0]));
+        assert_eq($input[2], get_class($return), sprintf('%s has reflection type', $input[0]));
+        assert_eq($input[3], $return->allowsNull(), sprintf('%s allows null', $input[0]));
+    }
+    echo "PASS" . PHP_EOL;
+}
+
+echo PHP_EOL . 'Testing union argument invocation' . PHP_EOL;
+$cls = new \IntegrationTest\TypeHints\ArgumentTypeHintTest();
+$unionFoo = $b->createFoo();
+assert_eq(false, $cls->testUnionClassFalseNull(false), 'testUnionClassFalseNull(false)');
+assert_eq(null, $cls->testUnionClassFalseNull(null), 'testUnionClassFalseNull(null)');
+assert_eq($unionFoo, $cls->testUnionClassFalseNull($unionFoo), 'testUnionClassFalseNull($foo)');
+assert_eq(null, $cls->testUnionClassFalseNull(), 'testUnionClassFalseNull()');
+if (PHP_VERSION_ID >= 80000) {
+    // the engine fills a skipped argument from its declared default, so both arrive
+    assert_eq(2, eval('return integration_function_union_default(b: 1);'), 'named argument skips a union with a default');
+}
+$cls = new \IntegrationTest\TypeHints\ReturnTypeHintTest();
+assert_eq(false, $cls->returnFalse(), 'returnFalse');
+assert_eq(false, $cls->returnUnionClassFalse(), 'returnUnionClassFalse');
+assert_eq(null, $cls->returnUnionIntStringNullable(), 'returnUnionIntStringNullable');
+
 //invoke type-hinted functions to exercise handlers
 echo PHP_EOL . 'Testing return type-hinted function invocation' . PHP_EOL;
 assert_true(integration_function_return_bool());

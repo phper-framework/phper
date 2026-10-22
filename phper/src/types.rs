@@ -12,6 +12,8 @@
 
 use crate::sys::*;
 use derive_more::From;
+#[cfg(phper_major_version = "8")]
+use std::ffi::CString;
 use std::{
     ffi::CStr,
     fmt::{self, Debug, Display},
@@ -220,6 +222,7 @@ impl From<&[u8]> for Scalar {
 
 /// PHP argument typehints
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ArgumentTypeHint {
     /// null typehint
     Null,
@@ -243,6 +246,10 @@ pub enum ArgumentTypeHint {
     Mixed,
     /// ClassEntry typehint (class, interface)
     ClassEntry(String),
+    /// false typehint (php 8.0+)
+    False,
+    /// union of two or more typehints, such as `Foo|false|null` (php 8.0+)
+    Union(Vec<ArgumentTypeHint>),
 }
 
 impl ArgumentTypeHint {
@@ -260,13 +267,44 @@ impl ArgumentTypeHint {
             Self::Callable => Some(IS_CALLABLE),
             Self::Iterable => Some(IS_ITERABLE),
             Self::Mixed => Some(IS_MIXED),
-            Self::ClassEntry(_) => None,
+            Self::ClassEntry(_) | Self::False | Self::Union(_) => None,
+        }
+    }
+
+    /// Returns the members of a checked union, or of a standalone false.
+    pub(crate) fn union_members(&self) -> Result<Vec<UnionMember<'_>>, String> {
+        match self {
+            Self::Union(members) => {
+                let members = members.iter().map(Self::union_member).collect::<Vec<_>>();
+                check_union(&members)?;
+                Ok(members)
+            }
+            hint => Ok(vec![hint.union_member()]),
+        }
+    }
+
+    fn union_member(&self) -> UnionMember<'_> {
+        match self {
+            Self::Null => UnionMember::Null,
+            Self::False => UnionMember::False,
+            Self::Bool => UnionMember::Bool,
+            Self::Int => UnionMember::Int,
+            Self::Float => UnionMember::Float,
+            Self::String => UnionMember::String,
+            Self::Array => UnionMember::Array,
+            Self::Object => UnionMember::Object,
+            Self::Callable => UnionMember::Callable,
+            Self::Iterable => UnionMember::Iterable,
+            Self::ClassEntry(class_name) => UnionMember::Class(class_name),
+            Self::Mixed => UnionMember::Standalone("mixed"),
+            Self::Union(_) => UnionMember::Union,
         }
     }
 }
 
 /// PHP property typehints (php 8.0+)
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum PropertyTypeHint {
     /// bool typehint
     Bool,
@@ -308,6 +346,7 @@ impl PropertyTypeHint {
 
 /// PHP return typehints
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ReturnTypeHint {
     /// null typehint
     Null,
@@ -335,6 +374,10 @@ pub enum ReturnTypeHint {
     Never,
     /// void typehint
     Void,
+    /// false typehint (php 8.0+)
+    False,
+    /// union of two or more typehints, such as `Foo|false` (php 8.0+)
+    Union(Vec<ReturnTypeHint>),
 }
 
 impl ReturnTypeHint {
@@ -352,7 +395,268 @@ impl ReturnTypeHint {
             Self::Callable => Some(IS_CALLABLE),
             Self::Iterable => Some(IS_ITERABLE),
             Self::Mixed => Some(IS_MIXED),
-            Self::ClassEntry(_) | Self::Never | Self::Void => None,
+            Self::ClassEntry(_) | Self::Never | Self::Void | Self::False | Self::Union(_) => None,
+        }
+    }
+
+    /// Returns the members of a checked union, or of a standalone false.
+    pub(crate) fn union_members(&self) -> Result<Vec<UnionMember<'_>>, String> {
+        match self {
+            Self::Union(members) => {
+                let members = members.iter().map(Self::union_member).collect::<Vec<_>>();
+                check_union(&members)?;
+                Ok(members)
+            }
+            hint => Ok(vec![hint.union_member()]),
+        }
+    }
+
+    fn union_member(&self) -> UnionMember<'_> {
+        match self {
+            Self::Null => UnionMember::Null,
+            Self::False => UnionMember::False,
+            Self::Bool => UnionMember::Bool,
+            Self::Int => UnionMember::Int,
+            Self::Float => UnionMember::Float,
+            Self::String => UnionMember::String,
+            Self::Array => UnionMember::Array,
+            Self::Object => UnionMember::Object,
+            Self::Callable => UnionMember::Callable,
+            Self::Iterable => UnionMember::Iterable,
+            Self::ClassEntry(class_name) => UnionMember::Class(class_name),
+            Self::Mixed => UnionMember::Standalone("mixed"),
+            Self::Never => UnionMember::Standalone("never"),
+            Self::Void => UnionMember::Standalone("void"),
+            Self::Union(_) => UnionMember::Union,
+        }
+    }
+}
+
+/// One member of a union typehint, common to arguments and returns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UnionMember<'a> {
+    Null,
+    False,
+    Bool,
+    Int,
+    Float,
+    String,
+    Array,
+    Object,
+    Callable,
+    Iterable,
+    Class(&'a str),
+    /// mixed, void or never, which cannot be part of a union.
+    Standalone(&'static str),
+    Union,
+}
+
+impl Display for UnionMember<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Null => "null",
+            Self::False => "false",
+            Self::Bool => "bool",
+            Self::Int => "int",
+            Self::Float => "float",
+            Self::String => "string",
+            Self::Array => "array",
+            Self::Object => "object",
+            Self::Callable => "callable",
+            Self::Iterable => "iterable",
+            Self::Class(class_name) => class_name,
+            Self::Standalone(name) => name,
+            Self::Union => "union",
+        })
+    }
+}
+
+/// Rejects the unions `zend_compile_typename` rejects in userland. Internal
+/// registration checks none of them.
+pub(crate) fn check_union(members: &[UnionMember<'_>]) -> Result<(), String> {
+    use UnionMember::*;
+
+    if members.len() < 2 {
+        return Err("a union needs at least two members".to_owned());
+    }
+    for (i, member) in members.iter().enumerate() {
+        match member {
+            Standalone(name) => {
+                return Err(format!("{} can only be used as a standalone type", name));
+            }
+            Union => return Err("a union cannot contain another union".to_owned()),
+            _ => {}
+        }
+        for earlier in &members[..i] {
+            if member.same_as(earlier) {
+                return Err(format!("duplicate type {} is redundant", member));
+            }
+            if member.overlaps(earlier) || earlier.overlaps(member) {
+                return Err(format!("{} is redundant with {}", member, earlier));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Lowers checked union members to the `|`-joined class names and type mask
+/// that `ZEND_ARG_OBJ_TYPE_MASK` takes, the same way `build/gen_stub.php` does.
+#[cfg(phper_major_version = "8")]
+pub(crate) fn lower_union(members: &[UnionMember<'_>]) -> (Option<CString>, u32) {
+    use UnionMember::*;
+
+    let mut class_names = Vec::new();
+    let mut type_mask = 0;
+    for member in members {
+        match member {
+            Null => type_mask |= MAY_BE_NULL,
+            False => type_mask |= MAY_BE_FALSE,
+            Bool => type_mask |= MAY_BE_BOOL,
+            Int => type_mask |= MAY_BE_LONG,
+            Float => type_mask |= MAY_BE_DOUBLE,
+            String => type_mask |= MAY_BE_STRING,
+            Array => type_mask |= MAY_BE_ARRAY,
+            Object => type_mask |= MAY_BE_OBJECT,
+            Callable => type_mask |= MAY_BE_CALLABLE,
+            #[cfg(any(phper_minor_version = "0", phper_minor_version = "1"))]
+            Iterable => type_mask |= 1 << IS_ITERABLE,
+            // From 8.2 zend_register_functions replaces any type carrying the
+            // iterable bit with Traversable|array, dropping the other members.
+            // Userland rewrites iterable the same way in
+            // zend_compile_single_typename.
+            #[cfg(not(any(phper_minor_version = "0", phper_minor_version = "1")))]
+            Iterable => {
+                class_names.push("Traversable");
+                type_mask |= MAY_BE_ARRAY;
+            }
+            Class(class_name) => class_names.push(*class_name),
+            Standalone(_) | Union => unreachable!("rejected by check_union"),
+        }
+    }
+    let class_names = (!class_names.is_empty())
+        .then(|| CString::new(class_names.join("|")).expect("CString::new failed"));
+    (class_names, type_mask)
+}
+
+impl UnionMember<'_> {
+    fn same_as(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Class(a), Self::Class(b)) => a.eq_ignore_ascii_case(b),
+            (a, b) => a == b,
+        }
+    }
+
+    /// Whether `other` is already allowed by `self`.
+    fn overlaps(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Bool, Self::False) | (Self::Object, Self::Class(_)) => true,
+            (Self::Iterable, Self::Array) => true,
+            (Self::Iterable, Self::Class(class_name)) => {
+                class_name.eq_ignore_ascii_case("Traversable")
+            }
+            _ => false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{UnionMember::*, *};
+
+    #[test]
+    fn check_union_accepts_distinct_members() {
+        assert_eq!(check_union(&[Class("Countable"), False, Null]), Ok(()));
+        assert_eq!(check_union(&[Int, String]), Ok(()));
+        assert_eq!(check_union(&[Iterable, Int]), Ok(()));
+        assert_eq!(
+            check_union(&[Class("Countable"), Class("Stringable")]),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn check_union_rejects_fewer_than_two_members() {
+        for members in [&[][..], &[Int][..]] {
+            assert_eq!(
+                check_union(members),
+                Err("a union needs at least two members".to_owned())
+            );
+        }
+    }
+
+    #[test]
+    fn union_members_accepts_standalone_false() {
+        assert_eq!(ArgumentTypeHint::False.union_members(), Ok(vec![False]));
+        assert_eq!(ReturnTypeHint::False.union_members(), Ok(vec![False]));
+    }
+
+    #[test]
+    fn union_members_checks_unions() {
+        assert_eq!(
+            ArgumentTypeHint::Union(vec![ArgumentTypeHint::Int]).union_members(),
+            Err("a union needs at least two members".to_owned())
+        );
+        assert_eq!(
+            ReturnTypeHint::Union(vec![ReturnTypeHint::Int, ReturnTypeHint::Void]).union_members(),
+            Err("void can only be used as a standalone type".to_owned())
+        );
+    }
+
+    #[test]
+    fn check_union_rejects_standalone_types() {
+        for name in ["mixed", "void", "never"] {
+            assert_eq!(
+                check_union(&[Int, Standalone(name)]),
+                Err(format!("{} can only be used as a standalone type", name))
+            );
+        }
+    }
+
+    #[test]
+    fn check_union_rejects_nested_union() {
+        assert_eq!(
+            check_union(&[Int, Union]),
+            Err("a union cannot contain another union".to_owned())
+        );
+    }
+
+    #[test]
+    fn check_union_rejects_duplicates() {
+        assert_eq!(
+            check_union(&[Int, String, Int]),
+            Err("duplicate type int is redundant".to_owned())
+        );
+        assert_eq!(
+            check_union(&[Class("Foo"), Int, Class("FOO")]),
+            Err("duplicate type FOO is redundant".to_owned())
+        );
+    }
+
+    #[test]
+    fn check_union_rejects_overlapping_members() {
+        let cases: &[(&[UnionMember<'_>], &str)] = &[
+            (&[Bool, False], "false is redundant with bool"),
+            (&[False, Bool], "bool is redundant with false"),
+            (
+                &[Object, Class("Countable")],
+                "Countable is redundant with object",
+            ),
+            (
+                &[Class("Countable"), Object],
+                "object is redundant with Countable",
+            ),
+            (&[Iterable, Array], "array is redundant with iterable"),
+            (
+                &[Iterable, Class("Traversable")],
+                "Traversable is redundant with iterable",
+            ),
+            (
+                &[Class("traversable"), Iterable],
+                "iterable is redundant with traversable",
+            ),
+        ];
+        for (members, message) in cases {
+            assert_eq!(check_union(members), Err((*message).to_owned()));
         }
     }
 }

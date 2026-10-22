@@ -132,6 +132,83 @@ The output of `php --re` for this function would look like:
     }
 ```
 
+### Declare a union type
+
+[`ArgumentTypeHint::Union`](phper::types::ArgumentTypeHint::Union) and
+[`ReturnTypeHint::Union`](phper::types::ReturnTypeHint::Union) declare a type
+such as `int|string` or `Foo|false|null`. `False` is available as a member, or
+on its own. [`allow_null`](phper::functions::Argument::allow_null) on a union
+adds `null`, the same as a `Null` member.
+
+```rust,no_run
+use phper::{modules::Module, php_get_module, functions::{Argument, ReturnType}};
+use phper::types::{ArgumentTypeHint, ReturnTypeHint};
+
+#[php_get_module]
+pub fn get_module() -> Module {
+    let mut module = Module::new(
+        env!("CARGO_CRATE_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        env!("CARGO_PKG_AUTHORS"),
+    );
+
+    module.add_function("my_function", |_| -> phper::Result<bool> {
+        Ok(false)
+    })
+    .argument(Argument::new("key").with_type_hint(ArgumentTypeHint::Union(vec![
+        ArgumentTypeHint::Int,
+        ArgumentTypeHint::String,
+    ])))
+    .argument(Argument::new("parent").with_type_hint(ArgumentTypeHint::Union(vec![
+        ArgumentTypeHint::ClassEntry(String::from(r"MyNamespace\MyInterface")),
+        ArgumentTypeHint::False,
+        ArgumentTypeHint::Null,
+    ])).with_default_value("null"))
+    .return_type(ReturnType::new(ReturnTypeHint::Union(vec![
+        ReturnTypeHint::String,
+        ReturnTypeHint::False,
+    ])));
+
+    module
+}
+```
+
+The output of `php --re` for this function would look like:
+
+```txt
+    Function [ <internal:integration> function my_function ] {
+
+      - Parameters [2] {
+        Parameter #0 [ <required> string|int $key ]
+        Parameter #1 [ <optional> MyNamespace\MyInterface|false|null $parent = null ]
+      }
+      - Return [ string|false ]
+    }
+```
+
+Version notes:
+
+- Union types and `false` need PHP 8.0. On PHP 7.x the argument or return is
+  declared untyped.
+- A union of two or more classes needs PHP 8.0.2. Earlier 8.0 releases cannot
+  split the class names.
+- From PHP 8.2, `iterable` in a union is shown as `Traversable|array`, as it
+  is in userland.
+
+A union that PHP would reject in userland panics when the module registers
+it, on every PHP version:
+
+- fewer than two members, which the `union_type` rule in
+  `Zend/zend_language_parser.y` cannot express
+- a nested union
+- `mixed`, `void` or `never` as a member
+- a duplicate member, or a redundant pair such as `bool|false`, `object|Foo`,
+  `iterable|array` or `iterable|Traversable`
+
+The last two are the checks `zend_compile_typename` in `Zend/zend_compile.c`
+applies to userland code. PHP does not apply any of them to internal
+functions.
+
 ### Default values reach the handler only through named arguments
 
 A default value works with any type hint, or none. It is recorded on PHP 8.0

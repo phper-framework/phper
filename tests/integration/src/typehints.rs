@@ -104,6 +104,24 @@ pub fn integrate(module: &mut Module) {
                 .with_type_hint(ArgumentTypeHint::ClassEntry(String::from("Stringable"))),
         )
         .return_type(ReturnType::new(ReturnTypeHint::Void));
+    module
+        .add_function("integration_function_union_default", |arguments| {
+            phper::ok(arguments.len() as i64)
+        })
+        .argument(
+            Argument::new("a")
+                .with_type_hint(ArgumentTypeHint::Union(vec![
+                    ArgumentTypeHint::ClassEntry(String::from(I_FOO)),
+                    ArgumentTypeHint::False,
+                    ArgumentTypeHint::Null,
+                ]))
+                .with_default_value("null"),
+        )
+        .argument(
+            Argument::new("b")
+                .with_type_hint(ArgumentTypeHint::Int)
+                .with_default_value("0"),
+        );
 }
 
 fn make_i_foo_interface() -> InterfaceEntity {
@@ -487,6 +505,98 @@ fn make_arg_typehint_class() -> ClassEntity<()> {
         );
 
     class
+        .add_method("testFalse", Visibility::Public, move |_, _| phper::ok(()))
+        .argument(Argument::new("false_value").with_type_hint(ArgumentTypeHint::False));
+
+    class
+        .add_method(
+            "testUnionClassFalseNull",
+            Visibility::Public,
+            move |_, arguments| phper::ok(arguments.first().cloned().unwrap_or_default()),
+        )
+        .argument(
+            Argument::new("union_value")
+                .with_type_hint(ArgumentTypeHint::Union(vec![
+                    ArgumentTypeHint::ClassEntry(String::from(I_FOO)),
+                    ArgumentTypeHint::False,
+                    ArgumentTypeHint::Null,
+                ]))
+                .with_default_value("null"),
+        );
+
+    class
+        .add_method("testUnionIntString", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(
+            Argument::new("union_value").with_type_hint(ArgumentTypeHint::Union(vec![
+                ArgumentTypeHint::Int,
+                ArgumentTypeHint::String,
+            ])),
+        );
+
+    class
+        .add_method(
+            "testUnionIntStringNullable",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
+        .argument(
+            Argument::new("union_value")
+                .with_type_hint(ArgumentTypeHint::Union(vec![
+                    ArgumentTypeHint::Int,
+                    ArgumentTypeHint::String,
+                ]))
+                .allow_null(),
+        );
+
+    class
+        .add_method("testUnionIntNull", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(
+            Argument::new("union_value").with_type_hint(ArgumentTypeHint::Union(vec![
+                ArgumentTypeHint::Int,
+                ArgumentTypeHint::Null,
+            ])),
+        );
+
+    class
+        .add_method("testUnionClasses", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(
+            Argument::new("union_value").with_type_hint(ArgumentTypeHint::Union(vec![
+                ArgumentTypeHint::ClassEntry(String::from(I_FOO)),
+                ArgumentTypeHint::ClassEntry(String::from("Countable")),
+            ])),
+        );
+
+    class
+        .add_method("testUnionIterableInt", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(
+            Argument::new("union_value").with_type_hint(ArgumentTypeHint::Union(vec![
+                ArgumentTypeHint::Iterable,
+                ArgumentTypeHint::Int,
+            ])),
+        );
+
+    class
+        .add_method("testUnionByRef", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(
+            Argument::new("union_value")
+                .with_type_hint(ArgumentTypeHint::Union(vec![
+                    ArgumentTypeHint::Int,
+                    ArgumentTypeHint::String,
+                ]))
+                .by_ref(),
+        );
+
+    class
 }
 
 fn make_return_typehint_class() -> ClassEntity<()> {
@@ -618,6 +728,35 @@ fn make_return_typehint_class() -> ClassEntity<()> {
     class
         .add_method("returnVoid", Visibility::Public, move |_, _| phper::ok(()))
         .return_type(ReturnType::new(ReturnTypeHint::Void));
+
+    class
+        .add_method("returnFalse", Visibility::Public, move |_, _| {
+            phper::ok(false)
+        })
+        .return_type(ReturnType::new(ReturnTypeHint::False));
+
+    class
+        .add_method("returnUnionClassFalse", Visibility::Public, move |_, _| {
+            phper::ok(false)
+        })
+        .return_type(ReturnType::new(ReturnTypeHint::Union(vec![
+            ReturnTypeHint::ClassEntry(String::from(I_FOO)),
+            ReturnTypeHint::False,
+        ])));
+
+    class
+        .add_method(
+            "returnUnionIntStringNullable",
+            Visibility::Public,
+            move |_, _| phper::ok(()),
+        )
+        .return_type(
+            ReturnType::new(ReturnTypeHint::Union(vec![
+                ReturnTypeHint::Int,
+                ReturnTypeHint::String,
+            ]))
+            .allow_null(),
+        );
 
     class
 }
