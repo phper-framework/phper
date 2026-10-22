@@ -73,3 +73,21 @@ foreach ($requiredAfterOptional as $function) {
         assert_eq(eval(sprintf('return %s(a: "foo", b: true, c: "bar");', $function)), "foo: true: bar");
     }
 }
+
+// An argument skipped by name is filled in from its declared default, as in
+// php-src's Zend/tests/named_params/defaults.phpt. Trailing arguments that are
+// left off are not filled in: PHP passes the handler only as many arguments as
+// the call reached. The handler returns $a followed by the type of each other
+// argument it received, so "foo: " means it received $a alone.
+$reflection = new ReflectionFunction('integrate_arguments_skipped_defaults');
+assert_eq(1, $reflection->getNumberOfRequiredParameters());
+$params = $reflection->getParameters();
+assert_false($params[0]->isOptional());
+assert_true($params[1]->isOptional());
+assert_true($params[2]->isOptional());
+assert_eq(integrate_arguments_skipped_defaults("foo", null, "bar"), "foo: null, string");
+assert_eq(integrate_arguments_skipped_defaults("foo"), "foo: ");
+if (PHP_VERSION_ID >= 80000) {
+    assert_eq(eval('return integrate_arguments_skipped_defaults(a: "foo", c: "bar");'), "foo: null, string");
+    assert_eq(eval('return integrate_arguments_skipped_defaults(a: "foo");'), "foo: ");
+}

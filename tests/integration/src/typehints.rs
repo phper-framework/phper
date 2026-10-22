@@ -720,4 +720,21 @@ fn make_arg_default_value_class() -> ClassEntity<()> {
         );
 
     class
+        .add_method("classEntryDefault", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(
+            Argument::new("class_value")
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from("stdClass")))
+                .allow_null()
+                .with_default_value("null"),
+        );
+
+    class
+        .add_method("untypedDefault", Visibility::Public, move |_, _| {
+            phper::ok(())
+        })
+        .argument(Argument::new("untyped_value").with_default_value("42"));
+
+    class
 }

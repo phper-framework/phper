@@ -164,6 +164,8 @@ $argumentDefaultValueProvider = [
     ['arrayDefault', ['a' => 'b'], 'array', '8.0'],
     ['iterableDefault', [0 => 1], 'array', '8.0'],
     ['mixedDefault', 999, 'integer', '8.0'],
+    ['classEntryDefault', null, 'NULL', '8.0'],
+    ['untypedDefault', 42, 'integer', '8.0'],
 ];
 
 echo PHP_EOL . 'Testing argument default values' . PHP_EOL;

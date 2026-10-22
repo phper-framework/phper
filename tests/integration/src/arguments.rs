@@ -10,7 +10,7 @@
 
 use phper::{
     alloc::ToRefOwned, arrays::ZArray, functions::Argument, modules::Module, objects::ZObject,
-    values::ZVal,
+    types::ArgumentTypeHint, values::ZVal,
 };
 
 pub fn integrate(module: &mut Module) {
@@ -125,4 +125,25 @@ fn integrate_arguments(module: &mut Module) {
         .argument(Argument::new("a"))
         .argument(Argument::new("b").with_default_value("true"))
         .argument(Argument::new("c"));
+
+    module
+        .add_function(
+            "integrate_arguments_skipped_defaults",
+            |arguments: &mut [ZVal]| -> phper::Result<String> {
+                let a = arguments[0].expect_z_str()?.to_str()?;
+                let types = arguments[1..]
+                    .iter()
+                    .map(|arg| arg.get_type_info().get_base_type_name().to_str())
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(format!("{}: {}", a, types.join(", ")))
+            },
+        )
+        .argument(Argument::new("a"))
+        .argument(
+            Argument::new("b")
+                .with_type_hint(ArgumentTypeHint::ClassEntry(String::from("stdClass")))
+                .allow_null()
+                .with_default_value("null"),
+        )
+        .argument(Argument::new("c").with_default_value("'x'"));
 }

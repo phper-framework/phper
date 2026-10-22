@@ -581,8 +581,16 @@ phper_zend_begin_arg_with_return_obj_info_ex(bool return_reference,
 #undef const
 }
 
-zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name) {
+zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name,
+                                           const char *default_value) {
+(void)default_value;
+#if PHP_VERSION_ID >= 80000
+    zend_internal_arg_info info[] = {
+        ZEND_ARG_INFO_WITH_DEFAULT_VALUE(pass_by_ref, , default_value)
+    };
+#else
     zend_internal_arg_info info[] = {ZEND_ARG_INFO(pass_by_ref, )};
+#endif
     info[0].name = name;
     return info[0];
 }
@@ -609,16 +617,18 @@ zend_internal_arg_info phper_zend_arg_info_with_type(bool pass_by_ref,
 zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
                                                const char *name,
                                                const char *class_name,
-                                               bool allow_null) {
+                                               bool allow_null,
+                                               const char *default_value) {
 // suppress "unused parameter" warnings.
 (void)name;
 (void)class_name;
 (void)allow_null;
+(void)default_value;
 #if PHP_VERSION_ID >= 80000
     zend_string *zstr = zend_string_init(class_name, strlen(class_name), /*persistent*/ 1);
     //this macro uses name and class_name as literals, so we overwrite them immediately
     zend_internal_arg_info infos[] = {
-        ZEND_ARG_OBJ_INFO(pass_by_ref, name, class_name, allow_null)
+        ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(pass_by_ref, name, class_name, allow_null, default_value)
     };
     zend_internal_arg_info info = infos[0];
     info.name = name;
