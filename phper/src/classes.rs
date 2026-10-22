@@ -18,7 +18,7 @@ use crate::{
     objects::{StateObj, StateObject, ZObject},
     strings::ZStr,
     sys::*,
-    types::Scalar,
+    types::{PropertyTypeHint, Scalar},
     utils::ensure_end_with_zero,
     values::ZVal,
 };
@@ -458,6 +458,7 @@ pub struct ClassEntity<T: 'static> {
     bound_class: StateClass<T>,
     state_cloner: Option<Rc<StateCloner>>,
     ce_flags: u32,
+    readonly: bool,
     _p: PhantomData<(*mut (), T)>,
 }
 
@@ -497,6 +498,7 @@ impl<T: 'static> ClassEntity<T> {
             bound_class: StateClass::null(),
             state_cloner: None,
             ce_flags: 0,
+            readonly: false,
             _p: PhantomData,
         }
     }
@@ -548,6 +550,32 @@ impl<T: 'static> ClassEntity<T> {
         self.ce_flags |= ZEND_ACC_FINAL;
     }
 
+    /// Mark the class as `readonly`, so every property is readonly and
+    /// dynamic properties are refused
+    ///
+    /// Readonly classes need PHP 8.2. On PHP 8.0 and 8.1 only dynamic
+    /// properties are refused, and on PHP 7 the class is unchanged.
+    ///
+    /// # Panics
+    ///
+    /// At module startup, if the class declares a property that is untyped
+    /// or has a default.
+    pub fn set_readonly(&mut self) {
+        self.readonly = true;
+        // The parser gives a userland readonly class both flags.
+        #[cfg(phper_major_version = "8")]
+        {
+            self.ce_flags |= ZEND_ACC_NO_DYNAMIC_PROPERTIES;
+        }
+        #[cfg(all(
+            phper_major_version = "8",
+            not(any(phper_minor_version = "0", phper_minor_version = "1"))
+        ))]
+        {
+            self.ce_flags |= ZEND_ACC_READONLY_CLASS;
+        }
+    }
+
     /// Declare property.
     ///
     /// The argument `value` should be `Copy` because 'zend_declare_property'
@@ -558,6 +586,43 @@ impl<T: 'static> ClassEntity<T> {
     ) {
         self.property_entities
             .push(PropertyEntity::new(name, visibility, value));
+    }
+
+    /// Declare typed property, uninitialized when `default` is `None`.
+    ///
+    /// Typed properties need PHP 8.0. On PHP 7 the property is declared
+    /// untyped, with `default` or null as its value.
+    pub fn add_typed_property(
+        &mut self, name: impl Into<String>, visibility: Visibility, type_hint: PropertyTypeHint,
+        default: Option<Scalar>,
+    ) -> &mut PropertyEntity {
+        self.property_entities.push(PropertyEntity {
+            name: name.into(),
+            visibility: visibility as RawVisibility,
+            value: default,
+            type_hint: Some(type_hint),
+            allow_null: false,
+            readonly: false,
+        });
+        self.property_entities.last_mut().unwrap()
+    }
+
+    /// Declare readonly property, which is typed and uninitialized.
+    ///
+    /// Readonly properties need PHP 8.1. On PHP 8.0 the property is a plain
+    /// typed property, and on PHP 7 an untyped one.
+    ///
+    /// Before PHP 8.4, a method cannot initialize the property on an instance
+    /// of a userland subclass. PHP 8.1 to 8.3 allow initialization only from
+    /// the declaring class, and
+    /// [`ZObj::set_property`](crate::objects::ZObj::set_property) uses the
+    /// object's class as the scope.
+    pub fn add_readonly_property(
+        &mut self, name: impl Into<String>, visibility: Visibility, type_hint: PropertyTypeHint,
+    ) -> &mut PropertyEntity {
+        let entity = self.add_typed_property(name, visibility, type_hint, None);
+        entity.readonly = true;
+        entity
     }
 
     /// Declare static property.
@@ -722,8 +787,29 @@ impl<T: 'static> ClassEntity<T> {
     }
 
     pub(crate) unsafe fn declare_properties(&self, ce: *mut zend_class_entry) {
+        // The engine propagates a readonly class to its properties only at
+        // compile time, so an internal class marks each one, as
+        // `build/gen_stub.php` does.
+        #[allow(unused_mut)]
+        let mut class_flags: RawVisibility = 0;
+        #[cfg(all(
+            phper_major_version = "8",
+            not(any(phper_minor_version = "0", phper_minor_version = "1"))
+        ))]
+        if self.readonly {
+            class_flags |= ZEND_ACC_READONLY;
+        }
+
         for property in &self.property_entities {
-            property.declare(ce);
+            if self.readonly {
+                assert!(
+                    property.type_hint.is_some() && property.value.is_none(),
+                    "property {}::${} of a readonly class must be typed and have no default",
+                    self.class_name.to_string_lossy(),
+                    property.name,
+                );
+            }
+            property.declare(ce, class_flags);
         }
     }
 
@@ -952,10 +1038,14 @@ impl ConstantEntity {
 }
 
 /// Builder for declare class property.
-pub(crate) struct PropertyEntity {
+pub struct PropertyEntity {
     name: String,
     visibility: RawVisibility,
-    value: Scalar,
+    // `None` only on a typed property, which is then uninitialized.
+    value: Option<Scalar>,
+    type_hint: Option<PropertyTypeHint>,
+    allow_null: bool,
+    readonly: bool,
 }
 
 impl PropertyEntity {
@@ -965,7 +1055,10 @@ impl PropertyEntity {
         Self {
             name: name.into(),
             visibility: visibility as RawVisibility,
-            value: value.into(),
+            value: Some(value.into()),
+            type_hint: None,
+            allow_null: false,
+            readonly: false,
         }
     }
 
@@ -975,14 +1068,25 @@ impl PropertyEntity {
         self
     }
 
+    /// Allow null for a typed property
+    pub fn allow_null(&mut self) -> &mut Self {
+        self.allow_null = true;
+        self
+    }
+
     #[allow(clippy::useless_conversion)]
-    pub(crate) fn declare(&self, ce: *mut zend_class_entry) {
+    pub(crate) fn declare(&self, ce: *mut zend_class_entry, class_flags: RawVisibility) {
         let name = self.name.as_ptr().cast();
         let name_length = self.name.len().try_into().unwrap();
         let access_type = self.visibility as i32;
 
+        if let Some(type_hint) = &self.type_hint {
+            self.declare_typed(ce, type_hint, class_flags);
+            return;
+        }
+
         unsafe {
-            match &self.value {
+            match self.value.as_ref().unwrap() {
                 Scalar::Null => {
                     zend_declare_property_null(ce, name, name_length, access_type);
                 }
@@ -1019,6 +1123,57 @@ impl PropertyEntity {
                     );
                 }
             }
+        }
+    }
+
+    fn declare_typed(
+        &self, ce: *mut zend_class_entry, type_hint: &PropertyTypeHint, class_flags: RawVisibility,
+    ) {
+        let class_name = match type_hint {
+            PropertyTypeHint::ClassEntry(class_name) => {
+                Some(CString::new(class_name.clone()).expect("CString::new failed"))
+            }
+            _ => None,
+        };
+        let allow_null = self.allow_null || matches!(type_hint, PropertyTypeHint::Mixed);
+        #[allow(unused_mut)]
+        let mut access_type = self.visibility | class_flags;
+        #[cfg(all(phper_major_version = "8", not(phper_minor_version = "0")))]
+        if self.readonly {
+            access_type |= ZEND_ACC_READONLY;
+        }
+
+        unsafe {
+            let mut value: zval = zeroed();
+            match &self.value {
+                None => phper_zval_undef(&mut value),
+                Some(Scalar::Null) => phper_zval_null(&mut value),
+                Some(Scalar::Bool(true)) => phper_zval_true(&mut value),
+                Some(Scalar::Bool(false)) => phper_zval_false(&mut value),
+                Some(Scalar::I64(i)) => phper_zval_long(&mut value, *i),
+                Some(Scalar::F64(f)) => phper_zval_double(&mut value, *f),
+                // Persistent, as `zend_declare_property_stringl` allocates
+                // for an internal class. The engine interns it.
+                Some(Scalar::String(s)) => phper_zval_str(
+                    &mut value,
+                    phper_zend_string_init(s.as_ptr().cast(), s.len(), 1),
+                ),
+                Some(Scalar::Bytes(b)) => phper_zval_str(
+                    &mut value,
+                    phper_zend_string_init(b.as_ptr().cast(), b.len(), 1),
+                ),
+            }
+
+            phper_zend_declare_typed_property(
+                ce,
+                self.name.as_ptr().cast(),
+                self.name.len(),
+                &mut value,
+                access_type as c_int,
+                type_hint.zend_type_const().unwrap_or(0),
+                class_name.as_ref().map(|s| s.as_ptr()).unwrap_or(null()),
+                allow_null,
+            );
         }
     }
 }

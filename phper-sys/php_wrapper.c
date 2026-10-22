@@ -414,6 +414,43 @@ zend_class_entry *phper_get_parent_class(zend_class_entry *ce) {
     return ce->parent;
 }
 
+void phper_zend_declare_typed_property(zend_class_entry *ce, const char *name,
+                                       size_t name_length, zval *property,
+                                       int access_type, uint32_t type_code,
+                                       const char *class_name,
+                                       bool allow_null) {
+    (void)type_code;
+    (void)class_name;
+    (void)allow_null;
+#if PHP_VERSION_ID >= 80000
+    zend_type type;
+    if (class_name) {
+        zend_string *zstr = zend_string_init(class_name, strlen(class_name), /*persistent*/ 1);
+        type = (zend_type) ZEND_TYPE_INIT_CLASS(zstr, allow_null, 0);
+#if PHP_VERSION_ID >= 80200
+    } else if (type_code == IS_ITERABLE) {
+        // From 8.2 `iterable` is an alias for `Traversable|array`, as
+        // zend_compile_single_typename lowers it. The iterable bit alone only
+        // changes how reflection prints the type.
+        zend_string *zstr = zend_string_init("Traversable", sizeof("Traversable") - 1, /*persistent*/ 1);
+        type = (zend_type) ZEND_TYPE_INIT_PTR_MASK(zstr,
+            _ZEND_TYPE_NAME_BIT | MAY_BE_ARRAY | _ZEND_TYPE_ITERABLE_BIT
+                | (allow_null ? _ZEND_TYPE_NULLABLE_BIT : 0));
+#endif
+    } else {
+        type = (zend_type) ZEND_TYPE_INIT_CODE(type_code, allow_null, 0);
+    }
+    zend_string *key = zend_string_init(name, name_length, /*persistent*/ 1);
+    zend_declare_typed_property(ce, key, property, access_type, NULL, type);
+    zend_string_release(key);
+#else
+    if (Z_TYPE_P(property) == IS_UNDEF) {
+        ZVAL_NULL(property);
+    }
+    zend_declare_property(ce, name, name_length, property, access_type);
+#endif
+}
+
 // ==================================================
 // function apis:
 // ==================================================

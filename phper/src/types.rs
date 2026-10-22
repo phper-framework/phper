@@ -265,6 +265,47 @@ impl ArgumentTypeHint {
     }
 }
 
+/// PHP property typehints (php 8.0+)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PropertyTypeHint {
+    /// bool typehint
+    Bool,
+    /// int typehint
+    Int,
+    /// float typehint
+    Float,
+    /// string typehint
+    String,
+    /// array typehint
+    Array,
+    /// object typehint
+    Object,
+    /// iterable typehint
+    Iterable,
+    /// mixed typehint
+    Mixed,
+    /// ClassEntry typehint (class, interface)
+    ClassEntry(String),
+}
+
+impl PropertyTypeHint {
+    /// Returns the Zend type constant for this type hint, if it maps to a
+    /// simple constant.
+    pub(crate) fn zend_type_const(&self) -> Option<u32> {
+        match self {
+            Self::Bool => Some(_IS_BOOL),
+            Self::Int => Some(IS_LONG),
+            Self::Float => Some(IS_DOUBLE),
+            Self::String => Some(IS_STRING),
+            Self::Array => Some(IS_ARRAY),
+            Self::Object => Some(IS_OBJECT),
+            Self::Iterable => Some(IS_ITERABLE),
+            Self::Mixed => Some(IS_MIXED),
+            Self::ClassEntry(_) => None,
+        }
+    }
+}
+
 /// PHP return typehints
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReturnTypeHint {

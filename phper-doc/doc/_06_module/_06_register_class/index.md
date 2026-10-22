@@ -78,6 +78,35 @@ Note that this applies to classes registered by your extension too: if another
 `ClassEntity` extends `Foo`, the error is raised while the module starts up
 rather than when userland calls into it.
 
+## Readonly classes
+
+To make every property of a class readonly, use `ClassEntity::set_readonly`:
+
+```rust,no_run
+use phper::classes::{ClassEntity, Visibility};
+use phper::types::PropertyTypeHint;
+
+let mut foo = ClassEntity::new("Foo");
+foo.set_readonly();
+foo.add_typed_property("bar", Visibility::Public, PropertyTypeHint::Int, None);
+```
+
+Similarly in PHP:
+
+```php
+<?php
+
+readonly class Foo {
+    public int $bar;
+}
+```
+
+As in PHP, every property of a readonly class must be typed and have no
+default, or the module panics at startup. Dynamic properties are refused.
+
+Readonly classes need PHP 8.2. On PHP 8.0 and 8.1 only dynamic properties are
+refused, and on PHP 7 the class is unchanged.
+
 ## Add properties
 
 Due to the limitation of PHP, you can only use copyable values as class properties.
@@ -88,6 +117,91 @@ use phper::classes::{ClassEntity, ClassEntry, Visibility};
 let mut foo = ClassEntity::new("Foo");
 foo.add_property("prop", Visibility::Public, "the prop value");
 ```
+
+### Typed properties
+
+`add_typed_property` declares a property with a type. Its default is
+`Option<Scalar>`, and `None` leaves the property uninitialized, so reading it
+before a write throws `Error`. Call `allow_null` to make the type nullable.
+
+```rust,no_run
+use phper::classes::{ClassEntity, Visibility};
+use phper::types::PropertyTypeHint;
+
+let mut foo = ClassEntity::new("Foo");
+foo.add_typed_property("count", Visibility::Public, PropertyTypeHint::Int, Some(0.into()));
+foo.add_typed_property("name", Visibility::Public, PropertyTypeHint::String, None);
+foo.add_typed_property(
+    "parent",
+    Visibility::Private,
+    PropertyTypeHint::ClassEntry(String::from(r"\MyNamespace\Node")),
+    Some(().into()),
+)
+.allow_null();
+```
+
+Similarly in PHP:
+
+```php
+<?php
+
+class Foo {
+    public int $count = 0;
+    public string $name;
+    private ?\MyNamespace\Node $parent = null;
+}
+```
+
+A class-typed property can only default to null, as in PHP.
+
+Typed properties need PHP 8.0. On PHP 7 the property is declared untyped, with
+its default, or null if it has none.
+
+### Readonly properties
+
+`add_readonly_property` declares a typed, uninitialized property that can be
+written once.
+
+```rust,no_run
+use phper::classes::{ClassEntity, Visibility};
+use phper::functions::Argument;
+use phper::types::PropertyTypeHint;
+
+let mut foo = ClassEntity::new("Foo");
+foo.add_readonly_property("id", Visibility::Public, PropertyTypeHint::Int);
+foo.add_method("__construct", Visibility::Public, |this, arguments| {
+    this.set_property("id", arguments[0].clone());
+    Ok::<_, phper::Error>(())
+})
+.argument(Argument::new("id"));
+```
+
+Similarly in PHP:
+
+```php
+<?php
+
+class Foo {
+    public readonly int $id;
+
+    public function __construct($id) {
+        $this->id = $id;
+    }
+}
+```
+
+Readonly properties need PHP 8.1. On PHP 8.0 the property is a plain typed
+property, and on PHP 7 an untyped one.
+
+PHP does not allow a default on a readonly property, nor a static one, so
+there is no way to declare either.
+
+Before PHP 8.4, a method of `Foo` cannot initialize the property on an instance
+of a userland subclass of `Foo`. `set_property` uses the object's class as the
+scope, and PHP 8.1 to 8.3 allow initialization only from the declaring class.
+
+Promoted constructor properties are a compile-time feature of PHP and have no
+equivalent here. Declare the property and write it from the constructor.
 
 ## Add methods
 

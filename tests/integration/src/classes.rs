@@ -13,7 +13,7 @@ use phper::{
     classes::{ClassEntity, ClassEntry, Interface, InterfaceEntity, StateClass, Visibility},
     functions::{Argument, ReturnType},
     modules::Module,
-    types::{ArgumentTypeHint, ReturnTypeHint},
+    types::{ArgumentTypeHint, PropertyTypeHint, ReturnTypeHint},
     values::ZVal,
 };
 use std::{collections::HashMap, convert::Infallible};
@@ -27,6 +27,8 @@ pub fn integrate(module: &mut Module) {
     integrate_bar_extends_foo(module, foo_class);
     integrate_dependent_classes(module);
     integrate_final_class(module);
+    integrate_typed_properties(module);
+    integrate_readonly_properties(module);
     #[cfg(phper_major_version = "8")]
     integrate_stringable(module);
 }
@@ -269,6 +271,115 @@ fn integrate_final_class(module: &mut Module) {
 
     // Control for the `final` assertions: same shape, flag not set.
     module.add_class(ClassEntity::new(r"IntegrationTest\NonFinalClass"));
+}
+
+fn integrate_typed_properties(module: &mut Module) {
+    let mut cls = ClassEntity::new(r"IntegrationTest\TypedProperties");
+    cls.add_typed_property(
+        "boolProp",
+        Visibility::Public,
+        PropertyTypeHint::Bool,
+        Some(true.into()),
+    );
+    cls.add_typed_property(
+        "intProp",
+        Visibility::Public,
+        PropertyTypeHint::Int,
+        Some(42.into()),
+    );
+    cls.add_typed_property(
+        "floatProp",
+        Visibility::Public,
+        PropertyTypeHint::Float,
+        Some(1.5.into()),
+    );
+    cls.add_typed_property(
+        "stringProp",
+        Visibility::Public,
+        PropertyTypeHint::String,
+        None,
+    );
+    cls.add_typed_property(
+        "defaultStringProp",
+        Visibility::Public,
+        PropertyTypeHint::String,
+        Some("foo".into()),
+    );
+    cls.add_typed_property(
+        "nullableStringProp",
+        Visibility::Public,
+        PropertyTypeHint::String,
+        Some(().into()),
+    )
+    .allow_null();
+    cls.add_typed_property(
+        "arrayProp",
+        Visibility::Public,
+        PropertyTypeHint::Array,
+        None,
+    );
+    cls.add_typed_property(
+        "objectProp",
+        Visibility::Public,
+        PropertyTypeHint::Object,
+        None,
+    );
+    cls.add_typed_property(
+        "iterableProp",
+        Visibility::Public,
+        PropertyTypeHint::Iterable,
+        Some(().into()),
+    )
+    .allow_null();
+    cls.add_typed_property(
+        "mixedProp",
+        Visibility::Public,
+        PropertyTypeHint::Mixed,
+        None,
+    );
+    cls.add_typed_property(
+        "classProp",
+        Visibility::Public,
+        PropertyTypeHint::ClassEntry(r"IntegrationTest\A".into()),
+        None,
+    );
+    cls.add_typed_property(
+        "nullableClassProp",
+        Visibility::Public,
+        PropertyTypeHint::ClassEntry(r"IntegrationTest\A".into()),
+        Some(().into()),
+    )
+    .allow_null();
+    module.add_class(cls);
+}
+
+fn integrate_readonly_properties(module: &mut Module) {
+    let mut cls = ClassEntity::new(r"IntegrationTest\ReadonlyProperties");
+    cls.add_readonly_property("value", Visibility::Public, PropertyTypeHint::Int);
+    cls.add_readonly_property(
+        "nullableClass",
+        Visibility::Public,
+        PropertyTypeHint::ClassEntry(r"IntegrationTest\A".into()),
+    )
+    .allow_null();
+    // Control for the readonly assertions: same type, flag not set.
+    cls.add_typed_property("mutable", Visibility::Public, PropertyTypeHint::Int, None);
+    cls.add_method("init", Visibility::Public, |this, arguments| {
+        this.set_property("value", arguments[0].clone());
+        Ok::<_, phper::Error>(())
+    })
+    .argument(Argument::new("value"));
+    module.add_class(cls);
+
+    let mut cls = ClassEntity::new(r"IntegrationTest\ReadonlyClass");
+    cls.set_readonly();
+    cls.add_typed_property("value", Visibility::Public, PropertyTypeHint::Int, None);
+    cls.add_method("init", Visibility::Public, |this, arguments| {
+        this.set_property("value", arguments[0].clone());
+        Ok::<_, phper::Error>(())
+    })
+    .argument(Argument::new("value"));
+    module.add_class(cls);
 }
 
 #[cfg(phper_major_version = "8")]
