@@ -1252,8 +1252,8 @@ fn check_property_default(class_name: &str, property: &PropertyEntity) -> Result
         Scalar::Null if property.allow_null => return Ok(()),
         Scalar::Null => {
             return Err(format!(
-                "Default value for property of type {type_name} may not be null. Use the \
-                 nullable type ?{type_name} to allow null default value"
+                "Default value for property of type {type_name} may not be null. Use the nullable \
+                 type ?{type_name} to allow null default value"
             ));
         }
         Scalar::Bool(_) if matches!(type_hint, PropertyTypeHint::Bool) => return Ok(()),
