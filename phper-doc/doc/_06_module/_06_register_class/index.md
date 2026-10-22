@@ -101,8 +101,9 @@ readonly class Foo {
 }
 ```
 
-As in PHP, every property of a readonly class must be typed and have no
-default, or the module panics at startup. Dynamic properties are refused.
+As in PHP, every property of a readonly class must be typed, non-static and
+have no default, or the module panics at startup. Dynamic properties are
+refused.
 
 Readonly classes need PHP 8.2. On PHP 8.0 and 8.1 only dynamic properties are
 refused, and on PHP 7 the class is unchanged.
@@ -152,7 +153,12 @@ class Foo {
 }
 ```
 
-A class-typed property can only default to null, as in PHP.
+The default is checked against the type as PHP checks a userland one, and the
+module panics at startup if it does not match. A `Mixed` property takes any
+default. A null default needs `allow_null`. An int default on a `Float`
+property is converted to float. `Array`, `Object`, `Iterable` and class-typed
+properties can only default to null, since `Scalar` holds neither arrays nor
+objects. The check runs on every PHP version, including PHP 7.
 
 Typed properties need PHP 8.0. On PHP 7 the property is declared untyped, with
 its default, or null if it has none.
@@ -202,6 +208,39 @@ scope, and PHP 8.1 to 8.3 allow initialization only from the declaring class.
 
 Promoted constructor properties are a compile-time feature of PHP and have no
 equivalent here. Declare the property and write it from the constructor.
+
+### Typed static properties
+
+`add_static_typed_property` declares a static property with a type. It takes
+the same arguments as `add_typed_property`, and its default is checked the same
+way.
+
+```rust,no_run
+use phper::classes::{ClassEntity, Visibility};
+use phper::types::PropertyTypeHint;
+
+let mut foo = ClassEntity::new("Foo");
+foo.add_static_typed_property("count", Visibility::Public, PropertyTypeHint::Int, Some(0.into()));
+foo.add_static_typed_property("name", Visibility::Private, PropertyTypeHint::String, None);
+```
+
+Similarly in PHP:
+
+```php
+<?php
+
+class Foo {
+    public static int $count = 0;
+    private static string $name;
+}
+```
+
+Typed static properties need PHP 8.0. On PHP 7 the property is declared
+untyped, with its default, or null if it has none.
+
+PHP checks the type when userland assigns the property.
+[`ClassEntry::set_static_property`](phper::classes::ClassEntry::set_static_property)
+does not, so a value of the wrong type is stored as given.
 
 ## Add methods
 

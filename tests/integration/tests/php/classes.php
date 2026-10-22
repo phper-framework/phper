@@ -124,6 +124,9 @@ $typedPropertyProvider = [
     ['boolProp', 'bool', false, true, true],
     ['intProp', 'int', false, true, 42],
     ['floatProp', 'float', false, true, 1.5],
+    // An int default on a float is converted, as zend_is_valid_default_value
+    // does for userland.
+    ['floatFromIntProp', 'float', false, true, 1.0],
     ['stringProp', 'string', false, false, null],
     ['defaultStringProp', 'string', false, true, 'foo'],
     ['nullableStringProp', '?string', true, true, null],
@@ -165,6 +168,41 @@ if (PHP_VERSION_ID >= 80000) {
     // property; reflection still says ?iterable.
     $iterableType = php_at_least('8.2') ? 'Traversable|array|null' : '?iterable';
     assert_throw(function () use ($typed) { $typed->iterableProp = 1; }, "TypeError", 0, 'Cannot assign int to property IntegrationTest\TypedProperties::$iterableProp of type ' . $iterableType);
+}
+
+// Test typed static properties, modelled on
+// Zend/tests/type_declarations/typed_properties_023.phpt and _080.phpt.
+$typedStaticPropertyProvider = [
+    // <property>, <type>, <has default>, <default>
+    ['intProp', 'int', true, 123],
+    ['stringProp', 'string', false, null],
+    ['iterableProp', '?iterable', true, null],
+];
+$reflection = new ReflectionClass(IntegrationTest\TypedStaticProperties::class);
+foreach ($typedStaticPropertyProvider as list($name, $type, $hasDefault, $default)) {
+    $property = $reflection->getProperty($name);
+    assert_true($property->isStatic(), $name);
+    if (PHP_VERSION_ID >= 80000) {
+        assert_eq((string) $property->getType(), $type, $name);
+        assert_eq($property->hasDefaultValue(), $hasDefault, $name);
+        assert_eq($property->getDefaultValue(), $default, $name);
+    } else {
+        assert_eq($reflection->getStaticPropertyValue($name), $default, $name);
+    }
+}
+
+if (PHP_VERSION_ID >= 80000) {
+    assert_eq(IntegrationTest\TypedStaticProperties::$intProp, 123);
+    IntegrationTest\TypedStaticProperties::$intProp = "5";
+    assert_eq(IntegrationTest\TypedStaticProperties::$intProp, 5);
+    assert_throw(function () { IntegrationTest\TypedStaticProperties::$intProp = "x"; }, "TypeError", 0, 'Cannot assign string to property IntegrationTest\TypedStaticProperties::$intProp of type int');
+    assert_throw(function () { return IntegrationTest\TypedStaticProperties::$stringProp; }, "Error", 0, 'Typed static property IntegrationTest\TypedStaticProperties::$stringProp must not be accessed before initialization');
+    IntegrationTest\TypedStaticProperties::$stringProp = "foo";
+    assert_eq(IntegrationTest\TypedStaticProperties::$stringProp, "foo");
+
+    IntegrationTest\TypedStaticProperties::$iterableProp = [1, 2];
+    $iterableType = php_at_least('8.2') ? 'Traversable|array|null' : '?iterable';
+    assert_throw(function () { IntegrationTest\TypedStaticProperties::$iterableProp = 1; }, "TypeError", 0, 'Cannot assign int to property IntegrationTest\TypedStaticProperties::$iterableProp of type ' . $iterableType);
 }
 
 // Test readonly properties, modelled on
