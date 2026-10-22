@@ -618,6 +618,37 @@ phper_zend_begin_arg_with_return_obj_info_ex(bool return_reference,
 #undef const
 }
 
+zend_internal_arg_info
+phper_zend_begin_arg_with_return_type_mask_info_ex(bool return_reference,
+                                                   uintptr_t required_num_args,
+                                                   const char *class_names,
+                                                   uint32_t type_mask) {
+(void)class_names;
+(void)type_mask;
+#define static
+#define const
+#if PHP_VERSION_ID >= 80000
+    if (class_names == NULL) {
+        ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(infos, return_reference, required_num_args, type_mask)
+        ZEND_END_ARG_INFO()
+        return infos[0];
+    }
+    //this macro uses class_names as a literal, so we overwrite it immediately
+    ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(infos, return_reference, required_num_args, class_names, type_mask)
+    ZEND_END_ARG_INFO()
+    zend_internal_arg_info info = infos[0];
+    // zend_register_functions splits a literal name on '|' into a union
+    info.type.ptr = pestrdup(class_names, 1);
+    return info;
+#else
+    ZEND_BEGIN_ARG_INFO_EX(info, 0, return_reference, required_num_args)
+    ZEND_END_ARG_INFO()
+    return info[0];
+#endif
+#undef static
+#undef const
+}
+
 zend_internal_arg_info phper_zend_arg_info(bool pass_by_ref, const char *name,
                                            const char *default_value) {
 (void)default_value;
@@ -691,5 +722,38 @@ zend_internal_arg_info phper_zend_arg_obj_info(bool pass_by_ref,
         .pass_by_reference = pass_by_ref,
     };
     return info;
+#endif
+}
+
+zend_internal_arg_info phper_zend_arg_type_mask_info(bool pass_by_ref,
+                                                    const char *name,
+                                                    const char *class_names,
+                                                    uint32_t type_mask,
+                                                    const char *default_value) {
+(void)class_names;
+(void)type_mask;
+(void)default_value;
+#if PHP_VERSION_ID >= 80000
+    zend_internal_arg_info info;
+    if (class_names == NULL) {
+        zend_internal_arg_info infos[] = {
+            ZEND_ARG_TYPE_MASK(pass_by_ref, name, type_mask, default_value)
+        };
+        info = infos[0];
+    } else {
+        //this macro uses class_names as a literal, so we overwrite it immediately
+        zend_internal_arg_info infos[] = {
+            ZEND_ARG_OBJ_TYPE_MASK(pass_by_ref, name, class_names, type_mask, default_value)
+        };
+        info = infos[0];
+        // zend_register_functions splits a literal name on '|' into a union
+        info.type.ptr = pestrdup(class_names, 1);
+    }
+    info.name = name;
+    return info;
+#else
+    zend_internal_arg_info info[] = {ZEND_ARG_INFO(pass_by_ref, )};
+    info[0].name = name;
+    return info[0];
 #endif
 }

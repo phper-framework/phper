@@ -12,6 +12,8 @@
 //!
 //! TODO Add support for closures / lambda functions.
 
+#[cfg(phper_major_version = "8")]
+use crate::types::lower_union;
 use crate::{
     classes::{ClassEntry, RawVisibility, Visibility},
     errors::{ArgumentCountError, ExceptionGuard, ThrowObject, Throwable, throw},
@@ -24,6 +26,8 @@ use crate::{
     values::{ExecuteData, ZVal},
 };
 use phper_alloc::ToRefOwned;
+#[cfg(phper_major_version = "8")]
+use std::ptr::null;
 use std::{
     collections::HashMap,
     ffi::{CStr, CString},
@@ -224,6 +228,35 @@ impl FunctionEntry {
                         ))
                     }
                 }
+                hint @ (ReturnTypeHint::False | ReturnTypeHint::Union(_)) => {
+                    let members = hint.union_members().unwrap_or_else(|reason| {
+                        panic!(
+                            "invalid return type of {}: {}",
+                            name.to_string_lossy(),
+                            reason
+                        )
+                    });
+                    #[cfg(phper_major_version = "8")]
+                    {
+                        let (class_names, mut type_mask) = lower_union(&members);
+                        if return_type.allow_null {
+                            type_mask |= MAY_BE_NULL;
+                        }
+                        unsafe {
+                            Some(phper_zend_begin_arg_with_return_type_mask_info_ex(
+                                return_type.ret_by_ref,
+                                require_arg_count,
+                                class_names.as_ref().map_or(null(), |s| s.as_ptr()),
+                                type_mask,
+                            ))
+                        }
+                    }
+                    #[cfg(phper_major_version = "7")]
+                    {
+                        let _ = members;
+                        None
+                    }
+                }
                 hint => hint.zend_type_const().map(|type_const| unsafe {
                     let allow_null = match hint {
                         ReturnTypeHint::Mixed => true,
@@ -281,6 +314,37 @@ impl FunctionEntry {
                                 arg.nullable,
                                 default_value_ptr,
                             ))
+                        }
+                    }
+                    hint @ (ArgumentTypeHint::False | ArgumentTypeHint::Union(_)) => {
+                        let members = hint.union_members().unwrap_or_else(|reason| {
+                            panic!(
+                                "invalid type for argument ${} of {}: {}",
+                                arg.name.to_string_lossy(),
+                                name.to_string_lossy(),
+                                reason,
+                            )
+                        });
+                        #[cfg(phper_major_version = "8")]
+                        {
+                            let (class_names, mut type_mask) = lower_union(&members);
+                            if arg.nullable {
+                                type_mask |= MAY_BE_NULL;
+                            }
+                            unsafe {
+                                Some(phper_zend_arg_type_mask_info(
+                                    arg.pass_by_ref,
+                                    arg.name.as_ptr(),
+                                    class_names.as_ref().map_or(null(), |s| s.as_ptr()),
+                                    type_mask,
+                                    default_value_ptr,
+                                ))
+                            }
+                        }
+                        #[cfg(phper_major_version = "7")]
+                        {
+                            let _ = members;
+                            None
                         }
                     }
                     hint => hint.zend_type_const().map(|type_const| unsafe {
