@@ -226,6 +226,29 @@ fn integrate_static_props(module: &mut Module) {
         .argument(Argument::new("val"));
 
     module.add_class(class);
+
+    let mut class = ClassEntity::new(r"IntegrationTest\TypedStaticProperties");
+    class.add_static_typed_property(
+        "intProp",
+        Visibility::Public,
+        PropertyTypeHint::Int,
+        Some(123.into()),
+    );
+    class.add_static_typed_property(
+        "stringProp",
+        Visibility::Public,
+        PropertyTypeHint::String,
+        None,
+    );
+    class
+        .add_static_typed_property(
+            "iterableProp",
+            Visibility::Public,
+            PropertyTypeHint::Iterable,
+            Some(().into()),
+        )
+        .allow_null();
+    module.add_class(class);
 }
 
 fn integrate_bar_extends_foo(module: &mut Module, foo_class: StateClass<Foo>) {
@@ -292,6 +315,12 @@ fn integrate_typed_properties(module: &mut Module) {
         Visibility::Public,
         PropertyTypeHint::Float,
         Some(1.5.into()),
+    );
+    cls.add_typed_property(
+        "floatFromIntProp",
+        Visibility::Public,
+        PropertyTypeHint::Float,
+        Some(1.into()),
     );
     cls.add_typed_property(
         "stringProp",
