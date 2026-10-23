@@ -558,8 +558,8 @@ impl<T: 'static> ClassEntity<T> {
     ///
     /// # Panics
     ///
-    /// At module startup, if the class declares a property that is untyped
-    /// or has a default.
+    /// At module startup, if the class declares a property that is untyped,
+    /// static or has a default.
     pub fn set_readonly(&mut self) {
         self.readonly = true;
         // The parser gives a userland readonly class both flags.
@@ -592,6 +592,12 @@ impl<T: 'static> ClassEntity<T> {
     ///
     /// Typed properties need PHP 8.0. On PHP 7 the property is declared
     /// untyped, with `default` or null as its value.
+    ///
+    /// # Panics
+    ///
+    /// At module startup, if `default` does not match `type_hint`, as PHP
+    /// would refuse it for a userland property. An int default on a float
+    /// property is converted instead.
     pub fn add_typed_property(
         &mut self, name: impl Into<String>, visibility: Visibility, type_hint: PropertyTypeHint,
         default: Option<Scalar>,
@@ -636,6 +642,27 @@ impl<T: 'static> ClassEntity<T> {
         let mut entity = PropertyEntity::new(name, visibility, value);
         entity.set_vis_static();
         self.property_entities.push(entity);
+    }
+
+    /// Declare typed static property, uninitialized when `default` is `None`.
+    ///
+    /// Typed properties need PHP 8.0. On PHP 7 the property is declared
+    /// untyped, with `default` or null as its value.
+    ///
+    /// [`ClassEntry::set_static_property`] does not check the type.
+    ///
+    /// # Panics
+    ///
+    /// At module startup, as for
+    /// [`add_typed_property`](Self::add_typed_property), and if the class is
+    /// readonly.
+    pub fn add_static_typed_property(
+        &mut self, name: impl Into<String>, visibility: Visibility, type_hint: PropertyTypeHint,
+        default: Option<Scalar>,
+    ) -> &mut PropertyEntity {
+        let entity = self.add_typed_property(name, visibility, type_hint, default);
+        entity.set_vis_static();
+        entity
     }
 
     /// Add constant to class
@@ -800,14 +827,15 @@ impl<T: 'static> ClassEntity<T> {
             class_flags |= ZEND_ACC_READONLY;
         }
 
+        let class_name = self.class_name.to_string_lossy();
         for property in &self.property_entities {
             if self.readonly {
-                assert!(
-                    property.type_hint.is_some() && property.value.is_none(),
-                    "property {}::${} of a readonly class must be typed and have no default",
-                    self.class_name.to_string_lossy(),
-                    property.name,
-                );
+                if let Err(message) = check_readonly_class_property(&class_name, property) {
+                    panic!("{message}");
+                }
+            }
+            if let Err(message) = check_property_default(&class_name, property) {
+                panic!("{message}");
             }
             property.declare(ce, class_flags);
         }
@@ -1150,6 +1178,10 @@ impl PropertyEntity {
                 Some(Scalar::Null) => phper_zval_null(&mut value),
                 Some(Scalar::Bool(true)) => phper_zval_true(&mut value),
                 Some(Scalar::Bool(false)) => phper_zval_false(&mut value),
+                // Userland converts an int default on a float property too.
+                Some(Scalar::I64(i)) if matches!(type_hint, PropertyTypeHint::Float) => {
+                    phper_zval_double(&mut value, *i as f64)
+                }
                 Some(Scalar::I64(i)) => phper_zval_long(&mut value, *i),
                 Some(Scalar::F64(f)) => phper_zval_double(&mut value, *f),
                 // Persistent, as `zend_declare_property_stringl` allocates
@@ -1176,6 +1208,73 @@ impl PropertyEntity {
             );
         }
     }
+}
+
+fn check_readonly_class_property(
+    class_name: &str, property: &PropertyEntity,
+) -> Result<(), String> {
+    if property.type_hint.is_none() || property.value.is_some() {
+        return Err(format!(
+            "property {class_name}::${} of a readonly class must be typed and have no default",
+            property.name
+        ));
+    }
+    // A readonly class marks every property readonly, which a static cannot
+    // be (`zend_compile_prop_decl`).
+    if property.visibility & ZEND_ACC_STATIC != 0 {
+        return Err(format!(
+            "Static property {class_name}::${} cannot be readonly",
+            property.name
+        ));
+    }
+    Ok(())
+}
+
+// Follows `zend_compile_prop_decl` and `zend_is_valid_default_value` in
+// `Zend/zend_compile.c`. `zend_declare_typed_property` does not check, so a
+// mismatched default would otherwise be stored and read back as declared.
+fn check_property_default(class_name: &str, property: &PropertyEntity) -> Result<(), String> {
+    let (Some(type_hint), Some(value)) = (&property.type_hint, &property.value) else {
+        return Ok(());
+    };
+    let type_name = match type_hint {
+        PropertyTypeHint::Bool => "bool",
+        PropertyTypeHint::Int => "int",
+        PropertyTypeHint::Float => "float",
+        PropertyTypeHint::String => "string",
+        PropertyTypeHint::Array => "array",
+        PropertyTypeHint::Object => "object",
+        PropertyTypeHint::Iterable => "iterable",
+        PropertyTypeHint::Mixed => return Ok(()),
+        PropertyTypeHint::ClassEntry(class) => class,
+    };
+    let value_name = match value {
+        Scalar::Null if property.allow_null => return Ok(()),
+        Scalar::Null => {
+            return Err(format!(
+                "Default value for property of type {type_name} may not be null. Use the nullable \
+                 type ?{type_name} to allow null default value"
+            ));
+        }
+        Scalar::Bool(_) if matches!(type_hint, PropertyTypeHint::Bool) => return Ok(()),
+        Scalar::I64(_) if matches!(type_hint, PropertyTypeHint::Int | PropertyTypeHint::Float) => {
+            return Ok(());
+        }
+        Scalar::F64(_) if matches!(type_hint, PropertyTypeHint::Float) => return Ok(()),
+        Scalar::String(_) | Scalar::Bytes(_) if matches!(type_hint, PropertyTypeHint::String) => {
+            return Ok(());
+        }
+        Scalar::Bool(true) => "true",
+        Scalar::Bool(false) => "false",
+        Scalar::I64(_) => "int",
+        Scalar::F64(_) => "float",
+        Scalar::String(_) | Scalar::Bytes(_) => "string",
+    };
+    Err(format!(
+        "Cannot use {value_name} as default value for property {class_name}::${} of type \
+         {type_name}",
+        property.name
+    ))
 }
 
 /// Visibility of class properties and methods.
@@ -1386,5 +1485,141 @@ unsafe fn find_real_ce(mut ce: *mut zend_class_entry) -> Option<*mut zend_class_
         }
 
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn typed(type_hint: PropertyTypeHint, default: Option<Scalar>) -> PropertyEntity {
+        PropertyEntity {
+            name: "bar".to_owned(),
+            visibility: Visibility::Public as RawVisibility,
+            value: default,
+            type_hint: Some(type_hint),
+            allow_null: false,
+            readonly: false,
+        }
+    }
+
+    #[test]
+    fn check_property_default_accepts_matching_types() {
+        use PropertyTypeHint::*;
+        for (type_hint, default) in [
+            (Bool, Scalar::Bool(false)),
+            (Int, Scalar::I64(1)),
+            (Float, Scalar::F64(1.5)),
+            (Float, Scalar::I64(1)),
+            (String, Scalar::String("s".to_owned())),
+            (String, Scalar::Bytes(b"s".to_vec())),
+            (Mixed, Scalar::I64(1)),
+            (Mixed, Scalar::Null),
+        ] {
+            let property = typed(type_hint, Some(default));
+            assert_eq!(check_property_default("Foo", &property), Ok(()));
+        }
+    }
+
+    #[test]
+    fn check_property_default_accepts_uninitialized() {
+        let property = typed(PropertyTypeHint::ClassEntry("stdClass".to_owned()), None);
+        assert_eq!(check_property_default("Foo", &property), Ok(()));
+    }
+
+    #[test]
+    fn check_property_default_accepts_null_when_nullable() {
+        let mut property = typed(PropertyTypeHint::Int, Some(Scalar::Null));
+        property.allow_null();
+        assert_eq!(check_property_default("Foo", &property), Ok(()));
+    }
+
+    #[test]
+    fn check_property_default_ignores_untyped() {
+        let property = PropertyEntity::new("bar", Visibility::Public, "s");
+        assert_eq!(check_property_default("Foo", &property), Ok(()));
+    }
+
+    // Zend/tests/type_declarations/typed_properties_013.phpt and _014.phpt.
+    #[test]
+    fn check_property_default_rejects_wrong_type() {
+        use PropertyTypeHint::*;
+        for (type_hint, default, value, ty) in [
+            (Int, Scalar::String("string".to_owned()), "string", "int"),
+            (Array, Scalar::I64(32), "int", "array"),
+            (Int, Scalar::F64(1.5), "float", "int"),
+            (Int, Scalar::Bool(true), "true", "int"),
+            (Bool, Scalar::I64(0), "int", "bool"),
+            (Iterable, Scalar::Bytes(b"s".to_vec()), "string", "iterable"),
+            (Object, Scalar::I64(1), "int", "object"),
+            (
+                ClassEntry("stdClass".to_owned()),
+                Scalar::I64(1),
+                "int",
+                "stdClass",
+            ),
+        ] {
+            let property = typed(type_hint, Some(default));
+            assert_eq!(
+                check_property_default("Foo", &property),
+                Err(format!(
+                    "Cannot use {value} as default value for property Foo::$bar of type {ty}"
+                ))
+            );
+        }
+    }
+
+    #[test]
+    fn check_readonly_class_property_accepts_typed_uninitialized() {
+        let property = typed(PropertyTypeHint::Int, None);
+        assert_eq!(check_readonly_class_property("Foo", &property), Ok(()));
+    }
+
+    #[test]
+    fn check_readonly_class_property_rejects_untyped_or_default() {
+        for property in [
+            PropertyEntity::new("bar", Visibility::Public, ()),
+            typed(PropertyTypeHint::Int, Some(Scalar::I64(1))),
+        ] {
+            assert_eq!(
+                check_readonly_class_property("Foo", &property),
+                Err(
+                    "property Foo::$bar of a readonly class must be typed and have no default"
+                        .to_owned()
+                )
+            );
+        }
+    }
+
+    // Zend/tests/readonly_classes/readonly_class_property3.phpt.
+    #[test]
+    fn check_readonly_class_property_rejects_static() {
+        let mut property = typed(PropertyTypeHint::Int, None);
+        property.set_vis_static();
+        assert_eq!(
+            check_readonly_class_property("Foo", &property),
+            Err("Static property Foo::$bar cannot be readonly".to_owned())
+        );
+    }
+
+    // Zend/tests/type_declarations/typed_properties_015.phpt and _049.phpt.
+    #[test]
+    fn check_property_default_rejects_null_when_not_nullable() {
+        for (type_hint, ty) in [
+            (
+                PropertyTypeHint::ClassEntry("stdClass".to_owned()),
+                "stdClass",
+            ),
+            (PropertyTypeHint::Int, "int"),
+        ] {
+            let property = typed(type_hint, Some(Scalar::Null));
+            assert_eq!(
+                check_property_default("Foo", &property),
+                Err(format!(
+                    "Default value for property of type {ty} may not be null. Use the nullable \
+                     type ?{ty} to allow null default value"
+                ))
+            );
+        }
     }
 }
