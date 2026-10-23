@@ -47,7 +47,7 @@ Before writing the code, we first prepare the dependency and startup code.
 
    ```shell
    # If you are using debian like linux system:
-   sudo apt install llvm-10-dev libclang-10-dev
+   sudo apt install llvm-dev libclang-dev
    ```
 
 1. Create the cargo project, with the extension name.

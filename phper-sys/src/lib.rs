@@ -26,6 +26,9 @@
 )]
 // TODO unsafe_op_in_unsafe_fn warning in edition 2024, temporary suppression.
 #![allow(unsafe_op_in_unsafe_fn)]
+// bindgen emits `#[allow(unnecessary_transmutes)]`, which rustc only knows
+// from 1.88. It has to be crate-level: an allow on the `include!` is unused.
+#![allow(unknown_lints)]
 #![doc = include_str!("../README.md")]
 #![doc(html_logo_url = "https://avatars.githubusercontent.com/u/112468984?s=200&v=4")]
 
