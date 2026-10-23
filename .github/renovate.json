@@ -2,17 +2,23 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "schedule:monthly"
+    ":semanticCommits",
+    "schedule:monthly",
+    "group:all"
   ],
   "packageRules": [
     {
-      "description": "One PR a month for all of cargo. `chore` keeps dependency bumps out of the release-plz changelog, which is generated from commit subjects.",
+      "description": "config:recommended commits cargo dependencies as `fix`, which release-plz lists under Fixed. `chore` lands under Other.",
+      "matchPackageNames": [
+        "*"
+      ],
+      "semanticCommitType": "chore"
+    },
+    {
       "matchManagers": [
         "cargo"
       ],
-      "groupName": "cargo dependencies",
-      "rangeStrategy": "update-lockfile",
-      "semanticCommitType": "chore"
+      "rangeStrategy": "update-lockfile"
     },
     {
       "description": "Renovate cannot filter crates by rust-version (constraintsFiltering is python-only), so MSRV bumps must be a deliberate human change, not a side effect of a dependency PR.",
@@ -22,18 +28,22 @@
       "enabled": false
     },
     {
-      "description": "Bumping nightly reformats the tree, so the Rustfmt job gates the PR rather than the diff being reviewable.",
-      "matchDepNames": [
-        "rust"
+      "description": "Actions and runners only need bumping when GitHub deprecates them, so they get their own six-monthly group. Security fixes ignore the schedule.",
+      "matchDepTypes": [
+        "action",
+        "github-runner"
       ],
-      "commitMessageTopic": "nightly toolchain",
-      "semanticCommitType": "ci"
+      "groupName": "CI actions and runners",
+      "groupSlug": "ci",
+      "schedule": [
+        "* 0-3 1 5,11 *"
+      ]
     }
   ],
   "customManagers": [
     {
       "customType": "regex",
-      "description": "The nightly pin used by the Rustfmt job and cargo doc.",
+      "description": "The nightly pin used by the Rustfmt job and cargo doc. A new nightly can reformat the tree, so the Rustfmt job may fail the PR until someone runs fmt on its branch.",
       "managerFilePatterns": [
         "/^\\.github/workflows/ci\\.yml$/"
       ],
@@ -43,6 +53,19 @@
       "depNameTemplate": "rust",
       "datasourceTemplate": "rust-version",
       "versioningTemplate": "rust-release-channel"
+    },
+    {
+      "customType": "regex",
+      "description": "Runner labels in the build matrix. The github-actions manager reads a literal `runs-on`, not `${{ matrix.os }}`.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "\\bos:\\s*(?<depName>ubuntu|macos)-(?<currentValue>[0-9][^\\s,}]*)"
+      ],
+      "depTypeTemplate": "github-runner",
+      "datasourceTemplate": "github-runners",
+      "versioningTemplate": "docker"
     }
   ]
 }
