@@ -6,6 +6,10 @@
     "schedule:monthly",
     "group:all"
   ],
+  "vulnerabilityAlerts": {
+    "description": "Renovate matches an alert against the Cargo.toml requirement before Cargo.lock, so a lockfile-only fix leaves `1.43.0` still matching `< 1.43.1` and the next patch release opens another PR. `bump` raises the requirement to the fixed version, which ends the alert in one PR.",
+    "rangeStrategy": "bump"
+  },
   "packageRules": [
     {
       "description": "config:recommended commits cargo dependencies as `fix`, which release-plz lists under Fixed. `chore` lands under Other.",
