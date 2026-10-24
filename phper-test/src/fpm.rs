@@ -10,7 +10,7 @@
 
 //! Test tools for php fpm program.
 use crate::{context::Context, utils::spawn_command};
-use fastcgi_client::{Client, Params, Request};
+use fastcgi_client::{Client, Params, Request, io};
 use libc::{SIGTERM, atexit, kill, pid_t};
 use log::debug;
 use std::{
@@ -23,7 +23,7 @@ use std::{
     time::Duration,
 };
 use tempfile::NamedTempFile;
-use tokio::{io, net::TcpStream};
+use tokio::net::TcpStream;
 
 static FPM_HANDLE: OnceLock<FpmHandle> = OnceLock::new();
 
@@ -177,7 +177,7 @@ impl FpmHandle {
         let peer_ip = peer_addr.ip().to_string();
         let peer_port = peer_addr.port();
 
-        let client = Client::new(stream);
+        let client = Client::new_tokio(stream);
         let mut params = Params::default()
             .request_method(method)
             .script_name(request_uri)
@@ -201,9 +201,7 @@ impl FpmHandle {
                 .execute_once(Request::new(params, body.as_ref()))
                 .await
         } else {
-            client
-                .execute_once(Request::new(params, &mut io::empty()))
-                .await
+            client.execute_once(Request::new(params, io::empty())).await
         };
 
         let output = response.unwrap();
