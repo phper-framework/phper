@@ -22,7 +22,7 @@ license = { workspace = true }
 [dependencies]
 cargo_metadata = "0.20.0"
 env_logger = { version = "0.11.8", features = ["kv"] }
-fastcgi-client = "0.9.0"
+fastcgi-client = { version = "0.12.0", features = ["tokio"] }
 libc = "0.2.169"
 log = { version = "0.4.27", features = ["kv"] }
 phper-macros = { workspace = true }
