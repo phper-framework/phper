@@ -24,7 +24,7 @@ env:
   RUSTFLAGS: "-D warnings"
   LLVM_CONFIG_PATH: llvm-config-18
   # bumped periodically by renovate
-  NIGHTLY_TOOLCHAIN: "nightly-2026-10-16"
+  NIGHTLY_TOOLCHAIN: "nightly-2026-10-24"
 
 jobs:
   required:
