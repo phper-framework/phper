@@ -25,7 +25,14 @@
       "rangeStrategy": "update-lockfile"
     },
     {
-      "description": "Renovate cannot filter crates by rust-version (constraintsFiltering is python-only), so MSRV bumps must be a deliberate human change, not a side effect of a dependency PR.",
+      "description": "cargo_metadata 0.21 and later need Rust 1.86. Renovate cannot skip cargo releases by rust-version: `constraints.rust` takes a release channel such as `1.85`, which constraintsFiltering reads as `^1.85`. Lift this cap with the MSRV.",
+      "matchPackageNames": [
+        "cargo_metadata"
+      ],
+      "allowedVersions": "<0.21"
+    },
+    {
+      "description": "MSRV bumps must be a deliberate human change, not a side effect of a dependency PR. resolver 3 in Cargo.toml keeps transitive crates within rust-version. The cap above covers direct ones.",
       "matchManagers": [
         "rust-toolchain"
       ],
