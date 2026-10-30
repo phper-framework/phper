@@ -24,7 +24,7 @@ phper = { workspace = true }
 
 [dev-dependencies]
 thiserror = "2.0.11"
-reqwest = { version = "0.12.12", features = ["blocking", "cookies"] }
+reqwest = { version = "0.13.0", features = ["blocking", "cookies"] }
 
 [build-dependencies]
 phper-build = { workspace = true }
