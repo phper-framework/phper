@@ -23,7 +23,7 @@ env:
   RUST_BACKTRACE: "1"
   RUSTFLAGS: "-D warnings"
   # bumped periodically by renovate
-  NIGHTLY_TOOLCHAIN: "nightly-2026-10-16"
+  NIGHTLY_TOOLCHAIN: "nightly-2026-10-30"
 
 jobs:
   required:
