@@ -22,7 +22,6 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
   RUSTFLAGS: "-D warnings"
-  LLVM_CONFIG_PATH: llvm-config-18
   # bumped periodically by renovate
   NIGHTLY_TOOLCHAIN: "nightly-2026-10-16"
 
@@ -32,7 +31,7 @@ jobs:
     needs:
       - ci
       - lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check results
         run: |
@@ -42,7 +41,7 @@ jobs:
   # standalone checks that do not rely on PHP version
   lint:
     name: Lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,21 +69,23 @@ jobs:
       matrix:
         include:
           # Ubuntu - all PHP versions
-          - { os: ubuntu-24.04, php-version: "7.0", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "7.1", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "7.2", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "7.3", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "7.4", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "8.0", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "8.1", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "8.2", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "8.3", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "8.4", ts: false, debug: false }
-          - { os: ubuntu-24.04, php-version: "8.5", ts: false, debug: false }
+          - { os: ubuntu-26.04, php-version: "7.0", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "7.1", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "7.2", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "7.3", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "7.4", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "8.0", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "8.1", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "8.2", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "8.3", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "8.4", ts: false, debug: false, llvm: "22" }
+          - { os: ubuntu-26.04, php-version: "8.5", ts: false, debug: false, llvm: "22" }
           # Ubuntu - ZTS smoke matrix
-          - { os: ubuntu-24.04, php-version: "8.5", ts: true, debug: false }
+          - { os: ubuntu-26.04, php-version: "8.5", ts: true, debug: false, llvm: "22" }
           # Ubuntu - debug smoke matrix
-          - { os: ubuntu-24.04, php-version: "8.5", ts: false, debug: true }
+          - { os: ubuntu-26.04, php-version: "8.5", ts: false, debug: true, llvm: "22" }
+          # Ubuntu - oldest LLVM smoke matrix
+          - { os: ubuntu-26.04, php-version: "8.5", ts: false, debug: false, llvm: "17" }
           # macOS - PHP 8.1+
           - { os: macos-15, php-version: "8.1", ts: false, debug: false }
           - { os: macos-15, php-version: "8.2", ts: false, debug: false }
@@ -97,9 +98,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Without CLANG_PATH, bindgen takes its headers from the clang on PATH,
+      # which may not match libclang.
       - name: Install libclang for Linux
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y llvm-18-dev libclang-18-dev
+        run: |
+          v=${{ matrix.llvm }}
+          sudo apt-get update && sudo apt-get install -y llvm-$v-dev libclang-$v-dev clang-$v
+          echo "LIBCLANG_PATH=/usr/lib/llvm-$v/lib" >> "$GITHUB_ENV"
+          echo "LLVM_CONFIG_PATH=/usr/lib/llvm-$v/bin/llvm-config" >> "$GITHUB_ENV"
+          echo "CLANG_PATH=/usr/lib/llvm-$v/bin/clang" >> "$GITHUB_ENV"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -145,7 +153,8 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-ts-${{ matrix.ts }}-debug-${{ matrix.debug }}-${{ hashFiles('**/Cargo.lock') }}
+          # build.rs does not rerun when libclang changes.
+          key: ${{ matrix.os }}-ci-${{ matrix.php-version }}-ts-${{ matrix.ts }}-debug-${{ matrix.debug }}-llvm-${{ matrix.llvm }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cargo clippy
         run: cargo clippy --release --locked
