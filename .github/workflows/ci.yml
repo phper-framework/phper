@@ -94,6 +94,8 @@ jobs:
           - { os: macos-26, php-version: "8.3", ts: false, debug: false }
           - { os: macos-26, php-version: "8.4", ts: false, debug: false }
           - { os: macos-26, php-version: "8.5", ts: false, debug: false }
+          # Not GA until 2026-11-19. Drop `experimental` then.
+          - { os: macos-26, php-version: "8.6", ts: false, debug: false, experimental: true }
 
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental == true }}
