@@ -18,7 +18,7 @@ use crate::{
     ini,
     sys::*,
     types::Scalar,
-    utils::ensure_end_with_zero,
+    utils::{ZEND_RESULT_CODE_SUCCESS, ensure_end_with_zero},
     values::ZVal,
 };
 use std::{

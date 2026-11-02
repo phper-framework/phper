@@ -10,7 +10,7 @@
 
 //! Apis relate to [zend_array].
 
-use crate::{alloc::EBox, strings::ZStr, sys::*, values::ZVal};
+use crate::{alloc::EBox, strings::ZStr, sys::*, utils::ZEND_RESULT_CODE_FAILURE, values::ZVal};
 use cfg_if::cfg_if;
 use derive_more::From;
 use phper_alloc::ToRefOwned;
@@ -466,7 +466,7 @@ impl<'a> Iterator for RawIter<'a> {
 
             const IS_STRING: u32 = {
                 cfg_if! {
-                    if #[cfg(all(phper_major_version = "8", phper_minor_version = "5"))] {
+                    if #[cfg(all(phper_major_version = "8", not(any(phper_minor_version = "0", phper_minor_version = "1", phper_minor_version = "2", phper_minor_version = "3", phper_minor_version = "4"))))] {
                         zend_hash_key_type_HASH_KEY_IS_STRING
                     } else {
                         HASH_KEY_IS_STRING
@@ -476,7 +476,7 @@ impl<'a> Iterator for RawIter<'a> {
 
             const IS_LONG: u32 = {
                 cfg_if! {
-                    if #[cfg(all(phper_major_version = "8", phper_minor_version = "5"))] {
+                    if #[cfg(all(phper_major_version = "8", not(any(phper_minor_version = "0", phper_minor_version = "1", phper_minor_version = "2", phper_minor_version = "3", phper_minor_version = "4"))))] {
                         zend_hash_key_type_HASH_KEY_IS_LONG
                     } else {
                         HASH_KEY_IS_LONG

@@ -1349,7 +1349,7 @@ pub(crate) unsafe extern "C" fn create_object(ce: *mut zend_class_entry) -> *mut
 
         // Set handlers
         let mut handlers = Box::new(std_object_handlers);
-        handlers.offset = StateObj::<()>::offset() as c_int;
+        handlers.offset = StateObj::<()>::offset() as _;
         handlers.free_obj = Some(free_object);
         handlers.clone_obj = has_state_cloner.then_some(clone_object);
         (*object).handlers = Box::into_raw(handlers);

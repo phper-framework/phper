@@ -80,6 +80,8 @@ jobs:
           - { os: ubuntu-26.04, php-version: "8.3", ts: false, debug: false, llvm: "22" }
           - { os: ubuntu-26.04, php-version: "8.4", ts: false, debug: false, llvm: "22" }
           - { os: ubuntu-26.04, php-version: "8.5", ts: false, debug: false, llvm: "22" }
+          # Not GA until 2026-11-19. Drop `experimental` then.
+          - { os: ubuntu-26.04, php-version: "8.6", ts: false, debug: false, llvm: "22", experimental: true }
           # Ubuntu - ZTS smoke matrix
           - { os: ubuntu-26.04, php-version: "8.5", ts: true, debug: false, llvm: "22" }
           # Ubuntu - debug smoke matrix
@@ -92,8 +94,11 @@ jobs:
           - { os: macos-26, php-version: "8.3", ts: false, debug: false }
           - { os: macos-26, php-version: "8.4", ts: false, debug: false }
           - { os: macos-26, php-version: "8.5", ts: false, debug: false }
+          # Not GA until 2026-11-19. Drop `experimental` then.
+          - { os: macos-26, php-version: "8.6", ts: false, debug: false, experimental: true }
 
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental == true }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
