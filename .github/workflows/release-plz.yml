@@ -50,7 +50,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.4
+          php-version: "8.5"
           tools: php-config
       - name: Run release-plz
         uses: release-plz/action@v0.5
@@ -85,7 +85,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.4
+          php-version: "8.5"
           tools: php-config
       - name: Run release-plz
         uses: release-plz/action@v0.5
