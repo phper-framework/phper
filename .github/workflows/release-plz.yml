@@ -14,7 +14,10 @@ permissions:
   pull-requests: write
   contents: write
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - master
 
 env:
   RUST_LOG: debug
