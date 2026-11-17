@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0](https://github.com/phper-framework/phper/compare/phper-doc-v0.15.8...phper-doc-v0.16.0) - 2026-11-17
+
+### Added
+
+- add typed static properties ([#251](https://github.com/phper-framework/phper/pull/251))
+- [**breaking**] add union types to arguments and returns ([#250](https://github.com/phper-framework/phper/pull/250))
+- add typed and readonly class properties ([#249](https://github.com/phper-framework/phper/pull/249))
+- [**breaking**] support defaults on class and untyped args ([#248](https://github.com/phper-framework/phper/pull/248))
+- add ClassEntity::set_final to declare a class final ([#246](https://github.com/phper-framework/phper/pull/246))
+
+### Fixed
+
+- declare iterable arguments untyped on PHP 7.0 ([#263](https://github.com/phper-framework/phper/pull/263))
+- [**breaking**] bump bindgen to 0.73.2 for libclang 22 ([#259](https://github.com/phper-framework/phper/pull/259))
+- prevent abort when a required argument follows an optional one ([#244](https://github.com/phper-framework/phper/pull/244))
+
+### Other
+
+- *(deps)* update all dependencies ([#257](https://github.com/phper-framework/phper/pull/257))
+
 ## [0.15.8](https://github.com/phper-framework/phper/compare/phper-doc-v0.15.7...phper-doc-v0.15.8) - 2026-06-26
 
 ### Other
