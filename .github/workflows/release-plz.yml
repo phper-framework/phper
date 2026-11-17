@@ -46,7 +46,12 @@ jobs:
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install libclang
-        run: sudo apt-get install -y llvm-18-dev libclang-18-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-18-dev libclang-18-dev clang-18
+          echo "LIBCLANG_PATH=/usr/lib/llvm-18/lib" >> "$GITHUB_ENV"
+          echo "LLVM_CONFIG_PATH=/usr/lib/llvm-18/bin/llvm-config" >> "$GITHUB_ENV"
+          echo "CLANG_PATH=/usr/lib/llvm-18/bin/clang" >> "$GITHUB_ENV"
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
