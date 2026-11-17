@@ -1430,7 +1430,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "phper"
-version = "0.17.5"
+version = "0.18.0"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -1445,7 +1445,7 @@ dependencies = [
 
 [[package]]
 name = "phper-alloc"
-version = "0.16.3"
+version = "0.16.4"
 dependencies = [
  "phper-build",
  "phper-sys",
@@ -1453,14 +1453,14 @@ dependencies = [
 
 [[package]]
 name = "phper-build"
-version = "0.15.6"
+version = "0.15.7"
 dependencies = [
  "phper-sys",
 ]
 
 [[package]]
 name = "phper-doc"
-version = "0.15.8"
+version = "0.16.0"
 dependencies = [
  "phper",
  "phper-build",
@@ -1518,7 +1518,7 @@ dependencies = [
 
 [[package]]
 name = "phper-macros"
-version = "0.15.3"
+version = "0.15.4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1527,7 +1527,7 @@ dependencies = [
 
 [[package]]
 name = "phper-sys"
-version = "0.15.6"
+version = "0.16.0"
 dependencies = [
  "bindgen",
  "cc",
@@ -1536,7 +1536,7 @@ dependencies = [
 
 [[package]]
 name = "phper-test"
-version = "0.16.2"
+version = "0.16.3"
 dependencies = [
  "cargo_metadata",
  "env_logger",

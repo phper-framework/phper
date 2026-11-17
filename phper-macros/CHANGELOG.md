@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.4](https://github.com/phper-framework/phper/compare/phper-macros-v0.15.3...phper-macros-v0.15.4) - 2026-11-17
+
+### Other
+
+- keep dependency updates within the MSRV ([#261](https://github.com/phper-framework/phper/pull/261))
+
 ## [0.15.3](https://github.com/phper-framework/phper/compare/phper-macros-v0.15.2...phper-macros-v0.15.3) - 2026-06-23
 
 ### Other
