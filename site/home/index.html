@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<!--
+  Copyright (c) 2022 PHPER Framework Team
+  PHPER is licensed under Mulan PSL v2.
+  You can use this software according to the terms and conditions of the Mulan
+  PSL v2. You may obtain a copy of Mulan PSL v2 at:
+           http://license.coscl.org.cn/MulanPSL2
+  THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+  KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+  NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+  See the Mulan PSL v2 for more details.
+-->
+<!-- Home page of the PHPER site, copied to the site root by site/build_site.py.
+     Only relative links are used, so the site works under any base URL. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>PHPER - PHP Enjoy Rust</title>
+  <meta name="description" content="PHPER is the framework that allows us to write PHP extensions using pure and safe Rust whenever possible.">
+  <meta property="og:title" content="PHPER - PHP Enjoy Rust">
+  <meta property="og:description" content="Write PHP extensions using pure and safe Rust whenever possible.">
+  <meta property="og:image" content="https://avatars.githubusercontent.com/u/112468984?s=200&amp;v=4">
+  <link rel="icon" href="https://avatars.githubusercontent.com/u/112468984?s=64&amp;v=4">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="./">
+        <img src="https://avatars.githubusercontent.com/u/112468984?s=64&amp;v=4" alt="" width="32" height="32">
+        <span>PHPER</span>
+      </a>
+      <nav aria-label="Main">
+        <a href="docs/">Docs</a>
+        <a href="https://docs.rs/phper">API</a>
+        <a href="https://crates.io/crates/phper">crates.io</a>
+        <a href="https://github.com/phper-framework/phper">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <img class="hero-logo" src="https://avatars.githubusercontent.com/u/112468984?s=200&amp;v=4" alt="PHPER logo" width="160" height="160">
+        <h1>PHPER</h1>
+        <p class="subtitle">PHP Enjoy Rust</p>
+        <p class="tagline">Rust <span class="heart" aria-label="loves">❤️</span> PHP</p>
+        <p class="lead">The framework that allows us to write PHP extensions using pure and safe Rust whenever possible.</p>
+        <div class="actions">
+          <a class="button primary" href="docs/">Get Started</a>
+          <a class="button" href="https://github.com/phper-framework/phper">GitHub</a>
+        </div>
+        <pre class="install" aria-label="Install"><code><span class="prompt">$</span> cargo add phper</code></pre>
+      </div>
+    </section>
+
+    <section class="features container" aria-labelledby="features-title">
+      <h2 id="features-title" class="visually-hidden">Features</h2>
+      <article class="card">
+        <h3>Pure and safe Rust</h3>
+        <p>Register functions, classes, interfaces, enums, constants and ini settings with safe Rust APIs instead of C macros.</p>
+      </article>
+      <article class="card">
+        <h3>PHP 7.0 to 8.5</h3>
+        <p>Supports PHP 7.0 to 8.5, NTS and ZTS builds, with or without debug.</p>
+      </article>
+      <article class="card">
+        <h3>Linux and macOS</h3>
+        <p>Runs on Linux and macOS, in both the CLI and FPM SAPIs.</p>
+      </article>
+      <article class="card">
+        <h3>The Rust ecosystem</h3>
+        <p>Bring crates from crates.io to PHP, like <code>reqwest</code> for an HTTP client.</p>
+      </article>
+    </section>
+
+    <section class="example container" aria-labelledby="example-title">
+      <h2 id="example-title">Hello world</h2>
+      <p>A PHP function written in Rust. The full walkthrough is in <a href="docs/">the quick start</a>.</p>
+      <div class="code-grid">
+        <figure class="code">
+          <figcaption>src/lib.rs</figcaption>
+<pre><code><span class="k">use</span> phper::{
+    echo, functions::Argument, modules::Module, php_get_module, values::ZVal,
+};
+
+<span class="k">fn</span> <span class="f">say_hello</span>(arguments: <span class="k">&amp;mut</span> [<span class="t">ZVal</span>]) -&gt; phper::<span class="t">Result</span>&lt;()&gt; {
+    <span class="k">let</span> name = arguments[<span class="n">0</span>].expect_z_str()?.to_str()?;
+    <span class="m">echo!</span>(<span class="s">"Hello, {}!\n"</span>, name);
+    <span class="t">Ok</span>(())
+}
+
+<span class="a">#[php_get_module]</span>
+<span class="k">pub fn</span> <span class="f">get_module</span>() -&gt; <span class="t">Module</span> {
+    <span class="k">let mut</span> module = <span class="t">Module</span>::new(
+        <span class="m">env!</span>(<span class="s">"CARGO_PKG_NAME"</span>),
+        <span class="m">env!</span>(<span class="s">"CARGO_PKG_VERSION"</span>),
+        <span class="m">env!</span>(<span class="s">"CARGO_PKG_AUTHORS"</span>),
+    );
+    module
+        .add_function(<span class="s">"say_hello"</span>, say_hello)
+        .argument(<span class="t">Argument</span>::new(<span class="s">"name"</span>));
+    module
+}</code></pre>
+        </figure>
+        <figure class="code">
+          <figcaption>shell</figcaption>
+<pre><code><span class="prompt">$</span> cargo build
+<span class="prompt">$</span> php -d <span class="s">"extension=target/debug/libhello.so"</span> \
+      -r <span class="s">"say_hello('Bob');"</span>
+Hello, Bob!</code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <section class="columns container">
+      <div>
+        <h2>Requirements</h2>
+        <ul class="plain">
+          <li><strong>rust</strong> 1.85 or later</li>
+          <li><strong>libclang</strong> 9.0 or later</li>
+          <li><strong>php</strong> 7.0 or later</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Documentation</h2>
+        <ul class="plain" id="versions">
+          <li><a href="docs/master/">master (unreleased)</a></li>
+        </ul>
+        <p class="muted">API reference on <a href="https://docs.rs/phper">docs.rs</a>, examples on <a href="https://github.com/phper-framework/phper/tree/master/examples">GitHub</a>.</p>
+      </div>
+    </section>
+
+    <section class="projects container" aria-labelledby="projects-title">
+      <h2 id="projects-title">Projects using PHPER</h2>
+      <div class="project-grid">
+        <a class="card project" href="https://github.com/apache/skywalking-php">
+          <h3>apache/skywalking-php</h3>
+          <p>The PHP Agent for Apache SkyWalking, which provides the native tracing abilities for PHP project.</p>
+        </a>
+        <a class="card project" href="https://github.com/phper-framework/jieba-php">
+          <h3>phper-framework/jieba-php</h3>
+          <p>The Jieba Chinese Word Segmentation Implemented in Rust Bound for PHP.</p>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Copyright © PHPER Framework Team. Licensed under <a href="https://github.com/phper-framework/phper/blob/master/LICENSE">MulanPSL-2.0</a>.</p>
+    </div>
+  </footer>
+
+  <script src="home.js"></script>
+</body>
+</html>
