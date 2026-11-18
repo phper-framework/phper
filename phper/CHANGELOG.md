@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1](https://github.com/phper-framework/phper/compare/phper-v0.18.0...phper-v0.18.1) - 2026-11-18
+
+### Other
+
+- migrate tutorials to a versioned mdBook website ([#273](https://github.com/phper-framework/phper/pull/273))
+
 ## [0.18.0](https://github.com/phper-framework/phper/compare/phper-v0.17.5...phper-v0.18.0) - 2026-11-17
 
 ### Added
