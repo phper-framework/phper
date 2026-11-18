@@ -1,0 +1,93 @@
+# Copyright (c) 2022 PHPER Framework Team
+# PHPER is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan
+# PSL v2. You may obtain a copy of Mulan PSL v2 at:
+#          http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+# Builds the website (home page plus versioned docs, see site/build_site.py)
+# and deploys it to GitHub Pages. Pull requests only build it.
+#
+# Release-plz runs on every push to master and creates the release tags with
+# GITHUB_TOKEN, which does not trigger tag events in other workflows. So the
+# deployment follows Release-plz instead, and picks up both master and newly
+# tagged releases. Keep the name below in sync with release-plz.yml.
+
+name: Pages
+
+on:
+  pull_request:
+    branches: [ "**" ]
+  workflow_run:
+    workflows: [ "Release-plz" ]
+    types: [ completed ]
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Deployments run one at a time, and a newer pending one replaces the older,
+# so an outdated build never overwrites a newer one. Pull requests only cancel
+# their own older runs.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  MDBOOK_VERSION: "0.5.4"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-26.04
+    steps:
+      # The full history includes the release tags the docs are built from.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install mdBook
+        run: |
+          dir="$RUNNER_TEMP/mdbook"
+          mkdir -p "$dir"
+          curl -sSfL "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz --directory="$dir"
+          echo "$dir" >> "$GITHUB_PATH"
+          "$dir/mdbook" --version
+
+      - name: Test the site builder
+        run: python3 -m unittest discover -s site -v
+
+      - name: Build the site
+        run: python3 site/build_site.py build --base-url "$BASE_URL" --out target/pages
+        env:
+          BASE_URL: /${{ github.event.repository.name }}/
+
+      - name: Upload the site
+        if: github.event_name != 'pull_request' && (github.repository_owner == 'phper-framework' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/pages
+
+  deploy:
+    name: Deploy
+    needs: build
+    # Forks deploy only when started by hand.
+    if: github.event_name != 'pull_request' && (github.repository_owner == 'phper-framework' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-26.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -17,10 +17,10 @@ members = [
     "phper-macros",
     "phper-sys",
     "phper-test",
-    "phper-doc",
 
     # internal
     "examples/*",
+    "tests/doc-tests",
     "tests/integration",
 ]
 
