@@ -1,0 +1,447 @@
+/*
+ * Copyright (c) 2022 PHPER Framework Team
+ * PHPER is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan
+ * PSL v2. You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+ * KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ */
+
+:root {
+    --bg: #ffffff;
+    --bg-soft: #f6f7fb;
+    --fg: #1f2330;
+    --muted: #5d6475;
+    --border: #e1e4ee;
+    --accent: #4f5b93; /* PHP purple */
+    --accent-2: #ce422b; /* Rust orange */
+    --link: #3f4f9f;
+    --code-bg: #1e2130;
+    --code-fg: #e6e8f0;
+    --shadow: 0 1px 3px rgba(20, 24, 40, 0.08), 0 4px 16px rgba(20, 24, 40, 0.06);
+    --radius: 12px;
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #12141c;
+        --bg-soft: #1a1d28;
+        --fg: #e6e8f0;
+        --muted: #a2a8b8;
+        --border: #2b2f3e;
+        --accent: #8f99d6;
+        --accent-2: #f0845f;
+        --link: #9eaaf0;
+        --code-bg: #0c0e14;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        "Noto Sans", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--fg);
+    background: var(--bg);
+}
+
+a {
+    color: var(--link);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code,
+pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+        monospace;
+}
+
+p code {
+    padding: 0.1em 0.35em;
+    font-size: 0.9em;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+h1,
+h2,
+h3 {
+    line-height: 1.25;
+}
+
+h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.6rem;
+}
+
+h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+}
+
+.container {
+    width: 100%;
+    max-width: 1080px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 24px;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* Navigation */
+
+.nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    height: 60px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--fg);
+}
+
+.brand:hover {
+    text-decoration: none;
+}
+
+.brand img {
+    border-radius: 8px;
+}
+
+.nav nav {
+    display: flex;
+    gap: 20px;
+}
+
+.nav nav a {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.nav nav a:hover {
+    color: var(--fg);
+    text-decoration: none;
+}
+
+/* Hero */
+
+.hero {
+    padding: 72px 0 56px;
+    text-align: center;
+    background:
+        radial-gradient(60% 80% at 20% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent),
+        radial-gradient(60% 80% at 80% 0%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent);
+}
+
+.hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hero-logo {
+    width: 128px;
+    height: 128px;
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+}
+
+.hero h1 {
+    margin: 24px 0 0;
+    font-size: 3.5rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.subtitle {
+    margin: 4px 0 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.tagline {
+    margin: 16px 0 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.lead {
+    max-width: 640px;
+    margin: 12px 0 0;
+    font-size: 1.15rem;
+    color: var(--muted);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.button {
+    display: inline-block;
+    padding: 10px 22px;
+    font-weight: 600;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+}
+
+.button:hover {
+    text-decoration: none;
+    border-color: var(--accent);
+}
+
+.button.primary {
+    color: #ffffff;
+    background: linear-gradient(90deg, #4f5b93, #ce422b);
+    border-color: transparent;
+}
+
+.button.primary:hover {
+    filter: brightness(1.08);
+}
+
+.install {
+    margin: 28px 0 0;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    color: var(--code-fg);
+    background: var(--code-bg);
+    border-radius: 8px;
+}
+
+.prompt {
+    color: #8a91a8;
+    user-select: none;
+}
+
+/* Sections */
+
+main > section {
+    margin-top: 64px;
+}
+
+main > section.hero {
+    margin-top: 0;
+}
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.card {
+    padding: 20px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.card p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.example > p {
+    margin: 0 0 16px;
+    color: var(--muted);
+}
+
+.code-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.code {
+    margin: 0;
+    overflow: hidden;
+    background: var(--code-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.code figcaption {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: #a2a8b8;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.code pre {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--code-fg);
+}
+
+/* Code colors, on the dark code background in both color schemes. */
+.code .k { color: #c792ea; }
+.code .f { color: #82aaff; }
+.code .t { color: #ffcb6b; }
+.code .s { color: #c3e88d; }
+.code .m { color: #89ddff; }
+.code .a { color: #f78c6c; }
+.code .n { color: #f78c6c; }
+
+.columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+}
+
+.plain {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.plain li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.badge {
+    margin-left: 8px;
+    padding: 1px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.project-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.project {
+    display: block;
+    color: var(--fg);
+}
+
+.project:hover {
+    text-decoration: none;
+    border-color: var(--accent);
+}
+
+.footer {
+    margin-top: 72px;
+    padding: 24px 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+}
+
+.footer p {
+    margin: 0;
+}
+
+/* Small screens */
+
+@media (max-width: 900px) {
+    .features {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .code-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .nav nav {
+        gap: 14px;
+        font-size: 0.95rem;
+    }
+
+    .brand span {
+        display: none;
+    }
+
+    .hero {
+        padding: 48px 0 40px;
+    }
+
+    .hero h1 {
+        font-size: 2.6rem;
+    }
+
+    .features,
+    .columns,
+    .project-grid {
+        grid-template-columns: 1fr;
+    }
+
+    main > section {
+        margin-top: 48px;
+    }
+}

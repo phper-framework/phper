@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 2022 PHPER Framework Team
+ * PHPER is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan
+ * PSL v2. You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+ * KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ */
+
+/* The version dropdown added by version-switcher.js. The mdBook variables
+   follow the selected theme. */
+.version-switcher {
+    margin-inline-end: 8px;
+    padding: 2px 6px;
+    max-width: 12em;
+    font-size: 1.4rem;
+    color: var(--fg);
+    background-color: var(--theme-popup-bg);
+    border: 1px solid var(--theme-popup-border);
+    border-radius: 4px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.version-switcher:hover,
+.version-switcher:focus-visible {
+    border-color: var(--icons-hover);
+}
+
+.version-switcher:disabled {
+    cursor: progress;
+    opacity: 0.6;
+}
+
+/* On phones the menu bar is too narrow for the title and the dropdown, so
+   hide the title rather than wrapping the bar onto two lines. */
+@media (max-width: 620px) {
+    #mdbook-menu-bar:has(.version-switcher) .menu-title {
+        display: none;
+    }
+
+    #mdbook-menu-bar:has(.version-switcher) .right-buttons {
+        margin-inline-start: auto;
+    }
+
+    .version-switcher {
+        max-width: none;
+        margin-inline-end: 2px;
+        padding: 2px 2px;
+        font-size: 1.3rem;
+    }
+}

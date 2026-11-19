@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.3](https://github.com/phper-framework/phper/compare/phper-test-v0.16.2...phper-test-v0.16.3) - 2026-11-17
+
+### Other
+
+- keep dependency updates within the MSRV ([#261](https://github.com/phper-framework/phper/pull/261))
+
 ## [0.16.2](https://github.com/phper-framework/phper/compare/phper-test-v0.16.1...phper-test-v0.16.2) - 2026-06-23
 
 ### Other

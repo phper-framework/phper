@@ -256,9 +256,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.10.0"
+version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86e055fa6e3e40ad6187ba25b6855eeb635d5271f8e0f0e1e9a5826b8d75bea0"
+checksum = "375989decec1a0fa424442bed520fa12ede43a48475ce8c7417d2c69b32b5f6b"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -521,6 +521,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "442039f5147480ba31067cb00ada1adae6892028e40e45fc5de7b7df6dcc1b5f"
 dependencies = [
  "const-random",
+]
+
+[[package]]
+name = "doc-tests"
+version = "0.0.0"
+dependencies = [
+ "phper",
+ "phper-build",
+ "reqwest 0.13.5",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1231,9 +1241,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.34"
+version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
 name = "lru-slab"
@@ -1430,7 +1440,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "phper"
-version = "0.17.5"
+version = "0.18.0"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -1445,7 +1455,7 @@ dependencies = [
 
 [[package]]
 name = "phper-alloc"
-version = "0.16.3"
+version = "0.16.4"
 dependencies = [
  "phper-build",
  "phper-sys",
@@ -1453,19 +1463,9 @@ dependencies = [
 
 [[package]]
 name = "phper-build"
-version = "0.15.6"
+version = "0.15.7"
 dependencies = [
  "phper-sys",
-]
-
-[[package]]
-name = "phper-doc"
-version = "0.15.8"
-dependencies = [
- "phper",
- "phper-build",
- "reqwest 0.13.5",
- "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1518,7 +1518,7 @@ dependencies = [
 
 [[package]]
 name = "phper-macros"
-version = "0.15.3"
+version = "0.15.4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1527,7 +1527,7 @@ dependencies = [
 
 [[package]]
 name = "phper-sys"
-version = "0.15.6"
+version = "0.16.0"
 dependencies = [
  "bindgen",
  "cc",
@@ -1536,7 +1536,7 @@ dependencies = [
 
 [[package]]
 name = "phper-test"
-version = "0.16.2"
+version = "0.16.3"
 dependencies = [
  "cargo_metadata",
  "env_logger",

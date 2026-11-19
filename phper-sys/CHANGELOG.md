@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0](https://github.com/phper-framework/phper/compare/phper-sys-v0.15.6...phper-sys-v0.16.0) - 2026-11-17
+
+### Added
+
+- [**breaking**] add union types to arguments and returns ([#250](https://github.com/phper-framework/phper/pull/250))
+- add typed and readonly class properties ([#249](https://github.com/phper-framework/phper/pull/249))
+- [**breaking**] support defaults on class and untyped args ([#248](https://github.com/phper-framework/phper/pull/248))
+
+### Fixed
+
+- pass log messages as an argument, not a format ([#265](https://github.com/phper-framework/phper/pull/265))
+- [**breaking**] bump bindgen to 0.73.2 for libclang 22 ([#259](https://github.com/phper-framework/phper/pull/259))
+- preserve by-reference on class-typed arguments and return types ([#247](https://github.com/phper-framework/phper/pull/247))
+
+### Other
+
+- Revert materialize_missing feature, refactor CI workflow ([#243](https://github.com/phper-framework/phper/pull/243))
+
 ## [0.15.6](https://github.com/phper-framework/phper/compare/phper-sys-v0.15.5...phper-sys-v0.15.6) - 2026-06-25
 
 ### Added

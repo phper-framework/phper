@@ -1,4 +1,6 @@
 /target
+/docs/book
+__pycache__/
 **/*.rs.bk
 /.cargo
 /vendor

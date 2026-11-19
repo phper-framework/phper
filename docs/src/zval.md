@@ -1,0 +1,144 @@
+# Zval
+
+> Refer to: <https://www.phpinternalsbook.com/php7/zvals/basic_structure.html#the-zval-struct>
+>
+> A zval (short for “Zend value”) represents an arbitrary PHP value.
+> As such it is likely the most important structure in all of PHP and
+> you’ll be working with it a lot.
+
+The [`phper::values::ZVal`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs) is the wrapper of php zval.
+
+## Actual type of ZVal
+
+PHP is a dynamically typed language, zval can represent multiple types,
+but there is only one type at a time, you can use
+[`phper::values::ZVal::get_type_info`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs) to get the actual type.
+
+## Convert Rust type to ZVal
+
+The [`phper::values::ZVal`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs) implements a lot of [`std::convert::From`](https://doc.rust-lang.org/std/convert/trait.From.html) for the
+conversion.
+
+Here is the mapping of relationships between Rust types and base PHP types.
+
+| Trait           | Rust type                   | PHP type |
+| --------------- | --------------------------- | -------- |
+| `From<()>`      | `()`                        | null     |
+| `From<bool>`    | `bool`                      | bool     |
+| `From<i64>`     | `i64`                       | long     |
+| `From<f64>`     | `f64`                       | double   |
+| `From<&str>`    | `&str`                      | string   |
+| `From<&CStr>`   | `&CStr`                     | string   |
+| `From<&[u8]>`   | `&[u8]`                     | string   |
+| `From<Vec<u8>>` | `Vec<u8>`                   | string   |
+| `From<ZString>` | [`phper::strings::ZString`](https://github.com/phper-framework/phper/blob/master/phper/src/strings.rs) | string   |
+| `From<ZArray>`  | [`phper::arrays::ZArray`](https://github.com/phper-framework/phper/blob/master/phper/src/arrays.rs)   | array    |
+| `From<ZObject>` | [`phper::objects::ZObject`](https://github.com/phper-framework/phper/blob/master/phper/src/objects.rs) | object   |
+
+There are also composite types that implement `From`.
+
+- `From<Option<T>>`: if Some(T), T will be converted to PHP type like `From<T>`,
+  or `None` will be converted to `null`.
+
+```rust,no_run
+use phper::values::ZVal;
+
+assert!(ZVal::from(()).get_type_info().is_null());
+assert!(ZVal::from(100i64).get_type_info().is_long());
+```
+
+## Convert ZVal to Rust type
+
+Now you can use `as_*` or `expect_*` methods to convert ZVal to Rust types.
+
+- The `as_*` returns `Option<T>`.
+
+- The `expect_*` returns `phper::Result<T>`, if convert failed,
+  [phper::errors::ExpectTypeError](https://github.com/phper-framework/phper/blob/master/phper/src/errors.rs) will be returned, with the message:
+  `type error: must be of type {expect_type}, {actual_type} given")`.
+
+```rust,no_run
+use phper::echo;
+use phper::values::ZVal;
+
+fn say_hello(arguments: &mut [ZVal]) -> phper::Result<()> {
+    // Get the first argument, expect the type `ZStr`, and convert to Rust utf-8
+    // str.
+    let name = arguments[0].expect_z_str()?.to_str()?;
+
+    // Macro which runs PHP internal function `echo`.
+    echo!("Hello, {}!\n", name);
+
+    Ok(())
+}
+```
+
+### Generic conversion via `FromZVal` / `FromZValMut`
+
+Besides calling `expect_*` directly, you can also use generic conversion traits:
+
+- [`phper::values::FromZVal`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs): converts from `&ZVal`.
+- [`phper::values::FromZValMut`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs): converts from `&mut ZVal`.
+
+And call [`phper::values::ZVal::expect_type`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs) /
+[`phper::values::ZVal::expect_mut_type`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs) to perform conversion.
+
+```rust,no_run
+use phper::values::{FromZVal, FromZValMut, ZVal};
+
+fn expect_immutable<'a, T: FromZVal<'a>>(val: &'a ZVal) -> phper::Result<T> {
+    val.expect_type()
+}
+
+fn expect_mutable<'a, T: FromZValMut<'a>>(val: &'a mut ZVal) -> phper::Result<T> {
+    val.expect_mut_type()
+}
+
+fn demo() -> phper::Result<()> {
+    let z = ZVal::from(123i64);
+    let immutable: i64 = expect_immutable(&z)?;
+    assert_eq!(immutable, 123);
+
+    let mut z = ZVal::from(456i64);
+    let mutable: &mut i64 = expect_mutable(&mut z)?;
+    *mutable += 1;
+    assert_eq!(z.expect_long()?, 457);
+
+    Ok(())
+}
+```
+
+## Value copy & reference counting copy
+
+The [`phper::values::ZVal`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs) both implements [`std::clone::Clone`](https://doc.rust-lang.org/std/clone/trait.Clone.html) and
+[`phper::alloc::RefClone`](https://github.com/phper-framework/phper/blob/master/phper-alloc/src/lib.rs).
+
+- [`std::clone::Clone`](https://doc.rust-lang.org/std/clone/trait.Clone.html): represent value copy (Type ZObject is excluded because it is always passed by reference).
+
+- [`phper::alloc::RefClone`](https://github.com/phper-framework/phper/blob/master/phper-alloc/src/lib.rs): represent reference counting copy (Type (), bool,
+  i64, f64 is excluded because they are not reference counting types).
+
+## PHP internal cast
+
+> Refer to: <https://www.phpinternalsbook.com/php7/zvals/casts_and_operations.html#casts>
+
+PHP is a weakly typed language, yet it supports type casting internally.
+
+The zend engine provides `convert_to_*` functions to do the type cast, and
+`ZVal` wraps them directly.
+
+## Callable
+
+The [`phper::values::ZVal`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs) can be called via [`phper::values::ZVal::call`](https://github.com/phper-framework/phper/blob/master/phper/src/values.rs). Make
+sure that the actual type is callable (string, array or closure).
+
+```rust,no_run
+use phper::values::ZVal;
+use phper::arrays::ZArray;
+
+let mut arr = ZArray::new();
+arr.insert("a", ZVal::from(1));
+arr.insert("b", ZVal::from(2));
+let ret = ZVal::from("json_encode").call(&mut [ZVal::from(arr)]).unwrap();
+assert_eq!(ret.expect_z_str().unwrap().to_str(), Ok(r#"{"a":1,"b":2}"#));
+```

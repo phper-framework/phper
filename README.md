@@ -19,8 +19,9 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 ## Documentation & Tutorial
 
-- Documentation: <https://docs.rs/phper>
-- Tutorial: <https://docs.rs/phper-doc/>
+- Website: <https://phper-framework.github.io/phper/>
+- Tutorial: <https://phper-framework.github.io/phper/docs/>
+- API documentation: <https://docs.rs/phper>
 
 ## Requirement
 

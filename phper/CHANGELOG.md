@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0](https://github.com/phper-framework/phper/compare/phper-v0.17.5...phper-v0.18.0) - 2026-11-17
+
+### Added
+
+- add typed static properties ([#251](https://github.com/phper-framework/phper/pull/251))
+- [**breaking**] add union types to arguments and returns ([#250](https://github.com/phper-framework/phper/pull/250))
+- add typed and readonly class properties ([#249](https://github.com/phper-framework/phper/pull/249))
+- [**breaking**] support defaults on class and untyped args ([#248](https://github.com/phper-framework/phper/pull/248))
+- add ClassEntity::set_final to declare a class final ([#246](https://github.com/phper-framework/phper/pull/246))
+
+### Fixed
+
+- pass log messages as an argument, not a format ([#265](https://github.com/phper-framework/phper/pull/265))
+- declare iterable arguments untyped on PHP 7.0 ([#263](https://github.com/phper-framework/phper/pull/263))
+- prevent abort when a required argument follows an optional one ([#244](https://github.com/phper-framework/phper/pull/244))
+
+### Other
+
+- *(deps)* update all dependencies ([#257](https://github.com/phper-framework/phper/pull/257))
+- split version-independent checks into a lint job ([#245](https://github.com/phper-framework/phper/pull/245))
+- Revert materialize_missing feature, refactor CI workflow ([#243](https://github.com/phper-framework/phper/pull/243))
+
 ## [0.17.5](https://github.com/phper-framework/phper/compare/phper-v0.17.4...phper-v0.17.5) - 2026-06-26
 
 ### Other
