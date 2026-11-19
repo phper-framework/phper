@@ -8,7 +8,10 @@
 // NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use bindgen::Builder;
+use bindgen::{
+    Builder,
+    callbacks::{DeriveTrait, ImplementsTrait, ParseCallbacks},
+};
 use std::{env, ffi::OsStr, fmt::Debug, path::PathBuf, process::Command};
 
 fn main() {
@@ -58,6 +61,19 @@ fn main() {
         builder = builder.allowlist_file(p.display().to_string());
     }
 
+    // PHP 8.6 built by clang declares opcode handlers `preserve_none`, which
+    // has no Rust ABI, and bindgen panics on it. Nothing in Rust can call a
+    // handler, so make it the `const void *` that gcc builds already get.
+    let vernum: u32 = execute_command(&[php_config.as_str(), "--vernum"])
+        .parse()
+        .unwrap();
+    if vernum >= 80600 {
+        builder = builder
+            .blocklist_type("zend_vm_opcode_handler_t")
+            .raw_line("pub type zend_vm_opcode_handler_t = *const ::std::os::raw::c_void;")
+            .parse_callbacks(Box::new(OpaqueOpcodeHandler));
+    }
+
     let generated_path = out_path.join("php_bindings.rs");
 
     builder
@@ -65,6 +81,25 @@ fn main() {
         .expect("Unable to generate bindings")
         .write_to_file(generated_path)
         .expect("Unable to write output file");
+}
+
+/// Without this, `_zend_op` and every struct holding one lose their derives,
+/// since bindgen assumes a blocklisted type implements nothing.
+#[derive(Debug)]
+struct OpaqueOpcodeHandler;
+
+impl ParseCallbacks for OpaqueOpcodeHandler {
+    fn blocklisted_type_implements_trait(
+        &self, name: &str, derive_trait: DeriveTrait,
+    ) -> Option<ImplementsTrait> {
+        if name != "zend_vm_opcode_handler_t" {
+            return None;
+        }
+        Some(match derive_trait {
+            DeriveTrait::Default => ImplementsTrait::Manually,
+            _ => ImplementsTrait::Yes,
+        })
+    }
 }
 
 fn execute_command<S: AsRef<OsStr> + Debug>(argv: &[S]) -> String {
