@@ -12,7 +12,7 @@ use bindgen::{
     Builder,
     callbacks::{DeriveTrait, ImplementsTrait, ParseCallbacks},
 };
-use std::{env, ffi::OsStr, fmt::Debug, path::PathBuf, process::Command};
+use std::{env, ffi::OsStr, fmt::Debug, fs, path::PathBuf, process::Command};
 
 fn main() {
     println!("cargo:rerun-if-changed=php_wrapper.c");
@@ -61,13 +61,18 @@ fn main() {
         builder = builder.allowlist_file(p.display().to_string());
     }
 
-    // PHP 8.6 built by clang declares opcode handlers `preserve_none`, which
-    // has no Rust ABI, and bindgen panics on it. Nothing in Rust can call a
-    // handler, so make it the `const void *` that gcc builds already get.
-    let vernum: u32 = execute_command(&[php_config.as_str(), "--vernum"])
-        .parse()
-        .unwrap();
-    if vernum >= 80600 {
+    // From PHP 8.5, a build where configure finds `preserve_none` may declare
+    // opcode handlers with it. It has no Rust ABI, and bindgen panics on it.
+    // Nothing in Rust can call a handler, so make it the `const void *` that
+    // HYBRID builds already get.
+    let include_dir = execute_command(&[php_config.as_str(), "--include-dir"]);
+    let php_config_h =
+        fs::read_to_string(PathBuf::from(include_dir).join("main/php_config.h")).unwrap();
+    if php_config_h.lines().any(|line| {
+        line.split_whitespace()
+            .take(2)
+            .eq(["#define", "HAVE_PRESERVE_NONE"])
+    }) {
         builder = builder
             .blocklist_type("zend_vm_opcode_handler_t")
             .raw_line("pub type zend_vm_opcode_handler_t = *const ::std::os::raw::c_void;")
