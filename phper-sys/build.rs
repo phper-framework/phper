@@ -10,9 +10,12 @@
 
 use bindgen::{
     Builder,
-    callbacks::{DeriveTrait, ImplementsTrait, ParseCallbacks},
+    callbacks::{DeriveTrait, ImplementsTrait, IntKind, ParseCallbacks},
 };
-use std::{env, ffi::OsStr, fmt::Debug, fs, path::PathBuf, process::Command};
+use std::{
+    cell::RefCell, collections::HashMap, env, ffi::OsStr, fmt::Debug, path::PathBuf,
+    process::Command, rc::Rc,
+};
 
 fn main() {
     println!("cargo:rerun-if-changed=php_wrapper.c");
@@ -61,22 +64,77 @@ fn main() {
         builder = builder.allowlist_file(p.display().to_string());
     }
 
-    // From PHP 8.5, a build where configure finds `preserve_none` may declare
-    // opcode handlers with it. It has no Rust ABI, and bindgen panics on it.
-    // Nothing in Rust can call a handler, so make it the `const void *` that
-    // HYBRID builds already get.
-    let include_dir = execute_command(&[php_config.as_str(), "--include-dir"]);
-    let php_config_h =
-        fs::read_to_string(PathBuf::from(include_dir).join("main/php_config.h")).unwrap();
-    if php_config_h.lines().any(|line| {
-        line.split_whitespace()
-            .take(2)
-            .eq(["#define", "HAVE_PRESERVE_NONE"])
-    }) {
+    let macros = int_macros(&includes);
+    let php_version_id = *macros
+        .get("PHP_VERSION_ID")
+        .expect("PHP_VERSION_ID not defined by php.h");
+
+    // From PHP 8.5, the tail-call VM declares opcode handlers `preserve_none`.
+    // It has no Rust ABI, and bindgen panics on it. Nothing in Rust can call a
+    // handler, so make it the `const void *` that HYBRID builds already get.
+    // `Zend/zend_vm_opcodes.h` picks the VM, so ask clang what it picked.
+    let vm_kind = macros.get("ZEND_VM_KIND");
+    if vm_kind.is_some() && vm_kind == macros.get("ZEND_VM_KIND_TAILCALL") {
         builder = builder
             .blocklist_type("zend_vm_opcode_handler_t")
             .raw_line("pub type zend_vm_opcode_handler_t = *const ::std::os::raw::c_void;")
             .parse_callbacks(Box::new(OpaqueOpcodeHandler));
+    }
+
+    let mut renamed: Vec<(&str, &[&str])> = Vec::new();
+    if php_version_id >= 80500 {
+        renamed.push((
+            "zend_hash_key_type",
+            &[
+                "HASH_KEY_IS_STRING",
+                "HASH_KEY_IS_LONG",
+                "HASH_KEY_NON_EXISTENT",
+            ],
+        ));
+    }
+    if php_version_id >= 80600 {
+        renamed.push((
+            "zend_function_type",
+            &[
+                "ZEND_INTERNAL_FUNCTION",
+                "ZEND_USER_FUNCTION",
+                "ZEND_EVAL_CODE",
+            ],
+        ));
+        renamed.push((
+            "zend_class_type",
+            &["ZEND_INTERNAL_CLASS", "ZEND_USER_CLASS"],
+        ));
+        renamed.push((
+            "zpp_error",
+            &[
+                "ZPP_ERROR_OK",
+                "ZPP_ERROR_FAILURE",
+                "ZPP_ERROR_WRONG_CALLBACK",
+                "ZPP_ERROR_WRONG_CLASS",
+                "ZPP_ERROR_WRONG_CLASS_OR_NULL",
+                "ZPP_ERROR_WRONG_CLASS_OR_STRING",
+                "ZPP_ERROR_WRONG_CLASS_OR_STRING_OR_NULL",
+                "ZPP_ERROR_WRONG_CLASS_OR_LONG",
+                "ZPP_ERROR_WRONG_CLASS_OR_LONG_OR_NULL",
+                "ZPP_ERROR_WRONG_ARG",
+                "ZPP_ERROR_UNEXPECTED_EXTRA_NAMED",
+                "ZPP_ERROR_WRONG_CALLBACK_OR_NULL",
+            ],
+        ));
+        builder = builder
+            .raw_line("pub type ZEND_RESULT_CODE = zend_result;")
+            .raw_line("pub const ZEND_RESULT_CODE_SUCCESS: ZEND_RESULT_CODE = zend_result_SUCCESS;")
+            .raw_line(
+                "pub const ZEND_RESULT_CODE_FAILURE: ZEND_RESULT_CODE = zend_result_FAILURE;",
+            );
+    }
+    for (enum_name, names) in renamed {
+        for name in names {
+            builder = builder.raw_line(format!(
+                "pub const {name}: u32 = {enum_name}_{name} as u32;"
+            ));
+        }
     }
 
     let generated_path = out_path.join("php_bindings.rs");
@@ -86,6 +144,30 @@ fn main() {
         .expect("Unable to generate bindings")
         .write_to_file(generated_path)
         .expect("Unable to write output file");
+}
+
+/// Integer macros as clang evaluates them with these include flags, so they
+/// reflect `php_config.h` and the compiler checks in the headers.
+fn int_macros(includes: &[&str]) -> HashMap<String, i64> {
+    let macros = Rc::new(RefCell::new(HashMap::new()));
+    Builder::default()
+        .header("php_wrapper.c")
+        .allowlist_var("PHP_VERSION_ID")
+        .clang_args(includes)
+        .parse_callbacks(Box::new(IntMacros(macros.clone())))
+        .generate()
+        .expect("Unable to read macros from the PHP headers");
+    macros.take()
+}
+
+#[derive(Debug)]
+struct IntMacros(Rc<RefCell<HashMap<String, i64>>>);
+
+impl ParseCallbacks for IntMacros {
+    fn int_macro(&self, name: &str, value: i64) -> Option<IntKind> {
+        self.0.borrow_mut().insert(name.to_owned(), value);
+        None
+    }
 }
 
 /// Without this, `_zend_op` and every struct holding one lose their derives,

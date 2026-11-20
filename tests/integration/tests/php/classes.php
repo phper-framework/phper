@@ -85,6 +85,9 @@ class Foo2 extends IntegrationTest\Foo {}
 $foo2 = new Foo2();
 assert_eq($foo2->current(), 'Current: 0');
 
+assert_eq(integrate_classes_class_type(IntegrationTest\Foo::class), "internal");
+assert_eq(integrate_classes_class_type(Foo2::class), "user");
+
 // Test Stringable implementation.
 if (PHP_VERSION_ID >= 80000) {
     assert_eq(((string) (new IntegrationTest\FooString())), 'string');

@@ -21,7 +21,6 @@ use crate::{
     strings::{ZStr, ZString},
     sys::*,
     types::TypeInfo,
-    utils::{ZEND_EVAL_CODE, ZEND_USER_FUNCTION},
 };
 use phper_alloc::RefClone;
 use std::{

@@ -11,7 +11,6 @@
 //! Apis relate to [zend_ini_entry_def].
 
 use crate::sys::*;
-use cfg_if::cfg_if;
 use std::{
     ffi::{CStr, c_int},
     mem::zeroed,
@@ -84,28 +83,6 @@ impl IntoIniValue for String {
     }
 }
 
-cfg_if! {
-    // `orig` became a `bool` in PHP 8.6.
-    if #[cfg(any(
-        phper_major_version = "7",
-        all(
-            phper_major_version = "8",
-            any(
-                phper_minor_version = "0",
-                phper_minor_version = "1",
-                phper_minor_version = "2",
-                phper_minor_version = "3",
-                phper_minor_version = "4",
-                phper_minor_version = "5",
-            )
-        )
-    ))] {
-        const ORIG: i32 = 0;
-    } else {
-        const ORIG: bool = false;
-    }
-}
-
 /// The Type which can transform from an ini key name.
 ///
 /// For php7, the zend_ini_* functions receive ini name as `*mut c_char`, but I
@@ -128,7 +105,8 @@ impl FromIniValue for i64 {
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_long(name_ptr, name.len().try_into().unwrap(), ORIG)
+            // `orig` is a `c_int` before PHP 8.6 and a `bool` from 8.6.
+            zend_ini_long(name_ptr, name.len().try_into().unwrap(), Default::default())
         }
     }
 }
@@ -138,7 +116,7 @@ impl FromIniValue for f64 {
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_double(name_ptr, name.len().try_into().unwrap(), ORIG)
+            zend_ini_double(name_ptr, name.len().try_into().unwrap(), Default::default())
         }
     }
 }
@@ -148,8 +126,12 @@ impl FromIniValue for Option<&CStr> {
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            let ptr =
-                zend_ini_string_ex(name_ptr, name.len().try_into().unwrap(), ORIG, null_mut());
+            let ptr = zend_ini_string_ex(
+                name_ptr,
+                name.len().try_into().unwrap(),
+                Default::default(),
+                null_mut(),
+            );
             (!ptr.is_null()).then(|| CStr::from_ptr(ptr))
         }
     }

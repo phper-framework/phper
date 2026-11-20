@@ -22,7 +22,7 @@ use crate::{
     strings::{ZStr, ZString},
     sys::*,
     types::{ArgumentTypeHint, ReturnTypeHint},
-    utils::{ZEND_EVAL_CODE, ZEND_USER_FUNCTION, ensure_end_with_zero},
+    utils::ensure_end_with_zero,
     values::{ExecuteData, ZVal},
 };
 use phper_alloc::ToRefOwned;
@@ -648,8 +648,10 @@ impl ZFunc {
         unsafe { (self.inner.op_array.fn_flags & ZEND_ACC_STATIC) != 0 }
     }
 
-    /// Get the type of the function (sys::ZEND_USER_FUNCTION,
-    /// sys::ZEND_INTERNAL_FUNCTION, or sys::ZEND_EVAL_CODE).
+    /// Get the type of the function
+    /// ([`sys::ZEND_USER_FUNCTION`](crate::sys::ZEND_USER_FUNCTION),
+    /// [`sys::ZEND_INTERNAL_FUNCTION`](crate::sys::ZEND_INTERNAL_FUNCTION), or
+    /// [`sys::ZEND_EVAL_CODE`](crate::sys::ZEND_EVAL_CODE)).
     pub fn get_type(&self) -> u32 {
         unsafe { self.inner.type_ as u32 }
     }
@@ -733,35 +735,7 @@ impl ZFunc {
                     .map(|o| o.get_mut_class().as_mut_ptr())
                     .unwrap_or(null_mut());
 
-                // PHP 8.6 made `zend_call_known_function` a static inline
-                // wrapper over `_ex`, which bindgen cannot see.
-                #[cfg(not(any(
-                    phper_minor_version = "0",
-                    phper_minor_version = "1",
-                    phper_minor_version = "2",
-                    phper_minor_version = "3",
-                    phper_minor_version = "4",
-                    phper_minor_version = "5",
-                )))]
-                zend_call_known_function_ex(
-                    function_handler,
-                    object_ptr,
-                    class_ptr,
-                    ret.as_mut_ptr(),
-                    arguments.len() as u32,
-                    arguments.as_mut_ptr().cast(),
-                    null_mut(),
-                    0,
-                );
-                #[cfg(any(
-                    phper_minor_version = "0",
-                    phper_minor_version = "1",
-                    phper_minor_version = "2",
-                    phper_minor_version = "3",
-                    phper_minor_version = "4",
-                    phper_minor_version = "5",
-                ))]
-                zend_call_known_function(
+                phper_zend_call_known_function(
                     function_handler,
                     object_ptr,
                     class_ptr,
