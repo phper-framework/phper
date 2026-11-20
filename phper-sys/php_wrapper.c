@@ -490,6 +490,18 @@ bool phper_call_user_function(HashTable *function_table, zval *object,
                               param_count, params) == SUCCESS;
 }
 
+#if PHP_VERSION_ID >= 80000
+// zend_call_known_function is static inline from 8.6, so bindgen does not see
+// it there.
+void phper_zend_call_known_function(zend_function *fn, zend_object *object,
+                                    zend_class_entry *called_scope,
+                                    zval *retval_ptr, uint32_t param_count,
+                                    zval *params, HashTable *named_params) {
+    zend_call_known_function(fn, object, called_scope, retval_ptr, param_count,
+                             params, named_params);
+}
+#endif
+
 zval *phper_zend_call_var_num(zend_execute_data *execute_data, int index) {
     return ZEND_CALL_VAR_NUM(execute_data, index);
 }

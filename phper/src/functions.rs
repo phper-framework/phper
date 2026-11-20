@@ -385,13 +385,13 @@ impl FunctionEntry {
 
         let flags = visibility.unwrap_or(Visibility::default() as u32);
 
-        #[allow(clippy::needless_update)]
+        #[allow(clippy::needless_update, clippy::useless_conversion)]
         zend_function_entry {
             fname: name.as_ptr().cast(),
             handler: raw_handler,
             arg_info: Box::into_raw(infos.into_boxed_slice()).cast(),
             num_args: arguments.len() as u32,
-            flags,
+            flags: flags.into(),
             ..Default::default()
         }
     }
@@ -648,8 +648,10 @@ impl ZFunc {
         unsafe { (self.inner.op_array.fn_flags & ZEND_ACC_STATIC) != 0 }
     }
 
-    /// Get the type of the function (sys::ZEND_USER_FUNCTION,
-    /// sys::ZEND_INTERNAL_FUNCTION, or sys::ZEND_EVAL_CODE).
+    /// Get the type of the function
+    /// ([`sys::ZEND_USER_FUNCTION`](crate::sys::ZEND_USER_FUNCTION),
+    /// [`sys::ZEND_INTERNAL_FUNCTION`](crate::sys::ZEND_INTERNAL_FUNCTION), or
+    /// [`sys::ZEND_EVAL_CODE`](crate::sys::ZEND_EVAL_CODE)).
     pub fn get_type(&self) -> u32 {
         unsafe { self.inner.type_ as u32 }
     }
@@ -733,7 +735,7 @@ impl ZFunc {
                     .map(|o| o.get_mut_class().as_mut_ptr())
                     .unwrap_or(null_mut());
 
-                zend_call_known_function(
+                phper_zend_call_known_function(
                     function_handler,
                     object_ptr,
                     class_ptr,

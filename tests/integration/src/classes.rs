@@ -13,6 +13,7 @@ use phper::{
     classes::{ClassEntity, ClassEntry, Interface, InterfaceEntity, StateClass, Visibility},
     functions::{Argument, ReturnType},
     modules::Module,
+    sys,
     types::{ArgumentTypeHint, PropertyTypeHint, ReturnTypeHint},
     values::ZVal,
 };
@@ -27,6 +28,7 @@ pub fn integrate(module: &mut Module) {
     integrate_bar_extends_foo(module, foo_class);
     integrate_dependent_classes(module);
     integrate_final_class(module);
+    integrate_class_type(module);
     integrate_typed_properties(module);
     integrate_readonly_properties(module);
     #[cfg(phper_major_version = "8")]
@@ -294,6 +296,20 @@ fn integrate_final_class(module: &mut Module) {
 
     // Control for the `final` assertions: same shape, flag not set.
     module.add_class(ClassEntity::new(r"IntegrationTest\NonFinalClass"));
+}
+
+fn integrate_class_type(module: &mut Module) {
+    module
+        .add_function("integrate_classes_class_type", |arguments| {
+            let name = arguments[0].expect_z_str()?.to_str()?;
+            let ce = ClassEntry::from_globals(name)?;
+            Ok::<_, phper::Error>(match unsafe { (*ce.as_ptr()).type_ } as u32 {
+                sys::ZEND_INTERNAL_CLASS => "internal",
+                sys::ZEND_USER_CLASS => "user",
+                _ => "unknown",
+            })
+        })
+        .argument(Argument::new("name"));
 }
 
 fn integrate_typed_properties(module: &mut Module) {

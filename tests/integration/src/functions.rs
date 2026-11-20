@@ -13,7 +13,8 @@ use phper::{
     errors::throw,
     functions::{Argument, call},
     modules::Module,
-    values::ZVal,
+    sys,
+    values::{ExecuteData, ZVal},
 };
 use std::{convert::Infallible, io};
 
@@ -57,6 +58,33 @@ pub fn integrate(module: &mut Module) {
         }
         let e = call("integrate_functions_throw_error_exception", []).unwrap_err();
         assert_eq!(e.to_string(), "throw error exception");
+        Ok::<_, Infallible>(())
+    });
+
+    module.add_function("integrate_functions_caller_type", |_| {
+        let caller = unsafe {
+            let current = phper::eg!(current_execute_data);
+            ExecuteData::from_ptr((*current).prev_execute_data)
+        };
+        Ok::<_, Infallible>(match caller.func().get_type() {
+            sys::ZEND_INTERNAL_FUNCTION => "internal",
+            sys::ZEND_USER_FUNCTION => "user",
+            sys::ZEND_EVAL_CODE => "eval",
+            _ => "unknown",
+        })
+    });
+
+    module.add_function("integrate_functions_result_codes", |_| {
+        unsafe {
+            assert_eq!(
+                sys::ZEND_RESULT_CODE_SUCCESS,
+                sys::phper_zend_result_success()
+            );
+            assert_eq!(
+                sys::ZEND_RESULT_CODE_FAILURE,
+                sys::phper_zend_result_failure()
+            );
+        }
         Ok::<_, Infallible>(())
     });
 }

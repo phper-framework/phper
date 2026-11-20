@@ -105,7 +105,8 @@ impl FromIniValue for i64 {
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_long(name_ptr, name.len().try_into().unwrap(), 0)
+            // `orig` is a `c_int` before PHP 8.6 and a `bool` from 8.6.
+            zend_ini_long(name_ptr, name.len().try_into().unwrap(), Default::default())
         }
     }
 }
@@ -115,7 +116,7 @@ impl FromIniValue for f64 {
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            zend_ini_double(name_ptr, name.len().try_into().unwrap(), 0)
+            zend_ini_double(name_ptr, name.len().try_into().unwrap(), Default::default())
         }
     }
 }
@@ -125,7 +126,12 @@ impl FromIniValue for Option<&CStr> {
     fn from_ini_value(name: &str) -> Self {
         unsafe {
             let name_ptr = name.as_ptr() as *mut u8 as *mut c_char;
-            let ptr = zend_ini_string_ex(name_ptr, name.len().try_into().unwrap(), 0, null_mut());
+            let ptr = zend_ini_string_ex(
+                name_ptr,
+                name.len().try_into().unwrap(),
+                Default::default(),
+                null_mut(),
+            );
             (!ptr.is_null()).then(|| CStr::from_ptr(ptr))
         }
     }
