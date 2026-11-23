@@ -24,3 +24,11 @@ assert_throw(function() {
 }, "RuntimeException", 403, "oh no");
 
 assert_throw("integrate_functions_exception_guard", "ErrorException", 0, "other io error");
+
+assert_eq(integrate_functions_caller_type(), "user");
+assert_eq(eval("return integrate_functions_caller_type();"), "eval");
+// A literal call_user_func() is compiled to a direct call, so call it by name.
+$call_user_func = "call_user_func";
+assert_eq($call_user_func("integrate_functions_caller_type"), "internal");
+
+integrate_functions_result_codes();

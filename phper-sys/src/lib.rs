@@ -22,7 +22,8 @@
     clippy::useless_transmute,
     clippy::redundant_static_lifetimes,
     clippy::unreadable_literal,
-    clippy::ptr_offset_with_cast
+    clippy::ptr_offset_with_cast,
+    clippy::unnecessary_cast
 )]
 // TODO unsafe_op_in_unsafe_fn warning in edition 2024, temporary suppression.
 #![allow(unsafe_op_in_unsafe_fn)]
