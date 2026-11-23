@@ -2,7 +2,7 @@
 name = "phper-alloc"
 description = "Alloc related items for phper crate."
 keywords = ["php", "alloc"]
-version = "0.16.4"
+version = "0.17.0"
 authors = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
