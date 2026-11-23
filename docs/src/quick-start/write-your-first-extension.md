@@ -6,6 +6,8 @@ Full example is <https://github.com/phper-framework/phper/tree/master/examples/h
 
 ## Steps
 
+1. Install PHP 7.1 or later with its development headers and `php-config`.
+
 1. Make sure `libclang` is installed (required by [bindgen](https://rust-lang.github.io/rust-bindgen/requirements.html)).
 
    `phper` require libclang *9.0+*.

@@ -29,7 +29,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 
 - **rust** 1.85 or later
 - **libclang** 9.0 or later
-- **php** 7.0 or later
+- **php** 7.1 or later
 
 ### Tested Support
 
@@ -38,7 +38,7 @@ The framework that allows us to write PHP extensions using pure and safe Rust wh
 | **OS**          | Linux     | ✅         |
 |                 | macOS     | ✅         |
 |                 | Windows   | ❌         |
-| **PHP Version** | 7.0 ~ 7.4 | ✅         |
+| **PHP Version** | 7.1 ~ 7.4 | ✅         |
 |                 | 8.0 ~ 8.6 | ✅         |
 | **PHP Mode**    | NTS       | ✅         |
 |                 | ZTS       | ✅         |

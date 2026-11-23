@@ -67,7 +67,7 @@ function array_ksort($array) {
     return $array;
 }
 
-/* @var string $version Basic php version ('7.0', '8.4') */
+/* @var string $version Basic php version ('7.1', '8.4') */
 function php_at_least(string $version) {
     return version_compare(PHP_VERSION, $version, '>=');
 }

@@ -95,8 +95,7 @@ pub fn type_error_class<'a>() -> &'a ClassEntry {
     unsafe { ClassEntry::from_ptr(zend_ce_type_error) }
 }
 
-/// Predefined class `ArgumentCountError` (>= PHP 7.1.0).
-#[cfg(not(all(phper_major_version = "7", phper_minor_version = "0")))]
+/// Predefined class `ArgumentCountError`.
 #[inline]
 pub fn argument_count_error_class<'a>() -> &'a ClassEntry {
     unsafe { ClassEntry::from_ptr(zend_ce_argument_count_error) }
@@ -422,15 +421,7 @@ pub struct ArgumentCountError {
 
 impl Throwable for ArgumentCountError {
     fn get_class(&self) -> &ClassEntry {
-        #[cfg(not(all(phper_major_version = "7", phper_minor_version = "0")))]
-        {
-            argument_count_error_class()
-        }
-
-        #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
-        {
-            type_error_class()
-        }
+        argument_count_error_class()
     }
 }
 

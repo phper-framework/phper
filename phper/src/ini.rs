@@ -172,11 +172,7 @@ fn create_ini_entry_ex(name: &str, default_value: &str, modifiable: u32) -> zend
 
     #[cfg(all(
         phper_major_version = "7",
-        any(
-            phper_minor_version = "2",
-            phper_minor_version = "1",
-            phper_minor_version = "0",
-        )
+        any(phper_minor_version = "1", phper_minor_version = "2")
     ))]
     let (modifiable, name_length) = (modifiable as std::os::raw::c_int, name.len() as u32);
 

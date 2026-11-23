@@ -69,7 +69,6 @@ jobs:
       matrix:
         include:
           # Ubuntu - all PHP versions
-          - { os: ubuntu-26.04, php-version: "7.0", ts: false, debug: false, llvm: "22" }
           - { os: ubuntu-26.04, php-version: "7.1", ts: false, debug: false, llvm: "22" }
           - { os: ubuntu-26.04, php-version: "7.2", ts: false, debug: false, llvm: "22" }
           - { os: ubuntu-26.04, php-version: "7.3", ts: false, debug: false, llvm: "22" }

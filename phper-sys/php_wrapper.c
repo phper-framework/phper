@@ -11,6 +11,11 @@
 #include <stdbool.h>
 
 #include <php.h>
+
+#if PHP_VERSION_ID < 70100
+#error "PHPER requires PHP 7.1 or later"
+#endif
+
 #include <php_ini.h>
 
 #include <ext/standard/info.h>
@@ -40,14 +45,6 @@ phper_init_class_entry_handler(zend_class_entry *class_ce, void *argument);
 
 #ifndef IS_NEVER
 #define IS_NEVER 0x1B
-#endif
-
-#ifndef IS_ITERABLE
-#define IS_ITERABLE 0x1C
-#endif
-
-#ifndef IS_VOID
-#define IS_VOID 0x1D
 #endif
 
 #ifndef ZEND_CALL_MAY_HAVE_UNDEF
@@ -691,7 +688,7 @@ zend_internal_arg_info phper_zend_arg_info_with_type(bool pass_by_ref,
     zend_internal_arg_info info[] = {
         ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(pass_by_ref, name, type_hint, allow_null, default_value)
     };
-#elif PHP_VERSION_ID >= 70000
+#else
     zend_internal_arg_info info[] = {
         ZEND_ARG_TYPE_INFO(pass_by_ref, name, type_hint, allow_null)
     };

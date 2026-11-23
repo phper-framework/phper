@@ -13,15 +13,9 @@
 
 require_once __DIR__ . '/_common.php';
 
-if (PHP_VERSION_ID >= 70100) {
-    $argumentCountErrorName = "ArgumentCountError";
-} else {
-    $argumentCountErrorName = "TypeError";
-}
-
 assert_eq(integrate_arguments_null(null), null);
 
-assert_throw(function () { integrate_arguments_null(); }, $argumentCountErrorName, 0, "integrate_arguments_null(): expects at least 1 parameter(s), 0 given");
+assert_throw(function () { integrate_arguments_null(); }, "ArgumentCountError", 0, "integrate_arguments_null(): expects at least 1 parameter(s), 0 given");
 assert_throw(function () { integrate_arguments_null(1); }, "TypeError", 0, "type error: must be of type null, int given");
 
 assert_eq(integrate_arguments_long(1, 2), 3);
@@ -43,7 +37,7 @@ $obj->a = 1;
 assert_object(integrate_arguments_object($obj), "stdClass", ["a" => 1, "foo" => "bar"]);
 assert_throw(function () { integrate_arguments_object(1); }, "TypeError", 0, "type error: must be of type object, int given");
 
-assert_throw(function () { integrate_arguments_optional(); }, $argumentCountErrorName, 0, "integrate_arguments_optional(): expects at least 1 parameter(s), 0 given");
+assert_throw(function () { integrate_arguments_optional(); }, "ArgumentCountError", 0, "integrate_arguments_optional(): expects at least 1 parameter(s), 0 given");
 assert_eq(integrate_arguments_optional("foo"), "foo: false");
 assert_eq(integrate_arguments_optional("foo", true), "foo: true");
 assert_eq(integrate_arguments_optional("foo", true, "bar"), "foo: true");
@@ -63,13 +57,13 @@ foreach ($requiredAfterOptional as $function) {
         assert_false($param->isOptional());
     }
 
-    assert_throw(function () use ($function) { $function("foo"); }, $argumentCountErrorName, 0, sprintf("%s(): expects at least 3 parameter(s), 1 given", $function));
-    assert_throw(function () use ($function) { $function("foo", true); }, $argumentCountErrorName, 0, sprintf("%s(): expects at least 3 parameter(s), 2 given", $function));
+    assert_throw(function () use ($function) { $function("foo"); }, "ArgumentCountError", 0, sprintf("%s(): expects at least 3 parameter(s), 1 given", $function));
+    assert_throw(function () use ($function) { $function("foo", true); }, "ArgumentCountError", 0, sprintf("%s(): expects at least 3 parameter(s), 2 given", $function));
     assert_eq($function("foo", true, "bar"), "foo: true: bar");
 
     // eval() because named-argument syntax is a parse error before 8.0.
     if (PHP_VERSION_ID >= 80000) {
-        assert_throw(function () use ($function) { eval(sprintf('%s(a: "foo", b: true);', $function)); }, $argumentCountErrorName, 0, sprintf("%s(): expects at least 3 parameter(s), 2 given", $function));
+        assert_throw(function () use ($function) { eval(sprintf('%s(a: "foo", b: true);', $function)); }, "ArgumentCountError", 0, sprintf("%s(): expects at least 3 parameter(s), 2 given", $function));
         assert_eq(eval(sprintf('return %s(a: "foo", b: true, c: "bar");', $function)), "foo: true: bar");
     }
 }
