@@ -1,13 +1,3 @@
-dnl Copyright (c) 2022 PHPER Framework Team
-dnl PHPER is licensed under Mulan PSL v2.
-dnl You can use this software according to the terms and conditions of the Mulan
-dnl PSL v2. You may obtain a copy of Mulan PSL v2 at:
-dnl          http://license.coscl.org.cn/MulanPSL2
-dnl THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
-dnl KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-dnl NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-dnl See the Mulan PSL v2 for more details.
-
 PHP_ARG_ENABLE([hello],
   [whether to enable hello support],
   [AS_HELP_STRING([--enable-hello],
