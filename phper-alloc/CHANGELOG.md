@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0](https://github.com/phper-framework/phper/compare/phper-alloc-v0.16.4...phper-alloc-v0.17.0) - 2026-11-23
+
+### Added
+
+- [**breaking**] adopt triple licensing with MulanPSL-2.0, Apache-2.0, and MIT ([#277](https://github.com/phper-framework/phper/pull/277))
+
 ## [0.16.4](https://github.com/phper-framework/phper/compare/phper-alloc-v0.16.3...phper-alloc-v0.16.4) - 2026-11-17
 
 ### Other
