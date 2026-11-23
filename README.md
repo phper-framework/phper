@@ -8,7 +8,7 @@
 <a href="https://github.com/phper-framework/phper/actions/workflows/ci.yml"><img src="https://github.com/phper-framework/phper/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="https://crates.io/crates/phper"><img src="https://img.shields.io/crates/v/phper" alt="Crates"></a>
 <a href="https://docs.rs/phper"><img src="https://img.shields.io/docsrs/phper" alt="Docs"></a>
-<a href="https://github.com/phper-framework/phper/blob/master/LICENSE"><img src="https://img.shields.io/crates/l/phper" alt="License"></a>
+<a href="https://github.com/phper-framework/phper#license"><img src="https://img.shields.io/crates/l/phper" alt="License"></a>
 </p>
 
 </div>
@@ -59,4 +59,10 @@ See [examples](https://github.com/phper-framework/phper/tree/master/examples).
 
 ## License
 
-[MulanPSL-2.0](https://github.com/phper-framework/phper/blob/master/LICENSE).
+Licensed under your choice of:
+
+- [Mulan Permissive Software License, Version 2](https://github.com/phper-framework/phper/blob/master/LICENSE-MULAN) (`MulanPSL-2.0`)
+- [Apache License, Version 2.0](https://github.com/phper-framework/phper/blob/master/LICENSE-APACHE) (`Apache-2.0`)
+- [MIT License](https://github.com/phper-framework/phper/blob/master/LICENSE-MIT) (`MIT`)
+
+SPDX expression: `MulanPSL-2.0 OR Apache-2.0 OR MIT`.
