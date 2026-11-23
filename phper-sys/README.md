@@ -2,7 +2,8 @@
 
 Low level PHP binding for Rust.
 
-The php-config is needed. You can set environment `PHP_CONFIG` to specify the path.
+PHP 7.1 or later is required, along with `php-config`. Set the `PHP_CONFIG`
+environment variable to specify the path to `php-config`.
 
 ## License
 

@@ -303,11 +303,6 @@ impl FunctionEntry {
                             }
                         }
                     }
-                    ArgumentTypeHint::Iterable
-                        if PHP_MAJOR_VERSION == 7 && PHP_MINOR_VERSION == 0 =>
-                    {
-                        None
-                    }
                     ArgumentTypeHint::ClassEntry(class_name) => {
                         let c_class_name =
                             CString::new(class_name.clone()).expect("CString::new failed");
@@ -768,10 +763,6 @@ impl ZFunc {
                     object: object_ptr,
                     param_count: arguments.len() as u32,
                     no_separation: 1,
-                    #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
-                    function_table: null_mut(),
-                    #[cfg(all(phper_major_version = "7", phper_minor_version = "0"))]
-                    symbol_table: null_mut(),
                 };
 
                 let mut fcc = zend_fcall_info_cache {
@@ -781,11 +772,7 @@ impl ZFunc {
                     object: object_ptr,
                     #[cfg(all(
                         phper_major_version = "7",
-                        any(
-                            phper_minor_version = "2",
-                            phper_minor_version = "1",
-                            phper_minor_version = "0",
-                        )
+                        any(phper_minor_version = "1", phper_minor_version = "2")
                     ))]
                     initialized: 1,
                 };

@@ -22,7 +22,7 @@ assert_eq($value, 'foobar');
 
 $argumentTypehintProvider = [
     // <method>, <expected typehint>, <is nullable>, <is required>, <(optional)min php version>
-    ['testString', 'string', false, true, '7.1'],
+    ['testString', 'string', false, true],
     ['testStringOptional', 'string', false, false],
     ['testStringNullable', 'string', true, true],
 
@@ -52,9 +52,9 @@ $argumentTypehintProvider = [
     ['testObjectOptional', 'object', false, false, '7.2'],
     ['testObjectNullable', 'object', true, true, '7.2'],
 
-    ['testIterable', 'iterable', false, true, '7.1'],
-    ['testIterableOptional', 'iterable', false, false, '7.1'],
-    ['testIterableNullable', 'iterable', true, true, '7.1'],
+    ['testIterable', 'iterable', false, true],
+    ['testIterableOptional', 'iterable', false, false],
+    ['testIterableNullable', 'iterable', true, true],
 
     ['testNull', 'null', true, true, '8.2'],
 

@@ -93,8 +93,7 @@ modifiers that change that:
 | [`with_type_hint`](https://github.com/phper-framework/phper/blob/master/phper/src/functions.rs) / [`allow_null`](https://github.com/phper-framework/phper/blob/master/phper/src/functions.rs) | the declared type, and whether it accepts `null` |
 | [`by_ref`](https://github.com/phper-framework/phper/blob/master/phper/src/functions.rs) | pass by reference rather than by value |
 
-An argument type the running PHP does not have is declared untyped: `mixed`
-before PHP 8.0, and `iterable` on PHP 7.0.
+On PHP versions before 8.0, a `mixed` argument is declared without a type.
 
 Here we define a function that accepts a nullable class (in this case, an
 interface), a string with a default value, and an optional bool:
